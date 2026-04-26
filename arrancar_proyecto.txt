@@ -1,0 +1,12 @@
+# 1. Abre Docker Desktop (icono barra de tareas)
+
+# 2. Activa el venv
+ent_email\Scripts\activate
+
+# 3. Terminal A → Django
+python manage.py runserver
+
+# 4. Terminal B → ngrok con tu dominio fijo
+ngrok http --url=twilight-baking-viewing.ngrok-free.dev 8000
+
+# 5. Listo — la URL en SendGrid ya está bien, los correos llegan solos

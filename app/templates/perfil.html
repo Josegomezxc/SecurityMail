@@ -1,0 +1,1147 @@
+{% extends 'base.html' %}
+{% block title %}Mi perfil — SecureMail Shield{% endblock %}
+
+{% block nav_perfil %}active{% endblock %}
+{% block page_title %}Mi perfil{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  @keyframes fadeUp  { from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)} }
+  @keyframes dotPulse{ 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.85)} }
+  @keyframes barFill { from{width:0} }
+  @keyframes avatarIn{ from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)} }
+
+  :root {
+    --p:    #7c5cff;
+    --pl:   #a78bfa;
+    --ps:   rgba(124,92,255,0.12);
+    --pb:   rgba(124,92,255,0.28);
+    --danger:  #ef4444;
+    --warning: #f59e0b;
+    --success: #22c55e;
+    --display: 'Syne', sans-serif;
+    --mono:    'JetBrains Mono', monospace;
+  }
+
+  /* ─── PAGE HEADER ─── */
+  .page-header {
+    margin-bottom: 24px;
+    animation: fadeUp 0.4s cubic-bezier(.22,1,.36,1) both;
+  }
+  .page-header h1 {
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 800;
+    color: #f0eeff;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .page-header p {
+    font-size: 12.5px;
+    color: rgba(200,190,255,0.45);
+    font-family: var(--mono);
+  }
+
+  /* ─── ALERTS ─── */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-family: var(--mono);
+    margin-bottom: 16px;
+    border: 1px solid;
+    animation: fadeUp 0.3s cubic-bezier(.22,1,.36,1) both;
+  }
+  .alert-success { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2); color: #4ade80; }
+  .alert-error   { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2);  color: #f87171; }
+
+  /* ─── GRID ─── */
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 860px) { .profile-grid { grid-template-columns: 1fr; } }
+
+  /* ─── LEFT SIDEBAR ─── */
+  .profile-avatar-card {
+    background: linear-gradient(160deg, rgba(124,92,255,0.08) 0%, var(--bg-surface, #13111f) 55%);
+    border: 1px solid rgba(124,92,255,0.2);
+    border-radius: 20px;
+    padding: 32px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(124,92,255,0.06) inset;
+  }
+  .profile-avatar-card::before {
+    content: '';
+    position: absolute;
+    top: -60px; left: 50%;
+    transform: translateX(-50%);
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(124,92,255,0.14) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .big-avatar {
+    position: relative;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-size: 36px;
+    font-weight: 800;
+    color: white;
+    margin: 0 auto 18px;
+    z-index: 1;
+    box-shadow: 0 8px 28px rgba(124,92,255,0.45), 0 0 0 4px rgba(124,92,255,0.12);
+    animation: avatarIn 0.5s cubic-bezier(.22,1,.36,1) both;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .big-avatar:hover {
+    transform: scale(1.03);
+    box-shadow: 0 12px 36px rgba(124,92,255,0.55), 0 0 0 4px rgba(124,92,255,0.22);
+  }
+  .big-avatar img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  /* Botón flotante de editar sobre el avatar */
+  .avatar-edit-btn {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--p);
+    border: 3px solid var(--bg-surface, #13111f);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.15s, transform 0.15s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  }
+  .avatar-edit-btn:hover { background: #9b6dff; transform: scale(1.08); }
+  .avatar-edit-btn svg { width: 14px; height: 14px; }
+
+  /* Overlay con opciones (Subir foto / Quitar) */
+  .avatar-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-elevated, #1a1829);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 6px;
+    min-width: 200px;
+    z-index: 10;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    animation: menuIn 0.15s ease;
+  }
+  @keyframes menuIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .avatar-menu.open { display: block; }
+  .avatar-menu-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--text-primary, #f0eeff);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 8px;
+    text-align: left;
+    transition: background 0.12s;
+  }
+  .avatar-menu-item:hover { background: rgba(255,255,255,0.05); }
+  .avatar-menu-item.danger { color: #f87171; }
+  .avatar-menu-item.danger:hover { background: rgba(239,68,68,0.08); }
+  .avatar-menu-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
+  .avatar-menu-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 6px; }
+
+  /* ─── MODAL DE PREVISUALIZACIÓN DEL AVATAR (estilo welcome modal) ─── */
+  #avatarPreviewOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  #avatarPreviewOverlay.visible {
+    display: flex;
+    animation: fadeUp 0.35s cubic-bezier(.22,1,.36,1) both;
+  }
+  .avatar-preview-modal {
+    position: relative;
+    background: linear-gradient(160deg, #1a1435 0%, #0f0f1a 100%);
+    border: 1px solid var(--pb, rgba(124,92,255,0.28));
+    border-radius: 24px;
+    padding: 28px;
+    max-width: 400px;
+    width: calc(100% - 40px);
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,92,255,0.08) inset;
+    overflow: hidden;
+  }
+  .avatar-preview-modal::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: -80px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(124,92,255,0.14) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .avatar-preview-modal img {
+    display: block;
+    width: 320px;
+    height: 320px;
+    max-width: calc(80vw - 40px);
+    max-height: 60vh;
+    margin: 0 auto;
+    object-fit: cover;
+    border-radius: 18px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,92,255,0.18);
+    position: relative;
+    z-index: 1;
+  }
+  .avatar-preview-caption {
+    margin-top: 16px;
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    color: #f0eeff;
+    letter-spacing: -0.01em;
+    position: relative;
+    z-index: 1;
+  }
+  .avatar-preview-sub {
+    margin-top: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(200,190,255,0.45);
+    letter-spacing: 0.04em;
+    position: relative;
+    z-index: 1;
+  }
+  .avatar-preview-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(240,238,255,0.8);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
+    z-index: 2;
+  }
+  .avatar-preview-close:hover {
+    background: rgba(239,68,68,0.15);
+    border-color: rgba(239,68,68,0.3);
+    color: #f87171;
+    transform: scale(1.06);
+  }
+  .avatar-preview-close svg { width: 16px; height: 16px; }
+
+  .avatar-hint {
+    font-size: 10.5px;
+    color: rgba(200,190,255,0.45);
+    font-family: var(--mono);
+    margin-bottom: 10px;
+    position: relative; z-index: 1;
+  }
+
+  .profile-name {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 800;
+    color: #f0eeff;
+    margin-bottom: 5px;
+    position: relative; z-index: 1;
+    letter-spacing: -0.01em;
+  }
+  .profile-email {
+    font-size: 11.5px;
+    color: rgba(200,190,255,0.45);
+    font-family: var(--mono);
+    position: relative; z-index: 1;
+  }
+
+  /* online badge */
+  .profile-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 600;
+    color: #4ade80;
+    margin-top: 10px;
+    position: relative; z-index: 1;
+    letter-spacing: 0.05em;
+  }
+  .profile-badge-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #4ade80;
+    animation: dotPulse 2s ease-in-out infinite;
+  }
+
+  /* stats row */
+  .profile-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: relative; z-index: 1;
+  }
+  .ps-item { text-align: center; }
+  .ps-val {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .ps-lbl {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .ps-divider {
+    width: 1px;
+    background: rgba(255,255,255,0.06);
+    align-self: stretch;
+  }
+
+  /* security meter */
+  .security-meter {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    text-align: left;
+    position: relative; z-index: 1;
+  }
+  .sec-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .sec-title {
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: rgba(255,255,255,0.35);
+  }
+  .sec-level {
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .sec-level.high   { background: rgba(34,197,94,0.1);  color: #4ade80;  border: 1px solid rgba(34,197,94,0.2); }
+  .sec-level.medium { background: rgba(245,158,11,0.1); color: #fbbf24;  border: 1px solid rgba(245,158,11,0.2); }
+  .sec-level.low    { background: rgba(239,68,68,0.1);  color: #f87171;  border: 1px solid rgba(239,68,68,0.2); }
+  .sec-bar-wrap {
+    height: 7px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .sec-bar {
+    height: 100%;
+    border-radius: 10px;
+    animation: barFill 1s cubic-bezier(.22,1,.36,1) both;
+    animation-delay: 0.3s;
+  }
+  .sec-bar.high   { background: linear-gradient(90deg, #22c55e, #4ade80); }
+  .sec-bar.medium { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .sec-bar.low    { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .sec-hint {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    font-family: var(--mono);
+    line-height: 1.5;
+  }
+
+  /* member since card */
+  .member-card {
+    background: var(--bg-surface, #13111f);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-top: 16px;
+    animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) 0.1s both;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .member-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--ps);
+    border: 1px solid var(--pb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .member-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 3px;
+  }
+  .member-date {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
+    color: #f0eeff;
+  }
+
+  /* ─── RIGHT COLUMN PANELS ─── */
+  .profile-panel {
+    background: var(--bg-surface, #13111f);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 18px;
+    overflow: hidden;
+    animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    margin-bottom: 16px;
+  }
+  .profile-panel:last-child { margin-bottom: 0; }
+
+  .panel-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel-header-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .panel-header-title {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
+    color: #f0eeff;
+    letter-spacing: -0.01em;
+  }
+  .panel-body { padding: 22px 24px; }
+
+  /* ─── FORM ELEMENTS ─── */
+  .form-group { margin-bottom: 18px; }
+  .form-group:last-of-type { margin-bottom: 0; }
+
+  .form-label {
+    display: block;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 8px;
+  }
+  .form-control {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 11px;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    font-family: var(--mono);
+    color: #f0eeff;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    box-sizing: border-box;
+  }
+  .form-control:focus {
+    border-color: rgba(124,92,255,0.5);
+    background: rgba(124,92,255,0.06);
+    box-shadow: 0 0 0 3px rgba(124,92,255,0.12);
+  }
+  .form-control:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(255,255,255,0.02);
+  }
+  .form-control::placeholder { color: rgba(255,255,255,0.2); }
+
+  /* Eye toggle wrapper */
+  .input-eye-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .input-eye-wrap .form-control {
+    padding-right: 44px;
+  }
+  .eye-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255,255,255,0.3);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+    flex-shrink: 0;
+  }
+  .eye-btn:hover {
+    color: var(--pl);
+    background: rgba(124,92,255,0.1);
+  }
+
+  /* Email display (non-editable) */
+  .email-display-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 11px;
+    padding: 11px 14px;
+  }
+  .email-icon { flex-shrink: 0; }
+  .email-display-val {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: rgba(240,238,255,0.7);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .email-display-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 6px;
+    padding: 3px 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .info-box {
+    background: rgba(124,92,255,0.07);
+    border: 1px solid rgba(124,92,255,0.18);
+    border-radius: 11px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: rgba(200,190,255,0.55);
+    font-family: var(--mono);
+    line-height: 1.65;
+    margin-top: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .info-box strong { color: #f0eeff; font-weight: 600; }
+
+  /* buttons */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--p) 0%, #9b6dff 100%);
+    color: white;
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(.22,1,.36,1);
+    box-shadow: 0 4px 16px rgba(124,92,255,0.35), 0 1px 0 rgba(255,255,255,0.1) inset;
+    letter-spacing: 0.01em;
+    margin-top: 20px;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(124,92,255,0.5), 0 1px 0 rgba(255,255,255,0.1) inset;
+  }
+
+  /* ─── DANGER ZONE ─── */
+  .danger-zone {
+    background: linear-gradient(135deg, rgba(239,68,68,0.07) 0%, var(--bg-surface, #13111f) 60%);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 18px;
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) 0.15s both;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  }
+  .danger-zone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--danger), transparent);
+  }
+  .danger-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .danger-icon {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .danger-zone h4 {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 800;
+    color: #f87171;
+    letter-spacing: -0.01em;
+  }
+  .danger-zone p {
+    font-size: 12.5px;
+    color: rgba(255,255,255,0.4);
+    font-family: var(--mono);
+    line-height: 1.65;
+    margin-bottom: 18px;
+    padding-left: 44px;
+  }
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 11px;
+    background: rgba(239,68,68,0.12);
+    color: #f87171;
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    border: 1px solid rgba(239,68,68,0.25);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(.22,1,.36,1);
+    letter-spacing: 0.01em;
+    margin-left: 44px;
+  }
+  .btn-danger:hover {
+    background: rgba(239,68,68,0.2);
+    border-color: rgba(239,68,68,0.4);
+    box-shadow: 0 4px 16px rgba(239,68,68,0.2);
+    transform: translateY(-1px);
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+
+<div class="page-header">
+  <h1>Mi perfil</h1>
+  <p>Gestiona tu cuenta y configuración de seguridad.</p>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="profile-grid">
+
+  <!-- ── COLUMNA IZQUIERDA ── -->
+  <div>
+    <div class="profile-avatar-card">
+
+      <div style="position:relative;display:inline-block;width:100px;height:100px;margin:0 auto 18px">
+        <div class="big-avatar" id="avatarBox"
+             style="background:linear-gradient(135deg, {{ avatar_color|default:'#7c5cff' }} 0%, #9b6dff 100%);margin:0"
+             data-has-avatar="{% if user.profile.has_avatar %}1{% else %}0{% endif %}"
+             {% if user.profile.has_avatar %}data-avatar-url="{{ user.profile.avatar_url }}?v={{ user.profile.updated_at|date:'U' }}"{% endif %}
+             onclick="onAvatarClick()"
+             title="{% if user.profile.has_avatar %}Ver foto completa{% else %}Subir una foto{% endif %}">
+          {% if user.profile.has_avatar %}
+            <img src="{{ user.profile.avatar_url }}?v={{ user.profile.updated_at|date:'U' }}" alt="Foto de perfil">
+          {% else %}
+            <span>{{ avatar_initials|default:"??" }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Botón cámara fuera de .big-avatar para que overflow:hidden no lo recorte -->
+        <button type="button" class="avatar-edit-btn" onclick="event.stopPropagation();toggleAvatarMenu();" aria-label="Editar foto" title="Editar foto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </button>
+
+        <!-- Menú de opciones -->
+        <div class="avatar-menu" id="avatarMenu">
+          <button type="button" class="avatar-menu-item" onclick="openAvatarFilePicker()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            {% if user.profile.has_avatar %}Cambiar foto{% else %}Subir foto{% endif %}
+          </button>
+          {% if user.profile.has_avatar %}
+            <div class="avatar-menu-divider"></div>
+            <form method="post" style="margin:0">
+              {% csrf_token %}
+              <input type="hidden" name="form_type" value="avatar_remove">
+              <button type="submit" class="avatar-menu-item danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                </svg>
+                Quitar foto
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Form oculto: se envía automáticamente al elegir archivo -->
+      <form method="post" enctype="multipart/form-data" id="avatarUploadForm" style="display:none">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="avatar">
+        <input type="file" id="avatarFileInput" name="avatar"
+               accept="image/jpeg,image/png,image/webp,image/gif"
+               onchange="this.form.submit()">
+      </form>
+
+      <div class="profile-name">{{ user.first_name|default:"(sin nombre)" }}</div>
+      <div class="profile-email">{{ user.email }}</div>
+      <div class="avatar-hint">JPG, PNG, WEBP o GIF · máx. 2 MB</div>
+
+      <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap">
+        <div class="profile-badge">
+          <span class="profile-badge-dot"></span>
+          Cuenta activa
+        </div>
+        {% if user.is_staff %}
+          <div class="profile-badge" style="background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.3);color:#fbbf24">
+            <span class="profile-badge-dot" style="background:#fbbf24"></span>
+            Administrador
+          </div>
+        {% else %}
+          <div class="profile-badge" style="background:rgba(124,92,255,0.1);border-color:rgba(124,92,255,0.28);color:var(--pl)">
+            <span class="profile-badge-dot" style="background:var(--pl)"></span>
+            Usuario
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="profile-stats">
+        <div class="ps-item">
+          <div class="ps-val" style="color:var(--pl)">{{ alias_count|default:0 }}</div>
+          <div class="ps-lbl">Alias</div>
+        </div>
+        <div class="ps-divider"></div>
+        <div class="ps-item">
+          <div class="ps-val" style="color:#f0eeff">{{ total_emails|default:0 }}</div>
+          <div class="ps-lbl">Correos</div>
+        </div>
+        <div class="ps-divider"></div>
+        <div class="ps-item">
+          <div class="ps-val" style="color:#f87171">{{ threats_count|default:0 }}</div>
+          <div class="ps-lbl">Bloqueados</div>
+        </div>
+      </div>
+
+      <div class="security-meter">
+        <div class="sec-header">
+          <span class="sec-title">Nivel de seguridad</span>
+          {% if alias_count > 2 %}
+            <span class="sec-level high">Alto</span>
+          {% elif alias_count > 0 %}
+            <span class="sec-level medium">Medio</span>
+          {% else %}
+            <span class="sec-level low">Bajo</span>
+          {% endif %}
+        </div>
+        <div class="sec-bar-wrap">
+          <div class="sec-bar {% if alias_count > 2 %}high{% elif alias_count > 0 %}medium{% else %}low{% endif %}"
+               style="width:{% if alias_count > 2 %}85{% elif alias_count > 0 %}50{% else %}15{% endif %}%"></div>
+        </div>
+        <div class="sec-hint">
+          {% if alias_count == 0 %}
+            Crea al menos un alias para proteger tu correo real.
+          {% else %}
+            Tu correo real está protegido por {{ alias_count }} alias activo{{ alias_count|pluralize:"s" }}.
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="member-card">
+      <div class="member-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div>
+        <div class="member-label">Miembro desde</div>
+        <div class="member-date">{{ user.date_joined|date:"d \d\e F, Y" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COLUMNA DERECHA ── -->
+  <div>
+
+    <!-- Información de cuenta -->
+    <div class="profile-panel" style="animation-delay:60ms">
+      <div class="panel-header">
+        <div class="panel-header-dot" style="background:var(--pl);box-shadow:0 0 6px rgba(167,139,250,0.5)"></div>
+        <div class="panel-header-title">Información de la cuenta</div>
+      </div>
+      <div class="panel-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="info">
+
+          <!-- Nombre de usuario (editable) -->
+          <div class="form-group">
+            <label class="form-label" for="name-field">Nombre de usuario</label>
+            <input type="text" id="name-field" name="name"
+                   class="form-control" maxlength="30" minlength="2"
+                   value="{{ user.first_name }}"
+                   placeholder="Ej: adrian24"
+                   autocomplete="username" spellcheck="false" required>
+            <div id="name-field-err" style="display:none;margin-top:6px;padding:6px 10px;font-size:12px;color:#f87171;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);border-radius:8px"></div>
+            <div style="margin-top:4px;font-size:10.5px;color:var(--text-muted);font-family:var(--mono)">
+              2-30 caracteres · letras, números, _ y - · sin espacios
+            </div>
+          </div>
+
+          <!-- Correo (NO editable) -->
+          <div class="form-group">
+            <label class="form-label">Correo electrónico</label>
+            <div class="email-display-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.6)" stroke-width="2" stroke-linecap="round" class="email-icon">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              <span class="email-display-val">{{ user.email }}</span>
+              <span class="email-display-lock">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                No editable
+              </span>
+            </div>
+          </div>
+
+          <!-- Tipo de cuenta (informativo) -->
+          <div class="form-group">
+            <label class="form-label">Tipo de cuenta</label>
+            <div class="email-display-wrap" style="border-color:{% if user.is_staff %}rgba(245,158,11,0.3){% else %}rgba(124,92,255,0.28){% endif %}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                   stroke="{% if user.is_staff %}#fbbf24{% else %}var(--pl){% endif %}"
+                   stroke-width="2" stroke-linecap="round" class="email-icon">
+                {% if user.is_staff %}
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                {% else %}
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                {% endif %}
+              </svg>
+              <span class="email-display-val" style="color:{% if user.is_staff %}#fbbf24{% else %}var(--pl){% endif %};font-weight:600">
+                {% if user.is_staff %}Administrador{% else %}Usuario{% endif %}
+              </span>
+              <span class="email-display-lock" style="background:{% if user.is_staff %}rgba(245,158,11,0.1){% else %}rgba(124,92,255,0.1){% endif %};border-color:{% if user.is_staff %}rgba(245,158,11,0.25){% else %}rgba(124,92,255,0.22){% endif %};color:{% if user.is_staff %}#fbbf24{% else %}var(--pl){% endif %}">
+                {% if user.is_staff %}
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+                  ACCESO TOTAL
+                {% else %}
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  ESTÁNDAR
+                {% endif %}
+              </span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" style="margin-top:10px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Guardar cambios
+          </button>
+
+          <div class="info-box" style="margin-top:16px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px;opacity:0.8">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>Tu correo real está <strong>cifrado y nunca es expuesto</strong> a terceros. Tus alias actúan como escudo entre tú y el mundo.</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Cambiar contraseña -->
+    <div class="profile-panel" style="animation-delay:100ms">
+      <div class="panel-header">
+        <div class="panel-header-dot" style="background:var(--p);box-shadow:0 0 6px rgba(124,92,255,0.5)"></div>
+        <div class="panel-header-title">Cambiar contraseña</div>
+      </div>
+      <div class="panel-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="password">
+          <div class="form-group">
+            <label class="form-label">Nueva contraseña</label>
+            <div class="input-eye-wrap">
+              <input type="password" name="password" id="pwd1" class="form-control" placeholder="Mínimo 8 caracteres">
+              <button type="button" class="eye-btn" onclick="togglePwd('pwd1', this)" tabindex="-1">
+                <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirmar nueva contraseña</label>
+            <div class="input-eye-wrap">
+              <input type="password" name="password2" id="pwd2" class="form-control" placeholder="Repite la nueva contraseña">
+              <button type="button" class="eye-btn" onclick="togglePwd('pwd2', this)" tabindex="-1">
+                <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Actualizar contraseña
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Zona de peligro -->
+    <div class="danger-zone">
+      <div class="danger-header">
+        <div class="danger-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <h4>Zona de peligro</h4>
+      </div>
+      <p>Al eliminar tu cuenta se destruirán todos tus alias y el historial de análisis. Esta acción no se puede deshacer.</p>
+      <button class="btn-danger" onclick="return confirm('¿Seguro? Esta acción elimina tu cuenta permanentemente.')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+        Eliminar mi cuenta
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ Modal de previsualización del avatar (al final del body para flotar sobre todo) ══ -->
+{% if user.profile.has_avatar %}
+<div id="avatarPreviewOverlay" onclick="closeAvatarPreview()">
+  <div class="avatar-preview-modal" onclick="event.stopPropagation()">
+    <button type="button" class="avatar-preview-close" onclick="closeAvatarPreview()" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <img id="avatarPreviewImg" src="" alt="Foto de perfil completa">
+    <div class="avatar-preview-caption">{{ user.first_name|default:user.email }}</div>
+    <div class="avatar-preview-sub">Foto de perfil</div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  /* ══════════════════════════════════════════════
+     Avatar: click foto = preview, cámara = menú
+     ══════════════════════════════════════════════ */
+  function onAvatarClick() {
+    var box = document.getElementById('avatarBox');
+    if (box && box.dataset.hasAvatar === '1') {
+      openAvatarPreview();
+    } else {
+      openAvatarFilePicker();
+    }
+  }
+  function openAvatarFilePicker() {
+    closeAvatarMenu();
+    document.getElementById('avatarFileInput').click();
+  }
+  function toggleAvatarMenu() {
+    document.getElementById('avatarMenu').classList.toggle('open');
+  }
+  function closeAvatarMenu() {
+    var m = document.getElementById('avatarMenu');
+    if (m) m.classList.remove('open');
+  }
+  function openAvatarPreview() {
+    var overlay = document.getElementById('avatarPreviewOverlay');
+    var box     = document.getElementById('avatarBox');
+    var img     = document.getElementById('avatarPreviewImg');
+    if (!overlay || !box || !img) return;
+    img.src = box.dataset.avatarUrl || (box.querySelector('img') || {}).src || '';
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeAvatarPreview() {
+    var overlay = document.getElementById('avatarPreviewOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('visible');
+    document.body.style.overflow = '';
+  }
+  // Cerrar menú al hacer click fuera (botón cámara y menú son hermanos del avatar)
+  document.addEventListener('click', function (e) {
+    var menu  = document.getElementById('avatarMenu');
+    var box   = document.getElementById('avatarBox');
+    var btn   = document.querySelector('.avatar-edit-btn');
+    if (!menu) return;
+    if (menu.contains(e.target)) return;
+    if (box && box.contains(e.target)) return;
+    if (btn && btn.contains(e.target)) return;
+    closeAvatarMenu();
+  });
+  // Cerrar preview con Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAvatarPreview();
+  });
+
+  function togglePwd(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    btn.querySelector('.eye-open').style.display   = isHidden ? 'none' : '';
+    btn.querySelector('.eye-closed').style.display = isHidden ? ''     : 'none';
+  }
+
+  /* ══════════════════════════════════════════════
+     Validación del nombre de usuario en el perfil
+     (mismas reglas que validators.py — backend autoritativo)
+     ══════════════════════════════════════════════ */
+  (function () {
+    const USER_RE   = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9_\-]*$/;
+    const USER_BLOCK = ['admin','administrator','administrador','root','test','testing',
+                        'user','usuario','null','undefined','none','demo','guest','bot','system',
+                        'api','www','mail','email','support','soporte','help','ayuda','info',
+                        'contact','contacto','securemail','shield'];
+    const input  = document.getElementById('name-field');
+    const errBox = document.getElementById('name-field-err');
+    if (!input || !errBox) return;
+
+    function stripSpaces(s) { return (s || '').replace(/\s+/g, ''); }
+
+    function validate() {
+      const u = stripSpaces(input.value);
+      let msg = '';
+      if (!u)                                      msg = 'El nombre de usuario es obligatorio.';
+      else if (u.length < 2)                       msg = 'Debe tener al menos 2 caracteres.';
+      else if (u.length > 30)                      msg = 'Máximo 30 caracteres.';
+      else if (USER_BLOCK.includes(u.toLowerCase())) msg = 'Ese nombre está reservado, elige otro.';
+      else if (/^\d+$/.test(u))                    msg = 'No puede ser solo números.';
+      else if (!USER_RE.test(u))                   msg = 'Solo letras, números, _ y - . Empieza con letra.';
+      else if (/(.)\1{4,}/.test(u))                msg = 'Demasiados caracteres repetidos.';
+
+      errBox.textContent = msg;
+      errBox.style.display = msg ? 'block' : 'none';
+      input.style.borderColor = msg ? 'rgba(239,68,68,0.5)' : '';
+      return !msg;
+    }
+
+    /* Elimina espacios al vuelo mientras escribes */
+    input.addEventListener('input', function () {
+      const before = this.value;
+      const after  = stripSpaces(before);
+      if (before !== after) {
+        const pos = this.selectionStart;
+        const removed = before.slice(0, pos).length - stripSpaces(before.slice(0, pos)).length;
+        this.value = after;
+        try { this.setSelectionRange(pos - removed, pos - removed); } catch (e) {}
+      }
+      validate();
+    });
+    input.addEventListener('blur',  () => { input.value = stripSpaces(input.value); validate(); });
+
+    const form = input.closest('form');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        input.value = stripSpaces(input.value);
+        if (!validate()) {
+          e.preventDefault();
+          input.focus();
+        }
+      });
+    }
+  })();
+</script>
+{% endblock %}

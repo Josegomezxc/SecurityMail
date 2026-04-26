@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+
+  # ─── Aplicación Django ────────────────────────────────────────────────
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=email_seguro.settings
+      - DATABASE_URL=sqlite:////app/db.sqlite3
+    depends_on:
+      - sandbox
+    networks:
+      - web_net
+
+  # ─── Sandbox aislado (sin acceso a internet) ─────────────────────────
+  sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile.sandbox
+    volumes:
+      - media_data:/app/media   # comparte adjuntos con el web
+    environment:
+      - SANDBOX_MODE=1
+    # Sin puertos expuestos al exterior → completamente aislado
+    networks:
+      - sandbox_net             # red interna sin salida
+
+volumes:
+  media_data:
+
+networks:
+  web_net:
+    driver: bridge
+  sandbox_net:
+    driver: bridge
+    internal: true              # ← clave: sin acceso a internet

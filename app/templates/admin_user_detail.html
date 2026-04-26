@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% block title %}{{ target.email }} — Panel admin{% endblock %}
+{% block page_title %}Detalle de usuario{% endblock %}
+{% block nav_admin_users %}active{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root { --mono: 'JetBrains Mono', monospace; --display: 'Syne', sans-serif; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);} }
+
+.back-to-list {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 12px;
+  color: var(--text-muted); text-decoration: none;
+  margin-bottom: 16px;
+  transition: color 0.15s, gap 0.15s;
+}
+.back-to-list:hover { color: var(--ai-purple-light, #a78bfa); gap: 8px; }
+
+/* Header card */
+.user-header-card {
+  background: linear-gradient(160deg, rgba(124,92,255,0.08), var(--bg-surface) 55%);
+  border: 1px solid var(--ai-purple-border, rgba(124,58,237,0.22));
+  border-radius: 18px;
+  padding: 24px 26px;
+  margin-bottom: 18px;
+  display: flex; align-items: center; gap: 18px;
+  flex-wrap: wrap;
+  animation: fadeUp 0.4s ease both;
+}
+.big-user-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--ai-purple, #7c3aed), #a78bfa);
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-family: var(--display); font-size: 22px; font-weight: 800;
+  box-shadow: 0 6px 20px rgba(124,58,237,0.3);
+  flex-shrink: 0;
+}
+.user-header-info { flex: 1; min-width: 200px; }
+.user-header-info h1 {
+  font-family: var(--display); font-size: 20px; font-weight: 800;
+  color: var(--text-primary); margin-bottom: 4px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.user-header-info .meta {
+  font-size: 12px; color: var(--text-secondary); font-family: var(--mono);
+  display: flex; gap: 14px; flex-wrap: wrap;
+}
+.user-header-info .meta span { display: inline-flex; align-items: center; gap: 5px; }
+
+.big-role-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px; border-radius: 20px;
+  font-size: 10.5px; font-weight: 700;
+  font-family: var(--mono); letter-spacing: 0.05em;
+}
+.big-role-badge.admin {
+  background: rgba(245,158,11,0.12); color: #fbbf24;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.big-role-badge.user {
+  background: rgba(124,92,255,0.1); color: var(--ai-purple-light, #a78bfa);
+  border: 1px solid var(--ai-purple-border, rgba(124,58,237,0.22));
+}
+.big-role-badge .dot {
+  width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+}
+
+/* Stats mini row */
+.mini-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+@media (max-width: 640px) { .mini-stats-row { grid-template-columns: 1fr; } }
+
+.mini-stat {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  animation: fadeUp 0.4s ease both;
+}
+.mini-stat-label {
+  font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--text-muted); font-family: var(--mono);
+  margin-bottom: 8px;
+}
+.mini-stat-val {
+  font-family: var(--display); font-size: 26px; font-weight: 800; line-height: 1;
+  color: var(--text-primary);
+}
+.mini-stat-val.threat { color: var(--danger); }
+.mini-stat-val.accent { color: var(--ai-purple-light, #a78bfa); }
+
+/* Sections */
+.section-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  animation: fadeUp 0.45s ease both;
+}
+.section-head {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.02);
+}
+.section-head .t {
+  font-family: var(--display); font-size: 13px; font-weight: 700;
+  color: var(--text-primary);
+}
+.count-chip {
+  margin-left: auto;
+  background: var(--ai-purple-soft, rgba(124,58,237,0.1));
+  color: var(--ai-purple-light, #a78bfa);
+  border: 1px solid var(--ai-purple-border, rgba(124,58,237,0.22));
+  padding: 2px 9px; border-radius: 10px;
+  font-size: 10.5px; font-family: var(--mono); font-weight: 700;
+}
+
+/* Alias list */
+.alias-row-adm {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 14px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-soft);
+  align-items: center;
+}
+.alias-row-adm:last-child { border-bottom: none; }
+.alias-addr-adm {
+  font-family: var(--mono); font-size: 12.5px; font-weight: 600;
+  color: var(--ai-purple-light, #a78bfa);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.alias-label-adm {
+  font-size: 11.5px; color: var(--text-muted);
+  font-family: var(--mono); margin-top: 3px;
+}
+.alias-chip {
+  padding: 3px 9px; border-radius: 10px;
+  font-size: 10.5px; font-weight: 700; font-family: var(--mono);
+  white-space: nowrap;
+  background: var(--bg-elevated); border: 1px solid var(--border-soft);
+  color: var(--text-secondary);
+}
+.alias-chip.threat {
+  background: rgba(232,64,64,0.08); color: var(--danger);
+  border-color: rgba(232,64,64,0.22);
+}
+.alias-chip.dead {
+  background: var(--bg-hover); color: var(--text-muted);
+}
+
+/* Emails list */
+.em-row {
+  display: grid;
+  grid-template-columns: 34px 1fr auto auto;
+  gap: 12px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--border-soft);
+  align-items: center;
+}
+.em-row:last-child { border-bottom: none; }
+.em-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--ai-purple-soft, rgba(124,58,237,0.1));
+  color: var(--ai-purple-light, #a78bfa);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-size: 11px; font-weight: 800;
+  flex-shrink: 0;
+}
+.em-info { min-width: 0; }
+.em-subject {
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.em-sub {
+  font-size: 10.5px; color: var(--text-muted); font-family: var(--mono);
+  margin-top: 2px;
+}
+.em-score {
+  font-family: var(--display); font-size: 14px; font-weight: 800;
+  padding: 3px 9px; border-radius: 8px;
+}
+.em-score.safe  { background: rgba(46,204,113,0.08); color: var(--success); }
+.em-score.warn  { background: rgba(245,158,11,0.1);  color: var(--warning); }
+.em-score.bad   { background: rgba(232,64,64,0.1);   color: var(--danger); }
+.em-time {
+  font-family: var(--mono); font-size: 10.5px;
+  color: var(--text-muted); white-space: nowrap;
+}
+
+.empty-sec { padding: 40px 20px; text-align: center; color: var(--text-muted); font-family: var(--mono); font-size: 12px; }
+</style>
+{% endblock %}
+
+{% block body %}
+
+<a href="{% url 'admin_users' %}" class="back-to-list">
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+  Volver a la lista de usuarios
+</a>
+
+<div class="user-header-card">
+  <div class="big-user-avatar">
+    {{ target.email|first|upper }}{{ target.email|slice:"1:2"|upper }}
+  </div>
+  <div class="user-header-info">
+    <h1>
+      {{ target.email }}
+      {% if target.is_staff %}
+        <span class="big-role-badge admin"><span class="dot"></span> ADMINISTRADOR</span>
+      {% else %}
+        <span class="big-role-badge user"><span class="dot"></span> USUARIO</span>
+      {% endif %}
+    </h1>
+    <div class="meta">
+      <span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/></svg>
+        Alta: {{ target.date_joined|date:"d/m/Y" }}
+      </span>
+      <span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Último acceso: {% if target.last_login %}{{ target.last_login|timesince }} atrás{% else %}nunca{% endif %}
+      </span>
+      <span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        {{ target.is_active|yesno:"Activo,Desactivado" }}
+      </span>
+    </div>
+  </div>
+
+  {% if target != request.user %}
+    <form method="post" action="{% url 'admin_toggle_staff' target.pk %}"
+          onsubmit="return confirm('{% if target.is_staff %}¿Quitar permisos admin a {{ target.email }}?{% else %}¿Hacer admin a {{ target.email }}?{% endif %}');">
+      {% csrf_token %}
+      {% if target.is_staff %}
+        <button type="submit" style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-secondary);font-family:var(--mono);font-size:12px;font-weight:600;padding:8px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Degradar a usuario
+        </button>
+      {% else %}
+        <button type="submit" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;font-family:var(--mono);font-size:12px;font-weight:600;padding:8px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
+          Promover a admin
+        </button>
+      {% endif %}
+    </form>
+  {% endif %}
+</div>
+
+<div class="mini-stats-row">
+  <div class="mini-stat">
+    <div class="mini-stat-label">Aliases</div>
+    <div class="mini-stat-val accent">{{ aliases|length }}</div>
+  </div>
+  <div class="mini-stat">
+    <div class="mini-stat-label">Correos recibidos</div>
+    <div class="mini-stat-val">{{ emails_total }}</div>
+  </div>
+  <div class="mini-stat">
+    <div class="mini-stat-label">Amenazas bloqueadas</div>
+    <div class="mini-stat-val {% if threats_total %}threat{% endif %}">{{ threats_total }}</div>
+  </div>
+</div>
+
+<!-- ── ALIASES ── -->
+<div class="section-card">
+  <div class="section-head">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
+    <span class="t">Aliases del usuario</span>
+    <span class="count-chip">{{ aliases|length }}</span>
+  </div>
+  {% for a in aliases %}
+    <div class="alias-row-adm">
+      <div style="min-width:0">
+        <div class="alias-addr-adm">{{ a.address }}</div>
+        <div class="alias-label-adm">{{ a.label }} · creado {{ a.created_at|timesince }} atrás</div>
+      </div>
+      <span class="alias-chip">{{ a.emails_total }} correos</span>
+      {% if a.threats_total %}
+        <span class="alias-chip threat">{{ a.threats_total }} amenazas</span>
+      {% else %}
+        <span class="alias-chip" style="opacity:0.4">0 amenazas</span>
+      {% endif %}
+      {% if a.is_active %}
+        <span class="alias-chip" style="color:var(--success);border-color:rgba(46,204,113,0.22);background:rgba(46,204,113,0.08)">ACTIVO</span>
+      {% else %}
+        <span class="alias-chip dead">DESTRUIDO</span>
+      {% endif %}
+    </div>
+  {% empty %}
+    <div class="empty-sec">Este usuario aún no tiene aliases.</div>
+  {% endfor %}
+</div>
+
+<!-- ── CORREOS RECIENTES ── -->
+<div class="section-card">
+  <div class="section-head">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    <span class="t">Últimos correos recibidos</span>
+    <span class="count-chip">{{ recent_emails|length }}</span>
+  </div>
+  {% for em in recent_emails %}
+    <div class="em-row">
+      <div class="em-avatar">{{ em.from_email|first|upper }}</div>
+      <div class="em-info">
+        <div class="em-subject">{{ em.subject|truncatechars:60 }}</div>
+        <div class="em-sub">{{ em.from_email }} → {{ em.alias.address|truncatechars:26 }}</div>
+      </div>
+      {% if em.risk_score >= 61 %}
+        <span class="em-score bad">{{ em.risk_score }}</span>
+      {% elif em.risk_score >= 31 %}
+        <span class="em-score warn">{{ em.risk_score }}</span>
+      {% else %}
+        <span class="em-score safe">{{ em.risk_score|default:0 }}</span>
+      {% endif %}
+      <span class="em-time">{{ em.received_at|timesince }} atrás</span>
+    </div>
+  {% empty %}
+    <div class="empty-sec">Este usuario no ha recibido correos todavía.</div>
+  {% endfor %}
+</div>
+
+{% endblock %}

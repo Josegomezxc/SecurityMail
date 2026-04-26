@@ -1,0 +1,8 @@
+
+
+
+                          PRUEBA PARA ENVIAR ARCHIVOS MALICIOSOS A MI webhook
+
+                          
+
+python manage.py test_webhook --file test_samples/eicar.txt --to cucho_g2kkww@dockershield.lat

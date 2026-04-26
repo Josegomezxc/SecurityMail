@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% block title %}Usuarios — Panel admin{% endblock %}
+{% block page_title %}Usuarios{% endblock %}
+{% block nav_admin_users %}active{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root { --adm-orange: #f59e0b; --mono: 'JetBrains Mono', monospace; --display: 'Syne', sans-serif; }
+@keyframes fadeUp  { from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);} }
+
+.adm-header {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 20px;
+  animation: fadeUp 0.4s ease both;
+}
+.adm-header h1 {
+  font-family: var(--display); font-size: 22px; font-weight: 800;
+  margin-bottom: 3px;
+}
+.adm-header p { font-size: 12px; color: var(--text-secondary); font-family: var(--mono); }
+
+.search-bar {
+  flex: 1; max-width: 320px;
+  display: flex; align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  overflow: hidden;
+  margin-left: auto;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-bar:focus-within {
+  border-color: rgba(245,158,11,0.35);
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.12);
+}
+.search-bar svg { margin: 0 10px; color: var(--text-muted); flex-shrink: 0; }
+.search-bar input {
+  flex: 1; background: transparent; border: none; outline: none;
+  padding: 9px 12px 9px 0; color: var(--text-primary);
+  font-family: var(--mono); font-size: 12.5px;
+}
+.search-bar input::placeholder { color: var(--text-muted); }
+
+/* TABLA */
+.users-table-wrap {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  animation: fadeUp 0.45s ease 0.05s both;
+}
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.users-table th {
+  text-align: left;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--text-muted); font-family: var(--mono);
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  white-space: nowrap;
+}
+.users-table td {
+  padding: 14px 18px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: middle;
+}
+.users-table tr:last-child td { border-bottom: none; }
+.users-table tbody tr { transition: background 0.12s; }
+.users-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+
+.user-cell { display: flex; align-items: center; gap: 11px; }
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-size: 12px; font-weight: 800;
+  background: var(--ai-purple-soft, rgba(124,58,237,0.1));
+  color: var(--ai-purple-light, #a78bfa);
+  border: 1px solid var(--ai-purple-border, rgba(124,58,237,0.22));
+  flex-shrink: 0;
+}
+.user-name-col { min-width: 0; }
+.user-email {
+  font-family: var(--mono); font-size: 12.5px; font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 220px;
+  display: block;
+}
+.user-joined {
+  font-size: 10.5px; color: var(--text-muted); font-family: var(--mono);
+  margin-top: 2px;
+}
+
+.role-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 10.5px; font-weight: 700;
+  font-family: var(--mono); letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.role-badge.admin {
+  background: rgba(245,158,11,0.12); color: #fbbf24;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.role-badge.user  {
+  background: rgba(124,92,255,0.1); color: var(--ai-purple-light, #a78bfa);
+  border: 1px solid var(--ai-purple-border, rgba(124,58,237,0.22));
+}
+.role-badge .dot {
+  width: 5px; height: 5px; border-radius: 50%; background: currentColor;
+}
+
+.num-cell {
+  font-family: var(--mono); font-weight: 600;
+  text-align: center;
+}
+.num-cell.threat { color: var(--danger); }
+.num-cell.muted  { color: var(--text-muted); }
+
+.row-actions { display: flex; gap: 7px; justify-content: flex-end; align-items: center; }
+.btn-mini {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 7px;
+  font-size: 10.5px; font-weight: 600;
+  font-family: var(--mono);
+  text-decoration: none;
+  cursor: pointer; border: 1px solid;
+  transition: all 0.15s;
+  background: transparent;
+  white-space: nowrap;
+}
+.btn-mini.primary {
+  background: var(--ai-purple-soft, rgba(124,58,237,0.08));
+  color: var(--ai-purple-light, #a78bfa);
+  border-color: var(--ai-purple-border, rgba(124,58,237,0.22));
+}
+.btn-mini.primary:hover { background: rgba(124,58,237,0.15); }
+.btn-mini.promote {
+  background: rgba(245,158,11,0.08); color: #fbbf24;
+  border-color: rgba(245,158,11,0.22);
+}
+.btn-mini.promote:hover { background: rgba(245,158,11,0.18); }
+.btn-mini.demote {
+  background: var(--bg-elevated); color: var(--text-secondary);
+  border-color: var(--border);
+}
+.btn-mini.demote:hover { color: var(--text-primary); border-color: var(--border); background: var(--bg-hover); }
+
+.self-note {
+  font-size: 10px; color: var(--text-muted);
+  font-family: var(--mono); font-style: italic;
+}
+
+.adm-alert {
+  background: rgba(46,204,113,0.08);
+  border: 1px solid rgba(46,204,113,0.2);
+  border-radius: 10px; padding: 10px 14px;
+  font-size: 12.5px; color: var(--success);
+  font-family: var(--mono);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+  animation: fadeUp 0.3s ease;
+}
+.adm-alert.err { background: rgba(232,64,64,0.08); border-color: rgba(232,64,64,0.25); color: var(--danger); }
+
+#users-empty {
+  display: none;
+  padding: 40px 20px; text-align: center;
+  color: var(--text-muted); font-family: var(--mono); font-size: 12px;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+
+<div class="adm-header">
+  <div>
+    <h1>Usuarios registrados</h1>
+    <p>{{ users|length }} cuenta{{ users|length|pluralize:"s" }} · gestiona roles y revisa actividad</p>
+  </div>
+  <div class="search-bar">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" id="userSearch" placeholder="Buscar por correo o nombre..." oninput="filterUsers(this.value)">
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="adm-alert {% if message.tags == 'error' %}err{% endif %}">
+      {% if message.tags == 'error' %}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+      {% else %}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      {% endif %}
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="users-table-wrap">
+  <table class="users-table">
+    <thead>
+      <tr>
+        <th>Usuario</th>
+        <th>Rol</th>
+        <th style="text-align:center">Aliases</th>
+        <th style="text-align:center">Correos</th>
+        <th style="text-align:center">Amenazas</th>
+        <th style="text-align:right">Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="usersTbody">
+      {% for u in users %}
+      <tr data-search="{{ u.email|lower }} {{ u.get_full_name|lower }}">
+        <td>
+          <div class="user-cell">
+            <div class="user-avatar">
+              {{ u.email|first|upper }}{{ u.email|slice:"1:2"|upper }}
+            </div>
+            <div class="user-name-col">
+              <span class="user-email">{{ u.email }}</span>
+              <div class="user-joined">Alta {{ u.date_joined|date:"d/m/Y" }}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          {% if u.is_staff %}
+            <span class="role-badge admin">
+              <span class="dot"></span> ADMINISTRADOR
+            </span>
+          {% else %}
+            <span class="role-badge user">
+              <span class="dot"></span> USUARIO
+            </span>
+          {% endif %}
+        </td>
+        <td class="num-cell {% if u.aliases_count == 0 %}muted{% endif %}">
+          {{ u.aliases_count }}
+        </td>
+        <td class="num-cell {% if u.emails_count == 0 %}muted{% endif %}">
+          {{ u.emails_count }}
+        </td>
+        <td class="num-cell {% if u.threats_count %}threat{% else %}muted{% endif %}">
+          {{ u.threats_count }}
+        </td>
+        <td>
+          <div class="row-actions">
+            <a href="{% url 'admin_user_detail' u.pk %}" class="btn-mini primary">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Ver
+            </a>
+            {% if u == request.user %}
+              <span class="self-note">(tú)</span>
+            {% else %}
+              <form method="post" action="{% url 'admin_toggle_staff' u.pk %}" style="display:inline"
+                    onsubmit="return confirm('{% if u.is_staff %}¿Quitar permisos de administrador a {{ u.email }}?{% else %}¿Hacer administrador a {{ u.email }}?{% endif %}');">
+                {% csrf_token %}
+                {% if u.is_staff %}
+                  <button type="submit" class="btn-mini demote" title="Quitar rol admin">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    Degradar
+                  </button>
+                {% else %}
+                  <button type="submit" class="btn-mini promote" title="Promover a admin">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
+                    Promover
+                  </button>
+                {% endif %}
+              </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);font-family:var(--mono)">
+        No hay usuarios registrados.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div id="users-empty">
+    Ningún usuario coincide con la búsqueda.
+  </div>
+</div>
+
+<script>
+function filterUsers(q) {
+  q = (q || '').toLowerCase().trim();
+  var rows = document.querySelectorAll('#usersTbody tr[data-search]');
+  var visible = 0;
+  rows.forEach(function (r) {
+    var hay = q === '' || r.dataset.search.indexOf(q) !== -1;
+    r.style.display = hay ? '' : 'none';
+    if (hay) visible++;
+  });
+  document.getElementById('users-empty').style.display =
+    (visible === 0 && rows.length > 0) ? 'block' : 'none';
+}
+</script>
+
+{% endblock %}

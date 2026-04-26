@@ -1,0 +1,54 @@
+# ───────────────────────────────────────────────────────────────────────
+#  Dockerfile.sandbox  —  contenedor aislado para analizar adjuntos
+#  Soporta: PE (.exe/.dll), Office (.doc/.xls/.ppt + macros), PDF (con JS),
+#           archivos comprimidos (.zip/.rar/.7z), scripts, YARA rules, etc.
+# ───────────────────────────────────────────────────────────────────────
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Herramientas del sistema necesarias para los analizadores
+#   strace  — captura de syscalls reales durante la ejecución dinámica
+#   procps  — ps, top: para detectar procesos hijo
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libmagic1 \
+        file \
+        p7zip-full \
+        unrar-free \
+        unzip \
+        binutils \
+        strace \
+        procps \
+        coreutils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Librerías Python de análisis (NO Django)
+#  - python-magic   : detección MIME real
+#  - yara-python    : motor de reglas YARA
+#  - oletools       : análisis de macros y OLE de documentos Office
+#  - pefile         : análisis estático de ejecutables PE (Windows)
+#  - olefile        : lectura de OLE (dependencia de oletools)
+#  - rarfile        : extracción de .rar
+#  - py7zr          : extracción de .7z
+#  - tldextract     : análisis de URLs (TLD/dominios)
+RUN pip install --no-cache-dir \
+        python-magic==0.4.27 \
+        yara-python==4.5.1 \
+        oletools==0.60.2 \
+        pefile==2024.8.26 \
+        olefile==0.47 \
+        rarfile==4.2 \
+        py7zr==0.21.1 \
+        tldextract==5.1.3
+
+# Copiamos el código del sandbox (reglas YARA + analizadores)
+COPY app/sandbox/ /app/sandbox/
+
+# Usuario sin privilegios (defensa en profundidad)
+RUN useradd -m -u 1000 -s /bin/bash sandbox \
+    && chown -R sandbox:sandbox /app
+USER sandbox
+
+# El contenedor se invoca como proceso puntual desde Django:
+#   docker run --rm sandbox python /app/sandbox/run_analysis.py /tmp/file
+CMD ["python", "/app/sandbox/run_analysis.py"]
