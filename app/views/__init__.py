@@ -40,6 +40,7 @@ from .inbox_views import (
     mark_email_read_api,
     inbox_new_api,
     email_html_api,
+    inbox_clear_api,
 )
 
 # ─── Alias ────────────────────────────────────────────────────────────
@@ -74,6 +75,18 @@ from .ai_views import (
     ai_analysis_view,
 )
 
+# ─── Notificaciones ───────────────────────────────────────────────────
+from .notification_views import (
+    notification_list_view,
+    notification_detail_view,
+    notification_unread_api,
+    notification_mark_read_api,
+    notification_mark_all_read_api,
+    notification_forward_api,
+    notification_discard_api,
+    notification_clear_api,
+)
+
 # El decorator sigue disponible como `views.admin_required`
 from ..services.auth_service import admin_required
 
@@ -86,6 +99,7 @@ __all__ = [
     'dashboard_view', 'dashboard_live_api',
     # Inbox
     'inbox_view', 'mark_email_read_api', 'inbox_new_api', 'email_html_api',
+    'inbox_clear_api',
     # Alias
     'alias_list_view', 'alias_create_view', 'alias_destroy_view',
     # Sandbox
@@ -97,6 +111,12 @@ __all__ = [
     'admin_user_detail_view', 'admin_toggle_staff',
     # IA
     'ai_analysis_view',
+    # Notificaciones
+    'notification_list_view', 'notification_detail_view',
+    'notification_unread_api', 'notification_mark_read_api',
+    'notification_mark_all_read_api',
+    'notification_forward_api', 'notification_discard_api',
+    'notification_clear_api',
     # Helpers
     'admin_required',
 ]

@@ -453,13 +453,25 @@
   .profile-panel:last-child { margin-bottom: 0; }
 
   .panel-header {
-    padding: 18px 24px;
+    padding: 12px 16px 12px 22px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
     background: rgba(255,255,255,0.02);
     display: flex;
     align-items: center;
     gap: 10px;
   }
+  .panel-header-spacer { flex: 1; }
+  /* Cuando el switch va en el header, achicamos un poco el toggle */
+  .panel-header .ftc-form { margin: 0; }
+  .panel-header .ftc-toggle { padding: 6px 14px 6px 6px; }
+  .panel-header .ftc-toggle-track { width: 32px; height: 18px; }
+  .panel-header .ftc-toggle-thumb { width: 14px; height: 14px; }
+  .forward-toggle-card.is-on .panel-header .ftc-toggle-thumb,
+  .panel-header .ftc-form-on .ftc-toggle-thumb { transform: translateX(14px); }
+  .panel-header .ftc-form-on .ftc-toggle-track {
+    background: linear-gradient(90deg, var(--success), #4ade80);
+  }
+  .panel-header .ftc-toggle-label { font-size: 12px; }
   .panel-header-dot {
     width: 7px; height: 7px;
     border-radius: 50%;
@@ -472,7 +484,7 @@
     color: #f0eeff;
     letter-spacing: -0.01em;
   }
-  .panel-body { padding: 22px 24px; }
+  .panel-body { padding: 18px 22px 20px; }
 
   /* ─── FORM ELEMENTS ─── */
   .form-group { margin-bottom: 18px; }
@@ -619,12 +631,235 @@
     box-shadow: 0 8px 24px rgba(124,92,255,0.5), 0 1px 0 rgba(255,255,255,0.1) inset;
   }
 
-  /* ─── DANGER ZONE ─── */
+  /* ─── FORWARD TOGGLE CARD (reenvío de correos seguros) ─── */
+  .forward-toggle-card {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 14px;
+    background: linear-gradient(135deg, rgba(46,204,113,0.04) 0%, var(--bg-elevated, #1a1828) 60%);
+    border: 1px solid rgba(46,204,113,0.18);
+    border-radius: 14px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(.22,1,.36,1);
+  }
+  .forward-toggle-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--success), #4ade80);
+    opacity: 0.5;
+    transition: opacity 0.25s;
+  }
+  .forward-toggle-card.is-on::before { opacity: 1; }
+  .forward-toggle-card::after {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: var(--success);
+    opacity: 0;
+    filter: blur(32px);
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .forward-toggle-card.is-on::after { opacity: 0.12; }
+
+  .ftc-icon-side { display: flex; justify-content: center; padding-top: 2px; }
+  .ftc-icon {
+    width: 38px; height: 38px;
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #6b7280, #9ca3af);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    transition: all 0.3s cubic-bezier(.22,1,.36,1);
+  }
+  .ftc-icon svg { width: 17px; height: 17px; color: white; }
+  .forward-toggle-card.is-on .ftc-icon {
+    background: linear-gradient(135deg, var(--success), #4ade80);
+    box-shadow: 0 5px 18px rgba(46,204,113,0.4);
+  }
+
+  .ftc-body { min-width: 0; position: relative; z-index: 1; }
+  .ftc-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .ftc-title {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    color: #f0eeff;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .ftc-status {}
+  .ftc-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .ftc-pill.on {
+    background: rgba(46,204,113,0.12);
+    color: #4ade80;
+    border: 1px solid rgba(46,204,113,0.3);
+  }
+  .ftc-pill.off {
+    background: rgba(255,255,255,0.04);
+    color: var(--text-muted, #6b6884);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .ftc-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    animation: dotPulse 2s ease-in-out infinite;
+  }
+
+  .ftc-desc {
+    font-size: 12px;
+    color: var(--text-secondary, #9e9cb8);
+    line-height: 1.55;
+    margin: 0 0 10px;
+  }
+  .ftc-desc strong { color: var(--text-primary, #f0eeff); font-weight: 600; }
+
+  .ftc-rules {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 14px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  @media (max-width: 720px) { .ftc-rules { grid-template-columns: 1fr; } }
+  .ftc-rule {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+  .ftc-rule svg {
+    width: 13px; height: 13px;
+    flex-shrink: 0;
+    padding: 3px;
+    border-radius: 50%;
+  }
+  .ftc-rule--ok {
+    color: #86efac;
+  }
+  .ftc-rule--ok svg {
+    background: rgba(46,204,113,0.18);
+    color: #4ade80;
+  }
+  .ftc-rule--warn {
+    color: #fcd34d;
+  }
+  .ftc-rule--warn svg {
+    background: rgba(245,158,11,0.18);
+    color: #fbbf24;
+  }
+  .ftc-rule--no {
+    color: #fca5a5;
+  }
+  .ftc-rule--no svg {
+    background: rgba(239,68,68,0.18);
+    color: #f87171;
+  }
+
+  .ftc-form { margin: 0; }
+  .ftc-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px 8px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .ftc-toggle:hover {
+    border-color: rgba(46,204,113,0.4);
+    background: rgba(46,204,113,0.04);
+  }
+  .ftc-toggle-track {
+    width: 36px; height: 20px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.1);
+    position: relative;
+    transition: background 0.25s;
+    flex-shrink: 0;
+  }
+  .ftc-toggle-thumb {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    transition: transform 0.25s cubic-bezier(.22,1,.36,1);
+  }
+  .forward-toggle-card.is-on .ftc-toggle-track {
+    background: linear-gradient(90deg, var(--success), #4ade80);
+  }
+  .forward-toggle-card.is-on .ftc-toggle-thumb {
+    transform: translateX(16px);
+  }
+  .ftc-toggle-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #f0eeff;
+    letter-spacing: 0.01em;
+  }
+
+  @media (max-width: 540px) {
+    .forward-toggle-card {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .ftc-icon-side { justify-content: flex-start; }
+  }
+
+  /* ─── FILA INFERIOR DE ANCHO COMPLETO
+         Notificaciones y Zona de peligro apiladas (una encima de la otra),
+         cada una ocupando el 100% del ancho del content-area para no dejar
+         espacio vacío a los lados. ─── */
+  .profile-bottom-row {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .profile-bottom-row > .profile-panel { margin-bottom: 0; }
+
+  /* ─── DANGER ZONE (vertical, encaja en columna estrecha) ─── */
   .danger-zone {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
     background: linear-gradient(135deg, rgba(239,68,68,0.07) 0%, var(--bg-surface, #13111f) 60%);
     border: 1px solid rgba(239,68,68,0.2);
     border-radius: 18px;
-    padding: 22px 24px;
+    padding: 18px 20px;
     position: relative;
     overflow: hidden;
     animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) 0.15s both;
@@ -637,42 +872,43 @@
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--danger), transparent);
   }
-  .danger-header {
+  .danger-head {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 12px;
   }
   .danger-icon {
-    width: 34px; height: 34px;
-    border-radius: 9px;
+    width: 38px; height: 38px;
+    border-radius: 11px;
     background: rgba(239,68,68,0.12);
-    border: 1px solid rgba(239,68,68,0.2);
+    border: 1px solid rgba(239,68,68,0.22);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
-  .danger-zone h4 {
+  .danger-icon svg { width: 16px; height: 16px; }
+  .danger-text { min-width: 0; flex: 1; }
+  .danger-text h4 {
     font-family: var(--display);
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 800;
     color: #f87171;
     letter-spacing: -0.01em;
   }
   .danger-zone p {
-    font-size: 12.5px;
-    color: rgba(255,255,255,0.4);
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
     font-family: var(--mono);
-    line-height: 1.65;
-    margin-bottom: 18px;
-    padding-left: 44px;
+    line-height: 1.55;
+    margin: 0;
   }
   .btn-danger {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    padding: 10px 20px;
+    padding: 10px 18px;
     border-radius: 11px;
     background: rgba(239,68,68,0.12);
     color: #f87171;
@@ -681,15 +917,14 @@
     font-weight: 700;
     border: 1px solid rgba(239,68,68,0.25);
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(.22,1,.36,1);
+    transition: background 0.18s, border-color 0.18s;
     letter-spacing: 0.01em;
-    margin-left: 44px;
+    margin-top: auto;
+    align-self: flex-start;
   }
   .btn-danger:hover {
     background: rgba(239,68,68,0.2);
     border-color: rgba(239,68,68,0.4);
-    box-shadow: 0 4px 16px rgba(239,68,68,0.2);
-    transform: translateY(-1px);
   }
 </style>
 {% endblock %}
@@ -983,29 +1218,111 @@
       </div>
     </div>
 
-    <!-- Zona de peligro -->
-    <div class="danger-zone">
-      <div class="danger-header">
-        <div class="danger-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </div>
-        <h4>Zona de peligro</h4>
-      </div>
-      <p>Al eliminar tu cuenta se destruirán todos tus alias y el historial de análisis. Esta acción no se puede deshacer.</p>
-      <button class="btn-danger" onclick="return confirm('¿Seguro? Esta acción elimina tu cuenta permanentemente.')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-          <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-        </svg>
-        Eliminar mi cuenta
-      </button>
-    </div>
-
   </div>
 </div>
+
+<!-- ── Fila horizontal de ancho COMPLETO: Notificaciones + Zona de peligro ──
+     Va FUERA del .profile-grid para ocupar todo el ancho de la página y
+     aprovechar el espacio vacío que queda debajo del avatar a la izquierda. -->
+<div class="profile-bottom-row">
+
+  <!-- Reenvío de correos seguros (opt-in) -->
+  <div class="profile-panel" style="animation-delay:140ms">
+    <div class="panel-header">
+      <div class="panel-header-dot" style="background:var(--success);box-shadow:0 0 6px rgba(46,204,113,0.5)"></div>
+      <div class="panel-header-title">Notificaciones</div>
+      <div class="panel-header-spacer"></div>
+      <form method="post" class="ftc-form {% if user.profile.forward_safe_emails %}ftc-form-on{% endif %}">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="forward_safe">
+        <input type="hidden" name="enabled" value="{% if user.profile.forward_safe_emails %}0{% else %}1{% endif %}">
+        <button type="submit" class="ftc-toggle" aria-label="Alternar reenvío">
+          <span class="ftc-toggle-track">
+            <span class="ftc-toggle-thumb"></span>
+          </span>
+          <span class="ftc-toggle-label">
+            {% if user.profile.forward_safe_emails %}Desactivar reenvío{% else %}Activar reenvío{% endif %}
+          </span>
+        </button>
+      </form>
+    </div>
+    <div class="panel-body">
+
+      <div class="forward-toggle-card {% if user.profile.forward_safe_emails %}is-on{% endif %}">
+        <div class="ftc-icon-side">
+          <div class="ftc-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+              <path d="M16 11l3-3-3-3"/>
+              <path d="M19 8h-7"/>
+            </svg>
+          </div>
+        </div>
+        <div class="ftc-body">
+          <div class="ftc-title-row">
+            <h4 class="ftc-title">Recibir copia en mi correo real</h4>
+            <span class="ftc-status">
+              {% if user.profile.forward_safe_emails %}
+                <span class="ftc-pill on"><span class="ftc-dot"></span>Activo</span>
+              {% else %}
+                <span class="ftc-pill off">Inactivo</span>
+              {% endif %}
+            </span>
+          </div>
+          <p class="ftc-desc">
+            Si lo activas, los correos <strong>seguros</strong> que lleguen a tus alias
+            se reenvían automáticamente a <strong>{{ user.email }}</strong> con sello de
+            "verificado por SecureMail". Los <strong>sospechosos</strong> SIEMPRE te
+            preguntan primero (decides tú desde el panel de notificaciones). Las
+            <strong>amenazas</strong> nunca se reenvían — solo te llega el aviso.
+          </p>
+          <div class="ftc-rules">
+            <div class="ftc-rule ftc-rule--ok">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Score 0-30 (seguro) → reenvío automático a tu correo
+            </div>
+            <div class="ftc-rule ftc-rule--warn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Score 31-60 (sospechoso) → te preguntan, tú decides reenviarlo o descartarlo
+            </div>
+            <div class="ftc-rule ftc-rule--no">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Score 61+ (amenaza) → bloqueado, solo te llega el aviso
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Zona de peligro -->
+  <div class="danger-zone">
+    <div class="danger-head">
+      <div class="danger-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div class="danger-text">
+        <h4>Zona de peligro</h4>
+      </div>
+    </div>
+    <p>Eliminar tu cuenta destruirá todos tus alias, correos analizados y notificaciones. Esta acción es permanente y no se puede deshacer.</p>
+    <button type="button" class="btn-danger" id="deleteAccountBtn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+      </svg>
+      Eliminar mi cuenta
+    </button>
+  </div>
+
+</div><!-- /.profile-bottom-row -->
+
+
 
 <!-- ══ Modal de previsualización del avatar (al final del body para flotar sobre todo) ══ -->
 {% if user.profile.has_avatar %}
@@ -1076,6 +1393,35 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeAvatarPreview();
   });
+
+  /* ══════════════════════════════════════════════
+     Botón "Eliminar mi cuenta" → confirm modal bonito
+     ══════════════════════════════════════════════ */
+  (function () {
+    var btn = document.getElementById('deleteAccountBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      if (!window.confirmDialog) return;
+      window.confirmDialog({
+        danger:      true,
+        icon:        'trash',
+        title:       'Eliminar tu cuenta',
+        message:     'Se borrarán todos tus alias, correos analizados, notificaciones y configuración.\nEsta acción no se puede deshacer.',
+        confirmText: 'Sí, eliminar mi cuenta',
+        cancelText:  'Cancelar',
+      }).then(function (ok) {
+        if (!ok) return;
+        if (window.showToast) {
+          window.showToast({
+            type: 'warning',
+            title: 'Eliminación de cuenta',
+            message: 'Esta función todavía no está disponible. Contacta soporte.',
+            duration: 6000,
+          });
+        }
+      });
+    });
+  })();
 
   function togglePwd(inputId, btn) {
     const input = document.getElementById(inputId);

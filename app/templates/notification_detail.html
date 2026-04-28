@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+{% block title %}{{ notif.title|truncatechars:50 }} — Notificación{% endblock %}
+{% block page_title %}Notificación{% endblock %}
+{% block nav_notifications %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+  .nd-page { max-width: 760px; }
+
+  /* Breadcrumb */
+  .nd-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text-muted); text-decoration: none;
+    font-size: 12.5px; margin-bottom: 18px;
+    font-family: var(--font-mono);
+    transition: color 0.15s, gap 0.15s;
+  }
+  .nd-back:hover { color: var(--accent-hover); gap: 9px; }
+
+  /* Hero card */
+  .nd-hero {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 26px 28px;
+    margin-bottom: 18px;
+    position: relative; overflow: hidden;
+  }
+  .nd-hero::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  }
+  .nd-hero.t-forward_request::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .nd-hero.t-forwarded::before       { background: linear-gradient(90deg, #22c55e, #4ade80); }
+  .nd-hero.t-threat_alert::before    { background: linear-gradient(90deg, var(--danger), #f87171); }
+
+  .nd-hero-head {
+    display: flex; gap: 16px; align-items: center; margin-bottom: 14px;
+  }
+  .nd-hero-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+  }
+  .nd-hero-icon svg { width: 24px; height: 24px; color: white; }
+  .nd-hero-icon.t-forward_request { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+  .nd-hero-icon.t-forwarded       { background: linear-gradient(135deg, #22c55e, #4ade80); }
+  .nd-hero-icon.t-threat_alert    { background: linear-gradient(135deg, var(--danger), #f87171); }
+  .nd-hero-icon.t-system          { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); }
+
+  .nd-hero-meta {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--text-muted); font-family: var(--font-mono);
+    margin-bottom: 4px;
+  }
+  .nd-hero-title { font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; }
+  .nd-hero-msg { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-top: 6px; }
+
+  .nd-meta-row {
+    display: flex; gap: 14px; margin-top: 16px; flex-wrap: wrap;
+    padding-top: 14px; border-top: 1px solid var(--border-soft);
+    font-size: 11.5px; color: var(--text-muted); font-family: var(--font-mono);
+  }
+  .nd-meta-row strong { color: var(--text-secondary); font-weight: 500; }
+
+  .nd-status-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700; font-family: var(--font-mono);
+    padding: 3px 9px; border-radius: 5px; letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .nd-status-pending   { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+  .nd-status-approved  { background: rgba(46,204,113,0.12); color: #4ade80; border: 1px solid rgba(46,204,113,0.3); }
+  .nd-status-discarded { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
+  .nd-status-done      { background: rgba(124,92,255,0.1); color: var(--accent-hover); border: 1px solid rgba(124,92,255,0.25); }
+
+  /* Email preview */
+  .nd-section {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 14px;
+  }
+  .nd-section-title {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-muted); font-family: var(--font-mono);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nd-section-title svg { width: 12px; height: 12px; }
+
+  .nd-fields { display: grid; grid-template-columns: 90px 1fr; gap: 10px 16px; }
+  .nd-field-label { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); padding-top: 2px; }
+  .nd-field-value { font-size: 13px; color: var(--text-primary); word-break: break-word; }
+  .nd-field-value.mono { font-family: var(--font-mono); font-size: 12px; }
+  .nd-field-value.alias { color: var(--accent-hover); }
+
+  .nd-body-preview {
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    max-height: 200px; overflow: auto;
+    font-size: 12.5px; color: var(--text-secondary); line-height: 1.65;
+    white-space: pre-wrap; word-break: break-word;
+  }
+
+  /* Action buttons (forward / discard) */
+  .nd-actions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-top: 8px;
+  }
+  @media(max-width:560px){ .nd-actions { grid-template-columns: 1fr; } }
+
+  .nd-action-btn {
+    display: grid; grid-template-columns: 44px 1fr 20px; gap: 14px; align-items: center;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid; cursor: pointer; text-decoration: none;
+    transition: transform 0.18s, box-shadow 0.18s;
+    text-align: left;
+    font-family: inherit;
+  }
+  .nd-action-btn:hover { transform: translateY(-2px); }
+  .nd-action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .nd-action-icon {
+    width: 44px; height: 44px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .nd-action-icon svg { width: 19px; height: 19px; color: white; }
+  .nd-action-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+  .nd-action-sub { font-size: 11.5px; color: var(--text-muted); line-height: 1.4; }
+  .nd-action-arrow { color: var(--text-muted); }
+  .nd-action-arrow svg { width: 16px; height: 16px; }
+
+  /* Forward (verde) */
+  .nd-action-forward {
+    background: linear-gradient(135deg, rgba(46,204,113,0.06), var(--bg-elevated));
+    border-color: rgba(46,204,113,0.3);
+  }
+  .nd-action-forward .nd-action-icon { background: linear-gradient(135deg, #22c55e, #4ade80); box-shadow: 0 4px 14px rgba(46,204,113,0.35); }
+  .nd-action-forward:hover { box-shadow: 0 10px 28px rgba(46,204,113,0.18); border-color: rgba(46,204,113,0.5); }
+
+  /* Discard (rojo) */
+  .nd-action-discard {
+    background: linear-gradient(135deg, rgba(232,64,64,0.04), var(--bg-elevated));
+    border-color: rgba(232,64,64,0.25);
+  }
+  .nd-action-discard .nd-action-icon { background: linear-gradient(135deg, var(--danger), #f87171); box-shadow: 0 4px 14px rgba(232,64,64,0.3); }
+  .nd-action-discard:hover { box-shadow: 0 10px 28px rgba(232,64,64,0.15); border-color: rgba(232,64,64,0.4); }
+
+  /* Resultado de acción */
+  .nd-result {
+    display: none;
+    padding: 14px 18px; border-radius: 12px;
+    font-size: 13px; font-weight: 600;
+    align-items: center; gap: 10px;
+    margin-top: 10px;
+  }
+  .nd-result.show { display: flex; }
+  .nd-result.ok   { background: rgba(46,204,113,0.1); color: #4ade80; border: 1px solid rgba(46,204,113,0.3); }
+  .nd-result.err  { background: rgba(232,64,64,0.1); color: #f87171; border: 1px solid rgba(232,64,64,0.3); }
+
+  /* Banner de advertencia: correo sospechoso pero aún reenviable */
+  .nd-suspicious-warn {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, rgba(245,158,11,0.07), var(--bg-elevated));
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 12px;
+  }
+  .nd-suspicious-warn-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+  }
+  .nd-suspicious-warn-icon svg { width: 17px; height: 17px; color: white; }
+  .nd-suspicious-warn-title {
+    font-size: 13.5px; font-weight: 700; color: #fbbf24;
+    margin-bottom: 3px;
+  }
+  .nd-suspicious-warn-msg {
+    font-size: 12px; color: var(--text-secondary); line-height: 1.55;
+  }
+  .nd-suspicious-warn-msg strong { color: #fbbf24; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="nd-page">
+
+  <a href="{% url 'notification_list' %}" class="nd-back">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Todas las notificaciones
+  </a>
+
+  <!-- HERO -->
+  <div class="nd-hero t-{{ notif.type }}">
+    <div class="nd-hero-head">
+      <div class="nd-hero-icon t-{{ notif.type }}">
+        {% if notif.type == 'forward_request' %}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        {% elif notif.type == 'forwarded' %}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        {% elif notif.type == 'threat_alert' %}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+        {% else %}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+        {% endif %}
+      </div>
+      <div style="flex:1; min-width:0">
+        <div class="nd-hero-meta">{{ notif.get_type_display }}</div>
+        <div class="nd-hero-title">{{ notif.title }}</div>
+      </div>
+    </div>
+    {% if notif.message %}<div class="nd-hero-msg">{{ notif.message }}</div>{% endif %}
+
+    <div class="nd-meta-row">
+      <span><strong>Recibida:</strong> {{ notif.created_at|date:"d M Y · H:i" }}</span>
+      <span class="nd-status-pill nd-status-{{ notif.status }}" id="nd-status">{{ notif.get_status_display }}</span>
+      {% if notif.actioned_at %}
+        <span><strong>Acción tomada:</strong> {{ notif.actioned_at|date:"d M Y · H:i" }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if email %}
+  <!-- PREVIEW DEL CORREO -->
+  <div class="nd-section">
+    <div class="nd-section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Detalles del correo
+    </div>
+    <div class="nd-fields">
+      <div class="nd-field-label">De:</div>
+      <div class="nd-field-value">{{ email.from_email }}</div>
+
+      <div class="nd-field-label">Para:</div>
+      <div class="nd-field-value mono alias">{{ email.alias.address }}</div>
+
+      <div class="nd-field-label">Asunto:</div>
+      <div class="nd-field-value">{{ email.subject|default:"(sin asunto)" }}</div>
+
+      <div class="nd-field-label">Recibido:</div>
+      <div class="nd-field-value">{{ email.received_at|date:"d M Y · H:i" }}</div>
+
+      {% if email.has_attachment %}
+      <div class="nd-field-label">Adjunto:</div>
+      <div class="nd-field-value mono">📎 {{ email.attachment_name }}</div>
+      {% endif %}
+
+      <div class="nd-field-label">Score:</div>
+      <div class="nd-field-value">
+        <span class="nd-status-pill {% if email.risk_score >= 61 %}nd-status-discarded{% elif email.risk_score >= 31 %}nd-status-pending{% else %}nd-status-approved{% endif %}">
+          {{ email.risk_score }}/100 ·
+          {% if email.risk_score >= 61 %}peligroso{% elif email.risk_score >= 31 %}sospechoso{% else %}seguro{% endif %}
+        </span>
+      </div>
+    </div>
+
+    {% if email.body %}
+    <div class="nd-body-preview">{{ email.body|truncatechars:1500 }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ACCIONES (forward_request pendiente: correo seguro o sospechoso) -->
+  {% if notif.is_actionable %}
+  {% with email_risk=email.risk_score|default:0 %}
+  <div class="nd-section">
+    <div class="nd-section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      ¿Qué quieres hacer?
+    </div>
+
+    {% if email_risk > 30 %}
+    <!-- Aviso: correo sospechoso (score 31-60) -->
+    <div class="nd-suspicious-warn">
+      <div class="nd-suspicious-warn-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div>
+        <div class="nd-suspicious-warn-title">Este correo es sospechoso</div>
+        <div class="nd-suspicious-warn-msg">
+          Score de riesgo <strong>{{ email_risk }}/100</strong>. No fue bloqueado, pero tampoco
+          es 100% confiable. Si decides reenviarlo a tu Gmail, asumes el riesgo —
+          revisa muy bien el remitente y no abras enlaces sin verificar.
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="nd-actions">
+      <button type="button" class="nd-action-btn nd-action-forward" id="nd-btn-forward" data-id="{{ notif.id }}" data-risky="{% if email_risk > 30 %}1{% else %}0{% endif %}">
+        <div class="nd-action-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+            <path d="M16 11l3-3-3-3"/><path d="M19 8h-7"/>
+          </svg>
+        </div>
+        <div>
+          <div class="nd-action-title">
+            {% if email_risk > 30 %}Reenviar de todos modos{% else %}Reenviar a mi correo{% endif %}
+          </div>
+          <div class="nd-action-sub">
+            {% if email_risk > 30 %}
+              Acepto el riesgo — llegará a {{ user.email }}
+            {% else %}
+              Llegará a {{ user.email }} con sello "verificado"
+            {% endif %}
+          </div>
+        </div>
+        <div class="nd-action-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </button>
+
+      <button type="button" class="nd-action-btn nd-action-discard" id="nd-btn-discard" data-id="{{ notif.id }}">
+        <div class="nd-action-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="nd-action-title">Descartar</div>
+          <div class="nd-action-sub">El correo sigue en tu bandeja, pero no llega a tu Gmail</div>
+        </div>
+        <div class="nd-action-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </button>
+    </div>
+
+    <div class="nd-result" id="nd-result"></div>
+  </div>
+  {% endwith %}
+  {% endif %}
+
+</div>
+
+<script>
+(function () {
+  const btnFw = document.getElementById('nd-btn-forward');
+  const btnDc = document.getElementById('nd-btn-discard');
+  const result = document.getElementById('nd-result');
+  const statusEl = document.getElementById('nd-status');
+  if (!btnFw || !btnDc) return;
+
+  function getCsrf() {
+    const c = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
+    return c ? c.split('=')[1] : '';
+  }
+  function show(cls, msg) {
+    result.className = 'nd-result show ' + cls;
+    result.textContent = msg;
+  }
+  function disable() {
+    btnFw.disabled = true;
+    btnDc.disabled = true;
+  }
+  function action(btn, url, okMsg, statusLabel, statusClass) {
+    btn.disabled = true;
+    fetch(url, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => {
+        if (data.ok) {
+          disable();
+          show('ok', okMsg);
+          if (statusEl) {
+            statusEl.textContent = statusLabel;
+            statusEl.className = 'nd-status-pill ' + statusClass;
+          }
+        } else {
+          show('err', 'No se pudo procesar la acción.');
+          btn.disabled = false;
+        }
+      })
+      .catch(() => {
+        show('err', 'Error de red. Intenta de nuevo.');
+        btn.disabled = false;
+      });
+  }
+
+  const id = btnFw.dataset.id;
+  const isRisky = btnFw.dataset.risky === '1';
+
+  btnFw.addEventListener('click', async () => {
+    // Si el correo es sospechoso (score 31-60), pedimos confirmación
+    // explícita con el modal danger antes de reenviar a Gmail.
+    if (isRisky && window.confirmDialog) {
+      const ok = await window.confirmDialog({
+        danger:      true,
+        icon:        'warning',
+        title:       'Reenviar correo sospechoso',
+        message:     'Este correo no es 100% seguro. Si lo reenvías llegará a tu Gmail real.\n¿Estás seguro de que quieres aceptar el riesgo?',
+        confirmText: 'Sí, reenviar',
+        cancelText:  'Cancelar',
+      });
+      if (!ok) return;
+    }
+    action(
+      btnFw,
+      `/notificaciones/${id}/reenviar/`,
+      '✓ Listo. El correo está en camino a tu Gmail.',
+      'Aprobada — reenviada',
+      'nd-status-pill nd-status-approved'
+    );
+  });
+
+  btnDc.addEventListener('click', () => action(
+    btnDc,
+    `/notificaciones/${id}/descartar/`,
+    '✓ Descartado. El correo sigue en tu bandeja pero no se reenvió.',
+    'Descartada',
+    'nd-status-pill nd-status-discarded'
+  ));
+})();
+</script>
+{% endblock %}

@@ -34,7 +34,8 @@ class EmailMessage(models.Model):
     from_email  = models.EmailField()
     subject     = models.CharField(max_length=255)
     body        = models.TextField(blank=True, help_text="Cuerpo en texto plano (para preview y análisis)")
-    body_html   = models.TextField(blank=True, help_text="Cuerpo HTML del correo (se renderiza en iframe sandbox)")
+    body_html   = models.TextField(blank=True, help_text="HTML neutralizado (links/imágenes bloqueados — se muestra en la bandeja)")
+    body_html_raw = models.TextField(blank=True, help_text="HTML ORIGINAL sin neutralizar (se usa al reenviar al correo real)")
     received_at = models.DateTimeField(auto_now_add=True)
     read        = models.BooleanField(default=False)
 
@@ -174,6 +175,26 @@ class UserProfile(models.Model):
         upload_to=_avatar_upload_path, null=True, blank=True,
         help_text="Foto de perfil. Si está vacío se usa avatar por defecto (iniciales).",
     )
+    # Si está True, los correos clasificados como SEGUROS (score 0-30) se reenvían
+    # al correo real del usuario. Los sospechosos/maliciosos NUNCA se reenvían
+    # (solo llegan las alertas de amenaza). Default: False (opt-in).
+    forward_safe_emails = models.BooleanField(
+        default=False,
+        help_text="Reenviar correos seguros al correo real del usuario.",
+    )
+    # Sesión activa actual del usuario. Solo se permite una a la vez:
+    # cuando alguien hace login, esta clave se actualiza con el nuevo
+    # session_key y todas las sesiones anteriores quedan inválidas
+    # (las controla SingleSessionMiddleware).
+    current_session_key = models.CharField(
+        max_length=40, blank=True, default='',
+        help_text="Session key activa. Cualquier otra sesión del usuario será cerrada.",
+    )
+    # Último request del usuario en su sesión actual. Lo usamos para saber si
+    # la sesión sigue "viva" (alguien la está usando) o ya quedó abandonada
+    # (cerraron el navegador sin logout). El login bloquea si hay actividad
+    # reciente en otra sesión.
+    session_last_activity = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -200,6 +221,66 @@ class UserProfile(models.Model):
                 self.avatar.delete(save=False)
             except Exception:
                 pass
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  NOTIFICACIONES (panel de campana)
+# ═══════════════════════════════════════════════════════════════════════
+
+class Notification(models.Model):
+    """
+    Notificaciones para el panel de campana.
+    Tipos:
+      forward_request: correo seguro pendiente de decisión (reenviar/descartar)
+      forwarded:       correo ya reenviado al correo real (auto-forward)
+      threat_alert:    amenaza detectada y bloqueada
+      system:          mensajes generales del sistema
+    """
+    TYPES = [
+        ('forward_request', 'Pendiente de aprobación'),
+        ('forwarded',       'Reenviado'),
+        ('threat_alert',    'Amenaza bloqueada'),
+        ('system',          'Sistema'),
+    ]
+    STATUSES = [
+        ('pending',  'Pendiente'),
+        ('approved', 'Aprobada — reenviada'),
+        ('discarded','Descartada'),
+        ('expired',  'Expirada'),
+        ('done',     'Completada'),    # threat_alert / forwarded / system
+    ]
+
+    user        = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    type        = models.CharField(max_length=20, choices=TYPES, default='system')
+    title       = models.CharField(max_length=200)
+    message     = models.TextField(blank=True, help_text="Preview corto, opcional")
+    related_email = models.ForeignKey(
+        EmailMessage, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='notifications',
+        help_text="Si la notificación es sobre un correo concreto",
+    )
+    read        = models.BooleanField(default=False)
+    status      = models.CharField(max_length=12, choices=STATUSES, default='done')
+    created_at  = models.DateTimeField(auto_now_add=True)
+    actioned_at = models.DateTimeField(null=True, blank=True,
+                                       help_text="Cuándo el usuario tomó acción")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Notificación'
+        verbose_name_plural = 'Notificaciones'
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'read']),
+        ]
+
+    def __str__(self):
+        return f"{self.type} → {self.user.email} ({self.title[:40]})"
+
+    @property
+    def is_actionable(self) -> bool:
+        """¿Requiere acción del usuario? (forward_request pendiente)"""
+        return self.type == 'forward_request' and self.status == 'pending'
 
 
 # ═══════════════════════════════════════════════════════════════════════

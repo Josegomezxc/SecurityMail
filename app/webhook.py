@@ -1,25 +1,18 @@
 """
 app/webhook.py
-Endpoint para recibir correos entrantes.
+Endpoint para recibir correos entrantes vía SendGrid Inbound Parse.
 
-Soporta DOS formatos:
-  • Resend  (JSON)              → POST application/json con email parseado
-  • Mailgun (multipart/form-data) → para retro-compatibilidad
+SendGrid recibe los correos en el dominio dockershield.lat y los reenvía
+a /webhook/inbound/ como POST multipart/form-data.
 
-Envía alerta por Resend cuando detecta una amenaza.
+Para enviar (alertas + reenvíos) usamos también SendGrid (Mail Send API).
 """
 
 import os
-import json
-import time
-import hmac
-import base64
-import hashlib
-import binascii
 import traceback
 from datetime import datetime, timezone
 
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.core.files.base import ContentFile
@@ -35,14 +28,14 @@ from .sandbox import body_analyzer
 def inbound_email_webhook(request):
     """
     Wrapper que captura cualquier excepción del pipeline y loguea con detalle.
-    Siempre devuelve 200 (excepto firma inválida → 403) para que Resend no
-    reintente en bucle por un bug transitorio.
-    """
-    # ── Validación de firma (si hay secret configurado) ────────────────
-    if not _verify_resend_signature(request):
-        print("[webhook] firma inválida — rechazando POST")
-        return HttpResponseForbidden("Invalid signature")
+    Siempre devuelve 200 para que SendGrid no reintente en bucle por un bug
+    transitorio.
 
+    Nota de seguridad: SendGrid Inbound Parse no firma los POST por defecto.
+    La autenticidad se garantiza usando una URL pública secreta (ngrok / dominio
+    no adivinable) y, en producción, restringiendo por IP a los rangos de
+    SendGrid: https://sendgrid.com/blog/sendgrid-ip-addresses/
+    """
     try:
         return _handle_inbound(request)
     except Exception as e:
@@ -56,68 +49,6 @@ def inbound_email_webhook(request):
         except Exception as inner:
             print(f"  además falló el guardado mínimo: {inner}")
         return HttpResponse("OK (error logged)", status=200)
-
-
-# ──────────────────────────────────────────────────────────────────────
-#  Validación de firma HMAC (formato Svix usado por Resend)
-# ──────────────────────────────────────────────────────────────────────
-
-def _verify_resend_signature(request) -> bool:
-    """
-    Verifica la firma del webhook de Resend (esquema Svix).
-
-    Solo se aplica si el request claramente VIENE de Resend (tiene los
-    headers Svix-*). Webhooks de otros proveedores (SendGrid, Mailgun, etc.)
-    no tienen esos headers y se aceptan sin validar — su autenticidad
-    debe garantizarse por otra vía (IP allowlist, URL secreta, etc.).
-    """
-    svix_id        = request.META.get('HTTP_SVIX_ID', '')
-    svix_timestamp = request.META.get('HTTP_SVIX_TIMESTAMP', '')
-    svix_signature = request.META.get('HTTP_SVIX_SIGNATURE', '')
-
-    # Sin ningún header Svix → no es Resend → no validamos
-    if not (svix_id or svix_timestamp or svix_signature):
-        return True
-
-    # A partir de aquí asumimos que es Resend → DEBE validar bien
-    secret = (os.environ.get('RESEND_WEBHOOK_SECRET') or '').strip()
-    if not secret:
-        return True  # No hay secret configurado → no validamos (modo dev)
-
-    # Quita el prefijo "whsec_" si está
-    if secret.startswith('whsec_'):
-        secret = secret[len('whsec_'):]
-
-    try:
-        secret_bytes = base64.b64decode(secret)
-    except (binascii.Error, ValueError):
-        print("[webhook] RESEND_WEBHOOK_SECRET tiene formato inválido")
-        return False
-
-    if not (svix_id and svix_timestamp and svix_signature):
-        return False
-
-    # Tolerancia de 5 minutos para evitar replay attacks
-    try:
-        if abs(time.time() - int(svix_timestamp)) > 300:
-            return False
-    except ValueError:
-        return False
-
-    body = request.body.decode('utf-8', errors='replace')
-    signed = f"{svix_id}.{svix_timestamp}.{body}".encode('utf-8')
-    expected = base64.b64encode(
-        hmac.new(secret_bytes, signed, hashlib.sha256).digest()
-    ).decode('ascii')
-
-    # El header puede traer varias firmas separadas por espacio
-    for sig_pair in svix_signature.split(' '):
-        if ',' not in sig_pair:
-            continue
-        version, sig = sig_pair.split(',', 1)
-        if version == 'v1' and hmac.compare_digest(expected, sig):
-            return True
-    return False
 
 
 def _save_minimal_email(request, reason=""):
@@ -142,7 +73,7 @@ def _save_minimal_email(request, reason=""):
 
 
 # ──────────────────────────────────────────────────────────────────────
-#  Parser unificado: detecta Resend (JSON) o Mailgun (form-data)
+#  Parser del payload de SendGrid Inbound Parse (multipart/form-data)
 # ──────────────────────────────────────────────────────────────────────
 
 def _extract_payload(request):
@@ -154,119 +85,16 @@ def _extract_payload(request):
     }
     attachments_list = [(filename, bytes), ...]
     """
-    content_type = (request.META.get('CONTENT_TYPE') or '').lower()
-
-    if 'application/json' in content_type:
-        return _extract_resend(request)
-    return _extract_mailgun(request)
+    return _extract_sendgrid(request)
 
 
-def _extract_resend(request):
+def _extract_sendgrid(request):
+    """Parser del POST que SendGrid Inbound Parse manda al webhook.
+
+    SendGrid envía multipart/form-data con campos: to, from, subject,
+    text, html, attachments (cantidad de archivos), attachment-info,
+    y los adjuntos en request.FILES con keys 'attachment1', 'attachment2'…
     """
-    Resend manda JSON con la estructura {type, data:{from, to, subject, ...}}.
-
-    El webhook por defecto solo trae METADATA (sin body ni adjuntos).
-    Si detectamos que falta contenido y hay email_id, hacemos GET a la API
-    de Resend para fetchear el correo completo (body + attachments).
-    """
-    payload = json.loads(request.body.decode('utf-8'))
-    data = payload.get('data', payload)  # Por si viene sin wrapper
-
-    # ── Si solo hay metadata, fetcheamos el correo completo ───────────
-    body_text = data.get('text', '') or data.get('plain', '') or ''
-    body_html = data.get('html', '') or ''
-    raw_attachments = data.get('attachments') or []
-    has_attachment_content = any(
-        isinstance(a, dict) and (a.get('content') or a.get('data'))
-        for a in raw_attachments
-    )
-
-    # Solo intentamos fetchear si el flag está activado (Resend Free no
-    # permite leer inbound emails por API → siempre da 403 y solo
-    # ensucia los logs). Activar con  RESEND_FETCH_FULL_EMAIL=1  en .env.
-    fetch_enabled = (os.environ.get('RESEND_FETCH_FULL_EMAIL', '') or '').lower() in ('1', 'true', 'yes')
-    if fetch_enabled and not (body_text or body_html or has_attachment_content):
-        email_id = data.get('email_id') or data.get('id')
-        full = _fetch_full_resend_email(email_id)
-        if full:
-            data = {**data, **full}     # full sobrescribe lo que sí tenga
-            body_text       = full.get('text', '') or body_text
-            body_html       = full.get('html', '') or body_html
-            raw_attachments = full.get('attachments') or raw_attachments
-
-    # ── Parseo de campos ─────────────────────────────────────────────
-    to_field = data.get('to') or data.get('recipient') or []
-    if isinstance(to_field, str):
-        to_field = [to_field]
-    recipient = to_field[0] if to_field else ''
-
-    from_field = data.get('from') or data.get('sender') or ''
-    if isinstance(from_field, dict):
-        from_field = from_field.get('email', '') or from_field.get('address', '')
-
-    reply_to_field = data.get('reply_to') or data.get('replyTo') or ''
-    if isinstance(reply_to_field, list):
-        reply_to_field = reply_to_field[0] if reply_to_field else ''
-    if isinstance(reply_to_field, dict):
-        reply_to_field = reply_to_field.get('email', '')
-
-    fields = {
-        'recipient': recipient,
-        'sender':    from_field,
-        'subject':   data.get('subject', 'Sin asunto') or 'Sin asunto',
-        'body':      body_text,
-        'body_html': body_html,
-        'reply_to':  reply_to_field,
-    }
-
-    # Adjuntos: vienen como [{filename, content (base64), contentType}, ...]
-    attachments = []
-    for att in raw_attachments:
-        if not isinstance(att, dict):
-            continue
-        name = att.get('filename') or att.get('name') or 'attachment.bin'
-        b64  = att.get('content') or att.get('data') or ''
-        if not b64:
-            continue
-        try:
-            content_bytes = base64.b64decode(b64)
-        except (binascii.Error, ValueError):
-            continue
-        attachments.append((name, content_bytes))
-
-    return fields, attachments[:15]
-
-
-def _fetch_full_resend_email(email_id):
-    """
-    Hace GET a https://api.resend.com/emails/{email_id} para traer el
-    correo completo (text, html, attachments). Devuelve dict o None si falla.
-    """
-    if not email_id:
-        return None
-    api_key = (os.environ.get('RESEND_API_KEY') or '').strip()
-    if not api_key:
-        return None
-    try:
-        import urllib.request
-        req = urllib.request.Request(
-            f'https://api.resend.com/emails/{email_id}',
-            headers={
-                'Authorization': f'Bearer {api_key}',
-                'Accept': 'application/json',
-            },
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            full = json.loads(resp.read().decode('utf-8'))
-            print(f"[webhook] correo {email_id} fetched ({len(full.get('html','') or full.get('text','') or '')} chars body)")
-            return full
-    except Exception as e:
-        print(f"[webhook] fetch fallido para email {email_id}: {e}")
-        return None
-
-
-def _extract_mailgun(request):
-    """Formato Mailgun (multipart/form-data) — retro-compatibilidad."""
     fields = {
         'recipient': request.POST.get('recipient', '') or request.POST.get('to', ''),
         'sender':    request.POST.get('sender', '')    or request.POST.get('from', ''),
@@ -276,7 +104,7 @@ def _extract_mailgun(request):
         'reply_to':  request.POST.get('reply-to', '')   or request.POST.get('Reply-To', ''),
     }
     attachments = []
-    for upload in _collect_mailgun_files(request):
+    for upload in _collect_attachments(request):
         try:
             content = upload.read()
             attachments.append((upload.name, content))
@@ -433,7 +261,7 @@ def _html_to_text(html: str) -> str:
 
 def _handle_inbound(request):
 
-    # ── 1. Parsear payload (Resend JSON o Mailgun multipart) ───────────
+    # ── 1. Parsear payload del POST de SendGrid Inbound Parse ──────────
     fields, raw_attachments = _extract_payload(request)
 
     if not fields['recipient'] or not fields['sender']:
@@ -463,10 +291,11 @@ def _handle_inbound(request):
         print(f"[webhook] alias desconocido: {alias_address} (correo descartado)")
         return HttpResponse("OK", status=200)
 
-    # Neutraliza enlaces e imágenes externas ANTES de guardar.
-    # El sandbox del iframe ya bloquea scripts; esto bloquea ctrl+click en
-    # enlaces y los tracking pixels de imágenes externas.
-    body_html_safe = _neutralize_links_html(body_html or '')
+    # Neutraliza enlaces e imágenes externas SOLO para mostrar en la bandeja.
+    # Guardamos también la versión RAW para poder reenviarla intacta al correo
+    # real cuando el usuario lo apruebe (y sepa lo que está pidiendo).
+    body_html_original = body_html or ''
+    body_html_safe     = _neutralize_links_html(body_html_original)
 
     # ── Crear el EmailMessage ──────────────────────────────────────────
     email_obj = EmailMessage.objects.create(
@@ -475,6 +304,7 @@ def _handle_inbound(request):
         subject=subject[:255],
         body=body,
         body_html=body_html_safe,
+        body_html_raw=body_html_original,
     )
 
     # ── 1. Analizar el CUERPO del correo (siempre) ─────────────────────
@@ -599,27 +429,91 @@ def _handle_inbound(request):
             "attachment_count": len(attachments_summary),
         }
         send_threat_alert(email_obj, combined_for_alert, sandbox_id=sandbox.id)
+        # Notificación de amenaza bloqueada (informativa, sin acción)
+        _create_notification(
+            user=alias.user,
+            ntype='threat_alert',
+            title=f"Amenaza bloqueada en {alias.address}",
+            message=f"De: {sender}  ·  {threat_name or 'Archivo malicioso'}",
+            email=email_obj,
+            status='done',
+        )
+    elif final_score <= 30:
+        # Correo SEGURO:
+        # 1) Si el usuario tiene auto-forward → reenviar y notificar como "forwarded".
+        # 2) Si NO tiene auto-forward → crear notificación PENDIENTE para que decida.
+        try:
+            opted_in = bool(getattr(alias.user.profile, 'forward_safe_emails', False))
+        except Exception:
+            opted_in = False
+
+        if opted_in:
+            send_safe_email_forward(email_obj)
+            _create_notification(
+                user=alias.user,
+                ntype='forwarded',
+                title=f"Correo reenviado a tu correo real",
+                message=f"De: {sender}  ·  {subject[:80]}",
+                email=email_obj,
+                status='done',
+            )
+        else:
+            _create_notification(
+                user=alias.user,
+                ntype='forward_request',
+                title=f"Nuevo correo seguro en {alias.address}",
+                message=f"De: {sender}  ·  ¿quieres que llegue a tu correo real?",
+                email=email_obj,
+                status='pending',
+            )
+    else:
+        # Rango medio (31-60): sospechoso pero NO bloqueado.
+        # Lo tratamos como forward_request PENDIENTE para que el usuario decida
+        # explícitamente si quiere reenviarlo a su Gmail asumiendo el riesgo.
+        _create_notification(
+            user=alias.user,
+            ntype='forward_request',
+            title=f"Correo SOSPECHOSO en {alias.address}",
+            message=f"De: {sender}  ·  Riesgo medio ({final_score}/100) — ¿reenviar a tu correo real?",
+            email=email_obj,
+            status='pending',
+        )
 
     return HttpResponse("OK", status=200)
+
+
+def _create_notification(user, ntype, title, message, email=None, status='done'):
+    """Helper: crea una Notification de forma segura (no rompe el webhook si falla)."""
+    try:
+        from .models import Notification
+        Notification.objects.create(
+            user=user, type=ntype, title=title[:200],
+            message=message or '', related_email=email, status=status,
+        )
+    except Exception as e:
+        print(f"[webhook] no se pudo crear notificación ({ntype}): {e}")
 
 
 # ──────────────────────────────────────────────────────────────────────
 #  Helpers para múltiples adjuntos
 # ──────────────────────────────────────────────────────────────────────
 
-def _collect_mailgun_files(request):
+def _collect_attachments(request):
     """
-    Reúne TODOS los adjuntos del POST en formato Mailgun (request.FILES).
-    Soporta tres convenciones:
-      attachment-1, attachment-2 …        (Mailgun)
-      attachment1,  attachment2  …         (algunos clientes)
-      files[]                              (genérico)
-    Además, cualquier archivo en request.FILES que no matchee arriba.
+    Reúne TODOS los adjuntos del POST inbound (request.FILES).
+
+    SendGrid Inbound Parse usa las convenciones:
+      attachment1, attachment2, attachment3 …   (sin guion)
+      attachment-info  (JSON con metadatos)
+
+    También soporta formatos alternativos por compatibilidad:
+      attachment-1, attachment-2 …  (Mailgun-style)
+      files[] / attachments[]       (genérico)
     """
     collected = []
     seen_keys = set()
 
-    # Orden estricto: attachment-1, attachment-2, ..., attachment-20
+    # Orden estricto: attachment1..20 y attachment-1..20
     for i in range(1, 21):
         for key in (f'attachment-{i}', f'attachment{i}'):
             if key in request.FILES:
@@ -838,7 +732,78 @@ def _to_level(score: int) -> str:
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  ALERTA DE AMENAZA VÍA RESEND
+#  HELPER CENTRALIZADO DE ENVÍO POR SENDGRID
+# ══════════════════════════════════════════════════════════════════════
+
+def _send_via_sendgrid(from_addr, to_email, subject, html_body,
+                       reply_to=None, attachments=None):
+    """
+    Envía un correo HTML usando la API REST de SendGrid (v3).
+
+    Parámetros:
+        from_addr   : "Nombre <correo@dominio>" o solo "correo@dominio"
+        to_email    : str (un solo destinatario)
+        subject     : str
+        html_body   : str con HTML completo del correo
+        reply_to    : str opcional con el correo de respuesta
+        attachments : lista opcional de {filename, content (base64 str)}
+
+    Devuelve True si se envió, False si falló.
+    """
+    api_key = os.environ.get('SENDGRID_API_KEY', '').strip()
+    if not api_key:
+        print('[webhook] SENDGRID_API_KEY no configurada — correo no enviado.')
+        return False
+
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import (
+            Mail, Attachment, FileContent, FileName, FileType,
+            Disposition, ReplyTo, Email,
+        )
+
+        # Parsear "Nombre <correo>" → email + name si viene así
+        if '<' in from_addr and '>' in from_addr:
+            name = from_addr.split('<')[0].strip().strip('"')
+            addr = from_addr.split('<')[1].split('>')[0].strip()
+            sender = Email(email=addr, name=name)
+        else:
+            sender = Email(email=from_addr)
+
+        message = Mail(
+            from_email=sender,
+            to_emails=to_email,
+            subject=subject,
+            html_content=html_body,
+        )
+
+        if reply_to:
+            message.reply_to = ReplyTo(reply_to)
+
+        for att in (attachments or []):
+            attachment = Attachment(
+                FileContent(att['content']),
+                FileName(att['filename']),
+                FileType(att.get('type', 'application/octet-stream')),
+                Disposition('attachment'),
+            )
+            message.add_attachment(attachment)
+
+        sg = SendGridAPIClient(api_key)
+        resp = sg.send(message)
+        # SendGrid devuelve 202 Accepted cuando el envío es exitoso
+        if 200 <= resp.status_code < 300:
+            return True
+        print(f'[webhook] SendGrid devolvió status {resp.status_code}: {resp.body}')
+        return False
+
+    except Exception as e:
+        print(f'[webhook] error enviando vía SendGrid: {e}')
+        return False
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  ALERTA DE AMENAZA VÍA SENDGRID
 # ══════════════════════════════════════════════════════════════════════
 
 def send_threat_alert(email_obj, result, sandbox_id=None):
@@ -851,13 +816,6 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
         SITE_URL=https://tudominio.com
     """
     try:
-        import resend
-        resend_key = os.environ.get('RESEND_API_KEY', '').strip()
-        if not resend_key:
-            print('[webhook] RESEND_API_KEY no configurada — alerta no enviada.')
-            return
-        resend.api_key = resend_key
-
         risk_score  = result.get('risk_score', 0)
         threat_name = result.get('threat_name', 'Amenaza desconocida')
         filename    = result.get('filename', email_obj.attachment_name)
@@ -1105,20 +1063,391 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
 </body>
 </html>"""
 
-        # Remitente: usa tu dominio verificado en Resend (con MAIL_DOMAIN del .env)
+        # Remitente: usa tu dominio verificado en SendGrid (MAIL_DOMAIN del .env)
         from django.conf import settings
-        domain = settings.MAIL_DOMAIN or 'resend.dev'
+        domain = settings.MAIL_DOMAIN or 'dockershield.lat'
         from_addr = f"SecureMail Shield <alerts@{domain}>"
 
-        params = {
-            "from":    from_addr,
-            "to":      [user_email],   # ← Correo REAL del dueño del alias
-            "subject": f"Amenaza bloqueada en tu alias — {filename}",
-            "html":    html_body,
-        }
-
-        resend.Emails.send(params)
-        print(f"Alerta enviada a {user_email} · reporte: {report_url}")
+        ok = _send_via_sendgrid(
+            from_addr = from_addr,
+            to_email  = user_email,   # ← Correo REAL del dueño del alias
+            subject   = f"Amenaza bloqueada en tu alias — {filename}",
+            html_body = html_body,
+        )
+        if ok:
+            print(f"Alerta enviada a {user_email} · reporte: {report_url}")
 
     except Exception as e:
-        print(f"Error enviando alerta Resend: {e}")
+        print(f"Error enviando alerta: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  REENVÍO DE CORREOS SEGUROS (opt-in del usuario)
+# ══════════════════════════════════════════════════════════════════════
+
+def send_safe_email_forward(email_obj, force=False):
+    """
+    Reenvía un correo SEGURO al correo real del usuario.
+
+    - Si `force=False` (default): solo envía si el usuario activó la opción
+      `forward_safe_emails` en su perfil (auto-forward).
+    - Si `force=True`: ignora la opción y siempre envía. Se usa cuando el
+      usuario aprueba MANUALMENTE un reenvío desde el panel de notificaciones.
+    """
+    try:
+        user = email_obj.alias.user
+
+        # Solo verificamos opt-in si NO es un envío forzado
+        if not force:
+            try:
+                if not user.profile.forward_safe_emails:
+                    return
+            except Exception:
+                return  # Sin profile, no reenviamos automáticamente
+
+        user_email = user.email
+        if not user_email:
+            print("[forward] usuario sin correo real — no se reenvía")
+            return
+
+        from django.conf import settings
+        domain = settings.MAIL_DOMAIN or 'dockershield.lat'
+        from_addr = f"SecureMail Shield <forward@{domain}>"
+
+        original_sender  = email_obj.from_email or '(remitente desconocido)'
+        original_subject = email_obj.subject or '(sin asunto)'
+        alias_address    = email_obj.alias.address
+        # Para reenviar usamos el HTML ORIGINAL sin neutralizar (links activos,
+        # imágenes cargan, formato exacto). Fallback a la versión neutralizada
+        # solo para correos viejos que no tienen el campo raw.
+        body_html_raw    = getattr(email_obj, 'body_html_raw', '') or email_obj.body_html or ''
+        body_text        = email_obj.body or ''
+        # `original_subject` y `original_sender` ya están definidos arriba; el
+        # wrapper minimalista no usa timestamp ni reabre estos campos.
+
+        # ── Recolectar TODOS los adjuntos del correo ─────────────────────
+        # SendGrid acepta adjuntos con {filename, content (base64), type}.
+        # Limite total recomendado: ~25 MB por correo.
+        import base64 as _b64
+
+        attachments_payload = []
+        attachments_meta = []   # para mostrar en el wrapper HTML
+        total_size = 0
+        MAX_TOTAL_SIZE = 25 * 1024 * 1024   # 25 MB
+
+        # 1) Adjuntos del análisis (cubre múltiples adjuntos)
+        att_paths = []
+        try:
+            reports = email_obj.analysis.attachments_reports or []
+            for r in reports:
+                fpath = r.get('filepath') if isinstance(r, dict) else None
+                fname = r.get('filename') if isinstance(r, dict) else None
+                if fpath and fname:
+                    att_paths.append((fname, fpath))
+        except Exception:
+            pass
+
+        # 2) Fallback: el campo plano del modelo (1er adjunto)
+        if not att_paths and email_obj.has_attachment and email_obj.attachment_path:
+            att_paths.append((email_obj.attachment_name or 'attachment', email_obj.attachment_path))
+
+        # Leer y encodear cada uno
+        for fname, fpath in att_paths:
+            try:
+                if not os.path.isfile(fpath):
+                    print(f"[forward] adjunto no encontrado en disco: {fpath}")
+                    continue
+                size = os.path.getsize(fpath)
+                if total_size + size > MAX_TOTAL_SIZE:
+                    print(f"[forward] adjunto {fname} omitido (tamaño total excedería 25MB)")
+                    continue
+                with open(fpath, 'rb') as f:
+                    content_b64 = _b64.b64encode(f.read()).decode('ascii')
+                attachments_payload.append({
+                    'filename': fname,
+                    'content':  content_b64,
+                })
+                attachments_meta.append({'filename': fname, 'size': size})
+                total_size += size
+            except Exception as e:
+                print(f"[forward] no se pudo leer adjunto {fname}: {e}")
+
+        # Si tenemos HTML ORIGINAL lo usamos tal cual; si solo hay texto plano,
+        # lo formateamos en <pre> para que mantenga saltos de línea.
+        original_body_html = body_html_raw if body_html_raw else (
+            f'<pre style="font-family:Consolas,Monaco,monospace;font-size:13px;'
+            f'color:#1a1830;white-space:pre-wrap;word-wrap:break-word;margin:0">'
+            f'{(body_text or "(Sin contenido)").replace("<", "&lt;").replace(">", "&gt;")}'
+            f'</pre>'
+        )
+
+        # ── Banner HTML con la lista de adjuntos (si hay) ────────────────
+        attachments_banner_html = ''
+        if attachments_meta:
+            def _fmt_size(b):
+                if b < 1024: return f"{b} B"
+                if b < 1024*1024: return f"{b // 1024} KB"
+                return f"{b / 1048576:.1f} MB"
+            items_html = ''
+            for a in attachments_meta:
+                items_html += (
+                    f'<tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6">'
+                    f'<table cellpadding="0" cellspacing="0" width="100%"><tr>'
+                    f'<td width="32" valign="middle">'
+                    f'<div style="width:30px;height:30px;background:#ede9fe;border-radius:7px;text-align:center;line-height:30px">'
+                    f'<span style="color:#7c3aed;font-size:14px">📎</span></div></td>'
+                    f'<td valign="middle" style="padding-left:10px">'
+                    f'<div style="font-size:12.5px;color:#1f2937;font-weight:600;font-family:monospace">{a["filename"]}</div>'
+                    f'<div style="font-size:11px;color:#6b7280;margin-top:1px">{_fmt_size(a["size"])} · escaneado por sandbox</div>'
+                    f'</td></tr></table></td></tr>'
+                )
+            attachments_banner_html = (
+                '<tr><td style="padding:0 22px 18px">'
+                '<div style="font-size:11px;color:#6b7280;font-family:monospace;letter-spacing:0.04em;margin-bottom:8px">'
+                f'ADJUNTOS ({len(attachments_meta)})</div>'
+                '<table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#fafafa">'
+                f'{items_html}'
+                '</table></td></tr>'
+            )
+
+        wrapper_html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+</head>
+<body style="margin:0;padding:0;background:#eef0f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#1a1830">
+
+<!-- Línea de acento superior (firma de marca) -->
+<div style="height:4px;background:linear-gradient(90deg,#6d4aff 0%,#9b6dff 40%,#22c55e 100%);font-size:0;line-height:0">&nbsp;</div>
+
+<!-- ═══════ HEADER ═══════ -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-bottom:1px solid #ebedf3">
+  <tr>
+    <td style="padding:18px 28px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <!-- Logo + Brand -->
+          <td valign="middle" style="vertical-align:middle;line-height:1">
+            <table cellpadding="0" cellspacing="0" border="0"><tr>
+              <!-- Logo box: escudo Unicode centrado por line-height -->
+              <td width="40" height="40" valign="middle" align="center" style="background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:11px;text-align:center;vertical-align:middle;line-height:40px;mso-line-height-rule:exactly;font-size:22px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 6px 16px rgba(109,74,255,0.35)">
+                &#128737;
+              </td>
+              <td width="12" style="line-height:0;font-size:0">&nbsp;</td>
+              <td valign="middle" style="vertical-align:middle">
+                <div style="font-size:17px;font-weight:800;color:#1a1830;letter-spacing:-0.015em;line-height:1.1">Secure<span style="color:#7c5cff">Mail</span> Shield</div>
+                <div style="font-size:10.5px;color:#9ca3af;font-family:'SF Mono',Menlo,Consolas,monospace;letter-spacing:0.08em;margin-top:3px;text-transform:uppercase">Correo seguro · sandbox aislado</div>
+              </td>
+            </tr></table>
+          </td>
+          <!-- Pill VERIFICADO -->
+          <td valign="middle" align="right" style="vertical-align:middle">
+            <table cellpadding="0" cellspacing="0" border="0"><tr>
+              <td height="28" valign="middle" style="background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:0 12px 0 8px;line-height:28px">
+                <table cellpadding="0" cellspacing="0" border="0"><tr>
+                  <td width="16" height="16" valign="middle" align="center" style="background:#22c55e;border-radius:50%;text-align:center;vertical-align:middle;line-height:16px;mso-line-height-rule:exactly;font-size:10px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">
+                    &#10003;
+                  </td>
+                  <td width="6" style="line-height:0;font-size:0">&nbsp;</td>
+                  <td style="font-size:11px;font-weight:800;color:#15803d;letter-spacing:0.08em;line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">VERIFICADO</td>
+                </tr></table>
+              </td>
+            </tr></table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- ═══════ Sub-info: alias + estado ═══════ -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fc;border-bottom:1px solid #ebedf3">
+  <tr>
+    <td style="padding:11px 28px;font-size:12px;color:#4b5563">
+      Recibido en tu alias
+      <span style="display:inline-block;color:#7c5cff;font-family:'SF Mono',Menlo,Consolas,monospace;font-weight:600;background:#ede9fe;padding:2px 8px;border-radius:5px;margin:0 3px;font-size:11px">{alias_address}</span>
+      &nbsp;·&nbsp;
+      Análisis sandbox <strong style="color:#15803d">sin amenazas</strong>
+    </td>
+  </tr>
+</table>
+
+{attachments_banner_html or ''}
+
+<!-- ═══════ CORREO ORIGINAL TAL CUAL ═══════ -->
+<div style="background:#ffffff;padding:0">
+{original_body_html}
+</div>
+
+<!-- ═══════ FOOTER PROFESIONAL ═══════ -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0c0a18;color:#e5e7eb;margin-top:36px">
+
+  <tr><td style="height:3px;background:linear-gradient(90deg,#6d4aff,#9b6dff,#22c55e);font-size:0;line-height:0">&nbsp;</td></tr>
+
+  <tr>
+    <td style="padding:32px 28px 24px">
+
+      <!-- Outer table que organiza el footer en bloques verticales -->
+      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+
+        <!-- ROW 1: Brand line (logo + nombre) -->
+        <tr>
+          <td style="padding-bottom:24px">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td width="32" height="32" valign="middle" align="center" style="background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:9px;text-align:center;vertical-align:middle;line-height:32px;mso-line-height-rule:exactly;font-size:18px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 4px 12px rgba(109,74,255,0.4)">
+                  &#128737;
+                </td>
+                <td width="10" style="line-height:0;font-size:0">&nbsp;</td>
+                <td valign="middle" style="vertical-align:middle;font-size:14px;font-weight:700;color:#f0eeff;letter-spacing:-0.005em;line-height:1">
+                  Secure<span style="color:#a78bfa">Mail</span> Shield
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- ROW 2: Eyebrow morado -->
+        <tr>
+          <td style="padding-bottom:8px">
+            <div style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:0.14em;font-family:'SF Mono',Menlo,Consolas,monospace;line-height:1.4">El sandbox protegió tu inbox</div>
+          </td>
+        </tr>
+
+        <!-- ROW 3: Headline -->
+        <tr>
+          <td style="padding-bottom:24px">
+            <div style="font-size:18px;font-weight:800;color:#f0eeff;line-height:1.4;letter-spacing:-0.01em;max-width:480px">Antes de llegar a ti, este correo pasó tres capas de seguridad.</div>
+          </td>
+        </tr>
+
+        <!-- ROW 4: 3 cards con icons SÓLIDOS y blancos -->
+        <tr>
+          <td style="padding-bottom:18px">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr>
+                <!-- Card 1: Sandbox Docker — caja contenedor unicode -->
+                <td valign="top" width="33%" style="padding-right:6px">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#13111d;border:1px solid #2a2742;border-radius:12px">
+                    <tr>
+                      <td style="padding:16px 14px">
+                        <table cellpadding="0" cellspacing="0" border="0"><tr>
+                          <td width="36" height="36" valign="middle" align="center" style="background:#22c55e;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);border-radius:9px;text-align:center;vertical-align:middle;line-height:36px;mso-line-height-rule:exactly;font-size:18px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 3px 10px rgba(34,197,94,0.35)">
+                            &#9635;
+                          </td>
+                        </tr></table>
+                        <div style="font-size:12px;color:#f0eeff;font-weight:700;letter-spacing:0.005em;margin-top:12px;line-height:1.3">Sandbox Docker</div>
+                        <div style="font-size:10.5px;color:#7d7a96;margin-top:4px;line-height:1.5">Adjuntos analizados en contenedor aislado sin internet</div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <!-- Card 2: Reglas YARA — check unicode -->
+                <td valign="top" width="33%" style="padding:0 3px">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#13111d;border:1px solid #2a2742;border-radius:12px">
+                    <tr>
+                      <td style="padding:16px 14px">
+                        <table cellpadding="0" cellspacing="0" border="0"><tr>
+                          <td width="36" height="36" valign="middle" align="center" style="background:#22c55e;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);border-radius:9px;text-align:center;vertical-align:middle;line-height:36px;mso-line-height-rule:exactly;font-size:20px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 3px 10px rgba(34,197,94,0.35)">
+                            &#10003;
+                          </td>
+                        </tr></table>
+                        <div style="font-size:12px;color:#f0eeff;font-weight:700;letter-spacing:0.005em;margin-top:12px;line-height:1.3">Reglas YARA</div>
+                        <div style="font-size:10.5px;color:#7d7a96;margin-top:4px;line-height:1.5">Comparado contra firmas conocidas de malware</div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <!-- Card 3: Análisis IA — estrella unicode -->
+                <td valign="top" width="33%" style="padding-left:6px">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#13111d;border:1px solid #2a2742;border-radius:12px">
+                    <tr>
+                      <td style="padding:16px 14px">
+                        <table cellpadding="0" cellspacing="0" border="0"><tr>
+                          <td width="36" height="36" valign="middle" align="center" style="background:#22c55e;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);border-radius:9px;text-align:center;vertical-align:middle;line-height:36px;mso-line-height-rule:exactly;font-size:18px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 3px 10px rgba(34,197,94,0.35)">
+                            &#9733;
+                          </td>
+                        </tr></table>
+                        <div style="font-size:12px;color:#f0eeff;font-weight:700;letter-spacing:0.005em;margin-top:12px;line-height:1.3">Análisis IA</div>
+                        <div style="font-size:10.5px;color:#7d7a96;margin-top:4px;line-height:1.5">Llama 3.3 evaluó el contenido por phishing</div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- ROW 5: Card "Tu correo real sigue oculto" -->
+        <tr>
+          <td>
+            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:linear-gradient(135deg,rgba(124,92,255,0.14) 0%,rgba(124,92,255,0.05) 100%);border:1px solid rgba(124,92,255,0.32);border-radius:12px">
+              <tr>
+                <td style="padding:16px 18px">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                    <tr>
+                      <td width="40" valign="top" style="padding-right:14px">
+                        <table cellpadding="0" cellspacing="0" border="0">
+                          <tr>
+                            <td width="38" height="38" valign="middle" align="center" style="background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:9px;text-align:center;vertical-align:middle;line-height:38px;mso-line-height-rule:exactly;font-size:20px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 4px 12px rgba(109,74,255,0.4)">
+                              &#128274;
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                      <td valign="top">
+                        <div style="font-size:13px;color:#f0eeff;font-weight:700;line-height:1.4;margin-bottom:4px;letter-spacing:-0.005em">Tu correo real sigue oculto</div>
+                        <div style="font-size:11.5px;color:#9b97b8;line-height:1.55">El remitente solo conoce el alias. Cuando quieras, destrúyelo desde tu panel sin afectar tu cuenta de Gmail.</div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+
+    </td>
+  </tr>
+
+  <!-- Pie fino -->
+  <tr>
+    <td style="padding:16px 28px;border-top:1px solid #1c1a2c;background:#08070f">
+      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td style="font-size:10.5px;color:#5e5b75;font-family:'SF Mono',Menlo,Consolas,monospace;letter-spacing:0.04em">
+            © SecureMail Shield
+          </td>
+          <td align="right" style="font-size:10.5px;color:#5e5b75">
+            <span style="color:#a78bfa;font-weight:600">Gestionar reenvíos</span>
+            <span style="color:#3a3850;margin:0 8px">·</span>
+            <span style="font-family:'SF Mono',Menlo,Consolas,monospace">v1.0</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>"""
+
+        ok = _send_via_sendgrid(
+            from_addr   = from_addr,
+            to_email    = user_email,
+            subject     = f"[via {alias_address.split('@')[0]}] {original_subject}",
+            html_body   = wrapper_html,
+            reply_to    = original_sender,
+            attachments = attachments_payload or None,
+        )
+        if ok:
+            att_info = f" + {len(attachments_payload)} adjunto(s)" if attachments_payload else ""
+            print(f"Correo seguro reenviado a {user_email} (alias: {alias_address}){att_info}")
+
+    except Exception as e:
+        print(f"Error reenviando correo seguro: {e}")

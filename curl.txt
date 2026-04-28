@@ -5,4 +5,6 @@
 
                           
 
-python manage.py test_webhook --file test_samples/eicar.txt --to cucho_g2kkww@dockershield.lat
+python manage.py test_webhook --file test_samples/eicar.txt --to andres_955urd@dockershield.lat
+
+python manage.py test_webhook --file test_samples/examen_final.pdf --to andres_955urd@dockershield.lat

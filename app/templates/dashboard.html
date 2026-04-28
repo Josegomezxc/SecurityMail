@@ -823,12 +823,7 @@
 
 {% block body %}
 
-<!-- Banner de actualización en vivo -->
-<div class="live-banner" id="dashLiveBanner" onclick="reloadDashboard()">
-  <span class="live-dot-bn"></span>
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-  <span id="dashLiveBannerText">1 cambio en tu bandeja · click para actualizar</span>
-</div>
+<!-- Banner manual eliminado: los stats del dashboard se actualizan solos con polling -->
 
 <!-- ── WELCOME BANNER ── -->
 <div class="welcome-banner" style="animation-delay:0ms">
@@ -1263,25 +1258,10 @@
       }
     });
 
-    /* Banner si hubo novedades */
-    if (anyChanged) {
-      var delta = (data.total_emails || 0) - (dashLastStats?.total_emails || data.total_emails);
-      var banner = document.getElementById('dashLiveBanner');
-      var btxt   = document.getElementById('dashLiveBannerText');
-      var msg    = '';
-      if (delta > 0 && threatDelta > 0) {
-        msg = delta + ' correo' + (delta === 1 ? '' : 's') + ' nuevo' + (delta === 1 ? '' : 's') +
-              ' · ⚠ ' + threatDelta + ' amenaza' + (threatDelta === 1 ? '' : 's');
-      } else if (delta > 0) {
-        msg = delta + ' correo' + (delta === 1 ? '' : 's') + ' nuevo' + (delta === 1 ? '' : 's') +
-              ' · click para ver';
-      } else if (threatDelta > 0) {
-        msg = '⚠ ' + threatDelta + ' amenaza' + (threatDelta === 1 ? '' : 's') + ' bloqueada' + (threatDelta === 1 ? '' : 's');
-      } else {
-        msg = 'Dashboard actualizado · click para recargar';
-      }
-      btxt.textContent = msg;
-      banner.classList.add('visible');
+    /* Banner manual eliminado: los stats se actualizan solos con animateStat. */
+    /* (Si quieres recordar que algo cambió, deja un console.info para debugging.) */
+    if (anyChanged && dashLastStats !== null) {
+      console.info('[dashboard-live] stats updated automatically');
     }
 
     dashLastStats = { ...data };

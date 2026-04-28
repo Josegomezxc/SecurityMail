@@ -435,13 +435,17 @@
     </div>
     Crear nuevo alias
   </div>
-  <form method="post" action="{% url 'alias_create' %}">
+  <form method="post" action="{% url 'alias_create' %}" id="alias-create-form">
     {% csrf_token %}
     <div class="create-row">
       <div class="form-group">
         <label class="form-label">Etiqueta — para qué usarás este alias</label>
-        <input type="text" name="label" class="create-input"
-          placeholder="Ej: Amazon, Foro Reddit, Netflix..." required autocomplete="off">
+        <input type="text" name="label" id="alias-label-input" class="create-input"
+          placeholder="Ej: Amazon, ForoReddit, Netflix..."
+          required autocomplete="off" spellcheck="false"
+          maxlength="40" pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+"
+          title="Solo letras — sin espacios, números ni símbolos">
+        <div id="alias-label-err" style="display:none;margin-top:6px;padding:6px 10px;font-size:12px;color:#f87171;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);border-radius:8px"></div>
       </div>
       <button type="submit" class="btn-generate">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -552,8 +556,7 @@
         </svg>
         Copiar
       </button>
-      <form method="post" action="{% url 'alias_destroy' alias.id %}" style="display:inline"
-        onsubmit="return confirm('¿Destruir este alias? No se puede reactivar.')">
+      <form method="post" action="{% url 'alias_destroy' alias.id %}" style="display:inline" class="js-destroy-alias" data-alias="{{ alias.address }}">
         {% csrf_token %}
         <button type="submit" class="btn-destroy">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -658,5 +661,90 @@ function aliasApply() {
     noRes.style.display = 'none';
   }
 }
+
+/* ── Validación del input "etiqueta": SOLO letras (sin espacios, números ni símbolos) ── */
+(function () {
+  var input  = document.getElementById('alias-label-input');
+  var form   = document.getElementById('alias-create-form');
+  var errBox = document.getElementById('alias-label-err');
+  if (!input || !form) return;
+
+  /* Regex de caracteres NO permitidos: todo lo que NO sea letra (incluye tildes y ñ) */
+  var INVALID_RE = /[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g;
+
+  var hideTimer = null;
+  function showErr(msg) {
+    if (!errBox) return;
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    errBox.textContent = msg;
+    errBox.style.display = msg ? 'block' : 'none';
+    input.style.borderColor = msg ? 'rgba(239,68,68,0.5)' : '';
+  }
+  function flashErr(msg, ms) {
+    showErr(msg);
+    hideTimer = setTimeout(function () { showErr(''); }, ms || 2000);
+  }
+
+  /* Filtra cualquier carácter inválido en tiempo real */
+  input.addEventListener('input', function () {
+    var before = this.value;
+    var after  = before.replace(INVALID_RE, '');
+    if (before !== after) {
+      var pos = this.selectionStart;
+      var removed = before.slice(0, pos).length - before.slice(0, pos).replace(INVALID_RE, '').length;
+      this.value = after;
+      try { this.setSelectionRange(pos - removed, pos - removed); } catch (e) {}
+      flashErr('Solo letras — se quitan espacios, números y símbolos.', 2000);
+    } else {
+      showErr('');
+    }
+  });
+
+  /* Bloquea pegar texto con caracteres inválidos (los limpia silenciosamente) */
+  input.addEventListener('paste', function (e) {
+    var data = (e.clipboardData || window.clipboardData);
+    if (!data) return;
+    var text = data.getData('text');
+    if (INVALID_RE.test(text)) {
+      INVALID_RE.lastIndex = 0;   // reset por el flag /g en .test()
+      e.preventDefault();
+      var clean = text.replace(INVALID_RE, '');
+      var start = this.selectionStart, end = this.selectionEnd;
+      this.value = this.value.slice(0, start) + clean + this.value.slice(end);
+      try { this.setSelectionRange(start + clean.length, start + clean.length); } catch (err) {}
+      flashErr('Se quitaron los caracteres no válidos al pegar.', 2000);
+    }
+  });
+
+  /* Defensa final: limpia y rechaza el submit si queda vacío */
+  form.addEventListener('submit', function (e) {
+    input.value = input.value.replace(INVALID_RE, '');
+    if (!input.value) {
+      e.preventDefault();
+      showErr('La etiqueta no puede estar vacía y solo acepta letras.');
+      input.focus();
+    }
+  });
+})();
+
+/* ── Confirmación bonita al destruir un alias (reemplaza window.confirm) ── */
+document.addEventListener('submit', function (e) {
+  var form = e.target.closest('.js-destroy-alias');
+  if (!form || form.dataset.confirmed === '1') return;
+  e.preventDefault();
+  if (!window.confirmDialog) { form.submit(); return; }
+  window.confirmDialog({
+    danger:      true,
+    icon:        'trash',
+    title:       'Destruir alias',
+    message:     '¿Seguro que quieres destruir ' + (form.dataset.alias || 'este alias') + '?\nNo se puede reactivar y dejará de recibir correos.',
+    confirmText: 'Sí, destruir',
+    cancelText:  'Cancelar',
+  }).then(function (ok) {
+    if (!ok) return;
+    form.dataset.confirmed = '1';
+    form.submit();
+  });
+});
 </script>
 {% endblock %}

@@ -1,6 +1,6 @@
 # app/context_processors.py
 
-from .models import Alias, EmailMessage, SandboxAnalysis
+from .models import Alias, EmailMessage, Notification, SandboxAnalysis
 
 
 def sidebar_counts(request):
@@ -10,9 +10,11 @@ def sidebar_counts(request):
     """
     if not request.user.is_authenticated:
         return {
-            'alias_count':   0,
-            'unread_count':  0,
-            'threats_count': 0,
+            'alias_count':         0,
+            'unread_count':        0,
+            'threats_count':       0,
+            'notif_pending_count': 0,
+            'notif_unread_count':  0,
         }
 
     user = request.user
@@ -29,8 +31,16 @@ def sidebar_counts(request):
         email__alias__user=user, risk_score__gte=61
     ).count()
 
+    notif_qs = Notification.objects.filter(user=user)
+    notif_pending_count = notif_qs.filter(
+        type='forward_request', status='pending'
+    ).count()
+    notif_unread_count = notif_qs.filter(read=False).count()
+
     return {
-        'alias_count':   alias_count,
-        'unread_count':  unread_count,
-        'threats_count': threats_count,
+        'alias_count':         alias_count,
+        'unread_count':        unread_count,
+        'threats_count':       threats_count,
+        'notif_pending_count': notif_pending_count,
+        'notif_unread_count':  notif_unread_count,
     }

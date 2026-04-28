@@ -2,16 +2,98 @@
 Lógica de autenticación y autorización:
   - Decorator para vistas exclusivas de admin.
   - Rate limiting por IP para el login (anti fuerza bruta).
+  - Single-session enforcement (un usuario, una sesión activa).
 
 Las vistas usan estas funciones para no duplicar lógica de seguridad.
 """
 from functools import wraps
 
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login as django_login
 from django.contrib.auth.models import User
+from django.contrib.sessions.models import Session
 from django.core.cache import cache
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
+from django.utils import timezone
+
+
+# Tiempo de inactividad después del cual una sesión se considera "abandonada"
+# y se permite que otra persona haga login con la misma cuenta. Si quieres
+# que cerrar el navegador desbloquee al instante, baja a 0; si quieres ser
+# más estricto, súbelo. 3 minutos es un buen balance.
+SESSION_IDLE_TIMEOUT_SECONDS = 420
+
+
+def is_session_active(user) -> bool:
+    """
+    Devuelve True si el usuario tiene una sesión "viva" en otro navegador
+    o dispositivo (alguien la está usando ahora mismo).
+
+    Se considera viva si:
+      • El perfil tiene una current_session_key registrada
+      • Esa sesión todavía existe en la BD de Django (no fue logout/expirada)
+      • Hubo actividad en los últimos SESSION_IDLE_TIMEOUT_SECONDS segundos
+    """
+    try:
+        profile = user.profile
+    except Exception:
+        return False
+
+    key = (profile.current_session_key or '').strip()
+    if not key:
+        return False
+
+    # ¿Existe la sesión todavía? (si hicieron logout o expiró, ya no)
+    if not Session.objects.filter(session_key=key).exists():
+        return False
+
+    # ¿Hubo actividad reciente?
+    last = profile.session_last_activity
+    if last is None:
+        return False
+    idle = (timezone.now() - last).total_seconds()
+    return idle < SESSION_IDLE_TIMEOUT_SECONDS
+
+
+# ─────────────────────────────────────────────────────────────────────
+#  Login con sesión única
+# ─────────────────────────────────────────────────────────────────────
+
+def login_single_session(request, user):
+    """
+    Hace login del usuario y garantiza que sea su ÚNICA sesión activa.
+
+    Pasos:
+      1) Borra de la BD cualquier sesión vieja del usuario (las
+         identificamos por la session_key guardada en su perfil).
+      2) Llama a django.contrib.auth.login(), que crea una sesión nueva.
+      3) Guarda la nueva session_key en user.profile.current_session_key.
+
+    Resultado: el usuario que estuviera logueado en otro navegador será
+    deslogueado por SingleSessionMiddleware en su próximo request.
+    """
+    # 1) Borrar la sesión anterior si la teníamos registrada
+    try:
+        old_key = (user.profile.current_session_key or '').strip()
+    except Exception:
+        old_key = ''
+    if old_key:
+        Session.objects.filter(session_key=old_key).delete()
+
+    # 2) Crear la sesión nueva (Django genera el session_key)
+    django_login(request, user)
+
+    # Forzar que la sesión se guarde YA en BD para tener session_key disponible
+    if not request.session.session_key:
+        request.session.save()
+
+    # 3) Persistir la nueva session_key en el perfil
+    try:
+        profile = user.profile
+        profile.current_session_key = request.session.session_key or ''
+        profile.save(update_fields=['current_session_key'])
+    except Exception:
+        pass
 
 
 # ─────────────────────────────────────────────────────────────────────

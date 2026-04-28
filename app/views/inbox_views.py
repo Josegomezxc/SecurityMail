@@ -147,3 +147,32 @@ def inbox_new_api(request):
         "emails":  [_row(em) for em in qs],
         "has_new": qs.exists(),
     })
+
+
+@login_required(login_url='login')
+@require_POST
+def inbox_clear_api(request):
+    """
+    Vacía correos del usuario según el filtro:
+      - read    → solo los leídos
+      - threats → solo amenazas (risk_score >= 61)
+      - safe    → solo seguros (risk_score <= 30)
+      - all     → TODOS los correos del usuario
+    """
+    scope = request.POST.get('scope', 'read')
+    qs = EmailMessage.objects.filter(alias__user=request.user)
+
+    if scope == 'read':
+        qs = qs.filter(read=True)
+    elif scope == 'threats':
+        qs = qs.filter(risk_score__gte=61)
+    elif scope == 'safe':
+        qs = qs.filter(risk_score__lte=30)
+    elif scope == 'all':
+        pass    # qs queda con TODOS
+    else:
+        return JsonResponse({'ok': False, 'error': 'invalid_scope'}, status=400)
+
+    deleted = qs.count()
+    qs.delete()
+    return JsonResponse({'ok': True, 'deleted': deleted})

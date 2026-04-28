@@ -35,7 +35,8 @@ def ai_analysis_view(request):
         response = client.chat.completions.create(
             model='llama-3.3-70b-versatile',
             messages=[{'role': 'user', 'content': data.get('prompt', '')}],
-            max_tokens=1000,
+            max_tokens=2000,        # ↑ permite explicaciones detalladas con definiciones
+            temperature=0.4,        # ↓ menos creativo, más consistente con el formato pedido
         )
         return JsonResponse({'result': response.choices[0].message.content})
 

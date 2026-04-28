@@ -84,6 +84,84 @@
   display: flex; gap: 10px; margin-bottom: 16px;
   align-items: center; flex-wrap: wrap;
   animation: fadeUp 0.4s ease 0.05s both;
+  position: relative;
+  z-index: 50;          /* asegura que el dropdown "Vaciar" flote sobre la lista */
+}
+
+/* ── Botón "Vaciar" + dropdown (idéntico al de notificaciones) ── */
+.inbox-clear-wrap { position: relative; flex-shrink: 0; }
+.inbox-clear-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.inbox-clear-btn:hover {
+  background: rgba(232,64,64,0.06);
+  border-color: rgba(232,64,64,0.3);
+  color: #f87171;
+}
+.inbox-clear-btn.open {
+  background: rgba(232,64,64,0.06);
+  border-color: rgba(232,64,64,0.3);
+  color: #f87171;
+}
+.inbox-clear-menu {
+  position: absolute;
+  top: calc(100% + 6px); right: 0;
+  width: 290px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px) scale(0.97);
+  transform-origin: top right;
+  transition: all 0.18s cubic-bezier(.22,1,.36,1);
+  z-index: 1000;
+}
+.inbox-clear-menu.open { opacity: 1; pointer-events: all; transform: translateY(0) scale(1); }
+.icm-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 11px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  width: 100%;
+  text-align: left;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.icm-item:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
+.icm-item svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; opacity: 0.7; }
+.icm-title { font-size: 12.5px; font-weight: 600; line-height: 1.3; margin-bottom: 2px; }
+.icm-sub { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.icm-item-danger { color: #f87171; }
+.icm-item-danger:hover { background: rgba(232,64,64,0.08); color: #fca5a5; }
+.icm-item-danger .icm-sub { color: rgba(252,165,165,0.7); }
+.icm-sep { height: 1px; background: var(--border-soft); margin: 4px 8px; }
+
+/* Animación de salida cuando se borra un correo */
+.email-row.removing-out {
+  animation: emailRemoveOut 0.3s cubic-bezier(.22,1,.36,1) forwards;
+  overflow: hidden;
+}
+@keyframes emailRemoveOut {
+  from { opacity: 1; transform: translateX(0); max-height: 240px; }
+  to   { opacity: 0; transform: translateX(-30px); max-height: 0;
+         margin-top: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; }
 }
 
 /* Barra de búsqueda con botones integrados a la derecha */
@@ -562,14 +640,52 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
     </button>
 
   </div>
+
+  <!-- Botón "Vaciar correos" con dropdown -->
+  <div class="inbox-clear-wrap" id="inbox-clear-wrap">
+    <button type="button" class="inbox-clear-btn" id="inbox-clear-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+      </svg>
+      Vaciar
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-left:1px"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="inbox-clear-menu" id="inbox-clear-menu">
+      <button type="button" class="icm-item" data-scope="read">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <div>
+          <div class="icm-title">Solo los leídos</div>
+          <div class="icm-sub">Borra los correos que ya viste</div>
+        </div>
+      </button>
+      <button type="button" class="icm-item" data-scope="threats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+        <div>
+          <div class="icm-title">Solo amenazas bloqueadas</div>
+          <div class="icm-sub">Score 61+ — limpia el historial de bloqueos</div>
+        </div>
+      </button>
+      <button type="button" class="icm-item" data-scope="safe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div>
+          <div class="icm-title">Solo correos seguros</div>
+          <div class="icm-sub">Score 0-30 — limpia los confiables</div>
+        </div>
+      </button>
+      <div class="icm-sep"></div>
+      <button type="button" class="icm-item icm-item-danger" data-scope="all">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+        <div>
+          <div class="icm-title">Vaciar TODA la bandeja</div>
+          <div class="icm-sub">Borra todos los correos sin excepción</div>
+        </div>
+      </button>
+    </div>
+  </div>
 </div>
 
-<!-- ── BANNER DE CORREOS NUEVOS (aparece cuando el polling detecta mensajes) ── -->
-<div class="live-banner" id="liveBanner" onclick="mergeNewEmails()">
-  <span class="live-banner-dot"></span>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-  <span id="liveBannerText">1 correo nuevo</span>
-</div>
+<!-- Banner manual eliminado: los correos nuevos se insertan solos via polling -->
 
 <!-- Chip indicador de estado del polling -->
 <div class="live-indicator" id="liveIndicator" title="Clic para pausar/reanudar la actualización automática" onclick="toggleLivePolling()">
@@ -1172,7 +1288,7 @@ function toggleLivePolling() {
 
 function schedulePoll(delayMs) {
   if (livePollTimer) clearTimeout(livePollTimer);
-  livePollTimer = setTimeout(pollNewEmails, delayMs || 15000);
+  livePollTimer = setTimeout(pollNewEmails, delayMs || 6000);
 }
 
 async function pollNewEmails() {
@@ -1191,19 +1307,21 @@ async function pollNewEmails() {
     if (!res.ok) throw new Error('http ' + res.status);
     var data = await res.json();
     if (data.emails && data.emails.length > 0) {
-      console.info('[live] ' + data.emails.length + ' correo(s) nuevo(s)');
+      console.info('[live] ' + data.emails.length + ' correo(s) nuevo(s) — auto-merging');
       data.emails.forEach(function (em) {
         if (!pendingNewEmails.some(function (p) { return p.id === em.id; })) {
           pendingNewEmails.push(em);
         }
       });
-      showLiveBanner(pendingNewEmails.length);
+      // Esperamos 400ms para que el TOAST aparezca primero (su slide-in dura ~420ms).
+      // El correo se inserta justo cuando el toast termina su animación → se siente coordinado.
+      setTimeout(mergeNewEmails, 400);
     }
   } catch (e) {
     console.warn('[live] poll error:', e);
   } finally {
     setTimeout(function () { chip.style.opacity = '0.6'; }, 400);
-    schedulePoll(15000);
+    schedulePoll(6000);
   }
 }
 
@@ -1344,5 +1462,145 @@ document.addEventListener('visibilitychange', function () {
    este script se inyecta al final del body y el evento ya pudo haber pasado. */
 console.info('[live] polling activado — lastSeenId=' + lastSeenId);
 pollNewEmails();           // primera llamada inmediata
+
+
+/* ════════════════════════════════════════════════════════════════════
+   VACIAR BANDEJA — dropdown con scopes (read / threats / safe / all)
+   ════════════════════════════════════════════════════════════════════ */
+(function () {
+  const wrap   = document.getElementById('inbox-clear-wrap');
+  const btn    = document.getElementById('inbox-clear-btn');
+  const menu   = document.getElementById('inbox-clear-menu');
+  const list   = document.getElementById('email-list');
+  if (!wrap || !btn || !menu || !list) return;
+
+  function getCsrf() {
+    const c = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
+    return c ? c.split('=')[1] : '';
+  }
+  function setOpen(state) {
+    menu.classList.toggle('open', state);
+    btn.classList.toggle('open', state);
+  }
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    setOpen(!menu.classList.contains('open'));
+  });
+  document.addEventListener('click', e => {
+    if (!wrap.contains(e.target)) setOpen(false);
+  });
+  menu.addEventListener('click', e => e.stopPropagation());
+
+  const SCOPE_META = {
+    read: {
+      title:   'Borrar correos leídos',
+      message: 'Se eliminarán todos los correos que ya marcaste como leídos.\nEsta acción no se puede deshacer.',
+      confirm: 'Borrar leídos',
+    },
+    threats: {
+      title:   'Borrar amenazas bloqueadas',
+      message: 'Se eliminarán todos los correos con score 61 o superior (amenazas bloqueadas).\nEsta acción no se puede deshacer.',
+      confirm: 'Borrar amenazas',
+    },
+    safe: {
+      title:   'Borrar correos seguros',
+      message: 'Se eliminarán todos los correos con score 0-30.\nEsta acción no se puede deshacer.',
+      confirm: 'Borrar seguros',
+    },
+    all: {
+      title:   'Vaciar TODA la bandeja',
+      message: 'Se eliminarán TODOS los correos de tu bandeja sin excepción.\nEsta acción no se puede deshacer.',
+      confirm: 'Vaciar todo',
+    },
+  };
+
+  /* Decide si una fila <div.email-row> cae dentro del scope */
+  function rowMatchesScope(row, scope) {
+    if (scope === 'all') return true;
+    if (scope === 'read')    return !row.classList.contains('unread');
+    if (scope === 'threats') return row.classList.contains('threat');
+    if (scope === 'safe') {
+      const score = parseInt(row.dataset.risk || '0', 10);
+      return score <= 30;
+    }
+    return false;
+  }
+
+  menu.querySelectorAll('.icm-item[data-scope]').forEach(item => {
+    item.addEventListener('click', async () => {
+      const scope = item.dataset.scope;
+      setOpen(false);
+      const meta = SCOPE_META[scope] || SCOPE_META.read;
+
+      const ok = window.confirmDialog
+        ? await window.confirmDialog({
+            danger:      true,
+            icon:        'trash',
+            title:       meta.title,
+            message:     meta.message,
+            confirmText: meta.confirm,
+            cancelText:  'Cancelar',
+          })
+        : confirm(meta.title + '\n\n' + meta.message);
+      if (!ok) return;
+
+      try {
+        const fd = new FormData();
+        fd.append('scope', scope);
+        const res = await fetch("{% url 'inbox_clear' %}", {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+          body: fd,
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'error');
+
+        // Animación cascada: marca las filas que caen dentro del scope
+        const rows = Array.from(list.querySelectorAll('.email-row'));
+        const toRemove = rows.filter(r => rowMatchesScope(r, scope));
+        toRemove.forEach((row, i) => {
+          setTimeout(() => {
+            row.classList.add('removing-out');
+            setTimeout(() => row.remove(), 300);
+          }, i * 25);
+        });
+
+        // Limpia separadores de fecha que queden vacíos al terminar
+        setTimeout(() => {
+          list.querySelectorAll('.date-divider').forEach(div => {
+            // Cada date-divider va antes del bloque de correos de ese grupo.
+            // Si su próximo email-row hermano no existe → lo quitamos.
+            let next = div.nextElementSibling;
+            let hasEmail = false;
+            while (next && !next.classList.contains('date-divider')) {
+              if (next.classList.contains('email-row')) { hasEmail = true; break; }
+              next = next.nextElementSibling;
+            }
+            if (!hasEmail) div.remove();
+          });
+        }, toRemove.length * 25 + 350);
+
+        if (window.showToast) {
+          window.showToast({
+            type: 'success',
+            title: 'Correos eliminados',
+            message: data.deleted + ' correo' + (data.deleted === 1 ? '' : 's') + ' borrado' + (data.deleted === 1 ? '' : 's'),
+            duration: 4500,
+          });
+        }
+      } catch (err) {
+        if (window.showToast) {
+          window.showToast({
+            type: 'danger',
+            title: 'No se pudo vaciar',
+            message: 'Intenta de nuevo en unos segundos.',
+            duration: 5000,
+          });
+        }
+      }
+    });
+  });
+})();
 </script>
 {% endblock %}

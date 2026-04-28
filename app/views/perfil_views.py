@@ -84,6 +84,25 @@ def perfil_view(request):
                 messages.error(request, msg)
             return redirect('perfil')
 
+        # ── Toggle: reenviar correos seguros al correo real ──────────
+        if form_type == 'forward_safe':
+            from ..models import UserProfile
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            new_value = request.POST.get('enabled') == '1'
+            profile.forward_safe_emails = new_value
+            profile.save(update_fields=['forward_safe_emails'])
+            if new_value:
+                messages.success(
+                    request,
+                    f'Activado: los correos seguros se reenviarán a {request.user.email}.',
+                )
+            else:
+                messages.success(
+                    request,
+                    'Desactivado: ya no recibirás copias en tu correo real.',
+                )
+            return redirect('perfil')
+
     ctx = profile_stats(request.user)
     # Datos para el avatar por defecto (cuando el usuario no sube foto)
     ctx['avatar_initials'] = get_user_initials(request.user)

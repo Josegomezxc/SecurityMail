@@ -5,7 +5,7 @@ Vistas de autenticación:
   - recuperar contraseña (placeholder)
   - cambiar contraseña
 """
-from django.contrib.auth import login, logout, update_session_auth_hash
+from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -17,9 +17,9 @@ from ..validators import (
     clean_login_identifier, clean_login_password, get_client_ip,
 )
 from ..services.auth_service import (
-    authenticate_flexible,
+    authenticate_flexible, login_single_session, is_session_active,
     login_is_locked, login_register_failure, login_clear_failures,
-    LOGIN_MAX_FAILS,
+    LOGIN_MAX_FAILS, SESSION_IDLE_TIMEOUT_SECONDS,
 )
 from ..services.password_reset_service import (
     create_token, get_valid_token, send_reset_email, invalidate_other_tokens,
@@ -73,8 +73,22 @@ def login_view(request):
         user = authenticate_flexible(request, identifier, password)
 
         if user:
+            # ── BLOQUEO: si la cuenta tiene sesión activa reciente, NO dejar entrar.
+            # Esto evita que dos personas estén usando la misma cuenta a la vez.
+            # Si la otra sesión queda inactiva más de SESSION_IDLE_TIMEOUT_SECONDS
+            # (ej: cierran el navegador), el bloqueo se libera automáticamente.
+            if is_session_active(user):
+                mins = max(1, SESSION_IDLE_TIMEOUT_SECONDS // 60)
+                messages.error(
+                    request,
+                    f'Esta cuenta ya está siendo usada en otro dispositivo. '
+                    f'Cierra sesión allí o espera {mins} minuto(s) de inactividad '
+                    f'para volver a entrar.',
+                )
+                return render(request, 'login.html', {'form_values': form_values})
+
             login_clear_failures(ip)
-            login(request, user)
+            login_single_session(request, user)
             return redirect('dashboard')
 
         # ── Fallo: cuenta regresiva ─────────────────────────────────
@@ -155,7 +169,7 @@ def registro_view(request):
                 first_name=username[:150],
                 last_name='',
             )
-            login(request, user)
+            login_single_session(request, user)
             messages.success(
                 request,
                 f'¡Cuenta creada! Bienvenido a SecureMail Shield, {username}.',

@@ -42,9 +42,29 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
+# CSRF: orígenes confiables para POST (formularios) detrás de un reverse
+# proxy con HTTPS (ngrok / dominio en producción). Si falta el origen
+# del navegador, Django responde 403 Forbidden a cualquier POST.
+# Para cada host con punto al inicio (.ngrok-free.dev), agregamos su variante
+# con esquema https://*.dominio que es la sintaxis exacta que Django acepta.
+CSRF_TRUSTED_ORIGINS = []
+for h in ALLOWED_HOSTS:
+    if h in ('localhost', '127.0.0.1'):
+        CSRF_TRUSTED_ORIGINS += [f'http://{h}:8000', f'http://{h}']
+    elif h.startswith('.'):
+        # subdominio wildcard (ej: .ngrok-free.dev → https://*.ngrok-free.dev)
+        CSRF_TRUSTED_ORIGINS.append(f'https://*{h}')
+    else:
+        CSRF_TRUSTED_ORIGINS += [f'https://{h}', f'http://{h}']
+
+# Detrás de ngrok / Nginx / Cloudflare, Django ve el request como HTTP
+# pero el cliente lo envió por HTTPS. Esto le dice a Django que confíe
+# en el header X-Forwarded-Proto que el proxy nos pone para detectar HTTPS.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Dominio que se usa para generar las direcciones de los alias.
-# Tiene que coincidir con el dominio cuyo MX apunta al inbound de Resend.
-MAIL_DOMAIN = os.environ.get('MAIL_DOMAIN', 'securemail.com').strip()
+# Tiene que coincidir con el dominio cuyo MX apunta al Inbound Parse de SendGrid.
+MAIL_DOMAIN = os.environ.get('MAIL_DOMAIN', 'dockershield.lat').strip()
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -62,6 +82,9 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Una sesión por usuario: si alguien hace login en otro navegador,
+    # la sesión anterior queda inválida y se desloguea en su próximo request.
+    'app.middleware.SingleSessionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

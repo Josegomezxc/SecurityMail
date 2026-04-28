@@ -16,6 +16,7 @@ urlpatterns = [
     path('dashboard/live/',  views.dashboard_live_api, name='dashboard_live_api'),
     path('bandeja/',         views.inbox_view,         name='inbox'),
     path('bandeja/nuevos/',  views.inbox_new_api,      name='inbox_new_api'),
+    path('bandeja/vaciar/',  views.inbox_clear_api,    name='inbox_clear'),
     path('bandeja/<int:pk>/leido/', views.mark_email_read_api, name='mark_email_read'),
     path('bandeja/<int:pk>/html/',  views.email_html_api,      name='email_html_api'),
     path('perfil/',          views.perfil_view,        name='perfil'),
@@ -34,6 +35,16 @@ urlpatterns = [
     path('webhook/inbound/', inbound_email_webhook, name='inbound_webhook'),
     
     path('ai-analysis/', views.ai_analysis_view, name='ai_analysis'),
+
+    # Notificaciones
+    path('notificaciones/',                   views.notification_list_view,        name='notification_list'),
+    path('notificaciones/<int:pk>/',          views.notification_detail_view,      name='notification_detail'),
+    path('notificaciones/api/unread/',        views.notification_unread_api,       name='notification_unread_api'),
+    path('notificaciones/<int:pk>/leer/',     views.notification_mark_read_api,    name='notification_mark_read'),
+    path('notificaciones/leer-todo/',         views.notification_mark_all_read_api, name='notification_mark_all_read'),
+    path('notificaciones/vaciar/',            views.notification_clear_api,         name='notification_clear'),
+    path('notificaciones/<int:pk>/reenviar/', views.notification_forward_api,      name='notification_forward'),
+    path('notificaciones/<int:pk>/descartar/',views.notification_discard_api,      name='notification_discard'),
     path("cuenta/cambiar-password/",views.cambiar_password,name="cambiar_password",),
 
     # ─── Panel de administración (solo para is_staff=True) ─────────────
