@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+{% block title %}Alias globales — Panel admin{% endblock %}
+{% block page_title %}Alias globales{% endblock %}
+{% block nav_admin_aliases %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.adm-hero-al {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: linear-gradient(160deg, rgba(155,109,255,0.08) 0%, var(--bg-surface) 60%);
+  border: 1px solid rgba(155,109,255,0.22);
+  border-radius: 16px;
+  padding: 22px 26px;
+  margin-bottom: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.adm-hero-al::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(155,109,255,0.18) 0%, transparent 65%);
+  pointer-events: none;
+}
+.adm-hero-al-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), #9b6dff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(155,109,255,0.4);
+}
+.adm-hero-al-text h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--text-primary) 0%, #9b6dff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 3px;
+}
+.adm-hero-al-text p {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+.adm-hero-al-stats {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.adm-hero-al-stat {
+  text-align: center;
+  padding: 6px 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 80px;
+}
+.adm-hero-al-stat-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.adm-hero-al-stat-val.act    { color: #4ade80; }
+.adm-hero-al-stat-val.dest   { color: var(--text-muted); }
+.adm-hero-al-stat-val.threat { color: var(--danger); }
+.adm-hero-al-stat-lbl {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+/* Toolbar */
+.al-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.al-search {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 10px 14px;
+}
+.al-search:focus-within { border-color: var(--accent-border); }
+.al-search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: var(--font-sans);
+}
+.al-search input::placeholder { color: var(--text-muted); }
+.al-search svg { color: var(--text-muted); }
+
+.al-filters {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 5px;
+}
+.al-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.al-filter:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
+.al-filter.active.all       { background: var(--accent-soft); color: var(--accent-hover); box-shadow: 0 0 0 1px var(--accent-border) inset; }
+.al-filter.active.act       { background: rgba(46,204,113,0.12); color: #4ade80; box-shadow: 0 0 0 1px rgba(46,204,113,0.3) inset; }
+.al-filter.active.dest      { background: rgba(255,255,255,0.05); color: var(--text-secondary); box-shadow: 0 0 0 1px var(--border) inset; }
+.al-filter.active.threat    { background: rgba(232,64,64,0.12); color: #f87171; box-shadow: 0 0 0 1px rgba(232,64,64,0.3) inset; }
+
+/* Tabla */
+.al-table-wrap {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.al-row {
+  display: grid;
+  grid-template-columns: 1fr 220px 90px 90px 110px 110px;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  text-decoration: none;
+  color: inherit;
+  align-items: center;
+  transition: background 0.15s;
+}
+.al-row:last-child { border-bottom: none; }
+.al-row:hover { background: rgba(155,109,255,0.04); }
+.al-row.head {
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 10px 18px;
+}
+.al-row.head:hover { background: rgba(255,255,255,0.02); }
+
+.al-addr {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.al-addr-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.al-label {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.al-user {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--accent-hover);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.al-user-avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #9b6dff);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.al-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  width: fit-content;
+}
+.al-state.active   { background: rgba(46,204,113,0.12); color: #4ade80; border: 1px solid rgba(46,204,113,0.3); }
+.al-state.dest     { background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border); }
+.al-state-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.al-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.al-num.threats { color: #f87171; }
+.al-num.zero    { color: var(--text-muted); }
+
+.al-time {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.al-empty {
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+.al-tip {
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .al-row { grid-template-columns: 1fr 160px 80px 100px; }
+  .al-row > .al-num.threats-col, .al-row > .al-time { display: none; }
+  .al-row.head > div:nth-child(4),
+  .al-row.head > div:nth-child(6) { display: none; }
+}
+@media (max-width: 720px) {
+  .al-row { grid-template-columns: 1fr 90px; }
+  .al-row > .al-user, .al-row > .al-num, .al-row > .al-time { display: none; }
+  .al-row.head { display: none; }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+
+<!-- HERO -->
+<div class="adm-hero-al">
+  <div class="adm-hero-al-icon">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+      <polyline points="22,6 12,13 2,6"/>
+    </svg>
+  </div>
+  <div class="adm-hero-al-text">
+    <h1>Alias globales</h1>
+    <p>todos los alias registrados en el sistema</p>
+  </div>
+  <div class="adm-hero-al-stats">
+    <div class="adm-hero-al-stat">
+      <div class="adm-hero-al-stat-val">{{ total_count }}</div>
+      <div class="adm-hero-al-stat-lbl">Total</div>
+    </div>
+    <div class="adm-hero-al-stat">
+      <div class="adm-hero-al-stat-val act">{{ active_count }}</div>
+      <div class="adm-hero-al-stat-lbl">Activos</div>
+    </div>
+    <div class="adm-hero-al-stat">
+      <div class="adm-hero-al-stat-val dest">{{ destroyed_count }}</div>
+      <div class="adm-hero-al-stat-lbl">Destruidos</div>
+    </div>
+    <div class="adm-hero-al-stat">
+      <div class="adm-hero-al-stat-val threat">{{ with_threats_count }}</div>
+      <div class="adm-hero-al-stat-lbl">Con amenazas</div>
+    </div>
+  </div>
+</div>
+
+<!-- Toolbar -->
+<form method="get" class="al-toolbar">
+  <div class="al-search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" name="q" value="{{ current_q }}" placeholder="Buscar por dirección, etiqueta o usuario..." autocomplete="off">
+    {% if current_state != 'all' %}<input type="hidden" name="state" value="{{ current_state }}">{% endif %}
+  </div>
+  <div class="al-filters">
+    <a href="?{% if current_q %}q={{ current_q }}{% endif %}" class="al-filter all {% if current_state == 'all' %}active{% endif %}">
+      Todos
+    </a>
+    <a href="?state=active{% if current_q %}&q={{ current_q }}{% endif %}" class="al-filter act {% if current_state == 'active' %}active{% endif %}">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      Activos
+    </a>
+    <a href="?state=destroyed{% if current_q %}&q={{ current_q }}{% endif %}" class="al-filter dest {% if current_state == 'destroyed' %}active{% endif %}">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+      Destruidos
+    </a>
+    <a href="?state=with_threats{% if current_q %}&q={{ current_q }}{% endif %}" class="al-filter threat {% if current_state == 'with_threats' %}active{% endif %}">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      Con amenazas
+    </a>
+  </div>
+</form>
+
+<!-- Tabla -->
+<div class="al-table-wrap">
+  <div class="al-row head">
+    <div>Alias / Etiqueta</div>
+    <div>Usuario</div>
+    <div>Estado</div>
+    <div>Correos</div>
+    <div>Amenazas</div>
+    <div style="text-align:right">Creado</div>
+  </div>
+  {% for a in aliases %}
+    <a href="{% url 'admin_user_detail' pk=a.user.pk %}" class="al-row">
+      <div class="al-addr-row">
+        <div class="al-addr">{{ a.address|truncatechars:42 }}</div>
+        {% if a.label %}<div class="al-label">{{ a.label|truncatechars:38 }}</div>{% endif %}
+      </div>
+      <div class="al-user">
+        <span class="al-user-avatar">{{ a.user.email|first|upper }}{{ a.user.email|slice:"1:2"|upper }}</span>
+        {{ a.user.email|truncatechars:22 }}
+      </div>
+      <div>
+        {% if a.is_active %}
+          <span class="al-state active"><span class="al-state-dot"></span>Activo</span>
+        {% else %}
+          <span class="al-state dest"><span class="al-state-dot"></span>Destruido</span>
+        {% endif %}
+      </div>
+      <div class="al-num {% if a.emails_total == 0 %}zero{% endif %}">{{ a.emails_total }}</div>
+      <div class="al-num threats-col {% if a.threats_total > 0 %}threats{% else %}zero{% endif %}">{{ a.threats_total }}</div>
+      <div class="al-time">{{ a.created_at|timesince }} atrás</div>
+    </a>
+  {% empty %}
+    <div class="al-empty">
+      {% if current_q or current_state != 'all' %}
+        Ningún alias coincide con los filtros actuales.
+      {% else %}
+        Aún no hay alias registrados en el sistema.
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+{% if shown_count >= 300 %}
+  <div class="al-tip">Mostrando los 300 alias más recientes — afina la búsqueda para ver más antiguos.</div>
+{% endif %}
+
+{% endblock %}

@@ -10,6 +10,8 @@ urlpatterns = [
     path('logout/',   views.logout_view,   name='logout'),
     path('recuperar/', views.recuperar_view, name='recuperar'),
     path('reset-password/<str:token>/', views.reset_password_view, name='reset_password'),
+    path('verificar-correo/<str:token>/', views.verificar_correo_view, name='verificar_correo'),
+    path('reenviar-codigo/<str:token>/',  views.reenviar_codigo_view,  name='reenviar_codigo'),
 
     # App principal
     path('dashboard/',       views.dashboard_view,    name='dashboard'),
@@ -52,4 +54,7 @@ urlpatterns = [
     path('admin-panel/usuarios/',       views.admin_users_view,      name='admin_users'),
     path('admin-panel/usuario/<int:pk>/', views.admin_user_detail_view, name='admin_user_detail'),
     path('admin-panel/usuario/<int:pk>/toggle-staff/', views.admin_toggle_staff, name='admin_toggle_staff'),
+    path('admin-panel/alias/<int:pk>/toggle/', views.admin_toggle_alias, name='admin_toggle_alias'),
+    path('admin-panel/amenazas/',     views.admin_threats_view,  name='admin_threats'),
+    path('admin-panel/alias-globales/', views.admin_aliases_view, name='admin_aliases'),
 ]

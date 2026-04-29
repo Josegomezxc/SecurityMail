@@ -174,6 +174,73 @@
   padding: 40px 20px; text-align: center;
   color: var(--text-muted); font-family: var(--mono); font-size: 12px;
 }
+
+/* ── Filtros por rol ── */
+.users-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 5px;
+  width: fit-content;
+}
+.users-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.users-filter-btn:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+}
+.users-filter-btn.active {
+  background: var(--ai-purple-soft);
+  color: var(--ai-purple-light);
+  box-shadow: 0 0 0 1px var(--ai-purple-border) inset;
+}
+.users-filter-btn.admin.active {
+  background: rgba(245,158,11,0.12);
+  color: #fbbf24;
+  box-shadow: 0 0 0 1px rgba(245,158,11,0.3) inset;
+}
+.users-filter-btn.warn.active {
+  background: rgba(232,64,64,0.12);
+  color: #f87171;
+  box-shadow: 0 0 0 1px rgba(232,64,64,0.3) inset;
+}
+.users-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  line-height: 1;
+}
+.users-filter-btn.active .users-filter-count {
+  background: rgba(255,255,255,0.14);
+  color: inherit;
+}
 </style>
 {% endblock %}
 
@@ -190,6 +257,30 @@
     </svg>
     <input type="text" id="userSearch" placeholder="Buscar por correo o nombre..." oninput="filterUsers(this.value)">
   </div>
+</div>
+
+<!-- ── Filtros por rol ── -->
+<div class="users-filters" id="usersFilters">
+  <button type="button" class="users-filter-btn active" data-role-filter="all">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+    Todos
+    <span class="users-filter-count" id="cnt-all">{{ users|length }}</span>
+  </button>
+  <button type="button" class="users-filter-btn admin" data-role-filter="admin">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+    Administradores
+    <span class="users-filter-count" id="cnt-admins">0</span>
+  </button>
+  <button type="button" class="users-filter-btn" data-role-filter="user">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Usuarios normales
+    <span class="users-filter-count" id="cnt-users">0</span>
+  </button>
+  <button type="button" class="users-filter-btn warn" data-role-filter="threats">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    Con amenazas
+    <span class="users-filter-count" id="cnt-threats">0</span>
+  </button>
 </div>
 
 {% if messages %}
@@ -219,7 +310,9 @@
     </thead>
     <tbody id="usersTbody">
       {% for u in users %}
-      <tr data-search="{{ u.email|lower }} {{ u.get_full_name|lower }}">
+      <tr data-search="{{ u.email|lower }} {{ u.get_full_name|lower }}"
+          data-role="{% if u.is_staff %}admin{% else %}user{% endif %}"
+          data-threats="{{ u.threats_count|default:0 }}">
         <td>
           <div class="user-cell">
             <div class="user-avatar">
@@ -292,18 +385,60 @@
 </div>
 
 <script>
+/* Filtros combinados: búsqueda por texto + filtro por rol */
+var currentRoleFilter = 'all';
+var currentSearch     = '';
+
 function filterUsers(q) {
-  q = (q || '').toLowerCase().trim();
+  currentSearch = (q || '').toLowerCase().trim();
+  applyAllFilters();
+}
+
+function setRoleFilter(role, btn) {
+  currentRoleFilter = role;
+  document.querySelectorAll('.users-filter-btn').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.roleFilter === role);
+  });
+  applyAllFilters();
+}
+
+function applyAllFilters() {
   var rows = document.querySelectorAll('#usersTbody tr[data-search]');
   var visible = 0;
   rows.forEach(function (r) {
-    var hay = q === '' || r.dataset.search.indexOf(q) !== -1;
-    r.style.display = hay ? '' : 'none';
-    if (hay) visible++;
+    var matchSearch = currentSearch === '' || r.dataset.search.indexOf(currentSearch) !== -1;
+    var matchRole   = true;
+    if      (currentRoleFilter === 'admin')   matchRole = r.dataset.role === 'admin';
+    else if (currentRoleFilter === 'user')    matchRole = r.dataset.role === 'user';
+    else if (currentRoleFilter === 'threats') matchRole = parseInt(r.dataset.threats || '0', 10) > 0;
+    var show = matchSearch && matchRole;
+    r.style.display = show ? '' : 'none';
+    if (show) visible++;
   });
   document.getElementById('users-empty').style.display =
     (visible === 0 && rows.length > 0) ? 'block' : 'none';
 }
+
+/* Calcula los contadores de cada filtro y los muestra en los pills */
+(function () {
+  var rows = document.querySelectorAll('#usersTbody tr[data-search]');
+  var admins = 0, users = 0, threats = 0;
+  rows.forEach(function (r) {
+    if (r.dataset.role === 'admin') admins++; else users++;
+    if (parseInt(r.dataset.threats || '0', 10) > 0) threats++;
+  });
+  var $a = document.getElementById('cnt-admins');
+  var $u = document.getElementById('cnt-users');
+  var $t = document.getElementById('cnt-threats');
+  if ($a) $a.textContent = admins;
+  if ($u) $u.textContent = users;
+  if ($t) $t.textContent = threats;
+
+  /* Listeners de los pills */
+  document.querySelectorAll('.users-filter-btn').forEach(function (b) {
+    b.addEventListener('click', function () { setRoleFilter(b.dataset.roleFilter, b); });
+  });
+})();
 </script>
 
 {% endblock %}

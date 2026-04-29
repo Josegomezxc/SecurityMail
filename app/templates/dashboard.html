@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Dashboard — SecureMail Shield{% endblock %}
+{% block title %}Dashboard — DockerShield{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 {% block nav_dashboard %}active{% endblock %}
 
@@ -554,20 +554,23 @@
     display: none;
     align-items: center;
     justify-content: center;
+    padding: 40px 20px;          /* aire para que el modal "flote" */
+    overflow-y: auto;
   }
   #welcome-overlay.visible { display: flex; animation: fadeUp 0.35s cubic-bezier(.22,1,.36,1) both; }
 
   #welcome-modal {
     background: linear-gradient(160deg, #1a1435 0%, #0f0f1a 100%);
     border: 1px solid var(--pb);
-    border-radius: 24px;
-    padding: 48px 44px;
-    max-width: 440px;
-    width: calc(100% - 40px);
+    border-radius: 22px;
+    padding: 48px 36px 40px;
+    max-width: 420px;
+    width: 100%;
     text-align: center;
     box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,92,255,0.08) inset;
     position: relative;
     overflow: hidden;
+    margin: auto;
   }
   #welcome-modal::before {
     content: '';
@@ -582,62 +585,73 @@
     align-items: center;
     gap: 12px;
     justify-content: center;
-    margin-bottom: 30px;
+    margin-bottom: 22px;
+    padding: 0 4px;
   }
   .wm-logo-icon {
-    width: 46px; height: 46px;
-    background: linear-gradient(135deg, var(--p) 0%, #9b6dff 100%);
-    border-radius: 14px;
+    width: 80px; height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 24px rgba(124,92,255,0.45);
     animation: pulseGlow 3s ease-in-out infinite;
+  }
+  .wm-logo-icon img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    display: block;
+    filter: drop-shadow(0 8px 24px rgba(124,92,255,0.45));
   }
   .wm-logo-text {
     font-family: var(--display);
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 800;
     color: #f0eeff;
     letter-spacing: -0.02em;
+    line-height: 1;
   }
-  .wm-logo-text span { color: var(--pl); }
+  .wm-logo-text span {
+    background: linear-gradient(90deg, var(--pl), #b69dff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
   .wm-title {
     font-family: var(--display);
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 800;
     margin-bottom: 8px;
     color: #f0eeff;
     letter-spacing: -0.02em;
   }
   .wm-sub {
-    font-size: 13px;
+    font-size: 12.5px;
     color: rgba(200,190,255,0.5);
-    margin-bottom: 30px;
+    margin-bottom: 26px;
     font-family: var(--mono);
   }
   .wm-features {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 32px;
+    gap: 11px;
+    margin-bottom: 28px;
     text-align: left;
   }
   .wm-feature {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 13px;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
-    padding: 13px 16px;
-    font-size: 13px;
+    border-radius: 13px;
+    padding: 13px 15px;
+    font-size: 12.5px;
     color: rgba(255,255,255,0.55);
     transition: border-color 0.15s;
+    line-height: 1.45;
   }
   .wm-feature:hover { border-color: var(--pb); }
   .wm-feature-icon {
-    width: 36px; height: 36px;
+    width: 34px; height: 34px;
     border-radius: 10px;
     background: var(--ps);
     border: 1px solid var(--pb);
@@ -646,6 +660,7 @@
     justify-content: center;
     flex-shrink: 0;
   }
+  .wm-feature-icon svg { width: 15px; height: 15px; }
   .wm-feature strong {
     color: #f0eeff;
     font-weight: 700;
@@ -659,7 +674,7 @@
     width: 100%;
     padding: 13px;
     font-size: 14px;
-    border-radius: 13px;
+    border-radius: 12px;
     background: linear-gradient(135deg, var(--p) 0%, #9b6dff 100%);
     color: white;
     font-family: var(--display);
@@ -1128,14 +1143,9 @@
 <div id="welcome-overlay">
   <div id="welcome-modal">
     <div class="wm-logo">
-      <div class="wm-logo-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-      </div>
-      <span class="wm-logo-text">Secure<span>Mail</span></span>
+      <span class="wm-logo-text">Docker<span>Shield</span></span>
     </div>
-    <div class="wm-title">Bienvenido 🛡️</div>
+    <div class="wm-title">¡Bienvenido!</div>
     <div class="wm-sub">Donde la privacidad es por defecto.</div>
     <div class="wm-features">
       <div class="wm-feature">

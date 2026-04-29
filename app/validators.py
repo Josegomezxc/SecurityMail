@@ -50,7 +50,7 @@ USERNAME_BLOCKLIST = {
     'user', 'usuario', 'null', 'undefined', 'none', 'demo', 'guest',
     'invitado', 'anonymous', 'anonimo', 'bot', 'system', 'api', 'www',
     'mail', 'email', 'support', 'soporte', 'help', 'ayuda', 'info',
-    'contact', 'contacto', 'securemail', 'shield',
+    'contact', 'contacto', 'dockershield', 'docker', 'shield',
 }
 
 

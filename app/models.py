@@ -1,7 +1,7 @@
 from django.db import models
 
 # Create your models here.
-# securemail/models.py
+# dockershield/models.py
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -10,7 +10,7 @@ class Alias(models.Model):
     """Dirección de correo desechable asociada a un usuario."""
     user        = models.ForeignKey(User, on_delete=models.CASCADE, related_name='aliases')
     label       = models.CharField(max_length=100, help_text="Etiqueta: ej. Amazon, Foro Reddit")
-    address     = models.EmailField(unique=True, help_text="Dirección generada: amazon_x7k2@securemail.app")
+    address     = models.EmailField(unique=True, help_text="Dirección generada: amazon_x7k2@dockershield.lat")
     is_active   = models.BooleanField(default=True)
     created_at  = models.DateTimeField(auto_now_add=True)
     destroyed_at = models.DateTimeField(null=True, blank=True)
@@ -46,6 +46,27 @@ class EmailMessage(models.Model):
 
     # Puntuación de riesgo calculada por el sandbox
     risk_score = models.IntegerField(default=0, help_text="0-100. 0=seguro, 100=malware")
+
+    # ── Verificación de autenticidad (SPF/DKIM/DMARC) ──
+    # Resultados que SendGrid Inbound Parse calcula automáticamente y nos
+    # entrega en el POST. Sirven para distinguir correos legítimos (Netflix,
+    # Google, etc.) de phishers que solo escriben "From: support@netflix.com"
+    # sin tener la clave privada del dominio.
+    AUTH_VERDICTS = [
+        ('verified',   'Verificado criptográficamente'),
+        ('unverified', 'Sin verificar'),
+        ('spoofed',    'Suplantación detectada'),
+    ]
+    auth_verdict   = models.CharField(max_length=12, choices=AUTH_VERDICTS,
+                                      default='unverified', blank=True)
+    auth_spf       = models.CharField(max_length=10, blank=True,
+                                      help_text="pass / fail / softfail / neutral / none")
+    auth_dkim      = models.CharField(max_length=10, blank=True,
+                                      help_text="pass / fail / none")
+    auth_dmarc     = models.CharField(max_length=10, blank=True,
+                                      help_text="pass / fail / none")
+    auth_signed_by = models.CharField(max_length=120, blank=True,
+                                      help_text="Dominio que firmó con DKIM (header.d=)")
 
     def __str__(self):
         return f"{self.subject} → {self.alias.address}"
@@ -195,6 +216,10 @@ class UserProfile(models.Model):
     # (cerraron el navegador sin logout). El login bloquea si hay actividad
     # reciente en otra sesión.
     session_last_activity = models.DateTimeField(null=True, blank=True)
+    # Si está True, el usuario demostró control sobre el correo ingresando
+    # el código de 6 dígitos que enviamos a su buzón. Hasta que sea True,
+    # la cuenta está deshabilitada (User.is_active = False).
+    email_verified = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -327,3 +352,60 @@ class PasswordResetToken(models.Model):
 
     def __str__(self):
         return f"Reset {self.token[:10]}… → {self.user.email}"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  CÓDIGOS DE VERIFICACIÓN DE CORREO (registro)
+# ═══════════════════════════════════════════════════════════════════════
+
+class EmailVerificationCode(models.Model):
+    """
+    Código de 6 dígitos enviado al correo del usuario al registrarse,
+    más un token único para identificar el flujo en la URL sin exponer
+    el id del User.
+
+    Flujo:
+      1. Usuario se registra → creamos User con is_active=False y un
+         EmailVerificationCode con código aleatorio.
+      2. Enviamos correo con el código + redirigimos a /verificar-correo/<token>/
+      3. Usuario pega el código → verificamos → marcamos email_verified=True,
+         is_active=True y hacemos login automático.
+    """
+    user       = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='email_verification_codes',
+    )
+    code       = models.CharField(max_length=6, db_index=True)
+    token      = models.CharField(max_length=64, unique=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at    = models.DateTimeField(null=True, blank=True)
+    attempts   = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Cuántas veces se intentó verificar este código (anti brute-force).",
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Código de verificación'
+        verbose_name_plural = 'Códigos de verificación'
+
+    @property
+    def is_expired(self) -> bool:
+        from django.utils import timezone
+        return timezone.now() >= self.expires_at
+
+    @property
+    def is_used(self) -> bool:
+        return self.used_at is not None
+
+    @property
+    def is_valid(self) -> bool:
+        return not self.is_used and not self.is_expired and self.attempts < 5
+
+    def mark_used(self):
+        from django.utils import timezone
+        self.used_at = timezone.now()
+        self.save(update_fields=['used_at'])
+
+    def __str__(self):
+        return f"VerifyCode {self.code} → {self.user.email}"

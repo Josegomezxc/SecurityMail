@@ -21,6 +21,7 @@ from django.core.files.storage import default_storage
 from .models import Alias, EmailMessage, SandboxAnalysis
 from .sandbox.service import run_sandbox_analysis
 from .sandbox import body_analyzer
+from .sandbox import auth_check
 
 
 @csrf_exempt
@@ -91,10 +92,20 @@ def _extract_payload(request):
 def _extract_sendgrid(request):
     """Parser del POST que SendGrid Inbound Parse manda al webhook.
 
-    SendGrid envía multipart/form-data con campos: to, from, subject,
-    text, html, attachments (cantidad de archivos), attachment-info,
-    y los adjuntos en request.FILES con keys 'attachment1', 'attachment2'…
+    Soporta los DOS modos de SendGrid Inbound Parse:
+
+    1) MODO PARSEADO (default): SendGrid pre-extrae text, html, headers,
+       y los adjuntos vienen en request.FILES como attachment1, attachment2…
+
+    2) MODO RAW (cuando "POST the raw, full MIME message" está activado):
+       SendGrid solo manda el campo `email` con el MIME RFC822 completo.
+       text/html/adjuntos NO vienen separados — los parseamos nosotros.
+       Los campos auxiliares (dkim, SPF, sender_ip…) sí se siguen mandando.
     """
+    # ── Detectar si SendGrid mandó el correo crudo (modo raw) ──
+    raw_email = request.POST.get('email', '')
+
+    # Empezamos con lo que pueda venir parseado (modo legacy / fallback)
     fields = {
         'recipient': request.POST.get('recipient', '') or request.POST.get('to', ''),
         'sender':    request.POST.get('sender', '')    or request.POST.get('from', ''),
@@ -104,13 +115,134 @@ def _extract_sendgrid(request):
         'reply_to':  request.POST.get('reply-to', '')   or request.POST.get('Reply-To', ''),
     }
     attachments = []
+
+    # Primero leemos los adjuntos del modo parseado (request.FILES)
     for upload in _collect_attachments(request):
         try:
             content = upload.read()
             attachments.append((upload.name, content))
         except Exception as e:
             print(f"[webhook] no se pudo leer adjunto {upload.name}: {e}")
+
+    # ── Si vino MIME crudo y nos falta body/HTML/adjuntos, parseamos ──
+    needs_raw = bool(raw_email) and (
+        not fields['body'] or not fields['body_html'] or not attachments
+    )
+    if needs_raw:
+        try:
+            parsed = _parse_raw_mime(raw_email)
+            # Llenamos solo lo que estaba vacío (no pisamos lo que ya vino parseado)
+            if not fields['body']      and parsed.get('body'):      fields['body']      = parsed['body']
+            if not fields['body_html'] and parsed.get('body_html'): fields['body_html'] = parsed['body_html']
+            if not fields['subject'] or fields['subject'] == 'Sin asunto':
+                if parsed.get('subject'):
+                    fields['subject'] = parsed['subject']
+            if not fields['sender']   and parsed.get('from'):       fields['sender']    = parsed['from']
+            if not fields['reply_to'] and parsed.get('reply_to'):   fields['reply_to']  = parsed['reply_to']
+            # Solo añadimos adjuntos del MIME si no vinieron en request.FILES
+            if not attachments and parsed.get('attachments'):
+                attachments.extend(parsed['attachments'])
+        except Exception as e:
+            print(f"[webhook] error parseando MIME crudo: {e}")
+
     return fields, attachments[:15]
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  Parser de MIME crudo (cuando "POST raw" está activado en SendGrid)
+# ──────────────────────────────────────────────────────────────────────
+
+def _parse_raw_mime(raw_email: str) -> dict:
+    """
+    Parsea un correo en formato RFC822 (MIME crudo) y extrae:
+      - subject, from, reply_to
+      - body (text/plain)
+      - body_html (text/html)
+      - attachments [(filename, bytes), ...]
+
+    Usa la librería estándar `email` de Python (sin dependencias externas).
+    """
+    from email import message_from_string
+    from email.policy import default as default_policy
+    from email.utils import getaddresses
+
+    msg = message_from_string(raw_email, policy=default_policy)
+
+    def _get_addr(header_name):
+        val = msg.get(header_name, '')
+        if not val:
+            return ''
+        addrs = getaddresses([str(val)])
+        if addrs:
+            name, addr = addrs[0]
+            if name and addr:
+                return f"{name} <{addr}>"
+            return addr or str(val)
+        return str(val)
+
+    subject  = str(msg.get('Subject', '') or '').strip()
+    from_v   = _get_addr('From')
+    reply_to = _get_addr('Reply-To')
+
+    body      = ''
+    body_html = ''
+    attachments = []
+
+    if msg.is_multipart():
+        for part in msg.walk():
+            ctype = part.get_content_type()
+            cdisp = (part.get('Content-Disposition') or '').lower()
+
+            # ── Adjunto (Content-Disposition: attachment) ──
+            if 'attachment' in cdisp or part.get_filename():
+                try:
+                    payload = part.get_payload(decode=True)
+                    fname   = part.get_filename() or 'attachment'
+                    if payload:
+                        attachments.append((fname, payload))
+                except Exception as e:
+                    print(f"[mime] no se pudo extraer adjunto: {e}")
+                continue
+
+            # ── Cuerpo: nos quedamos con el primer text/plain y text/html ──
+            if ctype == 'text/plain' and not body:
+                body = _decode_part(part)
+            elif ctype == 'text/html' and not body_html:
+                body_html = _decode_part(part)
+    else:
+        # Correo de una sola parte
+        ctype = msg.get_content_type()
+        decoded = _decode_part(msg)
+        if ctype == 'text/html':
+            body_html = decoded
+        else:
+            body = decoded
+
+    return {
+        'subject':     subject,
+        'from':        from_v,
+        'reply_to':    reply_to,
+        'body':        body,
+        'body_html':   body_html,
+        'attachments': attachments,
+    }
+
+
+def _decode_part(part) -> str:
+    """Decodifica el payload de una MIME part respetando charset declarado."""
+    try:
+        payload = part.get_payload(decode=True)
+        if payload is None:
+            return ''
+        if isinstance(payload, bytes):
+            charset = part.get_content_charset() or 'utf-8'
+            try:
+                return payload.decode(charset, errors='replace')
+            except (LookupError, TypeError):
+                return payload.decode('utf-8', errors='replace')
+        return str(payload)
+    except Exception:
+        return ''
 
 
 def _bare_email(value: str) -> str:
@@ -267,6 +399,22 @@ def _handle_inbound(request):
     if not fields['recipient'] or not fields['sender']:
         return HttpResponseBadRequest("Faltan campos requeridos")
 
+    # ── 1.b Verificar autenticidad criptográfica (SPF/DKIM/DMARC) ──────
+    # SendGrid ya hace estos chequeos y nos entrega los resultados en el
+    # POST. Los usamos para distinguir correos legítimos (Netflix, Google,
+    # etc.) de phishers que solo escriben un From falso.
+    try:
+        auth_result = auth_check.check_authentication(
+            request.POST, sender_email=fields['sender'],
+        )
+    except Exception as e:
+        print(f"[webhook] auth_check falló (continuando sin auth): {e}")
+        auth_result = {
+            'verdict': 'unverified', 'spf': '', 'dkim': '', 'dmarc': '',
+            'dkim_domain': '', 'sender_domain': '', 'aligned': False,
+            'evidence': '', 'score_multiplier': 1.0, 'score_floor': 0,
+        }
+
     sender    = fields['sender']
     subject   = fields['subject']
     body      = fields['body']
@@ -305,6 +453,11 @@ def _handle_inbound(request):
         body=body,
         body_html=body_html_safe,
         body_html_raw=body_html_original,
+        auth_verdict=auth_result.get('verdict', 'unverified'),
+        auth_spf=auth_result.get('spf', '')[:10],
+        auth_dkim=auth_result.get('dkim', '')[:10],
+        auth_dmarc=auth_result.get('dmarc', '')[:10],
+        auth_signed_by=(auth_result.get('dkim_domain') or '')[:120],
     )
 
     # ── 1. Analizar el CUERPO del correo (siempre) ─────────────────────
@@ -379,6 +532,27 @@ def _handle_inbound(request):
     # ── 4. Combinar todos los reportes ─────────────────────────────────
     final_score, threat_name, evidence_list, iocs, category, analyzers_run = \
         _combine_many(attachment_reports, body_report, url_report)
+
+    # ── 4.b Ajustar score con el veredicto de autenticación ────────────
+    # • Si DKIM verifica que el correo es auténticamente de Netflix/Google/
+    #   etc, bajamos el score (las URLs raras dejan de ser falsos positivos).
+    # • Si DKIM/DMARC fallan, lo subimos (es un spoof real).
+    # • Si no hay info, no tocamos nada.
+    pre_auth_score = final_score
+    final_score, auth_evidence = auth_check.apply_to_score(final_score, auth_result)
+    if auth_evidence:
+        evidence_list.append(auth_evidence)
+        if 'auth' not in analyzers_run:
+            analyzers_run.append('auth')
+
+    # Si la auth bajó el score a "safe" pero había un threat_name, lo
+    # mantenemos como referencia pero el correo deja de bloquearse.
+    if pre_auth_score >= 61 and final_score <= 30:
+        threat_name = ''   # ya no hay amenaza tras verificar al remitente
+
+    # Si la auth detectó spoof y no había threat_name, le ponemos uno
+    if auth_result.get('verdict') == 'spoofed' and not threat_name:
+        threat_name = f"Suplantación de {auth_result.get('sender_domain', 'remitente')}"
 
     # Si al menos un adjunto tiene extension_spoof, lo marcamos
     extension_spoof = any(r.get("extension_spoof") for r in attachment_reports)
@@ -852,7 +1026,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Alerta de amenaza · SecureMail Shield</title>
+<title>Alerta de amenaza · DockerShield</title>
 </head>
 <body style="margin:0;padding:0;background:#0d0c1a;font-family:'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased">
 
@@ -878,7 +1052,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
                               </div>
                             </td>
                             <td style="vertical-align:middle">
-                              <div style="color:#ffffff;font-size:16px;font-weight:700;letter-spacing:-0.01em;line-height:1.2">SecureMail Shield</div>
+                              <div style="color:#ffffff;font-size:16px;font-weight:700;letter-spacing:-0.01em;line-height:1.2">DockerShield</div>
                               <div style="color:rgba(255,255,255,0.6);font-size:10px;font-family:monospace;letter-spacing:0.08em;margin-top:2px">SISTEMA DE CORREO SEGURO</div>
                             </td>
                           </tr>
@@ -1045,7 +1219,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
                 <td style="padding:14px 28px">
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
-                      <td style="font-size:11px;color:#4b4868;font-family:monospace">SecureMail Shield &middot; alerta automática</td>
+                      <td style="font-size:11px;color:#4b4868;font-family:monospace">DockerShield &middot; alerta automática</td>
                       <td align="right" style="font-size:11px;color:#4b4868;font-family:monospace">{timestamp}</td>
                     </tr>
                   </table>
@@ -1066,7 +1240,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
         # Remitente: usa tu dominio verificado en SendGrid (MAIL_DOMAIN del .env)
         from django.conf import settings
         domain = settings.MAIL_DOMAIN or 'dockershield.lat'
-        from_addr = f"SecureMail Shield <alerts@{domain}>"
+        from_addr = f"DockerShield <alerts@{domain}>"
 
         ok = _send_via_sendgrid(
             from_addr = from_addr,
@@ -1112,7 +1286,7 @@ def send_safe_email_forward(email_obj, force=False):
 
         from django.conf import settings
         domain = settings.MAIL_DOMAIN or 'dockershield.lat'
-        from_addr = f"SecureMail Shield <forward@{domain}>"
+        from_addr = f"DockerShield <forward@{domain}>"
 
         original_sender  = email_obj.from_email or '(remitente desconocido)'
         original_subject = email_obj.subject or '(sin asunto)'
@@ -1421,7 +1595,7 @@ def send_safe_email_forward(email_obj, force=False):
       <table cellpadding="0" cellspacing="0" border="0" width="100%">
         <tr>
           <td style="font-size:10.5px;color:#5e5b75;font-family:'SF Mono',Menlo,Consolas,monospace;letter-spacing:0.04em">
-            © SecureMail Shield
+            © DockerShield
           </td>
           <td align="right" style="font-size:10.5px;color:#5e5b75">
             <span style="color:#a78bfa;font-weight:600">Gestionar reenvíos</span>

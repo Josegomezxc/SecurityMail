@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Mi perfil — SecureMail Shield{% endblock %}
+{% block title %}Mi perfil — DockerShield{% endblock %}
 
 {% block nav_perfil %}active{% endblock %}
 {% block page_title %}Mi perfil{% endblock %}
@@ -1006,7 +1006,7 @@
                onchange="this.form.submit()">
       </form>
 
-      <div class="profile-name">{{ user.first_name|default:"(sin nombre)" }}</div>
+      <div class="profile-name">{{ user.first_name|default:user.username }}</div>
       <div class="profile-email">{{ user.email }}</div>
       <div class="avatar-hint">JPG, PNG, WEBP o GIF · máx. 2 MB</div>
 
@@ -1104,7 +1104,7 @@
             <label class="form-label" for="name-field">Nombre de usuario</label>
             <input type="text" id="name-field" name="name"
                    class="form-control" maxlength="30" minlength="2"
-                   value="{{ user.first_name }}"
+                   value="{{ user.first_name|default:user.username }}"
                    placeholder="Ej: adrian24"
                    autocomplete="username" spellcheck="false" required>
             <div id="name-field-err" style="display:none;margin-top:6px;padding:6px 10px;font-size:12px;color:#f87171;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);border-radius:8px"></div>
@@ -1273,7 +1273,7 @@
           <p class="ftc-desc">
             Si lo activas, los correos <strong>seguros</strong> que lleguen a tus alias
             se reenvían automáticamente a <strong>{{ user.email }}</strong> con sello de
-            "verificado por SecureMail". Los <strong>sospechosos</strong> SIEMPRE te
+            "verificado por DockerShield". Los <strong>sospechosos</strong> SIEMPRE te
             preguntan primero (decides tú desde el panel de notificaciones). Las
             <strong>amenazas</strong> nunca se reenvían — solo te llega el aviso.
           </p>
@@ -1334,7 +1334,7 @@
       </svg>
     </button>
     <img id="avatarPreviewImg" src="" alt="Foto de perfil completa">
-    <div class="avatar-preview-caption">{{ user.first_name|default:user.email }}</div>
+    <div class="avatar-preview-caption">{{ user.first_name|default:user.username|default:user.email }}</div>
     <div class="avatar-preview-sub">Foto de perfil</div>
   </div>
 </div>
@@ -1440,7 +1440,7 @@
     const USER_BLOCK = ['admin','administrator','administrador','root','test','testing',
                         'user','usuario','null','undefined','none','demo','guest','bot','system',
                         'api','www','mail','email','support','soporte','help','ayuda','info',
-                        'contact','contacto','securemail','shield'];
+                        'contact','contacto','dockershield','docker','shield'];
     const input  = document.getElementById('name-field');
     const errBox = document.getElementById('name-field-err');
     if (!input || !errBox) return;

@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}SecureMail Shield{% endblock %}</title>
+    {% load static %}
+    <title>{% block title %}DockerShield{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
@@ -122,10 +125,9 @@
             --border:        rgba(255,255,255,0.06);
             --border-soft:   rgba(255,255,255,0.03);
         }
-        html[data-theme="carbon"] .logo-icon {
-            background: linear-gradient(135deg, #ff4f7a 0%, #ff8aa6 100%);
-            box-shadow: 0 4px 14px rgba(255,79,122,0.4), 0 0 0 1px rgba(255,255,255,0.08) inset;
-        }
+        /* En tema carbon NO rellenamos el cuadro del logo — el PNG es
+           transparente y queda detrás del logo de forma que se ve raro.
+           Mantenemos solo la transición default del .logo-icon. */
         html[data-theme="carbon"] .logo-text span {
             background: linear-gradient(90deg, #ff6b8e, #ff9ab2);
             -webkit-background-clip: text;
@@ -175,9 +177,32 @@
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
+            overflow: hidden;          /* el scroll lo lleva .sidebar-nav */
             position: relative;
+            height: 100vh;             /* altura completa del viewport */
         }
+        /* Logo arriba — no se reduce con flex */
+        .sidebar > .sidebar-logo { flex-shrink: 0; }
+        /* Wrapper de navegación — toma TODO el espacio sobrante y permite
+           scroll interno solo si el contenido supera la altura disponible */
+        .sidebar-nav {
+            flex: 1 1 auto;
+            min-height: 0;             /* clave en flex-column con overflow */
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        /* Scrollbar discreto */
+        .sidebar-nav::-webkit-scrollbar { width: 6px; }
+        .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.06);
+            border-radius: 3px;
+        }
+        .sidebar-nav::-webkit-scrollbar-thumb:hover {
+            background: rgba(124,92,255,0.25);
+        }
+        /* Footer fijo abajo — nunca se reduce ni desaparece */
+        .sidebar > .sidebar-footer { flex-shrink: 0; }
         /* Línea de acento sutil pegada al borde derecho */
         .sidebar::after {
             content: '';
@@ -188,12 +213,14 @@
             pointer-events: none;
         }
 
-        /* Logo — actúa como enlace de recarga */
+        /* Logo — actúa como enlace de recarga.
+           El PNG ya incluye el texto "DockerShield", así que en el sidebar
+           solo mostramos la imagen centrada. */
         .sidebar-logo {
             display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 13px;
-            padding: 26px 20px 22px;
+            padding: 18px 16px 16px;
             text-decoration: none;
             transition: background 0.18s;
             position: relative;
@@ -209,23 +236,26 @@
             background: rgba(255,255,255,0.025);
         }
         .sidebar-logo:hover .logo-icon {
-            transform: rotate(-6deg) scale(1.05);
-            box-shadow: 0 6px 22px rgba(109,74,255,0.5), 0 0 0 1px rgba(255,255,255,0.1) inset;
+            transform: scale(1.04);
         }
 
         .logo-icon {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, var(--accent) 0%, #9b6dff 100%);
-            border-radius: 12px;
+            width: 100%;
+            max-width: 240px;
+            height: auto;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            box-shadow: 0 4px 16px rgba(109,74,255,0.45), 0 0 0 1px rgba(255,255,255,0.08) inset;
-            transition: transform 0.25s cubic-bezier(.22,1,.36,1), box-shadow 0.25s;
+            transition: transform 0.25s cubic-bezier(.22,1,.36,1);
         }
-        .logo-icon svg { display: block; width: 22px; height: 22px; }
+        .logo-icon img {
+            width: 100%;
+            height: auto;
+            max-height: 130px;
+            object-fit: contain;
+            display: block;
+        }
 
         .logo-text {
             font-size: 21px;
@@ -361,7 +391,6 @@
 
         /* ── SIDEBAR FOOTER (avatar + dropdown) ──── */
         .sidebar-footer {
-            margin-top: auto;
             padding: 12px;
             position: relative;
         }
@@ -542,7 +571,11 @@
             -webkit-backdrop-filter: blur(14px) saturate(140%);
             flex-shrink: 0;
             position: relative;
-            z-index: 10;
+            /* 60 supera al toolbar sticky de la inbox (z-index:50) y al
+               live-banner (40), pero queda por debajo del detail-panel
+               modal (100), para que la campana de notificaciones siempre
+               flote sobre el contenido sin tapar los modales. */
+            z-index: 60;
         }
         .topbar::after {
             content: '';
@@ -852,6 +885,10 @@
         .notif-item-icon.t-forwarded       { background: linear-gradient(135deg, #22c55e, #4ade80); }
         .notif-item-icon.t-threat_alert    { background: linear-gradient(135deg, var(--danger), #f87171); }
         .notif-item-icon.t-system          { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); }
+        /* Override por nivel de riesgo del correo asociado: gana sobre el tipo */
+        .notif-item-icon.r-safe   { background: linear-gradient(135deg, #22c55e, #4ade80); }
+        .notif-item-icon.r-warn   { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+        .notif-item-icon.r-danger { background: linear-gradient(135deg, var(--danger), #f87171); }
 
         .notif-item-body { min-width: 0; }
         .notif-item-title {
@@ -1532,9 +1569,98 @@
             opacity: 0.85;
         }
 
-        /* ── RESPONSIVE ──────────────────────────── */
-        @media (max-width: 768px) {
-            .sidebar { display: none; }
+        /* ──────────────────────────────────────────────────────────
+           BOTÓN HAMBURGUESA (oculto en desktop, visible en mobile/tablet)
+           ────────────────────────────────────────────────────────── */
+        .sidebar-toggle {
+            display: none;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            width: 38px;
+            height: 38px;
+            color: var(--text-primary);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .sidebar-toggle:hover {
+            background: var(--accent-soft);
+            border-color: var(--accent-border);
+            color: var(--accent-hover);
+        }
+        .sidebar-toggle svg { width: 20px; height: 20px; }
+
+        /* Backdrop oscuro detrás del drawer */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            z-index: 240;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .sidebar-backdrop.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        /* ──────────────────────────────────────────────────────────
+           RESPONSIVE: TABLET + MÓVIL  (< 1024 px)
+           El sidebar pasa a ser un drawer off-canvas. Se abre con la
+           hamburguesa y se cierra con tap fuera, link, o Escape.
+           ────────────────────────────────────────────────────────── */
+        @media (max-width: 1023px) {
+            .sidebar-toggle { display: inline-flex; }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                height: 100dvh;          /* respeta la barra del navegador móvil */
+                width: 280px;
+                max-width: 85vw;
+                z-index: 250;
+                transform: translateX(-100%);
+                transition: transform 0.28s cubic-bezier(.22,1,.36,1);
+                box-shadow: 8px 0 32px rgba(0,0,0,0.4);
+            }
+            .sidebar.open { transform: translateX(0); }
+        }
+
+        /* ──────────────────────────────────────────────────────────
+           RESPONSIVE: MÓVIL  (< 640 px)
+           Aprieta paddings, oculta el chip de "Sistema activo",
+           reduce el título y suaviza separadores.
+           ────────────────────────────────────────────────────────── */
+        @media (max-width: 640px) {
+            .topbar {
+                padding: 0 12px;
+                gap: 8px;
+                height: 56px;
+            }
+            .topbar-title {
+                font-size: 15px;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .topbar-status      { display: none !important; }
+            .topbar-right-divider { display: none; }
+            .content-area       { padding: 16px 14px; }
+            .threat-pill .tp-label { display: none; }
+        }
+
+        /* MÓVIL pequeño (< 380 px): sacrifica el badge de amenazas */
+        @media (max-width: 380px) {
+            .threat-pill { display: none; }
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -1562,22 +1688,28 @@
 </div>
 
 {% block body_outer %}
+<!-- Backdrop del drawer móvil (solo visible cuando el sidebar está abierto) -->
+<div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+
 <div class="app-layout">
 
     <!-- ═══════════════════════════════════════════
          SIDEBAR
     ════════════════════════════════════════════ -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
 
-        <!-- Logo → recarga la página al hacer clic -->
+        <!-- Logo → recarga la página al hacer clic.
+             El PNG ya tiene "DockerShield" incluido, sin texto duplicado. -->
         <a href="{% url 'dashboard' %}" class="sidebar-logo">
             <div class="logo-icon">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
+                <img src="{% static 'img/logo.png' %}" alt="DockerShield">
             </div>
-            <span class="logo-text">Secure<span>Mail</span></span>
         </a>
+
+        <!-- Wrapper con scroll interno: si el contenido es más alto que el
+             espacio disponible, solo este bloque scrollea. El logo arriba y
+             el footer abajo siempre quedan visibles. -->
+        <div class="sidebar-nav">
 
         <!-- Navegación principal -->
         <div class="sidebar-section">
@@ -1664,8 +1796,27 @@
                 </svg>
                 Usuarios
             </a>
+
+            <a href="{% url 'admin_threats' %}" class="sidebar-link {% block nav_admin_threats %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Amenazas
+            </a>
+
+            <a href="{% url 'admin_aliases' %}" class="sidebar-link {% block nav_admin_aliases %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Alias globales
+            </a>
         </div>
         {% endif %}
+
+        </div><!-- /.sidebar-nav -->
 
         <!-- Footer: avatar + dropdown de cuenta -->
         <div class="sidebar-footer">
@@ -1732,6 +1883,15 @@
 
         <!-- Top bar -->
         <header class="topbar">
+            <!-- Hamburguesa (solo visible en mobile/tablet vía CSS) -->
+            <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menú">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+
             <span class="topbar-title">{% block page_title %}{% endblock %}</span>
 
             {% if user.is_authenticated %}
@@ -1840,6 +2000,55 @@
 <!-- ═══════════════════════════════════════════
      JS — dropdown de usuario + gestor de temas
 ════════════════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   SIDEBAR DRAWER — móvil + tablet
+   ════════════════════════════════════════════════════════════════════ */
+(function () {
+    var toggle  = document.getElementById('sidebarToggle');
+    var sidebar = document.getElementById('sidebar');
+    var backdrop = document.getElementById('sidebarBackdrop');
+    if (!toggle || !sidebar || !backdrop) return;
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        backdrop.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('visible');
+        document.body.style.overflow = '';
+    }
+    function isOpen() {
+        return sidebar.classList.contains('open');
+    }
+
+    toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        isOpen() ? closeSidebar() : openSidebar();
+    });
+    backdrop.addEventListener('click', closeSidebar);
+
+    // Cerrar al navegar a otra ruta (los <a> del sidebar)
+    sidebar.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+            if (window.innerWidth < 1024) closeSidebar();
+        });
+    });
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && isOpen()) closeSidebar();
+    });
+
+    // Si el viewport crece a desktop, asegurar estado limpio
+    window.addEventListener('resize', function () {
+        if (window.innerWidth >= 1024 && isOpen()) closeSidebar();
+    });
+})();
+</script>
+
 <script>
 /* ════════════════════════════════════════════════════════════════════
    SISTEMA DE TOASTS GLOBAL — con persistencia entre navegaciones
@@ -2271,8 +2480,18 @@ document.addEventListener('keydown', function (e) {
         const cls = (n.read ? '' : 'unread');
         const pendingPill = n.is_actionable
             ? '<div class="notif-item-pending-pill">PENDIENTE</div>' : '';
+        // Color del icono por nivel de riesgo del correo asociado.
+        // Si no hay correo (notificación de sistema), usamos el color por tipo.
+        let iconCls;
+        if (typeof n.risk_score === 'number') {
+            if      (n.risk_score >= 61) iconCls = 'r-danger';
+            else if (n.risk_score >= 31) iconCls = 'r-warn';
+            else                         iconCls = 'r-safe';
+        } else {
+            iconCls = 't-' + n.type;
+        }
         return `<a href="${n.url}" class="notif-item ${cls}" data-id="${n.id}">
-            <div class="notif-item-icon t-${n.type}">${ICONS[n.type] || ICONS.system}</div>
+            <div class="notif-item-icon ${iconCls}">${ICONS[n.type] || ICONS.system}</div>
             <div class="notif-item-body">
                 <div class="notif-item-title">${escapeHtml(n.title)}</div>
                 <div class="notif-item-msg">${escapeHtml(n.message || '')}</div>
@@ -2322,11 +2541,27 @@ document.addEventListener('keydown', function (e) {
                 if (seenNotifIds !== null && data.recent && data.recent.length > 0) {
                     const newOnes = data.recent.filter(item => !seenNotifIds.has(item.id));
                     newOnes.reverse().forEach(item => {   // mostramos en orden cronológico
-                        const toastType =
-                            item.type === 'threat_alert'    ? 'danger'  :
-                            item.type === 'forward_request' ? 'warning' :
-                            item.type === 'forwarded'       ? 'success' :
-                                                              'info';
+                        // Color del toast por nivel de riesgo del correo:
+                        //   amenaza (≥61)    → rojo
+                        //   sospechoso (31-60) → amarillo
+                        //   seguro (≤30)      → verde
+                        // Si la notificación no tiene email asociado (raro),
+                        // caemos al criterio por tipo.
+                        let toastType;
+                        const r = (typeof item.risk_score === 'number') ? item.risk_score : null;
+                        if (item.type === 'threat_alert' || (r !== null && r >= 61)) {
+                            toastType = 'danger';
+                        } else if (r !== null && r >= 31) {
+                            toastType = 'warning';
+                        } else if (r !== null && r >= 0) {
+                            toastType = 'success';
+                        } else {
+                            // Sin score → usamos el criterio antiguo por tipo
+                            toastType =
+                                item.type === 'forward_request' ? 'warning' :
+                                item.type === 'forwarded'       ? 'success' :
+                                                                  'info';
+                        }
                         window.showToast({
                             type:    toastType,
                             title:   item.title,

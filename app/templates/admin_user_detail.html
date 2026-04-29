@@ -128,12 +128,45 @@
 /* Alias list */
 .alias-row-adm {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: 1fr auto auto auto auto;
   gap: 14px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--border-soft);
   align-items: center;
 }
+/* Botón pequeño de toggle del alias (acción admin) */
+.alias-toggle-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 1px solid;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.alias-toggle-btn.disable {
+  color: #f87171;
+  border-color: rgba(232,64,64,0.3);
+  background: rgba(232,64,64,0.05);
+}
+.alias-toggle-btn.disable:hover {
+  background: rgba(232,64,64,0.15);
+  border-color: rgba(232,64,64,0.5);
+}
+.alias-toggle-btn.enable {
+  color: #4ade80;
+  border-color: rgba(46,204,113,0.3);
+  background: rgba(46,204,113,0.05);
+}
+.alias-toggle-btn.enable:hover {
+  background: rgba(46,204,113,0.15);
+  border-color: rgba(46,204,113,0.5);
+}
+.alias-toggle-btn svg { width: 11px; height: 11px; }
 .alias-row-adm:last-child { border-bottom: none; }
 .alias-addr-adm {
   font-family: var(--mono); font-size: 12.5px; font-weight: 600;
@@ -297,6 +330,20 @@
       {% else %}
         <span class="alias-chip dead">DESTRUIDO</span>
       {% endif %}
+      <form method="post" action="{% url 'admin_toggle_alias' pk=a.id %}" class="js-admin-toggle-alias" data-address="{{ a.address }}" data-active="{{ a.is_active|yesno:'1,0' }}" style="margin:0">
+        {% csrf_token %}
+        {% if a.is_active %}
+          <button type="submit" class="alias-toggle-btn disable" title="Desactivar este alias del usuario">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Desactivar
+          </button>
+        {% else %}
+          <button type="submit" class="alias-toggle-btn enable" title="Reactivar este alias">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Reactivar
+          </button>
+        {% endif %}
+      </form>
     </div>
   {% empty %}
     <div class="empty-sec">Este usuario aún no tiene aliases.</div>
@@ -330,5 +377,33 @@
     <div class="empty-sec">Este usuario no ha recibido correos todavía.</div>
   {% endfor %}
 </div>
+
+<script>
+/* Confirmación bonita antes de desactivar/reactivar un alias del usuario. */
+document.addEventListener('submit', function (e) {
+  var form = e.target.closest('.js-admin-toggle-alias');
+  if (!form || form.dataset.confirmed === '1') return;
+  e.preventDefault();
+  if (!window.confirmDialog) { form.submit(); return; }
+
+  var address = form.dataset.address || 'este alias';
+  var isActive = form.dataset.active === '1';
+
+  window.confirmDialog({
+    danger:      isActive,
+    icon:        isActive ? 'warning' : 'question',
+    title:       isActive ? 'Desactivar alias' : 'Reactivar alias',
+    message:     isActive
+      ? 'El alias ' + address + ' dejará de recibir correos. Solo podrás reactivarlo desde aquí. ¿Continuar?'
+      : 'El alias ' + address + ' volverá a estar activo y recibirá correos de nuevo. ¿Continuar?',
+    confirmText: isActive ? 'Sí, desactivar' : 'Sí, reactivar',
+    cancelText:  'Cancelar',
+  }).then(function (ok) {
+    if (!ok) return;
+    form.dataset.confirmed = '1';
+    form.submit();
+  });
+});
+</script>
 
 {% endblock %}

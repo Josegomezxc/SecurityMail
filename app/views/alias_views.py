@@ -11,7 +11,15 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from ..models import Alias
-from ..services.alias_service import generate_alias_address
+from ..services.alias_service import generate_alias_address, generate_creative_label
+
+
+# Cuántos alias ACTIVOS puede tener un usuario común al mismo tiempo.
+# Los destruidos (is_active=False) no cuentan — quedan en la BD por
+# seguridad (el address no se puede reutilizar gracias a unique=True)
+# pero el usuario puede crear otros nuevos en su lugar.
+# Los administradores (is_staff) NO tienen límite.
+ALIAS_LIMIT_PER_USER = 10
 
 
 @login_required(login_url='login')
@@ -32,25 +40,62 @@ def alias_list_view(request):
     total_emails    = sum(a.emails_total for a in aliases)
     total_threats   = sum(a.threats_total for a in aliases)
 
+    # Para la UI: cuántos alias puede crear todavía + límite total
+    is_unlimited     = request.user.is_staff
+    alias_limit      = None if is_unlimited else ALIAS_LIMIT_PER_USER
+    alias_remaining  = None if is_unlimited else max(0, ALIAS_LIMIT_PER_USER - active_count)
+
     return render(request, 'alias.html', {
         'aliases':         aliases,
         'active_count':    active_count,
         'destroyed_count': destroyed_count,
         'total_emails':    total_emails,
         'total_threats':   total_threats,
+        'alias_limit':     alias_limit,
+        'alias_remaining': alias_remaining,
+        'is_unlimited':    is_unlimited,
     })
 
 
 @login_required(login_url='login')
 def alias_create_view(request):
-    """Crea un nuevo alias con una dirección única generada."""
-    if request.method == 'POST':
-        label = (request.POST.get('label') or '').strip()
-        if not label:
-            messages.error(request, 'Ingresa una etiqueta para el alias.')
-            return redirect('alias_list')
+    """
+    Crea un nuevo alias con etiqueta y dirección 100% autogeneradas.
 
-        address = generate_alias_address(label)
+    El usuario NO escribe nada — el sistema genera una etiqueta creativa
+    (adjetivo + sustantivo, ej: 'silver-tiger') y la convierte en una
+    dirección única tipo 'silver-tiger_x7k2m@dockershield.lat'.
+
+    Esto evita por completo cualquier riesgo de palabras vulgares,
+    información personal o etiquetas ofensivas.
+    """
+    if request.method == 'POST':
+        # Defensa anti doble-submit + anti abuso: chequea el límite SIEMPRE
+        # en el backend (el JS del front solo es UX, no se debe confiar).
+        if not request.user.is_staff:
+            active_count = Alias.objects.filter(
+                user=request.user, is_active=True,
+            ).count()
+            if active_count >= ALIAS_LIMIT_PER_USER:
+                messages.error(
+                    request,
+                    f'Has alcanzado el límite de {ALIAS_LIMIT_PER_USER} alias '
+                    f'activos. Destruye alguno antes de crear uno nuevo.',
+                )
+                return redirect('alias_list')
+
+        # Genera etiqueta creativa (silver-tiger, cosmic-falcon, etc.) y
+        # dirección única. Si por mala suerte la dirección ya existe en
+        # la BD (colisión muy improbable: ~36^6 = 2.000M combinaciones
+        # por etiqueta), reintentamos hasta 5 veces.
+        for _ in range(5):
+            label   = generate_creative_label()
+            address = generate_alias_address(label)
+            if not Alias.objects.filter(address=address).exists():
+                break
+        else:
+            messages.error(request, 'No se pudo generar un alias único. Inténtalo de nuevo.')
+            return redirect('alias_list')
 
         Alias.objects.create(
             user=request.user,

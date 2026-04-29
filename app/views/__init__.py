@@ -26,6 +26,8 @@ from .auth_views import (
     recuperar_view,
     reset_password_view,
     cambiar_password,
+    verificar_correo_view,
+    reenviar_codigo_view,
 )
 
 # ─── Dashboard ────────────────────────────────────────────────────────
@@ -68,6 +70,9 @@ from .admin_views import (
     admin_users_view,
     admin_user_detail_view,
     admin_toggle_staff,
+    admin_toggle_alias,
+    admin_threats_view,
+    admin_aliases_view,
 )
 
 # ─── IA ───────────────────────────────────────────────────────────────
@@ -95,6 +100,7 @@ __all__ = [
     # Auth
     'login_view', 'registro_view', 'logout_view', 'recuperar_view',
     'reset_password_view', 'cambiar_password',
+    'verificar_correo_view', 'reenviar_codigo_view',
     # Dashboard
     'dashboard_view', 'dashboard_live_api',
     # Inbox
@@ -108,7 +114,8 @@ __all__ = [
     'perfil_view',
     # Admin
     'admin_dashboard_view', 'admin_users_view',
-    'admin_user_detail_view', 'admin_toggle_staff',
+    'admin_user_detail_view', 'admin_toggle_staff', 'admin_toggle_alias',
+    'admin_threats_view', 'admin_aliases_view',
     # IA
     'ai_analysis_view',
     # Notificaciones

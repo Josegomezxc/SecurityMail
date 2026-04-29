@@ -1,5 +1,5 @@
 """
-Middleware del proyecto SecureMail Shield.
+Middleware del proyecto DockerShield.
 
 SingleSessionMiddleware refuerza la regla "una sesión por usuario":
   1) Marca `session_last_activity` en cada request del usuario actual.

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Recuperar contraseña — SecureMail Shield{% endblock %}
+{% block title %}Recuperar contraseña — DockerShield{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -137,10 +137,12 @@
         margin-bottom: 28px;
     }
     .login-logo-icon {
-        width: 36px; height: 36px;
-        background: var(--accent);
-        border-radius: 10px;
+        width: 56px; height: 56px;
         display: flex; align-items: center; justify-content: center;
+    }
+    .login-logo-icon img {
+        width: 100%; height: 100%;
+        object-fit: contain; display: block;
     }
     .login-logo-text { font-size: 18px; font-weight: 600; }
     .login-logo-text span { color: var(--accent); }
@@ -417,11 +419,10 @@
 
       <div class="login-logo">
         <div class="login-logo-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
+          {% load static %}
+          <img src="{% static 'img/logo.png' %}" alt="DockerShield">
         </div>
-        <span class="login-logo-text">Secure<span>Mail</span></span>
+        <span class="login-logo-text">Docker<span>Shield</span></span>
       </div>
 
       <div id="form-state" {% if submitted %}style="display:none"{% endif %}>

@@ -81,6 +81,14 @@ def notification_unread_api(request):
     recent = list(qs[:8])
 
     def _row(n):
+        # Score del correo asociado, para que el frontend pinte el toast
+        # del color correcto (verde=seguro, amarillo=sospechoso, rojo=amenaza).
+        risk = None
+        if n.related_email_id:
+            try:
+                risk = int(n.related_email.risk_score or 0)
+            except Exception:
+                risk = None
         return {
             'id':         n.id,
             'type':       n.type,
@@ -89,6 +97,7 @@ def notification_unread_api(request):
             'read':       n.read,
             'status':     n.status,
             'is_actionable': n.is_actionable,
+            'risk_score': risk,
             'time_iso':   n.created_at.isoformat(),
             'time_human': _time_short(n.created_at),
             'url':        f'/notificaciones/{n.id}/',

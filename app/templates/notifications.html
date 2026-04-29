@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Notificaciones — SecureMail Shield{% endblock %}
+{% block title %}Notificaciones — DockerShield{% endblock %}
 {% block page_title %}Notificaciones{% endblock %}
 {% block nav_notifications %}active{% endblock %}
 
@@ -55,6 +55,11 @@
   .notif-row-icon.t-forwarded       { background: linear-gradient(135deg, #22c55e, #4ade80); box-shadow: 0 4px 14px rgba(46,204,113,0.3); }
   .notif-row-icon.t-threat_alert    { background: linear-gradient(135deg, var(--danger), #f87171); box-shadow: 0 4px 14px rgba(232,64,64,0.3); }
   .notif-row-icon.t-system          { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); }
+  /* Override por nivel de riesgo del correo asociado: si el correo es
+     seguro/sospechoso/amenaza, el icono refleja eso (gana sobre el tipo). */
+  .notif-row-icon.r-safe   { background: linear-gradient(135deg, #22c55e, #4ade80); box-shadow: 0 4px 14px rgba(46,204,113,0.3); }
+  .notif-row-icon.r-warn   { background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 4px 14px rgba(245,158,11,0.3); }
+  .notif-row-icon.r-danger { background: linear-gradient(135deg, var(--danger), #f87171); box-shadow: 0 4px 14px rgba(232,64,64,0.3); }
 
   .notif-row-body { min-width: 0; }
   .notif-row-title {
@@ -305,8 +310,13 @@
 
   <div class="notif-list-card" id="notif-list-container">
     {% for n in notifications %}
-      <a href="{% url 'notification_detail' n.id %}" class="notif-row {% if not n.read %}unread{% endif %}" data-id="{{ n.id }}" data-type="{{ n.type }}" data-status="{{ n.status }}" data-read="{{ n.read|yesno:'1,0' }}">
-        <div class="notif-row-icon t-{{ n.type }}">
+      <a href="{% url 'notification_detail' n.id %}"
+         class="notif-row {% if not n.read %}unread{% endif %}"
+         data-id="{{ n.id }}" data-type="{{ n.type }}" data-status="{{ n.status }}"
+         data-read="{{ n.read|yesno:'1,0' }}"
+         {% if n.related_email %}data-risk="{{ n.related_email.risk_score|default:0 }}"{% endif %}>
+        {# Icono: si hay correo asociado el color va por risk_score, sino por tipo #}
+        <div class="notif-row-icon {% if n.related_email %}{% if n.related_email.risk_score >= 61 %}r-danger{% elif n.related_email.risk_score >= 31 %}r-warn{% else %}r-safe{% endif %}{% else %}t-{{ n.type }}{% endif %}">
           {% if n.type == 'forward_request' %}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           {% elif n.type == 'forwarded' %}
@@ -468,8 +478,18 @@
     const cls = n.read ? '' : 'unread';
     const icon = ICONS[n.type] || ICONS.system;
     const statusLabel = STATUS_LABEL[n.status] || n.status;
-    return `<a href="${escapeHtml(n.url)}" class="notif-row ${cls} is-new" data-id="${n.id}" data-type="${escapeHtml(n.type)}" data-status="${escapeHtml(n.status)}" data-read="${n.read ? '1' : '0'}">
-      <div class="notif-row-icon t-${n.type}">${icon}</div>
+    // Color del icono por nivel de riesgo (gana sobre el tipo si hay correo asociado)
+    let iconCls;
+    if (typeof n.risk_score === 'number') {
+      if      (n.risk_score >= 61) iconCls = 'r-danger';
+      else if (n.risk_score >= 31) iconCls = 'r-warn';
+      else                         iconCls = 'r-safe';
+    } else {
+      iconCls = 't-' + n.type;
+    }
+    const riskAttr = (typeof n.risk_score === 'number') ? ` data-risk="${n.risk_score}"` : '';
+    return `<a href="${escapeHtml(n.url)}" class="notif-row ${cls} is-new" data-id="${n.id}" data-type="${escapeHtml(n.type)}" data-status="${escapeHtml(n.status)}" data-read="${n.read ? '1' : '0'}"${riskAttr}>
+      <div class="notif-row-icon ${iconCls}">${icon}</div>
       <div class="notif-row-body">
         <div class="notif-row-title">${escapeHtml(n.title)} <span class="new-badge">NUEVO</span></div>
         ${n.message ? `<div class="notif-row-msg">${escapeHtml(n.message)}</div>` : ''}

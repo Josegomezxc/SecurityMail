@@ -74,7 +74,7 @@ def send_reset_email(user: User, token: PasswordResetToken) -> Tuple[bool, str]:
     html = _build_reset_email_html(user, reset_url, expires, token.token[:8])
     return send_email(
         to=user.email,
-        subject="Recupera tu contraseña — SecureMail Shield",
+        subject="Recupera tu contraseña — DockerShield",
         html=html,
     )
 
@@ -97,7 +97,7 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
   <meta name="x-apple-disable-message-reformatting">
   <meta name="color-scheme" content="dark">
   <meta name="supported-color-schemes" content="dark">
-  <title>Recupera tu contraseña — SecureMail Shield</title>
+  <title>Recupera tu contraseña — DockerShield</title>
 </head>
 <body style="margin:0;padding:0;background:#0b0a14;width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
 
@@ -171,7 +171,7 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
         <tr>
           <td style="padding:26px 38px 0;font-size:14.5px;line-height:1.7;color:#a9a6c1">
             Hola <strong style="color:#f0eeff">{display_name}</strong>,<br><br>
-            Recibimos una solicitud para <strong style="color:#f0eeff">restablecer la contraseña</strong> de tu cuenta de SecureMail Shield. Si fuiste tú, usa el botón de abajo para crear una contraseña nueva.
+            Recibimos una solicitud para <strong style="color:#f0eeff">restablecer la contraseña</strong> de tu cuenta de DockerShield. Si fuiste tú, usa el botón de abajo para crear una contraseña nueva.
           </td>
         </tr>
 
@@ -255,7 +255,7 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
               <tr>
                 <td style="font-size:11px;color:#6b6884;letter-spacing:0.01em">
-                  Enviado desde <strong style="color:#a9a6c1">SecureMail Shield</strong>
+                  Enviado desde <strong style="color:#a9a6c1">DockerShield</strong>
                 </td>
                 <td align="right" style="font-size:11px;color:#6b6884;font-family:'SF Mono',Menlo,Consolas,monospace">
                   ID: {token_short}
@@ -276,7 +276,7 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
               Este es un mensaje automático. No respondas a este correo.
             </p>
             <p style="margin:0;color:#3f3d55;font-size:10.5px;line-height:1.6">
-              © SecureMail Shield · Protección de correo con sandbox
+              © DockerShield · Protección de correo con sandbox
             </p>
           </td>
         </tr>

@@ -68,19 +68,124 @@ def admin_global_stats() -> dict:
     cutoff_1d = now - timedelta(days=1)
     cutoff_7d = now - timedelta(days=7)
 
+    emails_total = EmailMessage.objects.count()
+
+    # ── Distribución de correos por nivel de riesgo ──
+    safe_count   = EmailMessage.objects.filter(risk_score__lte=30).count()
+    susp_count   = EmailMessage.objects.filter(
+                        risk_score__gt=30, risk_score__lt=61).count()
+    threats_total = EmailMessage.objects.filter(risk_score__gte=61).count()
+
+    # Porcentajes (evita divisiones por 0)
+    if emails_total > 0:
+        safe_pct    = round(safe_count    / emails_total * 100)
+        susp_pct    = round(susp_count    / emails_total * 100)
+        threats_pct = round(threats_total / emails_total * 100)
+    else:
+        safe_pct = susp_pct = threats_pct = 0
+
+    aliases_total  = Alias.objects.count()
+    aliases_active = Alias.objects.filter(is_active=True).count()
+    aliases_active_pct = round(aliases_active / aliases_total * 100) if aliases_total else 0
+
+    users_total = User.objects.count()
+    users_staff = User.objects.filter(is_staff=True).count()
+    users_active = User.objects.filter(is_active=True).count()
+
+    # ── Actividad: correos por día en los últimos 7 días ──
+    activity_7d = []
+    max_in_day  = 0
+    for i in range(6, -1, -1):
+        day_start = (now - timedelta(days=i)).replace(hour=0,  minute=0, second=0, microsecond=0)
+        day_end   = (now - timedelta(days=i)).replace(hour=23, minute=59, second=59, microsecond=999999)
+        count = EmailMessage.objects.filter(
+            received_at__gte=day_start, received_at__lte=day_end,
+        ).count()
+        max_in_day = max(max_in_day, count)
+        activity_7d.append({
+            'date':  day_start,
+            'label': day_start.strftime('%a %d').lower(),
+            'count': count,
+        })
+    # Calculamos el % de altura de la barra para el gráfico
+    for d in activity_7d:
+        d['bar_pct'] = round(d['count'] / max_in_day * 100) if max_in_day else 0
+
+    # ── Top 5 dominios atacantes (de dónde vienen las amenazas) ──
+    # Extraemos el dominio del campo from_email de los correos con
+    # score >= 61. Lo hacemos en Python porque sqlite/postgres no tienen
+    # SUBSTRING_INDEX nativo igual.
+    threat_emails = EmailMessage.objects.filter(
+        risk_score__gte=61,
+    ).values_list('from_email', flat=True)
+    domain_counts = {}
+    for addr in threat_emails:
+        if not addr:
+            continue
+        # Extrae solo el dominio: 'foo@bar.com' -> 'bar.com'
+        if '@' in addr:
+            domain = addr.split('@')[-1].strip().lower().rstrip('>').strip()
+        else:
+            domain = addr.strip().lower()
+        if not domain:
+            continue
+        domain_counts[domain] = domain_counts.get(domain, 0) + 1
+    top_attacker_domains = [
+        {'domain': d, 'count': c}
+        for d, c in sorted(domain_counts.items(), key=lambda x: -x[1])[:5]
+    ]
+
+    # ── Tendencia: comparación 7 días actuales vs 7 días anteriores ──
+    cutoff_14d = now - timedelta(days=14)
+    emails_prev_7d = EmailMessage.objects.filter(
+        received_at__gte=cutoff_14d, received_at__lt=cutoff_7d,
+    ).count()
+    threats_7d = EmailMessage.objects.filter(
+        received_at__gte=cutoff_7d, risk_score__gte=61,
+    ).count()
+    threats_prev_7d = EmailMessage.objects.filter(
+        received_at__gte=cutoff_14d, received_at__lt=cutoff_7d,
+        risk_score__gte=61,
+    ).count()
+
+    def _trend_pct(current, previous):
+        if previous == 0:
+            return 100 if current > 0 else 0
+        return round((current - previous) / previous * 100)
+
+    emails_trend  = _trend_pct(EmailMessage.objects.filter(received_at__gte=cutoff_7d).count(), emails_prev_7d)
+    threats_trend = _trend_pct(threats_7d, threats_prev_7d)
+
     return {
-        "users_total":     User.objects.count(),
-        "users_staff":     User.objects.filter(is_staff=True).count(),
-        "aliases_total":   Alias.objects.count(),
-        "aliases_active":  Alias.objects.filter(is_active=True).count(),
-        "emails_total":    EmailMessage.objects.count(),
+        "users_total":     users_total,
+        "users_staff":     users_staff,
+        "users_active":    users_active,
+        "aliases_total":   aliases_total,
+        "aliases_active":  aliases_active,
+        "aliases_active_pct": aliases_active_pct,
+        "emails_total":    emails_total,
         "emails_24h":      EmailMessage.objects.filter(received_at__gte=cutoff_1d).count(),
         "emails_7d":       EmailMessage.objects.filter(received_at__gte=cutoff_7d).count(),
-        "threats_total":   EmailMessage.objects.filter(risk_score__gte=61).count(),
+        "threats_total":   threats_total,
         "threats_24h":     EmailMessage.objects.filter(
                                 received_at__gte=cutoff_1d, risk_score__gte=61).count(),
+        "threats_7d":      threats_7d,
         "sandbox_total":   SandboxAnalysis.objects.count(),
         "sandbox_blocked": SandboxAnalysis.objects.filter(risk_score__gte=81).count(),
+        # Distribución
+        "safe_count":      safe_count,
+        "susp_count":      susp_count,
+        "safe_pct":        safe_pct,
+        "susp_pct":        susp_pct,
+        "threats_pct":     threats_pct,
+        # Actividad
+        "activity_7d":     activity_7d,
+        "max_in_day":      max_in_day,
+        # Top dominios atacantes
+        "top_attacker_domains": top_attacker_domains,
+        # Tendencias
+        "emails_trend":    emails_trend,
+        "threats_trend":   threats_trend,
     }
 
 

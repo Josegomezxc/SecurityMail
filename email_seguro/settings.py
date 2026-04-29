@@ -167,8 +167,8 @@ EMAIL_TIMEOUT       = 20  # segundos
 # Remitente por defecto (aparece en "De:" en el correo recibido)
 DEFAULT_FROM_EMAIL = os.environ.get(
     'DEFAULT_FROM_EMAIL',
-    f'SecureMail Shield <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER
-    else 'SecureMail Shield <no-reply@localhost>',
+    f'DockerShield <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER
+    else 'DockerShield <no-reply@localhost>',
 )
 
 # Backend: SMTP si hay credenciales, consola si no

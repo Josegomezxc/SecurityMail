@@ -1,5 +1,5 @@
 """
-SecureMail Shield — Orquestador de análisis dentro del sandbox Docker.
+DockerShield — Orquestador de análisis dentro del sandbox Docker.
 
 Este script se ejecuta como entrypoint del contenedor. Recibe la ruta de
 un fichero, detecta su tipo REAL (no por extensión) y delega en los

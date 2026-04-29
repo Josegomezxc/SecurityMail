@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Mis Alias — SecureMail Shield{% endblock %}
+{% block title %}Mis Alias — DockerShield{% endblock %}
+{% block page_title %}Mis Alias{% endblock %}
 {% block nav_alias %}active{% endblock %}
 
 {% block extra_css %}
@@ -57,7 +58,7 @@
 }
 .alias-hero-text h1 {
   font-family: var(--display); font-size:20px; font-weight:800;
-  background: linear-gradient(90deg, #fff 0%, var(--ai-purple-light) 100%);
+  background: linear-gradient(90deg, var(--text-primary) 0%, var(--ai-purple-light) 100%);
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
   margin-bottom:4px;
 }
@@ -91,6 +92,244 @@
 .create-card::before {
   content:''; position:absolute; top:0; left:0; right:0; height:2px;
   background: linear-gradient(90deg, transparent, var(--ai-purple), transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CREATE CARD V2 — diseño nuevo con preview visual del alias
+   ═══════════════════════════════════════════════════════════ */
+.create-card-v2 {
+  position: relative;
+  background:
+    radial-gradient(ellipse 120% 100% at 0% 0%, rgba(124,58,237,0.08) 0%, transparent 60%),
+    var(--bg-surface);
+  border: 1px solid var(--ai-purple-border);
+  border-radius: 18px;
+  padding: 28px 32px;
+  margin-bottom: 22px;
+  overflow: hidden;
+  animation: fadeUp 0.4s ease 0.05s both;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(124,58,237,0.08) inset;
+}
+.create-card-v2::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ai-purple), transparent);
+  opacity: 0.7;
+}
+.ccv2-glow {
+  position: absolute;
+  top: -100px; right: -100px;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 65%);
+  pointer-events: none;
+  filter: blur(8px);
+}
+
+.ccv2-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  position: relative; z-index: 1;
+}
+@media (max-width: 760px) {
+  .ccv2-grid { grid-template-columns: 1fr; gap: 20px; }
+}
+
+/* ── Lado izquierdo ── */
+.ccv2-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ai-purple-light);
+  background: rgba(124,58,237,0.1);
+  border: 1px solid rgba(124,58,237,0.25);
+  padding: 5px 11px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+.ccv2-eyebrow-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--ai-purple-light);
+  box-shadow: 0 0 8px var(--ai-purple-light);
+  animation: ccv2DotPulse 1.8s ease-in-out infinite;
+}
+@keyframes ccv2DotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.8); }
+}
+
+.ccv2-title {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+.ccv2-title span {
+  background: linear-gradient(90deg, var(--ai-purple-light), #c4a3ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ccv2-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  max-width: 420px;
+}
+
+.ccv2-form { margin: 0; }
+.ccv2-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 24px;
+  background: linear-gradient(135deg, var(--ai-purple) 0%, #9b6dff 100%);
+  color: white;
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 24px rgba(124,58,237,0.4), 0 1px 0 rgba(255,255,255,0.1) inset;
+  transition: all 0.2s cubic-bezier(.22,1,.36,1);
+}
+.ccv2-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(124,58,237,0.55), 0 1px 0 rgba(255,255,255,0.1) inset;
+}
+.ccv2-btn:hover:not(:disabled) .ccv2-btn-arrow {
+  transform: translateX(3px);
+}
+.ccv2-btn:active:not(:disabled) { transform: translateY(0); }
+.ccv2-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: saturate(0.6);
+}
+.ccv2-btn-arrow {
+  transition: transform 0.2s ease;
+}
+
+/* Quota bar */
+.ccv2-quota {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  max-width: 320px;
+}
+.ccv2-quota-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.ccv2-quota-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ai-purple), #b69dff);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.ccv2-quota-txt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.ccv2-quota-txt strong {
+  color: var(--ai-purple-light);
+  font-weight: 700;
+}
+
+/* ── Lado derecho: preview ── */
+.ccv2-preview-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+.ccv2-preview-card {
+  background: rgba(0,0,0,0.25);
+  border: 1px dashed rgba(124,58,237,0.3);
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.ccv2-preview-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(124,58,237,0.05));
+  pointer-events: none;
+}
+.ccv2-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  flex-wrap: wrap;
+  line-height: 1.4;
+}
+.ccv2-preview-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--ai-purple), #9b6dff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+  box-shadow: 0 4px 12px rgba(124,58,237,0.35);
+}
+.ccv2-preview-text {
+  font-weight: 700;
+  color: var(--ai-purple-light);
+  word-break: break-all;
+}
+.ccv2-preview-domain {
+  color: var(--text-secondary);
+}
+.ccv2-preview-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ccv2-preview-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+.ccv2-preview-tag.ok {
+  background: rgba(46,204,113,0.1);
+  color: #4ade80;
+  border: 1px solid rgba(46,204,113,0.25);
 }
 .create-card-title {
   font-family: var(--display); font-size:15px; font-weight:700;
@@ -169,48 +408,112 @@
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 16px 20px;
-  margin-bottom: 8px;
-  display:flex; align-items:center; gap:16px;
-  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
-  position:relative; overflow:hidden;
+  padding: 18px 22px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  transition: border-color 0.2s, transform 0.18s, box-shadow 0.25s, background 0.2s;
+  position: relative;
+  overflow: hidden;
   animation: fadeUp 0.4s ease both;
 }
 .alias-card:hover {
   border-color: var(--ai-purple-border);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.22), 0 0 0 1px rgba(124,58,237,0.1);
+  background: linear-gradient(135deg, rgba(124,58,237,0.04), var(--bg-surface) 60%);
 }
 .alias-card::before {
-  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
   background: linear-gradient(180deg, var(--ai-purple), #a78bfa);
-  opacity:0; transition: opacity 0.2s;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
-.alias-card:hover::before { opacity:1; }
+.alias-card:hover::before { opacity: 1; }
+/* Halo morado sutil que aparece en hover */
+.alias-card::after {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 140px; height: 140px;
+  background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.alias-card:hover::after { opacity: 1; }
 .alias-card.destroyed {
-  opacity:0.45; pointer-events:none; filter:grayscale(0.5);
+  opacity: 0.5;
+  filter: grayscale(0.6);
 }
+.alias-card.destroyed:hover {
+  transform: none;
+  box-shadow: none;
+  background: var(--bg-surface);
+}
+.alias-card.destroyed::before { display: none; }
 
 .alias-icon-box {
-  width:42px; height:42px; border-radius:11px;
-  background: var(--ai-purple-soft);
-  border:1px solid var(--ai-purple-border);
-  display:flex; align-items:center; justify-content:center; flex-shrink:0;
-  transition: transform 0.2s;
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(124,58,237,0.06));
+  border: 1px solid var(--ai-purple-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  transition: transform 0.25s cubic-bezier(.22,1,.36,1), box-shadow 0.25s;
 }
-.alias-card:hover .alias-icon-box { transform: scale(1.08); }
+.alias-card:hover .alias-icon-box {
+  transform: scale(1.08) rotate(-3deg);
+  box-shadow: 0 6px 18px rgba(124,58,237,0.3);
+  background: linear-gradient(135deg, var(--ai-purple), #9b6dff);
+}
+.alias-card:hover .alias-icon-box svg {
+  stroke: white;
+}
+.alias-card.destroyed .alias-icon-box {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
 
-.alias-body { flex:1; min-width:0; }
+.alias-body {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
 .alias-address {
-  font-family: var(--mono); font-size:13px; font-weight:600;
-  color:var(--ai-purple-light); margin-bottom:5px;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ai-purple-light);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 .alias-meta {
-  display:flex; gap:12px; flex-wrap:wrap;
-  font-size:11px; color:var(--text-muted); font-family:var(--mono);
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  align-items: center;
 }
-.alias-meta span { display:flex; align-items:center; gap:4px; }
+.alias-meta span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.alias-meta svg { opacity: 0.7; }
 
 .alias-badge-active {
   display:inline-flex; align-items:center; gap:5px;
@@ -265,6 +568,122 @@
 }
 .empty-title { font-family:var(--display); font-size:17px; font-weight:700; margin-bottom:8px; }
 .empty-sub   { font-size:13px; color:var(--text-muted); font-family:var(--mono); }
+
+/* ── EMPTY STATE V2 (con cards fantasma + flecha) ── */
+.empty-state-v2 {
+  position: relative;
+  text-align: center;
+  padding: 60px 20px 50px;
+  animation: fadeUp 0.4s ease 0.15s both;
+}
+.empty-ghost-stack {
+  position: relative;
+  height: 130px;
+  margin-bottom: 32px;
+}
+.empty-ghost {
+  position: absolute;
+  left: 50%;
+  width: 320px;
+  max-width: 80vw;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  opacity: 0.4;
+}
+.empty-ghost.g1 { transform: translateX(-50%) translateY(0)    rotate(-3deg) scale(0.92); opacity: 0.25; top: 16px; }
+.empty-ghost.g2 { transform: translateX(-50%) translateY(20px)              scale(0.96); opacity: 0.40; top: 16px; z-index: 1; }
+.empty-ghost.g3 { transform: translateX(-50%) translateY(40px) rotate(3deg) scale(0.92); opacity: 0.25; top: 16px; }
+.empty-ghost-circle {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  background: var(--ai-purple-soft);
+  border: 1px solid var(--ai-purple-border);
+  flex-shrink: 0;
+}
+.empty-ghost-line {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.05);
+}
+.empty-ghost > div {
+  display: flex; flex-direction: column; gap: 6px; flex: 1;
+}
+.empty-ghost .empty-ghost-line.w35 { width: 35%; }
+.empty-ghost .empty-ghost-line.w40 { width: 40%; }
+.empty-ghost .empty-ghost-line.w50 { width: 50%; }
+.empty-ghost .empty-ghost-line.w60 { width: 60%; }
+.empty-ghost .empty-ghost-line.w70 { width: 70%; }
+.empty-ghost .empty-ghost-line.w80 { width: 80%; }
+
+.empty-icon-wrap-v2 {
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--ai-purple), #9b6dff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  box-shadow: 0 10px 28px rgba(124,58,237,0.4);
+  position: relative;
+}
+.empty-icon-wrap-v2::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 18px;
+  border: 1px solid rgba(124,58,237,0.3);
+  animation: emptyPulseV2 2.5s ease-in-out infinite;
+}
+@keyframes emptyPulseV2 {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50%      { transform: scale(1.15); opacity: 0; }
+}
+
+.empty-title-v2 {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+.empty-sub-v2 {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 420px;
+  margin: 0 auto 22px;
+}
+
+.empty-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 18px;
+  background: rgba(124,58,237,0.08);
+  border: 1px dashed rgba(124,58,237,0.35);
+  border-radius: 22px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+.empty-arrow strong {
+  color: var(--ai-purple-light);
+  font-weight: 700;
+}
+.empty-arrow svg {
+  animation: emptyArrowBounce 1.6s ease-in-out infinite;
+}
+@keyframes emptyArrowBounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
 
 /* ── MESSAGES ── */
 .msg-success {
@@ -425,40 +844,81 @@
   {% endfor %}
 {% endif %}
 
-<!-- ── CREATE FORM ── -->
-<div class="create-card">
-  <div class="create-card-title">
-    <div class="title-icon">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2.5">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-    </div>
-    Crear nuevo alias
-  </div>
-  <form method="post" action="{% url 'alias_create' %}" id="alias-create-form">
-    {% csrf_token %}
-    <div class="create-row">
-      <div class="form-group">
-        <label class="form-label">Etiqueta — para qué usarás este alias</label>
-        <input type="text" name="label" id="alias-label-input" class="create-input"
-          placeholder="Ej: Amazon, ForoReddit, Netflix..."
-          required autocomplete="off" spellcheck="false"
-          maxlength="40" pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+"
-          title="Solo letras — sin espacios, números ni símbolos">
-        <div id="alias-label-err" style="display:none;margin-top:6px;padding:6px 10px;font-size:12px;color:#f87171;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);border-radius:8px"></div>
+<!-- ── CREATE FORM (rediseñado) ── -->
+<div class="create-card-v2">
+  <!-- Glow morado decorativo en la esquina -->
+  <div class="ccv2-glow"></div>
+
+  <div class="ccv2-grid">
+    <!-- Lado izquierdo: copy + botón -->
+    <div class="ccv2-left">
+      <div class="ccv2-eyebrow">
+        <span class="ccv2-eyebrow-dot"></span>
+        GENERADOR INSTANTÁNEO
       </div>
-      <button type="submit" class="btn-generate">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        Generar alias
-      </button>
+      <h2 class="ccv2-title">Crea un alias <span>seguro</span> al instante</h2>
+      <p class="ccv2-desc">
+        Sin escribir nada. Sin pensar. El sistema genera un nombre creativo,
+        único y completamente anónimo — listo para usar en cualquier sitio.
+      </p>
+
+      <form method="post" action="{% url 'alias_create' %}" id="alias-create-form" class="ccv2-form">
+        {% csrf_token %}
+        <button type="submit" class="ccv2-btn" id="alias-create-btn"
+          {% if alias_remaining == 0 %}disabled title="Has alcanzado el límite de alias activos"{% endif %}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>Generar alias</span>
+          <svg class="ccv2-btn-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+
+        {% if not is_unlimited %}
+          <div class="ccv2-quota">
+            <div class="ccv2-quota-bar">
+              <div class="ccv2-quota-fill" style="width:{% widthratio active_count alias_limit 100 %}%"></div>
+            </div>
+            <span class="ccv2-quota-txt">
+              <strong>{{ active_count }}</strong>/{{ alias_limit }} alias activos
+            </span>
+          </div>
+        {% endif %}
+      </form>
     </div>
-    <div class="create-hint">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      Se generará algo como: <code>amazon_x7k2m1@securemail.com</code>
+
+    <!-- Lado derecho: preview visual del alias que se generará -->
+    <div class="ccv2-right">
+      <div class="ccv2-preview-label">EJEMPLO</div>
+      <div class="ccv2-preview-card">
+        <div class="ccv2-preview-row">
+          <span class="ccv2-preview-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </span>
+          <span class="ccv2-preview-text" id="ccv2PreviewText">silver-tiger_x7k2m</span>
+          <span class="ccv2-preview-domain">@dockershield.lat</span>
+        </div>
+        <div class="ccv2-preview-tags">
+          <span class="ccv2-preview-tag ok">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            Anónimo
+          </span>
+          <span class="ccv2-preview-tag ok">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            Único
+          </span>
+          <span class="ccv2-preview-tag ok">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            Reutilizable
+          </span>
+        </div>
+      </div>
     </div>
-  </form>
+  </div>
 </div>
 
 <!-- ── TOOLBAR DE BÚSQUEDA + FILTROS ── -->
@@ -575,14 +1035,41 @@
 
 </div>
 {% empty %}
-<div class="empty-state">
-  <div class="empty-icon-wrap">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5">
+<div class="empty-state-v2">
+  <!-- 3 cards "fantasma" decorativas que sugieren cómo se verán los alias -->
+  <div class="empty-ghost-stack">
+    <div class="empty-ghost g1">
+      <span class="empty-ghost-circle"></span>
+      <span class="empty-ghost-line w70"></span>
+      <span class="empty-ghost-line w40"></span>
+    </div>
+    <div class="empty-ghost g2">
+      <span class="empty-ghost-circle"></span>
+      <span class="empty-ghost-line w60"></span>
+      <span class="empty-ghost-line w50"></span>
+    </div>
+    <div class="empty-ghost g3">
+      <span class="empty-ghost-circle"></span>
+      <span class="empty-ghost-line w80"></span>
+      <span class="empty-ghost-line w35"></span>
+    </div>
+  </div>
+  <div class="empty-icon-wrap-v2">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
       <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
     </svg>
   </div>
-  <div class="empty-title">Sin alias todavía</div>
-  <div class="empty-sub">Crea tu primer alias arriba para empezar a proteger tu correo real.</div>
+  <div class="empty-title-v2">Aún no tienes alias</div>
+  <div class="empty-sub-v2">
+    Cada alias es un escudo entre tu correo real y el mundo.<br>
+    Crea el primero con un click — el sistema genera todo por ti.
+  </div>
+  <div class="empty-arrow">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2" stroke-linecap="round">
+      <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+    </svg>
+    Usa el botón <strong>"Generar alias"</strong> arriba
+  </div>
 </div>
 {% endfor %}
 
@@ -662,68 +1149,27 @@ function aliasApply() {
   }
 }
 
-/* ── Validación del input "etiqueta": SOLO letras (sin espacios, números ni símbolos) ── */
+/* ── Anti doble-submit del botón "Generar alias" ──
+   El usuario ya no escribe nada, así que solo bloqueamos que un doble
+   click cree dos alias gastando cuota innecesariamente. */
 (function () {
-  var input  = document.getElementById('alias-label-input');
-  var form   = document.getElementById('alias-create-form');
-  var errBox = document.getElementById('alias-label-err');
-  if (!input || !form) return;
+  var form = document.getElementById('alias-create-form');
+  var btn  = document.getElementById('alias-create-btn');
+  if (!form || !btn) return;
 
-  /* Regex de caracteres NO permitidos: todo lo que NO sea letra (incluye tildes y ñ) */
-  var INVALID_RE = /[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g;
-
-  var hideTimer = null;
-  function showErr(msg) {
-    if (!errBox) return;
-    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-    errBox.textContent = msg;
-    errBox.style.display = msg ? 'block' : 'none';
-    input.style.borderColor = msg ? 'rgba(239,68,68,0.5)' : '';
-  }
-  function flashErr(msg, ms) {
-    showErr(msg);
-    hideTimer = setTimeout(function () { showErr(''); }, ms || 2000);
-  }
-
-  /* Filtra cualquier carácter inválido en tiempo real */
-  input.addEventListener('input', function () {
-    var before = this.value;
-    var after  = before.replace(INVALID_RE, '');
-    if (before !== after) {
-      var pos = this.selectionStart;
-      var removed = before.slice(0, pos).length - before.slice(0, pos).replace(INVALID_RE, '').length;
-      this.value = after;
-      try { this.setSelectionRange(pos - removed, pos - removed); } catch (e) {}
-      flashErr('Solo letras — se quitan espacios, números y símbolos.', 2000);
-    } else {
-      showErr('');
-    }
-  });
-
-  /* Bloquea pegar texto con caracteres inválidos (los limpia silenciosamente) */
-  input.addEventListener('paste', function (e) {
-    var data = (e.clipboardData || window.clipboardData);
-    if (!data) return;
-    var text = data.getData('text');
-    if (INVALID_RE.test(text)) {
-      INVALID_RE.lastIndex = 0;   // reset por el flag /g en .test()
-      e.preventDefault();
-      var clean = text.replace(INVALID_RE, '');
-      var start = this.selectionStart, end = this.selectionEnd;
-      this.value = this.value.slice(0, start) + clean + this.value.slice(end);
-      try { this.setSelectionRange(start + clean.length, start + clean.length); } catch (err) {}
-      flashErr('Se quitaron los caracteres no válidos al pegar.', 2000);
-    }
-  });
-
-  /* Defensa final: limpia y rechaza el submit si queda vacío */
+  var isSubmitting = false;
   form.addEventListener('submit', function (e) {
-    input.value = input.value.replace(INVALID_RE, '');
-    if (!input.value) {
+    if (isSubmitting) {
       e.preventDefault();
-      showErr('La etiqueta no puede estar vacía y solo acepta letras.');
-      input.focus();
+      return;
     }
+    isSubmitting = true;
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.style.cursor  = 'wait';
+    var svg = btn.querySelector('svg');
+    btn.textContent = ' Creando…';
+    if (svg) btn.prepend(svg);
   });
 })();
 

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Bandeja de entrada — SecureMail Shield{% endblock %}
+{% block title %}Bandeja de entrada — DockerShield{% endblock %}
 {% block page_title %}Bandeja de entrada{% endblock %}
 {% block nav_inbox %}active{% endblock %}
 
@@ -58,7 +58,7 @@
 }
 .inbox-hero-text h1 {
   font-family: var(--display); font-size: 19px; font-weight: 800;
-  background: linear-gradient(90deg, #fff 0%, var(--ai-purple-light) 100%);
+  background: linear-gradient(90deg, var(--text-primary) 0%, var(--ai-purple-light) 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   margin-bottom: 4px;
 }
@@ -280,6 +280,42 @@
 .risk-pill.danger  { background: rgba(232,64,64,0.1);  color: var(--danger);  border: 1px solid rgba(232,64,64,0.2); }
 .risk-pill.warning { background: rgba(245,158,11,0.1);  color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
 .risk-pill.success { background: rgba(46,204,113,0.08); color: var(--success); border: 1px solid rgba(46,204,113,0.2); }
+
+/* Badge de autenticidad criptográfica (SPF/DKIM/DMARC) */
+.auth-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-family: var(--font-mono, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: help;
+  position: relative;
+}
+.auth-pill.verified {
+  background: rgba(46,204,113,0.1);
+  color: var(--success);
+  border: 1px solid rgba(46,204,113,0.25);
+}
+.auth-pill.spoofed {
+  background: rgba(232,64,64,0.12);
+  color: var(--danger);
+  border: 1px solid rgba(232,64,64,0.3);
+  animation: spoofPulse 2.5s ease-in-out infinite;
+}
+.auth-pill.unverified {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+@keyframes spoofPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,64,64,0.4); }
+  50%      { box-shadow: 0 0 0 4px rgba(232,64,64,0);   }
+}
 .att-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; font-family: var(--mono); background: rgba(245,158,11,0.08); color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
 
 /* Highlight de búsqueda */
@@ -750,6 +786,18 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
             <span class="risk-pill success">
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
               Seguro
+            </span>
+          {% endif %}
+
+          {% if email.auth_verdict == 'verified' %}
+            <span class="auth-pill verified" title="Remitente verificado criptográficamente · DKIM pass{% if email.auth_signed_by %} · firmado por {{ email.auth_signed_by }}{% endif %}">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              Verificado
+            </span>
+          {% elif email.auth_verdict == 'spoofed' %}
+            <span class="auth-pill spoofed" title="Suplantación detectada · DKIM/DMARC fail · el correo NO viene realmente del dominio que dice">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              Spoof
             </span>
           {% endif %}
         </div>
