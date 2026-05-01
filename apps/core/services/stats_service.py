@@ -70,13 +70,14 @@ def admin_global_stats() -> dict:
     cutoff_1d = now - timedelta(days=1)
     cutoff_7d = now - timedelta(days=7)
 
-    emails_total = EmailMessage.objects.count()
+    received_qs   = EmailMessage.objects.all()
+    emails_total  = received_qs.count()
 
     # ── Distribución de correos por nivel de riesgo ──
-    safe_count   = EmailMessage.objects.filter(risk_score__lte=30).count()
-    susp_count   = EmailMessage.objects.filter(
+    safe_count    = received_qs.filter(risk_score__lte=30).count()
+    susp_count    = received_qs.filter(
                         risk_score__gt=30, risk_score__lt=61).count()
-    threats_total = EmailMessage.objects.filter(risk_score__gte=61).count()
+    threats_total = received_qs.filter(risk_score__gte=61).count()
 
     # Porcentajes (evita divisiones por 0)
     if emails_total > 0:
@@ -100,7 +101,7 @@ def admin_global_stats() -> dict:
     for i in range(6, -1, -1):
         day_start = (now - timedelta(days=i)).replace(hour=0,  minute=0, second=0, microsecond=0)
         day_end   = (now - timedelta(days=i)).replace(hour=23, minute=59, second=59, microsecond=999999)
-        count = EmailMessage.objects.filter(
+        count = received_qs.filter(
             received_at__gte=day_start, received_at__lte=day_end,
         ).count()
         max_in_day = max(max_in_day, count)
@@ -117,7 +118,7 @@ def admin_global_stats() -> dict:
     # Extraemos el dominio del campo from_email de los correos con
     # score >= 61. Lo hacemos en Python porque sqlite/postgres no tienen
     # SUBSTRING_INDEX nativo igual.
-    threat_emails = EmailMessage.objects.filter(
+    threat_emails = received_qs.filter(
         risk_score__gte=61,
     ).values_list('from_email', flat=True)
     domain_counts = {}
@@ -139,13 +140,13 @@ def admin_global_stats() -> dict:
 
     # ── Tendencia: comparación 7 días actuales vs 7 días anteriores ──
     cutoff_14d = now - timedelta(days=14)
-    emails_prev_7d = EmailMessage.objects.filter(
+    emails_prev_7d = received_qs.filter(
         received_at__gte=cutoff_14d, received_at__lt=cutoff_7d,
     ).count()
-    threats_7d = EmailMessage.objects.filter(
+    threats_7d = received_qs.filter(
         received_at__gte=cutoff_7d, risk_score__gte=61,
     ).count()
-    threats_prev_7d = EmailMessage.objects.filter(
+    threats_prev_7d = received_qs.filter(
         received_at__gte=cutoff_14d, received_at__lt=cutoff_7d,
         risk_score__gte=61,
     ).count()
@@ -155,7 +156,7 @@ def admin_global_stats() -> dict:
             return 100 if current > 0 else 0
         return round((current - previous) / previous * 100)
 
-    emails_trend  = _trend_pct(EmailMessage.objects.filter(received_at__gte=cutoff_7d).count(), emails_prev_7d)
+    emails_trend  = _trend_pct(received_qs.filter(received_at__gte=cutoff_7d).count(), emails_prev_7d)
     threats_trend = _trend_pct(threats_7d, threats_prev_7d)
 
     return {
@@ -166,10 +167,10 @@ def admin_global_stats() -> dict:
         "aliases_active":  aliases_active,
         "aliases_active_pct": aliases_active_pct,
         "emails_total":    emails_total,
-        "emails_24h":      EmailMessage.objects.filter(received_at__gte=cutoff_1d).count(),
-        "emails_7d":       EmailMessage.objects.filter(received_at__gte=cutoff_7d).count(),
+        "emails_24h":      received_qs.filter(received_at__gte=cutoff_1d).count(),
+        "emails_7d":       received_qs.filter(received_at__gte=cutoff_7d).count(),
         "threats_total":   threats_total,
-        "threats_24h":     EmailMessage.objects.filter(
+        "threats_24h":     received_qs.filter(
                                 received_at__gte=cutoff_1d, risk_score__gte=61).count(),
         "threats_7d":      threats_7d,
         "sandbox_total":   SandboxAnalysis.objects.count(),

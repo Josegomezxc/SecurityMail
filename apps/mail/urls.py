@@ -16,6 +16,25 @@ urlpatterns = [
     path('bandeja/<int:pk>/leido/', views.mark_email_read_api, name='mark_email_read'),
     path('bandeja/<int:pk>/html/',  views.email_html_api,      name='email_html_api'),
 
+    # Enviados
+    path('enviados/',        views.sent_view,          name='sent_list'),
+    path('enviados/vaciar/', views.sent_empty_api,     name='sent_empty'),
+
+    # Papelera
+    path('papelera/',                  views.trash_view,         name='trash_list'),
+    path('papelera/restaurar/',        views.trash_restore_api,  name='trash_restore'),
+    path('papelera/eliminar/',         views.trash_delete_api,   name='trash_delete'),
+    path('papelera/vaciar/',           views.trash_empty_api,    name='trash_empty'),
+    path('bandeja/<int:pk>/papelera/', views.email_trash_api,    name='email_trash'),
+    path('enviados/<int:pk>/papelera/',views.sent_trash_api,     name='sent_trash'),
+
+    # Borradores
+    path('borradores/',                  views.drafts_view,       name='drafts_list'),
+    path('borradores/guardar/',          views.draft_save_api,    name='draft_save'),
+    path('borradores/vaciar/',           views.drafts_empty_api,  name='drafts_empty'),
+    path('borradores/<int:pk>/',         views.draft_get_api,     name='draft_get'),
+    path('borradores/<int:pk>/eliminar/',views.draft_delete_api,  name='draft_delete'),
+
     # Webhook entrante (SendGrid Inbound Parse)
     path('webhook/inbound/', inbound_email_webhook, name='inbound_webhook'),
 ]

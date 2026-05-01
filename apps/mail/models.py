@@ -14,6 +14,11 @@ class EmailMessage(models.Model):
     received_at = models.DateTimeField(auto_now_add=True)
     read        = models.BooleanField(default=False)
 
+    # Soft delete: si deleted_at está seteado, el correo está en papelera.
+    # Un job/auto-cleanup lo elimina permanentemente tras 30 días.
+    deleted_at  = models.DateTimeField(null=True, blank=True, db_index=True,
+                                       help_text="Si está seteado, el correo está en papelera")
+
     # Adjunto
     has_attachment  = models.BooleanField(default=False)
     attachment_name = models.CharField(max_length=255, blank=True)
@@ -50,3 +55,68 @@ class EmailMessage(models.Model):
         ordering = ['-received_at']
         verbose_name = 'Correo recibido'
         verbose_name_plural = 'Correos recibidos'
+
+
+class SentEmail(models.Model):
+    """Correo enviado desde un alias. Se guarda como histórico ('Enviados')
+    al confirmarse el envío vía SendGrid. No incluye los archivos adjuntos
+    binarios — solo el conteo, ya que los archivos viajaron al destinatario.
+    """
+    alias       = models.ForeignKey(
+        'aliases.Alias', on_delete=models.CASCADE, related_name='sent_emails',
+    )
+    to_email    = models.EmailField()
+    subject     = models.CharField(max_length=255, blank=True)
+    body_html   = models.TextField(blank=True, help_text="HTML enviado (ya saneado)")
+    sent_at     = models.DateTimeField(auto_now_add=True)
+    scheduled_at = models.DateTimeField(null=True, blank=True,
+                                        help_text="Para envíos programados (send_at SendGrid)")
+    attachments_count = models.IntegerField(default=0)
+    # Lista de {filename, size, type} de los adjuntos enviados.
+    # No guardamos el contenido (ya viajó al destinatario), solo la metadata
+    # para mostrarla en la vista de detalle del correo enviado.
+    attachments_meta = models.JSONField(default=list, blank=True)
+
+    # Soft delete: ver EmailMessage.deleted_at
+    deleted_at  = models.DateTimeField(null=True, blank=True, db_index=True,
+                                       help_text="Si está seteado, el correo está en papelera")
+
+    def __str__(self):
+        return f"{self.subject or '(sin asunto)'} → {self.to_email}"
+
+    class Meta:
+        ordering = ['-sent_at']
+        verbose_name = 'Correo enviado'
+        verbose_name_plural = 'Correos enviados'
+
+
+class Draft(models.Model):
+    """Borrador de correo. Se crea/actualiza cuando el usuario empieza a
+    escribir en el compose modal y lo cierra sin enviar (estilo Gmail).
+    """
+    user        = models.ForeignKey(
+        'auth.User', on_delete=models.CASCADE, related_name='drafts',
+    )
+    # Alias opcional: el usuario puede dejar el borrador sin elegir alias
+    # todavía, o el alias podría haber sido destruido después.
+    alias       = models.ForeignKey(
+        'aliases.Alias', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='drafts',
+    )
+    to_email    = models.CharField(max_length=255, blank=True)
+    subject     = models.CharField(max_length=255, blank=True)
+    body_html   = models.TextField(blank=True)
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True, db_index=True)
+
+    # Soft delete: si deleted_at != null, está en papelera (se borra a los 30 días)
+    deleted_at  = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    def __str__(self):
+        return f"Borrador: {self.subject or '(sin asunto)'} → {self.to_email or '(sin destinatario)'}"
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Borrador'
+        verbose_name_plural = 'Borradores'

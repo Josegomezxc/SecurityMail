@@ -55,6 +55,58 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
 }
 .compose-window.open { display: flex; transform: translateY(0) scale(1); opacity: 1; }
 
+/* ════════════════════════════════════════════════════════════════════
+   MODO SOLO-LECTURA — para ver un correo enviado en el mismo modal
+   sin permitir editarlo, enviarlo ni adjuntar. Toda la interacción
+   queda deshabilitada visualmente, manteniendo la estética familiar
+   del compose para que el usuario reconozca dónde está.
+   ════════════════════════════════════════════════════════════════════ */
+.compose-window.readonly .compose-row-input,
+.compose-window.readonly .compose-editor {
+  pointer-events: none;
+  user-select: text;            /* permite copiar el contenido */
+  caret-color: transparent;
+  background: transparent !important;
+}
+.compose-window.readonly .compose-row-input::placeholder { opacity: 0.4; }
+.compose-window.readonly .compose-row::after { display: none; }
+/* Oculta toolbar de formato, adjuntos y botón enviar — todo lo
+   relacionado con edición y envío. */
+.compose-window.readonly .compose-toolbar,
+.compose-window.readonly #composeAttachBtn,
+.compose-window.readonly .compose-send-wrap,
+.compose-window.readonly .compose-send-arrow,
+.compose-window.readonly .compose-error-row { display: none !important; }
+/* Chips de adjuntos en modo solo-lectura: sin botón de eliminar y con
+   cursor por defecto (puro indicador visual). */
+.compose-window.readonly .compose-attachment-remove { display: none !important; }
+.compose-window.readonly .compose-attachment { cursor: default; }
+.compose-window.readonly .compose-attachment:hover {
+  background: rgba(124,92,237,0.1);
+  border-color: var(--accent-border);
+}
+/* Footer en readonly:
+   - Quitamos el flex:1 del lado izquierdo (sin botón adjuntar pierde sentido)
+   - Badge "SOLO LECTURA" morado sustituyendo al adjuntar */
+.compose-window.readonly .compose-foot { justify-content: flex-start; gap: 14px; }
+.compose-window.readonly .compose-foot-left { flex: 0 0 auto; }
+.compose-window.readonly .compose-foot-info { margin-left: auto; }
+.compose-window.readonly .compose-foot::before {
+  content: 'SOLO LECTURA';
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ai-purple-light);
+  background: var(--ai-purple-soft);
+  border: 1px solid var(--ai-purple-border);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
 /* ── Estado AMPLIADO (horizontal): el botón ↗ alterna a este modo.
    Anclado a esquina inferior derecha, ocupa casi toda la pantalla.
    IMPORTANTE: la altura es FIJA (calc(100vh - 48px)) para que NUNCA
@@ -842,6 +894,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
   var currentAliasId   = null;
   var currentAliasAddr = '';
   var currentAliasLabel = '';
+  var currentDraftId   = null;               // id del borrador asociado (si lo hay)
   var attachedFiles    = [];                 // File[] (no se persiste)
   var attachedTotalBytes = 0;
   var MAX_TOTAL_BYTES  = 25 * 1024 * 1024;
@@ -1312,11 +1365,77 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
     });
   }
 
+  // ── Helpers de borrador ────────────────────────────────────────
+  // Considera el contenido "no vacío" si hay destinatario, asunto, o
+  // texto plano real en el editor (excluyendo el <p><br></p> default).
+  function hasDraftContent() {
+    var to   = (inputTo.value   || '').trim();
+    var subj = (inputSubj.value || '').trim();
+    var text = (editor.innerText || '').trim();
+    return !!(to || subj || text);
+  }
+
+  // Guarda (o actualiza) el borrador de forma síncrona. Usa
+  // navigator.sendBeacon si está disponible para que también funcione
+  // cuando el usuario cierra la pestaña/recarga la página.
+  function saveDraftRemote(opts) {
+    if (!hasDraftContent()) return Promise.resolve(null);
+    var fd = new FormData();
+    if (currentDraftId)   fd.append('draft_id',     currentDraftId);
+    if (currentAliasId)   fd.append('alias_id',     currentAliasId);
+    fd.append('to',           inputTo.value || '');
+    fd.append('subject',      inputSubj.value || '');
+    fd.append('message_html', editor.innerHTML || '');
+    if (inputScheduled && inputScheduled.value) fd.append('scheduled_at', inputScheduled.value);
+    fd.append('csrfmiddlewaretoken', getCsrf());
+
+    if (opts && opts.beacon && navigator.sendBeacon) {
+      navigator.sendBeacon('/borradores/guardar/', fd);
+      return Promise.resolve(null);
+    }
+
+    return fetch('/borradores/guardar/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+      body: fd,
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data && data.ok && data.draft_id) currentDraftId = data.draft_id;
+      return data;
+    })
+    .catch(function () { return null; });
+  }
+
+  function deleteDraftRemote() {
+    if (!currentDraftId) return Promise.resolve(null);
+    var id = currentDraftId;
+    currentDraftId = null;
+    /* hard=1 → borrado permanente. Se llama al enviar exitosamente
+       (el correo ya partió, no tiene sentido conservar el borrador
+       en la papelera durante 30 días). */
+    var fd = new FormData();
+    fd.append('hard', '1');
+    fd.append('csrfmiddlewaretoken', getCsrf());
+    return fetch('/borradores/' + id + '/eliminar/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+      body: fd,
+    }).catch(function () { return null; });
+  }
+
   // ── Apertura / cierre / minimizar ──
-  window.openCompose = function (aliasId, address, label) {
+  window.openCompose = function (aliasId, address, label, opts) {
     currentAliasId    = aliasId;
     currentAliasAddr  = address;
     currentAliasLabel = label || '';
+    /* Si abrimos para reanudar un borrador (opts.draftId), arrastramos
+       el id para que las próximas guardas/edición vayan al MISMO registro
+       y no se dupliquen. Si se omite, empieza un borrador nuevo. */
+    currentDraftId    = (opts && opts.draftId) ? opts.draftId : null;
+    var readonly     = !!(opts && opts.readonly);
     fromAddr.textContent = address;
     fromAddr.title       = label ? (label + ' · ' + address) : address;
     inputTo.value = ''; inputSubj.value = '';
@@ -1329,15 +1448,138 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
     clearErrors();
     btnSend.classList.remove('loading');
     btnSend.disabled = false;
+
+    /* ── Modo solo-lectura ──
+       Marcamos la ventana, ponemos los inputs en readOnly y el editor
+       no editable, y cambiamos el título a "Correo enviado".
+       Al abrir un correo enviado desde /enviados/ no debe permitirse
+       editar ni reenviar — solo verlo. */
+    if (readonly) {
+      win.classList.add('readonly');
+      inputTo.readOnly       = true;
+      inputSubj.readOnly     = true;
+      editor.contentEditable = 'false';
+      editor.setAttribute('aria-readonly', 'true');
+      var titleEl = document.getElementById('composeTitle');
+      if (titleEl) titleEl.textContent = 'Correo enviado';
+    } else {
+      win.classList.remove('readonly');
+      inputTo.readOnly       = false;
+      inputSubj.readOnly     = false;
+      editor.contentEditable = 'true';
+      editor.removeAttribute('aria-readonly');
+      var titleEl2 = document.getElementById('composeTitle');
+      if (titleEl2) titleEl2.textContent = 'Nuevo mensaje';
+    }
+
     overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false');
     win.classList.add('open'); win.setAttribute('aria-hidden','false');
-    setTimeout(function () { inputTo.focus(); }, 200);
+    if (!readonly) {
+      setTimeout(function () { inputTo.focus(); }, 200);
+    }
     saveState();
   };
+
+  /* Abre el compose ya cargado con un borrador existente. Llamado desde
+     /borradores/ al hacer click en un row. Hace fetch al backend para
+     traer los campos y luego rellena el editor sobre el modal abierto. */
+  window.openDraft = function (draftId) {
+    if (!draftId) return;
+    fetch('/borradores/' + draftId + '/', {
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data || !data.ok) {
+        if (window.showToast) {
+          window.showToast({
+            type: 'danger',
+            title: 'Borrador no encontrado',
+            message: 'Recarga la página e inténtalo de nuevo.',
+            duration: 4000,
+          });
+        }
+        return;
+      }
+      var d = data.draft;
+      /* Si el borrador tiene alias asociado y sigue activo, lo usamos.
+         Si el alias fue destruido o nunca se eligió, mostramos un toast
+         para que el usuario sepa que tiene que reseleccionar — abrimos el
+         compose vacío para que escoja desde la lista. */
+      if (!d.alias_id || !d.alias_active) {
+        if (window.showToast) {
+          window.showToast({
+            type: 'warning',
+            title: 'Alias no disponible',
+            message: 'El alias original ya no está activo. Elige uno nuevo desde "Nuevo correo".',
+            duration: 5000,
+          });
+        }
+        return;
+      }
+      window.openCompose(d.alias_id, d.alias_address, d.alias_label, { draftId: d.id });
+      /* Rellena los campos después de abrir (openCompose los reseteó). */
+      inputTo.value   = d.to || '';
+      inputSubj.value = d.subject || '';
+      if (d.body_html) editor.innerHTML = d.body_html;
+      currentDraftId = d.id;
+    });
+  };
+
   function closeCompose() {
+    /* Si el modal estaba en modo solo-lectura (viendo un correo enviado),
+       cerramos sin guardar nada como borrador — el usuario solo estaba
+       viendo, no escribiendo. También limpiamos la clase para que la
+       próxima apertura del compose sea editable normalmente. */
+    var wasReadonly = win.classList.contains('readonly');
+    if (wasReadonly) {
+      win.classList.remove('readonly');
+      inputTo.readOnly       = false;
+      inputSubj.readOnly     = false;
+      editor.contentEditable = 'true';
+      editor.removeAttribute('aria-readonly');
+      var titleEl3 = document.getElementById('composeTitle');
+      if (titleEl3) titleEl3.textContent = 'Nuevo mensaje';
+      /* Limpiar los chips de adjuntos visuales que pintó openSent — si no,
+         la próxima vez que abras "Nuevo correo" aparecerían arrastrados. */
+      if (attachList) attachList.innerHTML = '';
+      overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true');
+      win.classList.remove('open'); win.setAttribute('aria-hidden','true');
+      currentAliasId = null;
+      currentDraftId = null;
+      clearState();
+      return;
+    }
+
+    /* Antes de cerrar, si hay contenido y no se envió, lo guardamos como
+       borrador (estilo Gmail: la X conserva el correo en Borradores). */
+    var willSaveDraft = hasDraftContent();
+    /* Si el usuario ya está en /borradores/, no tiene sentido mostrar el
+       toast "Lo encuentras en la sección Borradores" — está ahí mismo.
+       Refrescamos la lista para que el borrador aparezca/se actualice. */
+    var onDraftsPage = window.location.pathname.replace(/\/+$/, '') === '/borradores';
+    if (willSaveDraft) {
+      saveDraftRemote().then(function () {
+        if (onDraftsPage) {
+          /* Refresh silencioso para que el nuevo borrador se vea en la lista */
+          window.location.reload();
+          return;
+        }
+        if (window.showToast) {
+          window.showToast({
+            type:     'warning',
+            title:    'Guardado en Borradores',
+            message:  'Tu correo no se envió — podrás continuarlo cuando quieras desde la sección Borradores.',
+            duration: 4500,
+          });
+        }
+      });
+    }
     overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true');
     win.classList.remove('open'); win.setAttribute('aria-hidden','true');
     currentAliasId = null;
+    currentDraftId = null;
     clearState();
   }
   // Recordamos si estaba ampliado al minimizar para poder restaurarlo
@@ -1459,10 +1701,39 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
       btnSend.classList.remove('loading'); btnSend.disabled = false;
       if (r.status === 200 && r.data.ok) {
         if (window.showToast) {
-          var msg = r.data.message || 'Enviado';
-          if (r.data.attachments_sent) msg += ' · ' + r.data.attachments_sent + ' adjunto' + (r.data.attachments_sent === 1 ? '' : 's');
-          window.showToast({ type:'success', title:'Correo enviado', message: msg, duration: 5000 });
+          var sent = r.data.message || 'Tu correo salió de DockerShield.';
+          var attN = r.data.attachments_sent || 0;
+          if (attN) sent += ' Llevó ' + attN + ' adjunto' + (attN === 1 ? '' : 's') + '.';
+          var title = r.data.scheduled
+            ? 'Correo programado'
+            : 'Correo enviado';
+          var extra = r.data.scheduled
+            ? ' Se enviará automáticamente en la fecha indicada.'
+            : ' Lo guardamos en Enviados — el destinatario lo recibirá en breve.';
+          window.showToast({
+            type:    'success',
+            title:   title,
+            message: sent + extra,
+            duration: 5500,
+          });
         }
+        /* Disparar evento global con la metadata del correo recién creado.
+           La página de /enviados/ lo escucha para insertar la fila al
+           instante sin necesidad de recargar. Cualquier otra página puede
+           ignorar el evento (no pasa nada). */
+        if (r.data.sent) {
+          document.dispatchEvent(new CustomEvent('compose:sent', {
+            detail: r.data.sent,
+          }));
+        }
+        /* El correo se envió: si existía un borrador asociado, lo
+           descartamos para que no aparezca duplicado en /borradores/.
+           Vaciamos los campos antes de cerrar para que closeCompose
+           NO crea otro borrador "fantasma" al detectar contenido. */
+        deleteDraftRemote();
+        inputTo.value = '';
+        inputSubj.value = '';
+        editor.innerHTML = '';
         closeCompose();
       } else {
         if (r.data && r.data.errors) showErrors(r.data.errors);

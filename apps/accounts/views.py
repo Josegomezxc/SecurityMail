@@ -739,18 +739,24 @@ def eliminar_cuenta(request):
     user.delete()
 
     # Enviamos el correo de confirmación al CORREO PERSONAL del usuario
-    # (no a un alias — los alias acaban de desaparecer). Si el envío falla,
-    # NO revertimos el borrado: la operación principal ya se completó.
-    # `send_account_deleted_email` no levanta excepciones — devuelve (ok, _).
-    send_account_deleted_email(
-        to_email       = snapshot_email,
-        display_name   = snapshot_display,
-        alias_count    = stats_snapshot.get('alias_count', 0),
-        total_emails   = stats_snapshot.get('total_emails', 0),
-        threats_count  = stats_snapshot.get('threats_count', 0),
-        deleted_at_str = deleted_at_str,
-        ip             = client_ip,
-    )
+    # en un thread daemon EN BACKGROUND. SMTP de Gmail puede tardar 5-20s
+    # y bloquearía la respuesta HTTP (el usuario vería el spinner colgado).
+    # `send_account_deleted_email` no levanta excepciones — devuelve (ok, _),
+    # así que un fallo del thread no cae a logs como traceback ruidoso.
+    import threading
+    threading.Thread(
+        target=send_account_deleted_email,
+        kwargs=dict(
+            to_email       = snapshot_email,
+            display_name   = snapshot_display,
+            alias_count    = stats_snapshot.get('alias_count', 0),
+            total_emails   = stats_snapshot.get('total_emails', 0),
+            threats_count  = stats_snapshot.get('threats_count', 0),
+            deleted_at_str = deleted_at_str,
+            ip             = client_ip,
+        ),
+        daemon=True,
+    ).start()
 
     if is_ajax:
         return JsonResponse({'ok': True, 'redirect': '/'})

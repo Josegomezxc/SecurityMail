@@ -130,39 +130,24 @@ def alias_destroy_view(request, pk):
 #  COMPOSE: enviar correo desde un alias
 # ─────────────────────────────────────────────────────────────────────
 
-# Validador básico de email (suficiente para UX; SendGrid valida del lado real)
 _EMAIL_RX = re.compile(
     r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?"
     r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)+$"
 )
 
-
-# Etiquetas y atributos peligrosos que removemos del HTML enviado por
-# el editor visual antes de mandarlo. Es una sanitización mínima — los
-# clientes de correo serios también filtran scripts, pero conviene no
-# permitir vectores triviales (script, iframe, on*=).
 _HTML_DANGEROUS_TAG_RX = re.compile(
     r'<\s*/?\s*(script|iframe|object|embed|form|meta|link|style|base)\b[^>]*>',
     re.IGNORECASE | re.DOTALL,
 )
-_HTML_ON_ATTR_RX     = re.compile(r'\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)', re.IGNORECASE)
-_HTML_JS_HREF_RX     = re.compile(r'(href|src)\s*=\s*("javascript:[^"]*"|\'javascript:[^\']*\')', re.IGNORECASE)
+_HTML_ON_ATTR_RX = re.compile(r'\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)', re.IGNORECASE)
+_HTML_JS_HREF_RX = re.compile(r'(href|src)\s*=\s*("javascript:[^"]*"|\'javascript:[^\']*\')', re.IGNORECASE)
 
-# Límites del envío
-MAX_TOTAL_ATTACHMENT_BYTES = 25 * 1024 * 1024   # 25 MB total
+MAX_TOTAL_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_ATTACHMENTS            = 10
 ALLOWED_ATTACHMENT_NAME_RX = re.compile(r'[^A-Za-z0-9._\- ()áéíóúüñÁÉÍÓÚÜÑ]+')
 
 
 def _sanitize_html(html: str) -> str:
-    """
-    Limpieza mínima del HTML que viene del editor:
-      - Quita <script>, <iframe>, <object>, <embed>, <form>, <meta>, <link>, <style>, <base>.
-      - Quita atributos on* (onclick, onerror, etc.).
-      - Quita href="javascript:..." y src="javascript:...".
-    No es un sanitizador completo (eso requeriría Bleach), pero bloquea
-    los vectores comunes de XSS al enviar correo a otros.
-    """
     if not html:
         return ''
     cleaned = _HTML_DANGEROUS_TAG_RX.sub('', html)
@@ -172,27 +157,16 @@ def _sanitize_html(html: str) -> str:
 
 
 def _safe_filename(name: str) -> str:
-    """Limpia el nombre de archivo del adjunto (anti path traversal + chars raros)."""
     name = (name or 'archivo').strip()
-    name = name.replace('\\', '/').split('/')[-1]            # quita rutas
-    name = ALLOWED_ATTACHMENT_NAME_RX.sub('_', name)         # solo chars seguros
+    name = name.replace('\\', '/').split('/')[-1]
+    name = ALLOWED_ATTACHMENT_NAME_RX.sub('_', name)
     return (name or 'archivo')[:120]
 
 
 @login_required(login_url='login')
 @require_POST
 def alias_compose_view(request, pk):
-    """
-    Envía un correo desde un alias activo del usuario.
-
-    POST multipart/form-data:
-        to:           destinatario (email)
-        subject:      asunto
-        message_html: cuerpo HTML del editor (rico) — sanitizado en backend
-        attachments: archivos múltiples (input type="file" multiple)
-
-    Solo el dueño del alias puede enviar desde él, y solo si está activo.
-    """
+    """Envía un correo desde un alias activo del usuario."""
     alias = get_object_or_404(Alias, pk=pk, user=request.user)
 
     if not alias.is_active:
@@ -205,13 +179,8 @@ def alias_compose_view(request, pk):
     subject       = (request.POST.get('subject', '') or '').strip()
     message_html  = (request.POST.get('message_html', '') or '').strip()
     scheduled_at  = (request.POST.get('scheduled_at', '') or '').strip()
-    # Versión texto plano del mensaje (la mandamos como respaldo y se
-    # usa para validaciones de "no vacío", ya que el editor produce
-    # `<p><br></p>` aunque el usuario no escriba nada).
-    import re as _re
-    plain_text = _re.sub(r'<[^>]+>', '', message_html).strip()
+    plain_text = re.sub(r'<[^>]+>', '', message_html).strip()
 
-    # ── Validaciones ──────────────────────────────────────────────────
     errors = {}
     if not to:
         errors['to'] = 'Ingresa el correo del destinatario.'
@@ -220,7 +189,6 @@ def alias_compose_view(request, pk):
     elif not _EMAIL_RX.match(to):
         errors['to'] = 'El correo del destinatario no es válido.'
 
-    # Asunto opcional: si está vacío usamos un placeholder discreto
     if not subject:
         subject = '(sin asunto)'
     elif len(subject) > 200:
@@ -231,11 +199,9 @@ def alias_compose_view(request, pk):
     elif len(message_html) > 200000:
         errors['message'] = 'El mensaje supera el tamaño máximo.'
 
-    # Anti auto-envío: no permitimos mandar a la propia dirección del alias
     if to and to == alias.address.lower():
         errors['to'] = 'No puedes enviarte un correo a ti mismo desde este alias.'
 
-    # ── Validar adjuntos ──────────────────────────────────────────────
     uploaded_files = request.FILES.getlist('attachments')
     if len(uploaded_files) > MAX_ATTACHMENTS:
         errors['attachments'] = f'Máximo {MAX_ATTACHMENTS} adjuntos por correo.'
@@ -245,21 +211,14 @@ def alias_compose_view(request, pk):
         size_mb = MAX_TOTAL_ATTACHMENT_BYTES // (1024 * 1024)
         errors['attachments'] = f'Tamaño total de adjuntos supera {size_mb} MB.'
 
-    # ── Validar fecha programada (opcional) ──────────────────────────
-    # Acepta ISO 8601 (datetime-local del browser produce 'YYYY-MM-DDTHH:MM').
-    # SendGrid acepta `send_at` hasta ~72 h en el futuro; por encima de
-    # eso devuelve 400. Validamos en backend para dar mensaje útil.
     send_at_ts = None
     if scheduled_at:
         from datetime import datetime, timedelta
         try:
-            # datetime-local del navegador no incluye zona horaria;
-            # asumimos hora LOCAL del servidor (TIME_ZONE de settings).
             dt = datetime.fromisoformat(scheduled_at)
             if dt.tzinfo is None:
                 dt = timezone.make_aware(dt, timezone.get_current_timezone())
             now = timezone.now()
-            # Mín: 60 s en el futuro. Permite programar mismo día (ej. 17:40 → 17:41).
             if dt <= now + timedelta(seconds=60):
                 errors['scheduled_at'] = 'La hora ya pasó. Elige al menos 1 minuto en el futuro.'
             elif dt > now + timedelta(hours=72):
@@ -272,7 +231,6 @@ def alias_compose_view(request, pk):
     if errors:
         return JsonResponse({'ok': False, 'errors': errors}, status=400)
 
-    # ── Construir HTML final (saneamos + envolvemos con marca) ────────
     safe_html = _sanitize_html(message_html)
     body_html = (
         '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,'
@@ -285,7 +243,6 @@ def alias_compose_view(request, pk):
         + '</div></div>'
     )
 
-    # ── Codificar adjuntos en base64 (formato que pide SendGrid) ─────
     import base64
     sendgrid_attachments = []
     for upload in uploaded_files:
@@ -299,7 +256,6 @@ def alias_compose_view(request, pk):
         except Exception as e:
             print(f'[compose] no se pudo leer adjunto {upload.name}: {e}')
 
-    # ── Enviar vía SendGrid ──────────────────────────────────────────
     from apps.mail.webhook import _send_via_sendgrid
     from_addr = f'"{alias.label}" <{alias.address}>'
     ok = _send_via_sendgrid(
@@ -317,8 +273,60 @@ def alias_compose_view(request, pk):
             'error': 'No se pudo enviar el correo. Intenta de nuevo en unos segundos.',
         }, status=500)
 
+    # Guardar histórico en "Enviados". Si esto falla, no afecta al envío
+    # ya completado — solo perdemos el registro local, no el correo real.
+    sent_payload = None
+    try:
+        from apps.mail.models import SentEmail
+        from datetime import datetime as _dt
+        scheduled_dt = None
+        if send_at_ts:
+            scheduled_dt = _dt.fromtimestamp(send_at_ts)
+            if scheduled_dt.tzinfo is None:
+                scheduled_dt = timezone.make_aware(
+                    scheduled_dt, timezone.get_current_timezone(),
+                )
+        # Metadata de adjuntos para mostrarla en la vista del correo enviado.
+        # No guardamos el `content` (base64 del archivo) — ya se envió al
+        # destinatario y conservarlo inflaría la BD. Solo nombre/tamaño/tipo.
+        attachments_meta = []
+        for att, upload in zip(sendgrid_attachments, uploaded_files):
+            attachments_meta.append({
+                'filename': att.get('filename', ''),
+                'type':     att.get('type', ''),
+                'size':     getattr(upload, 'size', 0),
+            })
+        sent_obj = SentEmail.objects.create(
+            alias=alias,
+            to_email=to,
+            subject=subject,
+            body_html=body_html,
+            scheduled_at=scheduled_dt,
+            attachments_count=len(sendgrid_attachments),
+            attachments_meta=attachments_meta,
+        )
+        # Payload completo para que el frontend pueda insertar la fila
+        # al instante en /enviados/ sin recargar la página.
+        sent_payload = {
+            'id':                 sent_obj.id,
+            'to':                 sent_obj.to_email,
+            'subject':            sent_obj.subject,
+            'body_html':          sent_obj.body_html,
+            'alias':              alias.address,
+            'alias_id':           alias.id,
+            'alias_label':        alias.label,
+            'alias_active':       alias.is_active,
+            'sent_at':            sent_obj.sent_at.strftime('%d/%m/%Y %H:%M'),
+            'sent_at_iso':        sent_obj.sent_at.isoformat(),
+            'scheduled_at':       sent_obj.scheduled_at.strftime('%d/%m/%Y %H:%M') if sent_obj.scheduled_at else '',
+            'scheduled_at_short': sent_obj.scheduled_at.strftime('%d/%m %H:%M') if sent_obj.scheduled_at else '',
+            'attachments_count':  sent_obj.attachments_count,
+            'attachments_meta':   sent_obj.attachments_meta or [],
+        }
+    except Exception as e:
+        print(f'[compose] no se pudo guardar SentEmail: {e}')
+
     if send_at_ts:
-        # Mensaje del toast en el cliente cuando es envío programado
         from datetime import datetime
         when_local = datetime.fromtimestamp(send_at_ts).strftime('%d %b · %H:%M')
         msg = f'Programado para {when_local}'
@@ -332,4 +340,5 @@ def alias_compose_view(request, pk):
         'attachments_sent': len(sendgrid_attachments),
         'scheduled':        bool(send_at_ts),
         'scheduled_ts':     send_at_ts,
+        'sent':             sent_payload,
     })

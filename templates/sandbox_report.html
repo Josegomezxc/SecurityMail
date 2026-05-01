@@ -886,7 +886,16 @@
 .btn-action { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; font-family: var(--display); text-decoration: none; cursor: pointer; border: none; transition: all 0.2s ease; }
 .btn-action:hover { transform: translateY(-1px); }
 .btn-ghost-action { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border); }
-.btn-destroy { background: rgba(232,64,64,0.1); color: var(--danger); border: 1px solid rgba(232,64,64,0.25); }
+.btn-destroy {
+  background: linear-gradient(135deg, #e84040 0%, #c92626 100%);
+  color: #fff; border: 1px solid rgba(255,255,255,0.18);
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(232,64,64,0.4);
+}
+.btn-destroy:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 6px 20px rgba(232,64,64,0.6);
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    PRÓXIMOS PASOS — tarjetas de acción al final del reporte

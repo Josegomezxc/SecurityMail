@@ -153,22 +153,23 @@
   .notif-clear-btn {
     display: inline-flex; align-items: center; gap: 7px;
     padding: 8px 14px;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
+    background: linear-gradient(135deg, #e84040 0%, #c92626 100%);
+    border: 1px solid rgba(255,255,255,0.18);
     border-radius: 10px;
-    color: var(--text-secondary);
+    color: #fff;
     font-family: var(--font-sans);
     font-size: 12.5px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
+    box-shadow: 0 4px 14px rgba(232,64,64,0.4);
     transition: all 0.15s;
   }
   .notif-clear-btn:hover {
-    background: rgba(232,64,64,0.06);
-    border-color: rgba(232,64,64,0.3);
-    color: #f87171;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(232,64,64,0.6);
   }
-  .notif-clear-btn.open { background: rgba(232,64,64,0.06); border-color: rgba(232,64,64,0.3); color: #f87171; }
+  .notif-clear-btn.open { background: linear-gradient(135deg, #c92626 0%, #a01919 100%); transform: translateY(0); }
   .notif-clear-menu {
     position: absolute;
     top: calc(100% + 6px); right: 0;
@@ -391,12 +392,11 @@
 
   /* Indicador "actualizando en vivo".
      IMPORTANTE: en bottom-right vive el compose minimizado (base.html),
-     y en bottom-left vive el footer del sidebar (perfil de usuario).
-     Por eso lo posicionamos a la izquierda PERO desplazado más allá
-     del ancho del sidebar (248px) para no taparlo. */
+     Lo posicionamos en bottom-right para que no tape el contenido
+     de la lista (en el medio se solapaba con notificaciones reales). */
   .notif-live-indicator {
     position: fixed;
-    bottom: 16px; left: 266px;
+    bottom: 18px; right: 18px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -410,11 +410,6 @@
     letter-spacing: 0.04em;
     box-shadow: 0 4px 16px rgba(0,0,0,0.25);
     z-index: 50;
-  }
-  /* En móvil (<1024px) el sidebar es off-canvas, así que podemos
-     volver a pegar el indicador al borde izquierdo. */
-  @media (max-width: 1023px) {
-    .notif-live-indicator { left: 18px; }
   }
   .notif-live-dot {
     width: 7px; height: 7px; border-radius: 50%;

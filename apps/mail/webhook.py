@@ -1036,7 +1036,11 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
         timestamp   = datetime.now(timezone.utc).strftime('%d %b %Y · %H:%M UTC')
 
         # ── URL del reporte ────────────────────────────────────────────
-        base_url   = os.environ.get('SITE_URL', 'http://127.0.0.1:8000')
+        # Usamos el helper centralizado para que TODOS los correos
+        # apunten al mismo dominio (settings.SITE_URL ← .env SITE_URL),
+        # y la barra final se normalice automáticamente.
+        from apps.core.services.email_service import get_site_url
+        base_url   = get_site_url()
         report_url = (
             f"{base_url}/sandbox/reporte/{sandbox_id}/"
             if sandbox_id

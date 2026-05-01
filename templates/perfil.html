@@ -1759,6 +1759,19 @@
     if (e.key === 'Escape') closeAvatarPreview();
   });
 
+  // Fallback local de getCsrf por si base.html no lo expone en window
+  // (defensivo — el modal de eliminar cuenta NO puede quedar bloqueado
+  // por un ReferenceError silencioso).
+  function getCsrf() {
+    if (typeof window.getCsrf === 'function' && window.getCsrf !== getCsrf) {
+      return window.getCsrf();
+    }
+    var c = document.cookie.split(';').find(function (c) {
+      return c.trim().indexOf('csrftoken=') === 0;
+    });
+    return c ? c.split('=')[1] : '';
+  }
+
   /* ══════════════════════════════════════════════
      Botón "Eliminar mi cuenta" → modal con password + reto "ELIMINAR"
      ══════════════════════════════════════════════
@@ -1814,7 +1827,36 @@
       if (e.key === 'Escape' && overlay.classList.contains('visible')) closeModal();
     });
     pwdEl.addEventListener('input', refreshSubmit);
-    confirmEl.addEventListener('input', refreshSubmit);
+
+    // El input de confirmación SOLO acepta letras (A-Z). Bloqueamos en 3
+    // capas para que sea imposible meter espacios, números o símbolos:
+    //   1) keydown → cancela el evento antes de que se inserte el char
+    //   2) input  → limpia paste / IME / autocomplete que escapen del 1
+    //   3) beforeinput → fallback para navegadores móviles
+    function isLetter(ch) { return /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]$/.test(ch); }
+    function sanitizeConfirm(s) { return (s || '').replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g, ''); }
+
+    confirmEl.addEventListener('keydown', function (e) {
+      // Permite teclas de control (backspace, flechas, tab, etc.)
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length !== 1) return;        // teclas como ArrowLeft, Backspace
+      if (!isLetter(e.key)) e.preventDefault();
+    });
+    confirmEl.addEventListener('input', function () {
+      var clean = sanitizeConfirm(confirmEl.value);
+      if (clean !== confirmEl.value) confirmEl.value = clean;
+      refreshSubmit();
+    });
+    confirmEl.addEventListener('paste', function (e) {
+      e.preventDefault();
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      var clean  = sanitizeConfirm(pasted);
+      // Inserta el texto limpiado en la posición del cursor
+      var start = confirmEl.selectionStart, end = confirmEl.selectionEnd;
+      confirmEl.value = confirmEl.value.slice(0, start) + clean + confirmEl.value.slice(end);
+      confirmEl.setSelectionRange(start + clean.length, start + clean.length);
+      refreshSubmit();
+    });
 
     // Toggle ojo de la password
     pwdEye.addEventListener('click', function () {
@@ -1836,6 +1878,11 @@
       fd.append('password',     pwdEl.value);
       fd.append('confirm_text', confirmEl.value);
 
+      // Salvavidas: si el servidor se cuelga (red, proxy, lo que sea) abortamos
+      // a los 15s para que el usuario NUNCA quede con el spinner eterno.
+      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timeoutId = setTimeout(function () { if (ctrl) ctrl.abort(); }, 15000);
+
       fetch("{% url 'eliminar_cuenta' %}", {
         method:      'POST',
         credentials: 'same-origin',
@@ -1843,9 +1890,10 @@
           'X-CSRFToken':       getCsrf(),
           'X-Requested-With':  'XMLHttpRequest',
         },
-        body: fd,
+        body:   fd,
+        signal: ctrl ? ctrl.signal : undefined,
       })
-      .then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
+      .then(function (r) { clearTimeout(timeoutId); return r.json().then(function (data) { return { status: r.status, data: data }; }, function () { return { status: r.status, data: { ok: false, error: 'Respuesta inválida del servidor (HTTP ' + r.status + ').' } }; }); })
       .then(function (resp) {
         if (resp.data && resp.data.ok) {
           // Cuenta borrada → redirige al login con un toast efímero
@@ -1874,8 +1922,12 @@
           }
         }
       })
-      .catch(function () {
-        errorEl.textContent = 'Error de red. Comprueba tu conexión y vuelve a intentar.';
+      .catch(function (err) {
+        clearTimeout(timeoutId);
+        var msg = (err && err.name === 'AbortError')
+          ? 'El servidor tardó demasiado en responder. Recarga la página y vuelve a intentar.'
+          : 'Error de red. Comprueba tu conexión y vuelve a intentar.';
+        errorEl.textContent = msg;
         errorEl.classList.add('show');
         submitEl.classList.remove('loading');
         refreshSubmit();

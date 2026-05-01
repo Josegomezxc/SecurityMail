@@ -7,6 +7,12 @@ SingleSessionMiddleware refuerza la regla "una sesión por usuario":
      sesión "viva" (no permite segundo login) o "abandonada" (sí permite).
   2) Como red de seguridad, si por alguna razón hay dos sesiones a la vez
      (race condition al loguearse simultáneamente), kickea la vieja.
+
+NoCacheAuthMiddleware evita que el navegador conserve páginas autenticadas
+en caché. Sin esto, tras logout o eliminar cuenta el botón "atrás" del
+navegador puede mostrar la versión cacheada de la página privada (aunque
+el usuario ya no tenga sesión). Con los headers que setea, el navegador
+está obligado a re-pedir la página al servidor, que redirige al login.
 """
 from django.contrib.auth import logout
 from django.contrib import messages
@@ -52,3 +58,46 @@ class SingleSessionMiddleware:
                     profile.save(update_fields=['session_last_activity'])
 
         return self.get_response(request)
+
+
+class NoCacheAuthMiddleware:
+    """
+    Setea headers anti-caché en respuestas HTML para que el botón "atrás"
+    del navegador NUNCA muestre una página autenticada después de logout
+    o eliminación de cuenta. El navegador se ve obligado a revalidar con
+    el servidor, que redirige a /login/ si la sesión ya no existe.
+
+    Reglas:
+      - Solo HTML (Content-Type: text/html). Las APIs JSON, archivos
+        estáticos, media y endpoints que setean su propio Cache-Control
+        (ej. email_html_api) quedan intactos.
+      - Si la respuesta ya trae un Cache-Control explícito, lo respetamos
+        (no pisamos decisiones intencionales).
+    """
+
+    SAFE_PREFIXES = ('/static/', '/media/', '/__debug__/')
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+
+        # Evitar prefijos que no necesitan/quieren no-cache
+        path = request.path or ''
+        if any(path.startswith(p) for p in self.SAFE_PREFIXES):
+            return response
+
+        # Solo HTML
+        ctype = (response.get('Content-Type') or '').lower()
+        if 'text/html' not in ctype:
+            return response
+
+        # Si la vista ya decidió un Cache-Control, no lo pisamos
+        if response.has_header('Cache-Control'):
+            return response
+
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response

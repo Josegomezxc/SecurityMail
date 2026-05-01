@@ -111,6 +111,10 @@ MIDDLEWARE = [
     # Una sesión por usuario: si alguien hace login en otro navegador,
     # la sesión anterior queda inválida y se desloguea en su próximo request.
     'apps.core.middleware.SingleSessionMiddleware',
+    # Evita que el navegador conserve páginas autenticadas en caché — al
+    # presionar "atrás" tras logout/eliminar cuenta NO se muestra la página
+    # vieja, sino que se redirige a /login/.
+    'apps.core.middleware.NoCacheAuthMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

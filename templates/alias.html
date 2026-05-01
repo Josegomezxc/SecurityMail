@@ -547,13 +547,20 @@
 
 .btn-destroy {
   display:inline-flex; align-items:center; gap:6px;
-  background:rgba(232,64,64,0.08); border:1px solid rgba(232,64,64,0.2);
+  background: linear-gradient(135deg, #e84040 0%, #c92626 100%);
+  border:1px solid rgba(255,255,255,0.18);
   border-radius:8px; padding:6px 12px;
-  color:var(--danger); font-size:12px; font-weight:600;
+  color:#fff; font-size:12px; font-weight:700;
   font-family:var(--mono); cursor:pointer;
+  box-shadow: 0 4px 12px rgba(232,64,64,0.35);
   transition: all 0.15s;
 }
-.btn-destroy:hover { background:rgba(232,64,64,0.15); border-color:rgba(232,64,64,0.4); }
+.btn-destroy:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(232,64,64,0.55);
+}
+.btn-destroy:active { transform: translateY(0); }
 
 .btn-send {
   display:inline-flex; align-items:center; gap:6px;
@@ -1027,11 +1034,13 @@
   <div class="alias-actions">
     {% if alias.is_active %}
       <span class="alias-badge-active"><div class="dot"></div>Activo</span>
-      <button class="btn-send" type="button"
-              onclick="openCompose({{ alias.id }}, '{{ alias.address }}', '{{ alias.label|escapejs }}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"/>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      <button class="btn-send"
+              data-alias-id="{{ alias.id }}"
+              data-alias-address="{{ alias.address }}"
+              data-alias-label="{{ alias.label }}"
+              onclick="aliasOpenCompose(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
         </svg>
         Enviar
       </button>
@@ -1118,6 +1127,24 @@ function copyAlias(btn, address) {
       btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar`;
     }, 2000);
   });
+}
+
+/* Abre el compose modal global (definido en base.html) prellenado con
+   los datos del alias seleccionado. */
+function aliasOpenCompose(btn) {
+  var id    = btn.dataset.aliasId;
+  var addr  = btn.dataset.aliasAddress;
+  var label = btn.dataset.aliasLabel || '';
+  if (typeof window.openCompose === 'function') {
+    window.openCompose(id, addr, label);
+  } else if (window.showToast) {
+    window.showToast({
+      type: 'danger',
+      title: 'Compose no disponible',
+      message: 'Recarga la página e inténtalo de nuevo.',
+      duration: 5000,
+    });
+  }
 }
 
 /* ── BÚSQUEDA + FILTROS ── */

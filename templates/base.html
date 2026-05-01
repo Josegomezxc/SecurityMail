@@ -191,6 +191,24 @@
             position: relative;
             height: 100vh;             /* altura completa del viewport */
         }
+        /* TODA la sidebar y sus descendientes son NO-SELECCIONABLES y NO-ARRASTRABLES.
+           El editor contenteditable del compose modal puede dejar el navegador en
+           "modo selección". Sin esto, los clicks subsiguientes en items del sidebar
+           se interpretan como "extender selección de texto" o "iniciar drag de un
+           link" en vez de navegar. La palabra clickeada (Papelera, Bandeja…) sale
+           resaltada azul y el link no responde hasta recargar la página.
+           touch-action:manipulation desactiva double-tap-to-zoom, panning, etc —
+           garantiza que el navegador trate cada interacción como un click puro. */
+        .sidebar, .sidebar * {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+            -webkit-user-drag: none;
+            user-drag: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+        }
         /* Logo arriba — no se reduce con flex */
         .sidebar > .sidebar-logo { flex-shrink: 0; }
         /* Wrapper de navegación — toma TODO el espacio sobrante y permite
@@ -317,6 +335,13 @@
             transition: all 0.18s cubic-bezier(.22,1,.36,1);
             position: relative;
             margin-bottom: 6px;
+            /* user-select:none — el editor contenteditable del compose puede
+               dejar el navegador en "modo selección". Sin esto, clickear un
+               item del sidebar (Papelera, Bandeja...) se interpreta como
+               extender la selección de texto en vez de navegar. */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
         }
         /* Indicador lateral izquierdo — solo aparece en activo */
         .sidebar-link::before {
@@ -1637,7 +1662,10 @@
             background: rgba(0, 0, 0, 0.55);
             -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
-            z-index: 240;
+            /* Por encima del toast-container (z:10000) — si no, los toasts
+               de notificación que llegan se pintan SOBRE el drawer abierto
+               y bloquean los clicks en los items del sidebar. */
+            z-index: 10499;
             opacity: 0;
             transition: opacity 0.25s ease;
         }
@@ -1662,7 +1690,10 @@
                 height: 100dvh;          /* respeta la barra del navegador móvil */
                 width: 280px;
                 max-width: 85vw;
-                z-index: 250;
+                /* Sobre el toast-container (z:10000) — sin esto los toasts de
+                   notificación caen ENCIMA del drawer abierto y los items del
+                   sidebar dejan de responder a los clicks (visualmente cubiertos). */
+                z-index: 10500;
                 transform: translateX(-100%);
                 transition: transform 0.28s cubic-bezier(.22,1,.36,1);
                 box-shadow: 8px 0 32px rgba(0,0,0,0.4);
@@ -1769,6 +1800,38 @@
                 Bandeja
                 {% if unread_count %}
                     <span class="badge-count">{{ unread_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'sent_list' %}" class="sidebar-link {% block nav_sent %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                Enviados
+            </a>
+
+            <a href="{% url 'drafts_list' %}" class="sidebar-link {% block nav_drafts %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Borradores
+                {% if drafts_count %}
+                    <span class="badge-warning-pill">{{ drafts_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'trash_list' %}" class="sidebar-link {% block nav_trash %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    <line x1="10" y1="11" x2="10" y2="17"/>
+                    <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+                Papelera
+                {% if trash_count %}
+                    <span class="badge-danger-pill">{{ trash_count }}</span>
                 {% endif %}
             </a>
 
@@ -1888,11 +1951,12 @@
 
             <!-- Fila del avatar -->
             <div class="user-row" id="userBtn">
-                <div class="avatar-circle">
+                <div class="avatar-circle"
+                     {% if not user.profile.has_avatar %}style="background:linear-gradient(135deg, {{ avatar_color }} 0%, #9b6dff 100%)"{% endif %}>
                     {% if user.profile.has_avatar %}
                         <img src="{{ user.profile.avatar_url }}?v={{ user.profile.updated_at|date:'U' }}" alt="Foto">
                     {% else %}
-                        {{ user.email|first|upper }}{{ user.email|slice:"1:2"|upper }}
+                        {{ avatar_initials }}
                     {% endif %}
                 </div>
                 <div class="user-info">
@@ -2511,6 +2575,10 @@ document.addEventListener('keydown', function (e) {
         const c = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
         return c ? c.split('=')[1] : '';
     }
+    // Exponer globalmente para que CUALQUIER template hijo (perfil, etc.)
+    // pueda llamarlo sin tener que redefinirlo localmente. Esta función
+    // vive dentro de un IIFE — sin esta línea quedaría inaccesible fuera.
+    window.getCsrf = getCsrf;
 
     function renderItem(n) {
         const cls = (n.read ? '' : 'unread');
@@ -2634,9 +2702,11 @@ document.addEventListener('keydown', function (e) {
 
 {% block extra_js %}{% endblock %}
 
-{# Compose modal global: vive en base.html para que persista entre páginas
-   (al estilo Gmail/Proton). Solo se renderiza si el usuario está logueado
-   — invitados no necesitan poder enviar correos desde alias. #}
+{% comment %}
+Compose modal global: vive en base.html para que persista entre páginas
+(al estilo Gmail/Proton). Solo se renderiza si el usuario está logueado
+— invitados no necesitan poder enviar correos desde alias.
+{% endcomment %}
 {% if user.is_authenticated %}
   {% include '_compose_modal.html' %}
 {% endif %}

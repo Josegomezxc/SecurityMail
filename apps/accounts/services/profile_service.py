@@ -88,13 +88,34 @@ def remove_avatar(user) -> Tuple[bool, str]:
 def get_user_initials(user) -> str:
     """
     Iniciales para el avatar por defecto.
-    Usa el nombre de usuario si está, sino el email.
+
+    Orden de prioridad:
+      1. first_name + last_name → primera letra de cada uno (ej. "Jose Gomez" → "JG")
+      2. first_name solo → si tiene varias palabras, iniciales de las dos primeras;
+         si es una sola palabra, primeras 2 letras
+      3. username → primeras 2 letras
+      4. email → primeras 2 letras
     Siempre devuelve 1-2 letras en mayúsculas.
     """
-    source = (user.first_name or '').strip() or (user.email or '').strip()
+    first = (user.first_name or '').strip()
+    last  = (user.last_name or '').strip()
+
+    if first and last:
+        return (first[0] + last[0]).upper()
+
+    if first:
+        parts = [p for p in first.split() if p]
+        if len(parts) >= 2:
+            return (parts[0][0] + parts[1][0]).upper()
+        letters = [c for c in first if c.isalpha()]
+        if len(letters) >= 2:
+            return (letters[0] + letters[1]).upper()
+        if letters:
+            return letters[0].upper()
+
+    source = (user.username or '').strip() or (user.email or '').strip()
     if not source:
         return '??'
-    # Tomar la primera letra y, si hay, una segunda de cualquier parte
     letters = [c for c in source if c.isalpha()]
     if not letters:
         return source[:2].upper()
