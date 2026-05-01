@@ -926,6 +926,297 @@
     background: rgba(239,68,68,0.2);
     border-color: rgba(239,68,68,0.4);
   }
+
+  /* ══════════════════════════════════════════════════════════════
+     MODAL "Eliminar cuenta" — destructivo, requiere password + reto
+     ══════════════════════════════════════════════════════════════ */
+  .da-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 12000;
+    background: rgba(8, 6, 18, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  .da-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .da-modal {
+    width: 100%;
+    max-width: 480px;
+    background: linear-gradient(160deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 18px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6),
+                0 0 0 1px rgba(255,255,255,0.04) inset,
+                0 0 60px rgba(232,64,64,0.08);
+    overflow: hidden;
+    position: relative;
+    transform: translateY(14px) scale(0.96);
+    opacity: 0;
+    transition: transform 0.28s cubic-bezier(.22,1,.36,1), opacity 0.22s ease;
+  }
+  .da-overlay.visible .da-modal {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  .da-modal::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--danger), transparent);
+  }
+  .da-modal::after {
+    content: '';
+    position: absolute;
+    top: -100px; right: -100px;
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    background: var(--danger);
+    opacity: 0.10;
+    filter: blur(50px);
+    pointer-events: none;
+  }
+
+  .da-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 22px 22px 14px;
+    position: relative;
+    z-index: 1;
+  }
+  .da-icon {
+    width: 46px; height: 46px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, var(--danger), #f87171);
+    box-shadow: 0 6px 20px rgba(232,64,64,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .da-icon svg { width: 22px; height: 22px; color: #fff; }
+  .da-head-text { flex: 1; min-width: 0; padding-top: 2px; }
+  .da-title {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .da-sub {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .da-close {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .da-close:hover {
+    background: rgba(232,64,64,0.08);
+    border-color: rgba(232,64,64,0.3);
+    color: #f87171;
+  }
+  .da-close svg { width: 14px; height: 14px; }
+
+  /* Lista de "qué se borrará" — chips contables */
+  .da-impact {
+    margin: 0 22px 16px;
+    padding: 12px 14px;
+    background: rgba(232,64,64,0.06);
+    border: 1px solid rgba(232,64,64,0.18);
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .da-impact-item {
+    text-align: center;
+    min-width: 0;
+  }
+  .da-impact-num {
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 800;
+    color: #f87171;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .da-impact-lbl {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    line-height: 1.3;
+  }
+
+  .da-form { padding: 0 22px 22px; position: relative; z-index: 1; }
+  .da-field-label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin: 12px 0 6px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .da-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .da-input {
+    width: 100%;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .da-input:focus {
+    border-color: rgba(232,64,64,0.5);
+    box-shadow: 0 0 0 3px rgba(232,64,64,0.12);
+  }
+  .da-input.da-input-mono {
+    font-family: var(--mono);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .da-input::placeholder {
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-weight: 400;
+  }
+  .da-input-eye {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 6px;
+    display: flex;
+    border-radius: 6px;
+    transition: color 0.15s;
+  }
+  .da-input-eye:hover { color: var(--text-primary); }
+  .da-input-eye svg { width: 16px; height: 16px; }
+  .da-field-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-family: var(--mono);
+  }
+  .da-field-hint code {
+    background: rgba(232,64,64,0.12);
+    color: #fca5a5;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .da-error {
+    display: none;
+    margin-top: 10px;
+    padding: 9px 12px;
+    background: rgba(232,64,64,0.1);
+    border: 1px solid rgba(232,64,64,0.3);
+    border-radius: 9px;
+    color: #fca5a5;
+    font-size: 12px;
+    font-family: var(--mono);
+    line-height: 1.45;
+  }
+  .da-error.show { display: block; }
+
+  .da-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .da-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.16s cubic-bezier(.22,1,.36,1);
+    letter-spacing: 0.01em;
+  }
+  .da-btn-cancel {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border);
+  }
+  .da-btn-cancel:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: rgba(255,255,255,0.14);
+  }
+  .da-btn-confirm {
+    background: linear-gradient(135deg, var(--danger), #f87171);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(232,64,64,0.35);
+  }
+  .da-btn-confirm:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow: 0 6px 18px rgba(232,64,64,0.5);
+  }
+  .da-btn-confirm:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .da-btn-confirm .da-spinner {
+    display: none;
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: daSpin 0.7s linear infinite;
+  }
+  .da-btn-confirm.loading .da-spinner { display: inline-block; }
+  .da-btn-confirm.loading .da-btn-text { opacity: 0.7; }
+  @keyframes daSpin { to { transform: rotate(360deg); } }
 </style>
 {% endblock %}
 
@@ -1324,6 +1615,80 @@
 
 
 
+<!-- ══ Modal "Eliminar cuenta" — destructivo, requiere password + reto ══ -->
+<div id="deleteAccountOverlay" class="da-overlay" aria-hidden="true">
+  <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="da-title">
+    <div class="da-head">
+      <div class="da-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div class="da-head-text">
+        <div id="da-title" class="da-title">Eliminar tu cuenta</div>
+        <div class="da-sub">Esta acción es <strong style="color:#fca5a5">permanente</strong> y no se puede deshacer. Todos tus datos serán borrados de forma inmediata.</div>
+      </div>
+      <button type="button" class="da-close" id="deleteAccountClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="da-impact">
+      <div class="da-impact-item">
+        <div class="da-impact-num">{{ alias_count|default:0 }}</div>
+        <div class="da-impact-lbl">Alias</div>
+      </div>
+      <div class="da-impact-item">
+        <div class="da-impact-num">{{ total_emails|default:0 }}</div>
+        <div class="da-impact-lbl">Correos</div>
+      </div>
+      <div class="da-impact-item">
+        <div class="da-impact-num">{{ threats_count|default:0 }}</div>
+        <div class="da-impact-lbl">Amenazas</div>
+      </div>
+    </div>
+
+    <form id="deleteAccountForm" class="da-form" autocomplete="off">
+      {% csrf_token %}
+
+      <label for="deleteAccountPwd" class="da-field-label">Tu contraseña actual</label>
+      <div class="da-input-wrap">
+        <input id="deleteAccountPwd" name="password" type="password" class="da-input"
+               placeholder="Introduce tu contraseña" autocomplete="current-password" required>
+        <button type="button" class="da-input-eye" id="deleteAccountPwdEye" aria-label="Mostrar contraseña" tabindex="-1">
+          <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+          <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
+          </svg>
+        </button>
+      </div>
+
+      <label for="deleteAccountConfirm" class="da-field-label">Confirma escribiendo <code style="background:rgba(232,64,64,0.14);color:#fca5a5;padding:1px 6px;border-radius:4px;font-weight:700;letter-spacing:0.08em">ELIMINAR</code></label>
+      <div class="da-input-wrap">
+        <input id="deleteAccountConfirm" name="confirm_text" type="text"
+               class="da-input da-input-mono" placeholder="ELIMINAR"
+               autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" required>
+      </div>
+      <div class="da-field-hint">Esta palabra clave evita borrados accidentales.</div>
+
+      <div id="deleteAccountError" class="da-error" role="alert"></div>
+
+      <div class="da-actions">
+        <button type="button" class="da-btn da-btn-cancel" id="deleteAccountCancel">Cancelar</button>
+        <button type="submit" class="da-btn da-btn-confirm" id="deleteAccountSubmit" disabled>
+          <span class="da-spinner"></span>
+          <span class="da-btn-text">Eliminar mi cuenta</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ══ Modal de previsualización del avatar (al final del body para flotar sobre todo) ══ -->
 {% if user.profile.has_avatar %}
 <div id="avatarPreviewOverlay" onclick="closeAvatarPreview()">
@@ -1395,30 +1760,125 @@
   });
 
   /* ══════════════════════════════════════════════
-     Botón "Eliminar mi cuenta" → confirm modal bonito
-     ══════════════════════════════════════════════ */
+     Botón "Eliminar mi cuenta" → modal con password + reto "ELIMINAR"
+     ══════════════════════════════════════════════
+     Flujo:
+       1) Usuario aplasta "Eliminar mi cuenta"
+       2) Aparece modal con: lista de qué se borrará, input password,
+          input "escribe ELIMINAR", botones Cancelar/Eliminar
+       3) El botón Eliminar se habilita SOLO si los dos campos están válidos
+       4) Submit AJAX → backend borra y devuelve {ok, redirect}
+       5) Redirige al login (con mensaje de éxito) */
   (function () {
     var btn = document.getElementById('deleteAccountBtn');
     if (!btn) return;
-    btn.addEventListener('click', function () {
-      if (!window.confirmDialog) return;
-      window.confirmDialog({
-        danger:      true,
-        icon:        'trash',
-        title:       'Eliminar tu cuenta',
-        message:     'Se borrarán todos tus alias, correos analizados, notificaciones y configuración.\nEsta acción no se puede deshacer.',
-        confirmText: 'Sí, eliminar mi cuenta',
-        cancelText:  'Cancelar',
-      }).then(function (ok) {
-        if (!ok) return;
-        if (window.showToast) {
-          window.showToast({
-            type: 'warning',
-            title: 'Eliminación de cuenta',
-            message: 'Esta función todavía no está disponible. Contacta soporte.',
-            duration: 6000,
-          });
+    var overlay  = document.getElementById('deleteAccountOverlay');
+    var formEl   = document.getElementById('deleteAccountForm');
+    var pwdEl    = document.getElementById('deleteAccountPwd');
+    var pwdEye   = document.getElementById('deleteAccountPwdEye');
+    var confirmEl= document.getElementById('deleteAccountConfirm');
+    var submitEl = document.getElementById('deleteAccountSubmit');
+    var cancelEl = document.getElementById('deleteAccountCancel');
+    var closeEl  = document.getElementById('deleteAccountClose');
+    var errorEl  = document.getElementById('deleteAccountError');
+    if (!overlay || !formEl) return;
+
+    function openModal() {
+      pwdEl.value = '';
+      confirmEl.value = '';
+      errorEl.textContent = '';
+      errorEl.classList.remove('show');
+      submitEl.disabled = true;
+      submitEl.classList.remove('loading');
+      overlay.classList.add('visible');
+      document.body.style.overflow = 'hidden';
+      setTimeout(function () { pwdEl.focus(); }, 180);
+    }
+    function closeModal() {
+      overlay.classList.remove('visible');
+      document.body.style.overflow = '';
+    }
+    function refreshSubmit() {
+      var ready = pwdEl.value.length > 0 &&
+                  confirmEl.value.trim().toUpperCase() === 'ELIMINAR';
+      submitEl.disabled = !ready;
+    }
+
+    btn.addEventListener('click', openModal);
+    cancelEl.addEventListener('click', closeModal);
+    closeEl.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && overlay.classList.contains('visible')) closeModal();
+    });
+    pwdEl.addEventListener('input', refreshSubmit);
+    confirmEl.addEventListener('input', refreshSubmit);
+
+    // Toggle ojo de la password
+    pwdEye.addEventListener('click', function () {
+      var hidden = pwdEl.type === 'password';
+      pwdEl.type = hidden ? 'text' : 'password';
+      pwdEye.querySelector('.eye-open').style.display   = hidden ? 'none' : '';
+      pwdEye.querySelector('.eye-closed').style.display = hidden ? ''     : 'none';
+    });
+
+    formEl.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (submitEl.disabled) return;
+      errorEl.textContent = '';
+      errorEl.classList.remove('show');
+      submitEl.classList.add('loading');
+      submitEl.disabled = true;
+
+      var fd = new FormData();
+      fd.append('password',     pwdEl.value);
+      fd.append('confirm_text', confirmEl.value);
+
+      fetch("{% url 'eliminar_cuenta' %}", {
+        method:      'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken':       getCsrf(),
+          'X-Requested-With':  'XMLHttpRequest',
+        },
+        body: fd,
+      })
+      .then(function (r) { return r.json().then(function (data) { return { status: r.status, data: data }; }); })
+      .then(function (resp) {
+        if (resp.data && resp.data.ok) {
+          // Cuenta borrada → redirige al login con un toast efímero
+          if (window.showToast) {
+            window.showToast({
+              type: 'success',
+              title: 'Cuenta eliminada',
+              message: 'Tu cuenta y todos tus datos se han borrado.',
+              duration: 4000,
+            });
+          }
+          // Pequeño delay para que el usuario vea el toast antes de redirigir
+          setTimeout(function () {
+            window.location.href = resp.data.redirect || '/';
+          }, 600);
+        } else {
+          var msg = (resp.data && resp.data.error) || 'No pudimos eliminar la cuenta. Intenta de nuevo.';
+          errorEl.textContent = msg;
+          errorEl.classList.add('show');
+          submitEl.classList.remove('loading');
+          refreshSubmit();
+          // Si la password fue incorrecta, el usuario suele querer reescribirla
+          if (resp.status === 401) {
+            pwdEl.value = '';
+            pwdEl.focus();
+          }
         }
+      })
+      .catch(function () {
+        errorEl.textContent = 'Error de red. Comprueba tu conexión y vuelve a intentar.';
+        errorEl.classList.add('show');
+        submitEl.classList.remove('loading');
+        refreshSubmit();
       });
     });
   })();

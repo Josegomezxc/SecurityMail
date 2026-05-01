@@ -5,12 +5,15 @@ Vistas del módulo accounts:
   - recuperar / reset password
   - cambiar contraseña
   - perfil del usuario
+  - eliminar cuenta (con confirmación de password)
 """
 from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.views.decorators.http import require_POST
 
 from apps.core.validators import (
     clean_username, clean_email, validate_password,
@@ -32,6 +35,7 @@ from .services.email_verification_service import (
 from .services.profile_service import (
     save_avatar, remove_avatar, get_user_initials, get_user_color,
 )
+from .services.account_deletion_service import send_account_deleted_email
 from apps.core.services.stats_service import profile_stats
 
 
@@ -81,20 +85,29 @@ def login_view(request):
         # ── Autenticación ──────────────────────────────────────────
         user = authenticate_flexible(request, identifier, password)
 
-        # Si las credenciales son correctas pero la cuenta NO está verificada
-        # (is_active=False), authenticate_flexible devuelve None. Lo detectamos
-        # buscando al usuario por email/username para dar un mensaje útil
-        # con link al reenvío de código.
+        # Si la autenticación falla, intentamos diagnosticar la causa para
+        # dar un mensaje útil (correo inexistente, cuenta sin verificar, etc.)
         if user is None and identifier:
             from .models import EmailVerificationCode
             candidate = (
                 User.objects.filter(email__iexact=identifier).first()
                 or User.objects.filter(username__iexact=identifier).first()
             )
-            if (candidate
-                    and not candidate.is_active
+
+            # ── Caso 1: el correo / usuario no existe en la BD ──
+            if candidate is None:
+                # Contamos el intento contra el rate limit (anti-enumeración).
+                login_register_failure(ip)
+                msg = ('Esta dirección de correo no existe. Intenta de nuevo '
+                       'con una dirección diferente.') if '@' in identifier else (
+                       'Este nombre de usuario no existe. Intenta con otro o '
+                       'usa tu correo registrado.')
+                messages.error(request, msg)
+                return render(request, 'login.html', {'form_values': form_values})
+
+            # ── Caso 2: existe pero NO está verificada → mandar al flow de verificación ──
+            if (not candidate.is_active
                     and candidate.check_password(password)):
-                # Credenciales OK pero cuenta sin verificar → manda al verificar
                 last_ev = (
                     EmailVerificationCode.objects
                     .filter(user=candidate)
@@ -133,7 +146,7 @@ def login_view(request):
             login_single_session(request, user)
             return redirect('dashboard')
 
-        # ── Fallo: cuenta regresiva ─────────────────────────────────
+        # ── Fallo: contraseña incorrecta (el email/username SÍ existe) ──
         remaining = login_register_failure(ip)
 
         if remaining <= 0:
@@ -144,12 +157,12 @@ def login_view(request):
         elif remaining == 1:
             messages.error(
                 request,
-                'Correo o contraseña incorrectos. Te queda 1 intento antes del bloqueo.',
+                'Contraseña incorrecta. Te queda 1 intento antes del bloqueo.',
             )
         else:
             messages.error(
                 request,
-                f'Correo o contraseña incorrectos. Te quedan {remaining} intentos.',
+                f'Contraseña incorrecta. Te quedan {remaining} intentos.',
             )
 
     return render(request, 'login.html', {'form_values': form_values})
@@ -652,3 +665,95 @@ def perfil_view(request):
     ctx['avatar_initials'] = get_user_initials(request.user)
     ctx['avatar_color']    = get_user_color(request.user)
     return render(request, 'perfil.html', ctx)
+
+
+# ═════════════════════════════════════════════════════════════════════
+#  ELIMINAR CUENTA — destructivo, requiere confirmación de password
+# ═════════════════════════════════════════════════════════════════════
+
+@login_required(login_url='login')
+@require_POST
+def eliminar_cuenta(request):
+    """
+    Borra la cuenta del usuario y todos sus datos asociados.
+
+    Seguridad:
+      - Solo POST (CSRF protegido por middleware).
+      - Requiere reintroducir la contraseña actual — evita borrados
+        accidentales o por sesión secuestrada.
+      - Bloquea borrado de cuentas staff/superuser desde la web (deben
+        eliminarse desde el admin de Django con privilegios explícitos).
+
+    Cascada:
+      - Alias.user es FK con on_delete=CASCADE → arrastra Aliases.
+      - EmailMessage.alias también es CASCADE → se borran los correos.
+      - SandboxAnalysis.email también → se borran los análisis.
+      - Notification.user → se borran las notificaciones.
+      - UserProfile (OneToOne) y avatares → caen junto con el usuario.
+    """
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    def _err(msg, status=400):
+        if is_ajax:
+            return JsonResponse({'ok': False, 'error': msg}, status=status)
+        messages.error(request, msg)
+        return redirect('perfil')
+
+    # Bloqueo: no permitimos borrar cuentas privilegiadas desde la web.
+    if request.user.is_superuser or request.user.is_staff:
+        return _err(
+            'Las cuentas administrativas no se pueden eliminar desde aquí. '
+            'Contacta a otro administrador.',
+            status=403,
+        )
+
+    password = request.POST.get('password', '')
+    if not password:
+        return _err('Debes ingresar tu contraseña para confirmar.')
+
+    if not request.user.check_password(password):
+        return _err('La contraseña es incorrecta.', status=401)
+
+    # Reto secundario: el usuario debe escribir literalmente "ELIMINAR".
+    confirm = (request.POST.get('confirm_text') or '').strip().upper()
+    if confirm != 'ELIMINAR':
+        return _err('Debes escribir ELIMINAR para confirmar.')
+
+    user = request.user
+
+    # ── Snapshot ANTES del delete ──
+    # Una vez borramos al user, no podemos consultar nada de él. Capturamos
+    # email + nombre + contadores aquí para mandar el correo de confirmación
+    # al correo personal una vez termine el borrado.
+    from django.utils import timezone
+
+    snapshot_email   = user.email
+    snapshot_display = (user.first_name or user.email or 'Usuario').strip()
+    stats_snapshot   = profile_stats(user)
+    deleted_at_str   = timezone.localtime().strftime('%d/%m/%Y · %H:%M')
+    client_ip        = get_client_ip(request)
+
+    # Cerramos la sesión PRIMERO para invalidar el cookie inmediatamente.
+    logout(request)
+    # Borrado en cascada — Django + las FKs lo gestionan.
+    user.delete()
+
+    # Enviamos el correo de confirmación al CORREO PERSONAL del usuario
+    # (no a un alias — los alias acaban de desaparecer). Si el envío falla,
+    # NO revertimos el borrado: la operación principal ya se completó.
+    # `send_account_deleted_email` no levanta excepciones — devuelve (ok, _).
+    send_account_deleted_email(
+        to_email       = snapshot_email,
+        display_name   = snapshot_display,
+        alias_count    = stats_snapshot.get('alias_count', 0),
+        total_emails   = stats_snapshot.get('total_emails', 0),
+        threats_count  = stats_snapshot.get('threats_count', 0),
+        deleted_at_str = deleted_at_str,
+        ip             = client_ip,
+    )
+
+    if is_ajax:
+        return JsonResponse({'ok': True, 'redirect': '/'})
+
+    messages.success(request, 'Tu cuenta y todos tus datos han sido eliminados.')
+    return redirect('login')

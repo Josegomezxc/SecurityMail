@@ -389,10 +389,14 @@
     50% { opacity: 0.6; }
   }
 
-  /* Indicador "actualizando en vivo" */
+  /* Indicador "actualizando en vivo".
+     IMPORTANTE: en bottom-right vive el compose minimizado (base.html),
+     y en bottom-left vive el footer del sidebar (perfil de usuario).
+     Por eso lo posicionamos a la izquierda PERO desplazado más allá
+     del ancho del sidebar (248px) para no taparlo. */
   .notif-live-indicator {
     position: fixed;
-    bottom: 16px; right: 18px;
+    bottom: 16px; left: 266px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -406,6 +410,11 @@
     letter-spacing: 0.04em;
     box-shadow: 0 4px 16px rgba(0,0,0,0.25);
     z-index: 50;
+  }
+  /* En móvil (<1024px) el sidebar es off-canvas, así que podemos
+     volver a pegar el indicador al borde izquierdo. */
+  @media (max-width: 1023px) {
+    .notif-live-indicator { left: 18px; }
   }
   .notif-live-dot {
     width: 7px; height: 7px; border-radius: 50%;

@@ -1,0 +1,1538 @@
+{% comment %}
+══════════════════════════════════════════════════════════════════════
+COMPOSE MODAL — partial incluido por base.html
+──────────────────────────────────────────────────────────────────────
+Permite componer y enviar correos desde un alias activo. Vive en
+base.html para que persista entre navegaciones (igual que Gmail/Proton):
+si lo minimizas, sigue visible al cambiar de página hasta que cierres
+explícitamente con la X.
+
+Estado persistido en sessionStorage (clave `sms_compose_state`):
+  - aliasId, aliasAddress, aliasLabel
+  - to, subject, bodyHtml
+  - scheduledAt (ISO string)
+  - minimized (boolean)
+
+NO se persisten los adjuntos (los `File` objects no son serializables).
+Si el usuario navega con archivos adjuntos seleccionados, los pierde.
+Avisamos con un toast al restaurar si había archivos en la sesión previa.
+{% endcomment %}
+
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   COMPOSE MODAL — CSS
+   ════════════════════════════════════════════════════════════════════ */
+.compose-overlay {
+  display:none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.compose-overlay.open { display:block; opacity: 1; }
+
+.compose-window {
+  display: none;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 580px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+  z-index: 9999;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(20px) scale(0.97);
+  opacity: 0;
+  transition: transform 0.22s cubic-bezier(.22,1,.36,1), opacity 0.18s;
+}
+.compose-window.open { display: flex; transform: translateY(0) scale(1); opacity: 1; }
+
+/* ── Estado AMPLIADO (horizontal): el botón ↗ alterna a este modo.
+   Anclado a esquina inferior derecha, ocupa casi toda la pantalla.
+   IMPORTANTE: la altura es FIJA (calc(100vh - 48px)) para que NUNCA
+   genere scroll en el frame del modal — el editor es el único elemento
+   que puede scrollear internamente cuando hay mucho texto. */
+.compose-window.maximized {
+  width: 90vw;
+  max-width: 1100px;
+  height: calc(100vh - 48px);
+  max-height: calc(100vh - 48px);
+  bottom: 24px;
+  right: 24px;
+}
+/* Cuando está maximizado, el body NO scrollea — todas las filas
+   tienen altura fija y el editor toma el resto con flex. */
+.compose-window.maximized .compose-body {
+  overflow: hidden;
+}
+.compose-window.maximized .compose-editor {
+  min-height: 0;
+  max-height: none;
+  flex: 1 1 auto;
+}
+
+/* ── Estado minimizado: estilo widget tipo Proton/Gmail ──
+   Anchura cómoda, drag handle visible, tres botones a la derecha,
+   sin escudo ni meta (compactado). El click en cualquier zona del
+   header (excepto botones) restaura el modal. */
+.compose-window.minimized {
+  width: 320px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.4);
+}
+.compose-window.minimized > form,
+.compose-window.minimized > .compose-scheduled-banner { display: none; }
+.compose-window.minimized .compose-head {
+  cursor: pointer;
+  padding: 10px 6px 10px 12px;
+  gap: 10px;
+}
+.compose-window.minimized .compose-head-shield { display: none; }
+.compose-window.minimized .compose-head-handle { display: inline-flex; }
+.compose-window.minimized .compose-head-meta { display: none; }
+.compose-window.minimized .compose-head-title {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.compose-window.minimized .compose-head-actions { gap: 1px; }
+.compose-window.minimized .compose-head-btn {
+  width: 26px; height: 26px; border-radius: 6px;
+}
+.compose-window.minimized .compose-head-btn svg { width: 12px; height: 12px; }
+
+.compose-head {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #6d4aff 0%, #7c3aed 55%, #5b3ad6 100%);
+  color: #fff; position: relative; overflow: hidden; flex-shrink: 0;
+}
+.compose-head::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 90% at 0% 0%, rgba(255,255,255,0.16) 0%, transparent 60%),
+    radial-gradient(circle at 88% 110%, rgba(167,139,250,0.35) 0%, transparent 50%);
+  pointer-events: none;
+}
+.compose-head::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35) 50%, transparent);
+  pointer-events: none;
+}
+.compose-head-brand { position: relative; flex: 1; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.compose-head-shield {
+  width: 36px; height: 36px; flex-shrink: 0;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center; color: #fff;
+}
+.compose-head-shield svg { width: 16px; height: 16px; }
+
+/* Drag handle (6 puntos): solo visible en estado minimizado */
+.compose-head-handle {
+  display: none;
+  width: 12px; height: 18px;
+  flex-shrink: 0;
+  color: rgba(255,255,255,0.55);
+  align-items: center; justify-content: center;
+}
+.compose-head-handle svg { width: 100%; height: 100%; }
+.compose-head-text { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.compose-head-title {
+  font-family: var(--display); font-size: 14.5px; font-weight: 800;
+  letter-spacing: -0.01em; text-shadow: 0 1px 2px rgba(0,0,0,0.18);
+  line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.compose-head-meta {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.78);
+  display: inline-flex; align-items: center; gap: 6px; line-height: 1;
+}
+.compose-head-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; flex-shrink: 0; }
+.compose-head-actions { position: relative; display: flex; align-items: center; gap: 4px; }
+.compose-head-btn {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: transparent; border: 1px solid transparent;
+  color: rgba(255,255,255,0.9); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background-color 0.15s, color 0.15s;
+}
+.compose-head-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+.compose-head-btn svg { width: 14px; height: 14px; }
+
+.compose-body { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+.compose-row {
+  display: flex; align-items: center; border-bottom: 1px solid var(--border-soft);
+  padding: 2px 18px; min-height: 46px;
+  transition: background 0.15s; position: relative;
+}
+.compose-row:hover { background: rgba(255,255,255,0.015); }
+.compose-row:focus-within { background: rgba(124,92,237,0.04); }
+.compose-row::after {
+  content: ''; position: absolute; left: 16px; right: 16px; bottom: -1px; height: 2px;
+  background: var(--ai-purple); transform: scaleX(0); transform-origin: center;
+  transition: transform 0.18s ease;
+}
+.compose-row:focus-within::after { transform: scaleX(1); }
+.compose-row.from { background: rgba(124,92,255,0.04); }
+.compose-row-label {
+  font-size: 11px; color: var(--text-muted); font-family: var(--mono);
+  text-transform: uppercase; letter-spacing: 0.08em; width: 64px; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 7px; user-select: none;
+}
+.compose-row-label svg { width: 11px; height: 11px; opacity: 0.7; transition: all 0.15s; }
+.compose-row:focus-within .compose-row-label { color: var(--accent-hover); }
+.compose-row:focus-within .compose-row-label svg { opacity: 1; color: var(--accent); }
+.compose-row-input {
+  flex: 1; background: transparent !important; border: none; outline: none; box-shadow: none;
+  color: var(--text-primary); font-size: 13.5px; font-family: var(--font-sans);
+  padding: 11px 0 11px 14px; caret-color: var(--accent);
+  -webkit-text-fill-color: var(--text-primary);
+}
+.compose-row-input::placeholder {
+  color: rgba(255,255,255,0.28); -webkit-text-fill-color: rgba(255,255,255,0.28);
+  font-weight: 400; font-style: italic; opacity: 1;
+}
+.compose-row-input:focus { outline: none; box-shadow: none; }
+.compose-row-input::selection { background: rgba(124,92,237,0.35); color: #fff; }
+.compose-row-input:-webkit-autofill,
+.compose-row-input:-webkit-autofill:hover,
+.compose-row-input:-webkit-autofill:focus,
+.compose-row-input:-internal-autofill-selected {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-surface) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  background-color: transparent !important; background-clip: content-box !important;
+  caret-color: var(--accent) !important;
+  transition: background-color 9999s ease-out 0s;
+}
+.compose-row-from {
+  flex: 1; display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 12.5px; color: var(--accent-hover);
+  padding: 11px 0;
+}
+.compose-row-from svg { width: 12px; height: 12px; opacity: 0.7; }
+.compose-error-row {
+  display: none; padding: 6px 16px 8px;
+  font-size: 11.5px; color: var(--danger); font-family: var(--mono);
+  background: rgba(232,64,64,0.06); border-bottom: 1px solid rgba(232,64,64,0.18);
+}
+.compose-error-row.show { display: block; }
+
+.compose-toolbar {
+  display: flex; align-items: center; gap: 3px; padding: 8px 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), transparent);
+  border-bottom: 1px solid var(--border-soft); flex-wrap: wrap; flex-shrink: 0;
+}
+.ctb {
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent; border-radius: 7px;
+  color: var(--text-secondary); cursor: pointer;
+  font-family: var(--font-sans); font-size: 13px;
+  transition: background-color 0.12s, color 0.12s, border-color 0.12s;
+}
+.ctb:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ctb.active { background: rgba(124,92,237,0.2); border-color: var(--accent-border); color: var(--ai-purple-light); }
+.ctb svg { width: 14px; height: 14px; }
+.ctb b { font-weight: 800; }
+.ctb i { font-style: italic; }
+.ctb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 6px; opacity: 0.6; }
+
+.compose-editor {
+  flex: 1 1 auto; min-height: 220px; max-height: 340px; overflow-y: auto;
+  padding: 18px 22px;
+  background: linear-gradient(180deg, transparent 0%, rgba(124,92,237,0.012) 100%);
+  outline: none; color: var(--text-primary);
+  font-size: 14px; font-family: var(--font-sans); line-height: 1.6; letter-spacing: 0.005em;
+}
+.compose-editor:empty::before {
+  content: attr(data-placeholder); color: var(--text-muted);
+  pointer-events: none; font-style: italic;
+}
+.compose-editor p { margin: 0 0 10px 0; }
+.compose-editor p:last-child { margin-bottom: 0; }
+.compose-editor ul, .compose-editor ol { margin: 0 0 10px 0; padding-left: 26px; }
+.compose-editor li { margin-bottom: 4px; }
+.compose-editor a {
+  color: var(--accent-hover); text-decoration: underline;
+  text-decoration-color: rgba(167,139,250,0.4); text-underline-offset: 2px;
+  transition: text-decoration-color 0.15s;
+}
+.compose-editor a:hover { text-decoration-color: var(--accent-hover); }
+.compose-editor:focus { outline: none; }
+.compose-editor strong, .compose-editor b { color: var(--text-primary); font-weight: 700; }
+.compose-editor::-webkit-scrollbar { width: 6px; }
+.compose-editor::-webkit-scrollbar-track { background: transparent; }
+.compose-editor::-webkit-scrollbar-thumb { background: rgba(124,92,237,0.18); border-radius: 3px; transition: background 0.15s; }
+.compose-editor::-webkit-scrollbar-thumb:hover { background: rgba(124,92,237,0.35); }
+
+.compose-attachments { display: flex; flex-wrap: wrap; gap: 7px; padding: 4px 18px 8px; border-top: 1px solid var(--border-soft); }
+.compose-attachments:empty { display: none; }
+.compose-attachment {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 6px 8px 6px 10px;
+  background: rgba(124,92,237,0.1); border: 1px solid var(--accent-border);
+  border-radius: 999px; font-size: 11.5px; font-family: var(--mono);
+  color: var(--accent-hover); max-width: 260px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.compose-attachment:hover { border-color: var(--ai-purple); background: rgba(124,92,237,0.16); }
+.compose-attachment-icon { width: 14px; height: 14px; flex-shrink: 0; color: var(--ai-purple-light); }
+.compose-attachment-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; font-weight: 600; }
+.compose-attachment-size { color: var(--text-muted); font-size: 10px; flex-shrink: 0; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 4px; }
+.compose-attachment-remove {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); border: none; color: var(--text-muted); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: background-color 0.12s, color 0.12s;
+}
+.compose-attachment-remove:hover { background: var(--danger); color: white; }
+.compose-attachment-remove svg { width: 9px; height: 9px; }
+
+.compose-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.12));
+  border-top: 1px solid var(--border); flex-shrink: 0; gap: 12px;
+}
+.compose-foot-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+.compose-foot-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.compose-foot-icon:hover { background: rgba(124,92,237,0.14); border-color: var(--accent-border); color: var(--ai-purple-light); }
+.compose-foot-icon svg { width: 15px; height: 15px; }
+.compose-foot-info {
+  font-size: 11px; color: var(--text-muted); font-family: var(--mono);
+  display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.02em;
+}
+.compose-foot-info svg { width: 12px; height: 12px; color: var(--success); flex-shrink: 0; }
+@media (max-width: 540px) { .compose-foot-info { display: none; } }
+
+.compose-send-wrap {
+  position: relative; display: inline-flex; align-items: stretch;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--ai-purple), #9b6dff);
+  box-shadow: 0 4px 12px rgba(124,58,237,0.3);
+  transition: box-shadow 0.15s; overflow: hidden;
+}
+.compose-send-wrap:hover { box-shadow: 0 6px 16px rgba(124,58,237,0.4); }
+.compose-send-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border-radius: 10px 0 0 10px; border: none;
+  background: transparent; color: #fff;
+  font-size: 13px; font-weight: 700; font-family: var(--font-sans);
+  cursor: pointer; transition: background-color 0.15s;
+  border-right: 1px solid rgba(255,255,255,0.22); letter-spacing: 0.01em;
+}
+.compose-send-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
+.compose-send-btn:active:not(:disabled) { background: rgba(0,0,0,0.1); }
+.compose-send-btn:disabled { opacity: 0.55; cursor: not-allowed; color: var(--text-muted); }
+.compose-send-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 12px; border-radius: 0 10px 10px 0;
+  border: none; background: transparent; color: #fff; cursor: pointer;
+  transition: background-color 0.15s;
+}
+.compose-send-arrow:hover { background: rgba(255,255,255,0.14); }
+.compose-send-arrow svg { width: 12px; height: 12px; transition: transform 0.18s ease; }
+.compose-send-wrap.menu-open .compose-send-arrow svg { transform: rotate(180deg); }
+.compose-send-btn .spinner {
+  display: none; width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+  border-radius: 50%; animation: composeSpin 0.7s linear infinite;
+}
+.compose-send-btn.loading .spinner { display: inline-block; }
+.compose-send-btn.loading .send-text { opacity: 0.8; }
+@keyframes composeSpin { to { transform: rotate(360deg); } }
+
+.schedule-popover {
+  position: fixed; bottom: auto; top: auto; right: 24px;
+  min-width: 290px;
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: 0 14px 36px rgba(0,0,0,0.45);
+  opacity: 0; pointer-events: none;
+  transform: translateY(8px) scale(0.97); transform-origin: bottom right;
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(.22,1,.36,1);
+  z-index: 10000; overflow: hidden; padding: 6px;
+}
+.schedule-popover.open { opacity: 1; pointer-events: all; transform: translateY(0) scale(1); }
+.schedule-head { padding: 12px 12px 14px; border-bottom: 1px solid var(--border-soft); margin-bottom: 4px; }
+.schedule-title { font-family: var(--display); font-size: 14.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; letter-spacing: -0.01em; }
+.schedule-sub { font-size: 11.5px; color: var(--text-muted); line-height: 1.45; }
+.schedule-item {
+  display: flex; width: 100%; align-items: center; gap: 12px; padding: 10px 10px;
+  background: transparent; border: 1px solid transparent; border-radius: 10px;
+  cursor: pointer; text-align: left; font-family: var(--font-sans);
+  transition: all 0.15s;
+}
+.schedule-item:hover {
+  background: linear-gradient(135deg, rgba(124,92,237,0.1), rgba(167,139,250,0.06));
+  border-color: var(--accent-border); transform: translateX(2px);
+}
+.schedule-item-icon {
+  width: 32px; height: 32px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgba(124,92,237,0.18), rgba(167,139,250,0.12));
+  border: 1px solid var(--accent-border); color: var(--accent-hover);
+  transition: all 0.15s;
+}
+.schedule-item:hover .schedule-item-icon { background: linear-gradient(135deg, var(--ai-purple), #9b6dff); border-color: transparent; color: #fff; box-shadow: 0 4px 12px rgba(124,92,237,0.4); }
+.schedule-item-icon.morning { background: linear-gradient(135deg, rgba(251,191,36,0.18), rgba(245,158,11,0.12)); border-color: rgba(251,191,36,0.3); color: #fbbf24; }
+.schedule-item:hover .schedule-item-icon.morning { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #fff; box-shadow: 0 4px 12px rgba(245,158,11,0.4); }
+.schedule-item-icon.week { background: linear-gradient(135deg, rgba(96,165,250,0.18), rgba(59,130,246,0.12)); border-color: rgba(96,165,250,0.3); color: #60a5fa; }
+.schedule-item:hover .schedule-item-icon.week { background: linear-gradient(135deg, #3b82f6, #60a5fa); color: #fff; box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
+.schedule-item-icon svg { width: 14px; height: 14px; }
+.schedule-item-content { flex: 1; min-width: 0; }
+.schedule-item-label { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 1px; }
+.schedule-item-when { font-size: 11px; color: var(--text-muted); font-family: var(--mono); letter-spacing: 0.01em; }
+
+.compose-scheduled-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; margin: 6px 18px 4px;
+  background: rgba(124,92,237,0.1); border: 1px solid var(--accent-border); border-radius: 10px;
+  font-size: 12px; color: var(--accent-hover); font-family: var(--mono);
+}
+.compose-scheduled-banner[hidden] { display: none; }
+.compose-scheduled-banner svg { width: 14px; height: 14px; flex-shrink: 0; }
+.compose-scheduled-banner span { flex: 1; }
+.compose-scheduled-banner strong { color: var(--text-primary); font-weight: 700; }
+.compose-scheduled-clear {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); border: none; color: var(--text-muted); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: background-color 0.15s, color 0.15s;
+}
+.compose-scheduled-clear:hover { background: var(--danger); color: white; }
+.compose-scheduled-clear svg { width: 10px; height: 10px; }
+
+.schedule-custom-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); z-index: 10001;
+  opacity: 0; transition: opacity 0.18s;
+  overflow-y: auto; padding: 20px;
+}
+.schedule-custom-overlay.open { display: flex; opacity: 1; align-items: center; justify-content: center; }
+.schedule-custom-dialog {
+  background: var(--bg-surface); border: 1px solid var(--ai-purple-border); border-radius: 16px;
+  width: 600px; max-width: calc(100vw - 32px); padding: 20px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5); margin: auto;
+}
+/* ── Layout horizontal: calendario | (hora + resumen) ── */
+.sched-grid {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 14px;
+  align-items: start;
+}
+.sched-right { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sched-grid > .sched-cal { margin-bottom: 0; }
+.sched-right > .sched-time,
+.sched-right > .sched-summary { margin-bottom: 0; }
+.schedule-custom-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.schedule-custom-head h3 { font-family: var(--display); font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px; letter-spacing: -0.01em; }
+.schedule-custom-help { font-size: 11.5px; color: var(--text-muted); margin: 0; line-height: 1.5; }
+.schedule-custom-close {
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-muted);
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: background-color 0.12s, color 0.12s, border-color 0.12s;
+}
+.schedule-custom-close:hover { background: rgba(232,64,64,0.12); border-color: rgba(232,64,64,0.3); color: var(--danger); }
+.schedule-custom-close svg { width: 14px; height: 14px; }
+
+.sched-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.sched-preset {
+  padding: 7px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 999px;
+  color: var(--text-secondary); font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+  cursor: pointer; transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+.sched-preset:hover { background: rgba(124,92,237,0.14); border-color: var(--accent-border); color: var(--ai-purple-light); }
+
+.sched-cal { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 14px; }
+.sched-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sched-cal-nav {
+  width: 28px; height: 28px; border-radius: 7px;
+  border: 1px solid transparent; background: transparent; color: var(--text-secondary); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+.sched-cal-nav:hover { background: rgba(124,92,237,0.14); border-color: var(--accent-border); color: var(--ai-purple-light); }
+.sched-cal-nav:disabled { opacity: 0.35; cursor: not-allowed; background: transparent; border-color: transparent; }
+.sched-cal-nav svg { width: 14px; height: 14px; }
+.sched-cal-title { font-family: var(--display); font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.005em; text-transform: capitalize; }
+.sched-cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+.sched-cal-weekdays span { text-align: center; font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 0; }
+.sched-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.sched-day {
+  height: 34px; border-radius: 7px;
+  border: 1px solid transparent; background: transparent; color: var(--text-primary);
+  font-family: var(--font-sans); font-size: 12.5px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background-color 0.12s, color 0.12s, border-color 0.12s; position: relative;
+}
+.sched-day:hover:not(.disabled):not(.selected) { background: rgba(124,92,237,0.16); color: var(--ai-purple-light); }
+.sched-day.other { color: var(--text-muted); opacity: 0.35; cursor: default; }
+.sched-day.disabled { color: var(--text-muted); opacity: 0.3; cursor: not-allowed; }
+.sched-day.today { border-color: var(--accent-border); color: var(--ai-purple-light); font-weight: 700; }
+.sched-day.selected { background: linear-gradient(135deg, var(--ai-purple), #9b6dff); color: #fff; font-weight: 700; border-color: transparent; }
+
+.sched-time { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.sched-time-label { font-family: var(--mono); font-size: 10.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; align-self: flex-start; }
+.sched-time-pickers { display: inline-flex; align-items: center; gap: 8px; }
+.sched-time-input { display: inline-flex; flex-direction: column; align-items: center; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 9px; padding: 2px; width: 56px; }
+.sched-time-input:focus-within { border-color: var(--ai-purple); }
+.sched-time-btn {
+  width: 24px; height: 18px; border-radius: 4px;
+  background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background-color 0.12s, color 0.12s;
+}
+.sched-time-btn:hover { background: rgba(124,92,237,0.18); color: var(--ai-purple-light); }
+.sched-time-btn svg { width: 12px; height: 12px; }
+.sched-time-num {
+  width: 100%; height: 28px; background: transparent; border: none; outline: none;
+  text-align: center; font-family: var(--mono); font-size: 18px; font-weight: 700;
+  color: var(--text-primary); padding: 0; -moz-appearance: textfield;
+}
+.sched-time-num::-webkit-outer-spin-button,
+.sched-time-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sched-time-sep { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--text-muted); line-height: 1; }
+
+.sched-summary { display: flex; align-items: center; gap: 11px; padding: 11px 14px; background: rgba(124,92,237,0.1); border: 1px solid var(--accent-border); border-radius: 10px; margin-bottom: 14px; }
+.sched-summary svg { width: 16px; height: 16px; color: var(--ai-purple-light); flex-shrink: 0; }
+.sched-summary-text { display: flex; flex-direction: column; min-width: 0; }
+.sched-summary-text strong { font-size: 13px; font-weight: 700; color: var(--text-primary); text-transform: capitalize; }
+.sched-summary-text span { font-size: 11px; color: var(--text-muted); font-family: var(--mono); margin-top: 1px; }
+
+.schedule-custom-error { margin-bottom: 12px; padding: 9px 12px; background: rgba(232,64,64,0.1); border: 1px solid rgba(232,64,64,0.25); border-radius: 8px; font-size: 12px; color: var(--danger); }
+.schedule-custom-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.schedule-custom-actions .btn-secondary,
+.schedule-custom-actions .btn-primary {
+  padding: 9px 16px; border-radius: 9px; border: none;
+  font-family: var(--font-sans); font-size: 12.5px; font-weight: 700; cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  display: inline-flex; align-items: center;
+}
+.schedule-custom-actions .btn-secondary { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary); }
+.schedule-custom-actions .btn-secondary:hover { background: var(--bg-hover); color: var(--text-primary); }
+.schedule-custom-actions .btn-primary { background: linear-gradient(135deg, var(--ai-purple), #9b6dff); color: #fff; box-shadow: 0 4px 12px rgba(124,58,237,0.3); }
+.schedule-custom-actions .btn-primary:hover { box-shadow: 0 6px 16px rgba(124,58,237,0.4); }
+.schedule-custom-actions .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+@media (max-width: 640px) {
+  .compose-window { bottom: 0; right: 0; left: 0; top: 0; width: 100%; max-width: 100%; max-height: 100vh; border-radius: 0; }
+  .compose-window.minimized { bottom: 0; right: 0; left: auto; top: auto; width: 280px; height: auto; max-height: none; }
+}
+/* En móvil/tablet pequeño: el modal de programar vuelve a 1 columna */
+@media (max-width: 580px) {
+  .schedule-custom-dialog { width: 380px; padding: 18px; }
+  .sched-grid { grid-template-columns: 1fr; gap: 10px; }
+  .sched-time { flex-direction: row; align-items: center; justify-content: space-between; }
+  .sched-time-label { align-self: auto; }
+}
+</style>
+
+
+<!-- ════════════════════════════════════════════════════════════════════
+     COMPOSE MODAL — HTML
+     ════════════════════════════════════════════════════════════════════ -->
+<div class="compose-overlay" id="composeOverlay" aria-hidden="true"></div>
+
+<div class="compose-window" id="composeWindow" role="dialog" aria-labelledby="composeTitle" aria-hidden="true">
+  <div class="compose-head">
+    <div class="compose-head-brand">
+      {# Drag handle (6 puntos): visible solo en estado minimizado #}
+      <div class="compose-head-handle" aria-hidden="true">
+        <svg viewBox="0 0 8 16" fill="currentColor">
+          <circle cx="2" cy="3"  r="1"/><circle cx="6" cy="3"  r="1"/>
+          <circle cx="2" cy="8"  r="1"/><circle cx="6" cy="8"  r="1"/>
+          <circle cx="2" cy="13" r="1"/><circle cx="6" cy="13" r="1"/>
+        </svg>
+      </div>
+      <div class="compose-head-shield" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div class="compose-head-text">
+        <span class="compose-head-title" id="composeTitle">Nuevo mensaje</span>
+        <span class="compose-head-meta">
+          <span class="compose-head-dot"></span>
+          Cifrado · sin rastreo
+        </span>
+      </div>
+    </div>
+    <div class="compose-head-actions">
+      <button type="button" class="compose-head-btn" id="composeMinimize" title="Minimizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+      <button type="button" class="compose-head-btn" id="composeExpand" title="Ampliar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 3 21 3 21 9"/>
+          <polyline points="9 21 3 21 3 15"/>
+          <line x1="21" y1="3"  x2="14" y2="10"/>
+          <line x1="3"  y1="21" x2="10" y2="14"/>
+        </svg>
+      </button>
+      <button type="button" class="compose-head-btn" id="composeClose" title="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <form id="composeForm" class="compose-body">
+    {% csrf_token %}
+    <div class="compose-row from">
+      <span class="compose-row-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/></svg>
+        Desde
+      </span>
+      <span class="compose-row-from">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        <span id="composeFromAddr">—</span>
+      </span>
+    </div>
+
+    <div class="compose-row">
+      <label class="compose-row-label" for="composeTo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        Para
+      </label>
+      <input type="email" id="composeTo" name="to" class="compose-row-input" placeholder="destinatario@correo.com" autocomplete="email" required>
+    </div>
+    <div class="compose-error-row" id="composeErrTo"></div>
+
+    <div class="compose-row">
+      <label class="compose-row-label" for="composeSubject">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Asunto
+      </label>
+      <input type="text" id="composeSubject" name="subject" class="compose-row-input" placeholder="Asunto (opcional)" maxlength="200">
+    </div>
+    <div class="compose-error-row" id="composeErrSubject"></div>
+
+    <div class="compose-toolbar" role="toolbar" aria-label="Formato">
+      <button type="button" class="ctb" data-cmd="bold" title="Negrita (Ctrl+B)"><b>B</b></button>
+      <button type="button" class="ctb" data-cmd="italic" title="Cursiva (Ctrl+I)"><i>I</i></button>
+      <button type="button" class="ctb" data-cmd="underline" title="Subrayado (Ctrl+U)"><u>U</u></button>
+      <button type="button" class="ctb" data-cmd="strikeThrough" title="Tachado"><s>S</s></button>
+      <span class="ctb-sep"></span>
+      <button type="button" class="ctb" data-cmd="insertUnorderedList" title="Lista con viñetas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1.5" fill="currentColor"/><circle cx="3.5" cy="12" r="1.5" fill="currentColor"/><circle cx="3.5" cy="18" r="1.5" fill="currentColor"/></svg>
+      </button>
+      <button type="button" class="ctb" data-cmd="insertOrderedList" title="Lista numerada">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+      </button>
+      <span class="ctb-sep"></span>
+      <button type="button" class="ctb" data-cmd="justifyLeft" title="Alinear izquierda">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+      </button>
+      <button type="button" class="ctb" data-cmd="justifyCenter" title="Centrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </button>
+      <span class="ctb-sep"></span>
+      <button type="button" class="ctb" id="ctbLink" title="Insertar enlace">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </button>
+      <button type="button" class="ctb" data-cmd="removeFormat" title="Quitar formato">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V4h16v3"/><path d="M5 20h6"/><path d="M13 4L8 20"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+      </button>
+    </div>
+
+    <div id="composeMessage" class="compose-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" data-placeholder="Escribe tu mensaje..."></div>
+    <div class="compose-error-row" id="composeErrMessage"></div>
+
+    <div class="compose-attachments" id="composeAttachments"></div>
+    <input type="file" id="composeFileInput" multiple style="display:none">
+
+    <div class="compose-foot">
+      <div class="compose-foot-left">
+        <button type="button" class="compose-foot-icon" id="composeAttachBtn" title="Adjuntar archivos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+        </button>
+        <span class="compose-foot-info">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Envío seguro vía DockerShield
+        </span>
+      </div>
+      <div class="compose-send-wrap" id="composeSendWrap">
+        <button type="submit" class="compose-send-btn" id="composeSendBtn">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="send-text" id="composeSendText">Enviar</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+        <button type="button" class="compose-send-arrow" id="composeSendArrow" title="Programar envío" aria-label="Programar envío">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <div class="schedule-popover" id="schedulePopover" role="menu" aria-hidden="true">
+          <div class="schedule-head">
+            <div class="schedule-title">Programar envío</div>
+            <div class="schedule-sub">¿Cuándo desea que se envíe el mensaje?</div>
+          </div>
+          <button type="button" class="schedule-item" data-preset="tomorrow">
+            <span class="schedule-item-icon morning" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>
+            </span>
+            <div class="schedule-item-content">
+              <div class="schedule-item-label">Mañana</div>
+              <div class="schedule-item-when" id="schedTomorrowText">—</div>
+            </div>
+          </button>
+          <button type="button" class="schedule-item" data-preset="monday">
+            <span class="schedule-item-icon week" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+            <div class="schedule-item-content">
+              <div class="schedule-item-label">Lunes</div>
+              <div class="schedule-item-when" id="schedMondayText">—</div>
+            </div>
+          </button>
+          <button type="button" class="schedule-item custom" data-preset="custom">
+            <span class="schedule-item-icon custom" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <div class="schedule-item-content">
+              <div class="schedule-item-label">Personalizada</div>
+              <div class="schedule-item-when">Elige fecha y hora</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <input type="hidden" id="composeScheduledAt" name="scheduled_at" value="">
+    <div class="compose-scheduled-banner" id="composeScheduledBanner" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Programado para <strong id="composeScheduledLabel">—</strong></span>
+      <button type="button" class="compose-scheduled-clear" id="composeScheduledClear" title="Cancelar programación">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal datetime-picker custom (opción 'Personalizada') -->
+<div class="schedule-custom-overlay" id="scheduleCustomOverlay" aria-hidden="true">
+  <div class="schedule-custom-dialog" role="dialog" aria-labelledby="scheduleCustomTitle">
+    <div class="schedule-custom-head">
+      <div>
+        <h3 id="scheduleCustomTitle">Programar envío</h3>
+        <p class="schedule-custom-help">Elige cuándo quieres que se envíe · máximo 72 h en el futuro</p>
+      </div>
+      <button type="button" class="schedule-custom-close" id="scheduleCustomClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="sched-presets">
+      <button type="button" class="sched-preset" data-mins="30">+30 min</button>
+      <button type="button" class="sched-preset" data-mins="60">+1 h</button>
+      <button type="button" class="sched-preset" data-mins="180">+3 h</button>
+      <button type="button" class="sched-preset" data-tomorrow="9">Mañana 9:00</button>
+    </div>
+    <div class="sched-grid">
+      <div class="sched-cal">
+        <div class="sched-cal-head">
+          <button type="button" class="sched-cal-nav" id="schedPrev" aria-label="Mes anterior">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="sched-cal-title" id="schedCalTitle">—</span>
+          <button type="button" class="sched-cal-nav" id="schedNext" aria-label="Mes siguiente">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="sched-cal-weekdays"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <div class="sched-cal-grid" id="schedCalGrid"></div>
+      </div>
+      <div class="sched-right">
+        <div class="sched-time">
+          <label class="sched-time-label">Hora</label>
+          <div class="sched-time-pickers">
+            <div class="sched-time-input">
+              <button type="button" class="sched-time-btn" data-target="hour" data-step="1" aria-label="Hora más">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <input type="text" id="schedHour" class="sched-time-num" inputmode="numeric" maxlength="2" value="09">
+              <button type="button" class="sched-time-btn" data-target="hour" data-step="-1" aria-label="Hora menos">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <span class="sched-time-sep">:</span>
+            <div class="sched-time-input">
+              <button type="button" class="sched-time-btn" data-target="minute" data-step="5" aria-label="Minutos más">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <input type="text" id="schedMinute" class="sched-time-num" inputmode="numeric" maxlength="2" value="00">
+              <button type="button" class="sched-time-btn" data-target="minute" data-step="-5" aria-label="Minutos menos">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="sched-summary" id="schedSummary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="sched-summary-text">
+            <strong id="schedSummaryWhen">Selecciona fecha y hora</strong>
+            <span id="schedSummaryRel"></span>
+          </div>
+        </div>
+        <div class="schedule-custom-error" id="scheduleCustomError" hidden></div>
+      </div>
+    </div>
+    <div class="schedule-custom-actions">
+      <button type="button" class="btn-secondary" id="scheduleCustomCancel">Cancelar</button>
+      <button type="button" class="btn-primary" id="scheduleCustomConfirm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:13px;height:13px;margin-right:5px;vertical-align:-2px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Programar envío
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   COMPOSE MODAL — JS con persistencia entre páginas (sessionStorage)
+   ════════════════════════════════════════════════════════════════════ */
+(function () {
+  var overlay     = document.getElementById('composeOverlay');
+  var win         = document.getElementById('composeWindow');
+  var fromAddr    = document.getElementById('composeFromAddr');
+  var inputTo     = document.getElementById('composeTo');
+  var inputSubj   = document.getElementById('composeSubject');
+  var editor      = document.getElementById('composeMessage');
+  var errTo       = document.getElementById('composeErrTo');
+  var errSubj     = document.getElementById('composeErrSubject');
+  var errMsg      = document.getElementById('composeErrMessage');
+  var btnSend     = document.getElementById('composeSendBtn');
+  var btnClose    = document.getElementById('composeClose');
+  var btnMinimize = document.getElementById('composeMinimize');
+  var form        = document.getElementById('composeForm');
+  var toolbar     = form ? form.querySelector('.compose-toolbar') : null;
+  var btnLink     = document.getElementById('ctbLink');
+  var btnAttach   = document.getElementById('composeAttachBtn');
+  var fileInput   = document.getElementById('composeFileInput');
+  var attachList  = document.getElementById('composeAttachments');
+
+  if (!win || !form) return;
+
+  // ── Estado interno ──
+  var STATE_KEY = 'sms_compose_state';
+  var currentAliasId   = null;
+  var currentAliasAddr = '';
+  var currentAliasLabel = '';
+  var attachedFiles    = [];                 // File[] (no se persiste)
+  var attachedTotalBytes = 0;
+  var MAX_TOTAL_BYTES  = 25 * 1024 * 1024;
+  var MAX_FILES        = 10;
+
+  function getCsrf() {
+    var hidden = form.querySelector('input[name=csrfmiddlewaretoken]');
+    if (hidden) return hidden.value;
+    var c = document.cookie.split(';').find(function (s) { return s.trim().startsWith('csrftoken='); });
+    return c ? c.split('=')[1] : '';
+  }
+
+  // ── Persistencia: sessionStorage ──
+  // Guardamos el estado del compose entre navegaciones para que el usuario
+  // pueda navegar por la web con el correo abierto/minimizado y al cerrar
+  // explícitamente con la X se borra. NO se guardan adjuntos (File objects
+  // no son serializables) — el usuario los pierde al navegar.
+  function saveState() {
+    if (!win.classList.contains('open')) return;
+    var isMin = win.classList.contains('minimized');
+    var isMax = win.classList.contains('maximized');
+    // Si está minimizado, la clase 'maximized' fue removida temporalmente
+    // pero queremos persistir la intención del usuario para restaurarla
+    // al des-minimizar (incluso después de navegar de página).
+    var maxIntent = isMin ? wasMaximizedBeforeMinimize : isMax;
+    try {
+      sessionStorage.setItem(STATE_KEY, JSON.stringify({
+        aliasId:      currentAliasId,
+        aliasAddress: currentAliasAddr,
+        aliasLabel:   currentAliasLabel,
+        to:           inputTo.value,
+        subject:      inputSubj.value,
+        bodyHtml:     editor.innerHTML,
+        scheduledAt:  inputScheduled.value,
+        minimized:    isMin,
+        maximized:    maxIntent,
+      }));
+    } catch (e) {}
+  }
+  function clearState() {
+    try { sessionStorage.removeItem(STATE_KEY); } catch (e) {}
+  }
+
+  function clearErrors() {
+    [errTo, errSubj, errMsg].forEach(function (el) {
+      el.classList.remove('show'); el.textContent = '';
+    });
+  }
+  function showErrors(map) {
+    clearErrors();
+    if (map.to)          { errTo.textContent   = map.to;          errTo.classList.add('show'); }
+    if (map.subject)     { errSubj.textContent = map.subject;     errSubj.classList.add('show'); }
+    if (map.message)     { errMsg.textContent  = map.message;     errMsg.classList.add('show'); }
+    if (map.attachments) { errMsg.textContent  = map.attachments; errMsg.classList.add('show'); }
+  }
+
+  function defaultBody() {
+    return '<p>Hola,</p><p><br></p><p><br></p><p>Saludos,<br>Enviado desde mi alias seguro de DockerShield.</p>';
+  }
+
+  // ── Toolbar de formato ──
+  if (toolbar) {
+    toolbar.addEventListener('click', function (e) {
+      var btn = e.target.closest('.ctb');
+      if (!btn) return;
+      var cmd = btn.dataset.cmd;
+      if (!cmd) return;
+      e.preventDefault();
+      editor.focus();
+      document.execCommand(cmd, false, null);
+      updateToolbarState();
+      saveState();
+    });
+  }
+  if (btnLink) {
+    btnLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      var url = window.prompt('URL del enlace (debe empezar con https://):');
+      if (!url) return;
+      url = url.trim();
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      editor.focus();
+      document.execCommand('createLink', false, url);
+      saveState();
+    });
+  }
+  function updateToolbarState() {
+    if (!toolbar) return;
+    toolbar.querySelectorAll('.ctb[data-cmd]').forEach(function (b) {
+      try {
+        var active = document.queryCommandState(b.dataset.cmd);
+        b.classList.toggle('active', !!active);
+      } catch (e) {}
+    });
+  }
+  if (editor) {
+    editor.addEventListener('keyup', updateToolbarState);
+    editor.addEventListener('mouseup', updateToolbarState);
+    editor.addEventListener('focus', updateToolbarState);
+    editor.addEventListener('input', saveState);
+    editor.addEventListener('paste', function (e) {
+      e.preventDefault();
+      var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, text);
+    });
+  }
+  inputTo.addEventListener('input', saveState);
+  inputSubj.addEventListener('input', saveState);
+
+  // ── Adjuntos ──
+  function fmtSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function (c) {
+      return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c];
+    });
+  }
+  function renderAttachments() {
+    if (!attachList) return;
+    attachList.innerHTML = attachedFiles.map(function (f, i) {
+      return '<span class="compose-attachment">'
+        + '<svg class="compose-attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>'
+        + '<span class="compose-attachment-name" title="' + escapeHtml(f.name) + '">' + escapeHtml(f.name) + '</span>'
+        + '<span class="compose-attachment-size">' + fmtSize(f.size) + '</span>'
+        + '<button type="button" class="compose-attachment-remove" data-idx="' + i + '" aria-label="Quitar adjunto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+        + '</span>';
+    }).join('');
+  }
+  function addFiles(files) {
+    var added = 0;
+    Array.from(files).forEach(function (f) {
+      if (attachedFiles.length >= MAX_FILES) return;
+      if (attachedTotalBytes + f.size > MAX_TOTAL_BYTES) {
+        if (window.showToast) window.showToast({ type:'warning', title:'Adjunto omitido', message: f.name + ' supera el límite total de 25 MB.', duration:5000 });
+        return;
+      }
+      attachedFiles.push(f);
+      attachedTotalBytes += f.size;
+      added++;
+    });
+    if (added) renderAttachments();
+  }
+  if (btnAttach) {
+    btnAttach.addEventListener('click', function () {
+      if (!fileInput) return;
+      fileInput.value = '';
+      fileInput.click();
+    });
+  }
+  if (fileInput) {
+    fileInput.addEventListener('change', function () {
+      if (fileInput.files && fileInput.files.length) addFiles(fileInput.files);
+    });
+  }
+  if (attachList) {
+    attachList.addEventListener('click', function (e) {
+      var btn = e.target.closest('.compose-attachment-remove');
+      if (!btn) return;
+      var idx = parseInt(btn.dataset.idx, 10);
+      if (isNaN(idx)) return;
+      var removed = attachedFiles.splice(idx, 1)[0];
+      if (removed) attachedTotalBytes -= removed.size;
+      renderAttachments();
+    });
+  }
+  if (editor) {
+    ['dragover','drop'].forEach(function (evt) {
+      editor.addEventListener(evt, function (e) { e.preventDefault(); });
+    });
+    editor.addEventListener('drop', function (e) {
+      e.preventDefault();
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+    });
+  }
+
+  // ── Programar envío (popover + custom) ──
+  var sendWrap        = document.getElementById('composeSendWrap');
+  var btnSendArrow    = document.getElementById('composeSendArrow');
+  var schedulePopover = document.getElementById('schedulePopover');
+  var sendText        = document.getElementById('composeSendText');
+  var schedTomorrowEl = document.getElementById('schedTomorrowText');
+  var schedMondayEl   = document.getElementById('schedMondayText');
+  var inputScheduled  = document.getElementById('composeScheduledAt');
+  var schedBanner     = document.getElementById('composeScheduledBanner');
+  var schedLabel      = document.getElementById('composeScheduledLabel');
+  var btnSchedClear   = document.getElementById('composeScheduledClear');
+  var customOverlay   = document.getElementById('scheduleCustomOverlay');
+  var customError     = document.getElementById('scheduleCustomError');
+  var btnCustomClose  = document.getElementById('scheduleCustomClose');
+  var btnCustomCancel = document.getElementById('scheduleCustomCancel');
+  var btnCustomConfirm = document.getElementById('scheduleCustomConfirm');
+  var calTitle        = document.getElementById('schedCalTitle');
+  var calGrid         = document.getElementById('schedCalGrid');
+  var calPrev         = document.getElementById('schedPrev');
+  var calNext         = document.getElementById('schedNext');
+  var hourInput       = document.getElementById('schedHour');
+  var minuteInput     = document.getElementById('schedMinute');
+  var summaryWhen     = document.getElementById('schedSummaryWhen');
+  var summaryRel      = document.getElementById('schedSummaryRel');
+  var presets         = document.querySelectorAll('.sched-preset');
+  var stepBtns        = document.querySelectorAll('.sched-time-btn');
+
+  var MONTH_NAMES_FULL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  var MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var sched = { selected: null, viewYear: 0, viewMonth: 0 };
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function pad2x(n) { return pad2(n); }
+  function startOfDay(d) { var x = new Date(d); x.setHours(0,0,0,0); return x; }
+  function sameDay(a, b) {
+    return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+  function isoLocal(d) {
+    return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+'T'+pad2(d.getHours())+':'+pad2(d.getMinutes());
+  }
+
+  function renderCalendar() {
+    if (!calGrid || !calTitle) return;
+    var y = sched.viewYear, m = sched.viewMonth;
+    calTitle.textContent = MONTH_NAMES_FULL[m] + ' ' + y;
+    var firstDow = new Date(y, m, 1).getDay();
+    var startOffset = (firstDow + 6) % 7;
+    var daysInMonth = new Date(y, m + 1, 0).getDate();
+    var prevDays = new Date(y, m, 0).getDate();
+    var todayStart = startOfDay(new Date());
+    var maxDate = startOfDay(new Date(Date.now() + 72 * 60 * 60 * 1000));
+    var html = '';
+    for (var i = startOffset; i > 0; i--) html += '<button type="button" class="sched-day other" tabindex="-1" disabled>' + (prevDays - i + 1) + '</button>';
+    for (var d = 1; d <= daysInMonth; d++) {
+      var thisDate = new Date(y, m, d);
+      var classes = ['sched-day'];
+      if (sameDay(thisDate, new Date())) classes.push('today');
+      if (sched.selected && sameDay(thisDate, sched.selected)) classes.push('selected');
+      var disabled = thisDate < todayStart || thisDate > maxDate;
+      if (disabled) classes.push('disabled');
+      html += '<button type="button" class="' + classes.join(' ') + '" data-day="' + d + '"' + (disabled ? ' disabled' : '') + '>' + d + '</button>';
+    }
+    var totalCells = startOffset + daysInMonth;
+    var pad = (Math.ceil(totalCells / 7) * 7) - totalCells;
+    for (var k = 1; k <= pad; k++) html += '<button type="button" class="sched-day other" tabindex="-1" disabled>' + k + '</button>';
+    calGrid.innerHTML = html;
+    var todayMonth = new Date().getFullYear() * 12 + new Date().getMonth();
+    var maxMonth   = new Date(maxDate).getFullYear() * 12 + new Date(maxDate).getMonth();
+    var viewIdx    = y * 12 + m;
+    if (calPrev) calPrev.disabled = viewIdx <= todayMonth;
+    if (calNext) calNext.disabled = viewIdx >= maxMonth;
+  }
+  function relativeText(target) {
+    var diffMs = target.getTime() - Date.now();
+    if (diffMs <= 0) return 'En el pasado';
+    var totalMin = Math.round(diffMs / 60000);
+    if (totalMin < 60) return 'En ' + totalMin + ' min';
+    var hours = Math.floor(totalMin / 60);
+    var mins  = totalMin % 60;
+    if (hours < 24) return mins ? 'En '+hours+' h '+mins+' min' : 'En '+hours+' h';
+    var days = Math.floor(hours / 24);
+    var hrs = hours % 24;
+    return hrs ? 'En '+days+' d '+hrs+' h' : 'En '+days+' d';
+  }
+  function updateSummary() {
+    if (!sched.selected || !summaryWhen) return;
+    var d = sched.selected;
+    var weekday = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][d.getDay()];
+    var dayStr = d.getDate() + ' ' + MONTH_NAMES_FULL[d.getMonth()];
+    summaryWhen.textContent = weekday + ', ' + dayStr + ' · ' + pad2x(d.getHours()) + ':' + pad2x(d.getMinutes());
+    summaryRel.textContent  = relativeText(d);
+    var now = Date.now();
+    var min = now + 60 * 1000;
+    var max = now + 72 * 60 * 60 * 1000;
+    var valid = d.getTime() >= min && d.getTime() <= max;
+    btnCustomConfirm.disabled = !valid;
+    if (!valid) {
+      customError.textContent = (d.getTime() < min) ? 'La hora ya pasó. Elige al menos 1 minuto en el futuro.' : 'No se puede programar más de 72 horas en el futuro.';
+      customError.hidden = false;
+    } else { customError.hidden = true; }
+  }
+  function setSelectedDate(d) {
+    sched.selected = new Date(d);
+    sched.selected.setSeconds(0, 0);
+    sched.viewYear = sched.selected.getFullYear();
+    sched.viewMonth = sched.selected.getMonth();
+    hourInput.value = pad2x(sched.selected.getHours());
+    minuteInput.value = pad2x(sched.selected.getMinutes());
+    renderCalendar();
+    updateSummary();
+  }
+
+  if (calGrid) {
+    calGrid.addEventListener('click', function (e) {
+      var btn = e.target.closest('.sched-day');
+      if (!btn || btn.disabled) return;
+      var day = parseInt(btn.dataset.day, 10);
+      if (isNaN(day)) return;
+      var newDate = new Date(sched.selected || new Date());
+      newDate.setFullYear(sched.viewYear);
+      newDate.setMonth(sched.viewMonth);
+      newDate.setDate(day);
+      setSelectedDate(newDate);
+    });
+  }
+  if (calPrev) calPrev.addEventListener('click', function () {
+    sched.viewMonth--;
+    if (sched.viewMonth < 0) { sched.viewMonth = 11; sched.viewYear--; }
+    renderCalendar();
+  });
+  if (calNext) calNext.addEventListener('click', function () {
+    sched.viewMonth++;
+    if (sched.viewMonth > 11) { sched.viewMonth = 0; sched.viewYear++; }
+    renderCalendar();
+  });
+  stepBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!sched.selected) return;
+      var step = parseInt(btn.dataset.step, 10) || 0;
+      var target = btn.dataset.target;
+      var d = new Date(sched.selected);
+      if (target === 'hour') d.setHours(d.getHours() + step);
+      else if (target === 'minute') d.setMinutes(d.getMinutes() + step);
+      setSelectedDate(d);
+    });
+  });
+  function bindNumInput(input, min, max, isHour) {
+    if (!input) return;
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); return; }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length > 1) return;
+      if (!/^\d$/.test(e.key)) e.preventDefault();
+    });
+    input.addEventListener('input', function () {
+      var cleaned = input.value.replace(/[^\d]/g, '').slice(0, 2);
+      if (cleaned !== input.value) input.value = cleaned;
+      var v = parseInt(cleaned, 10);
+      if (!isNaN(v) && v > max) input.value = String(max);
+    });
+    input.addEventListener('blur', function () {
+      var v = parseInt(input.value, 10);
+      if (isNaN(v)) v = isHour ? new Date().getHours() : 0;
+      v = Math.max(min, Math.min(max, v));
+      input.value = pad2x(v);
+      if (sched.selected) {
+        var d = new Date(sched.selected);
+        if (isHour) d.setHours(v); else d.setMinutes(v);
+        setSelectedDate(d);
+      }
+    });
+    input.addEventListener('focus', function () { input.select(); });
+  }
+  bindNumInput(hourInput, 0, 23, true);
+  bindNumInput(minuteInput, 0, 59, false);
+
+  presets.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      var mins = parseInt(chip.dataset.mins, 10);
+      if (!isNaN(mins)) { setSelectedDate(new Date(Date.now() + mins * 60 * 1000)); return; }
+      var tom = parseInt(chip.dataset.tomorrow, 10);
+      if (!isNaN(tom)) {
+        var t = new Date(); t.setDate(t.getDate() + 1); t.setHours(tom, 0, 0, 0);
+        setSelectedDate(t);
+      }
+    });
+  });
+
+  function presetTomorrow() { var d = new Date(); d.setDate(d.getDate()+1); d.setHours(8,0,0,0); return d; }
+  function presetNextMonday() {
+    var d = new Date(); var day = d.getDay();
+    var add = (1 - day + 7) % 7; if (add === 0) add = 7;
+    d.setDate(d.getDate() + add); d.setHours(8,0,0,0); return d;
+  }
+  function refreshPresetLabels() {
+    var t = presetTomorrow();
+    var m = presetNextMonday();
+    if (schedTomorrowEl) schedTomorrowEl.textContent = t.getDate()+' '+MONTHS_ES[t.getMonth()]+' · '+pad2(t.getHours())+':'+pad2(t.getMinutes());
+    if (schedMondayEl) schedMondayEl.textContent = m.getDate()+' '+MONTHS_ES[m.getMonth()]+' · '+pad2(m.getHours())+':'+pad2(m.getMinutes());
+  }
+  function positionPopover() {
+    if (!schedulePopover || !btnSendArrow) return;
+    var rect = btnSendArrow.getBoundingClientRect();
+    schedulePopover.style.bottom = (window.innerHeight - rect.top + 12) + 'px';
+    schedulePopover.style.right  = (window.innerWidth - rect.right) + 'px';
+    schedulePopover.style.left = 'auto'; schedulePopover.style.top = 'auto';
+  }
+  function setSchedulePopover(open) {
+    if (!schedulePopover || !sendWrap) return;
+    if (open) { refreshPresetLabels(); positionPopover(); }
+    schedulePopover.classList.toggle('open', open);
+    sendWrap.classList.toggle('menu-open', open);
+    schedulePopover.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }
+  if (btnSendArrow) {
+    btnSendArrow.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setSchedulePopover(!schedulePopover.classList.contains('open'));
+    });
+  }
+  document.addEventListener('click', function (e) {
+    if (!schedulePopover || !schedulePopover.classList.contains('open')) return;
+    if (sendWrap && !sendWrap.contains(e.target) && !schedulePopover.contains(e.target)) setSchedulePopover(false);
+  });
+  window.addEventListener('resize', function () {
+    if (schedulePopover && schedulePopover.classList.contains('open')) positionPopover();
+  });
+
+  function applySchedule(date) {
+    if (!date || !inputScheduled || !schedBanner) return;
+    inputScheduled.value = isoLocal(date);
+    var labelText = date.getDate()+' '+MONTHS_ES[date.getMonth()]+' · '+pad2(date.getHours())+':'+pad2(date.getMinutes());
+    if (schedLabel) schedLabel.textContent = labelText;
+    schedBanner.hidden = false;
+    if (sendText) sendText.textContent = 'Programar';
+    saveState();
+  }
+  function clearSchedule() {
+    if (!inputScheduled || !schedBanner) return;
+    inputScheduled.value = '';
+    schedBanner.hidden = true;
+    if (sendText) sendText.textContent = 'Enviar';
+    saveState();
+  }
+  if (btnSchedClear) btnSchedClear.addEventListener('click', clearSchedule);
+  if (schedulePopover) {
+    schedulePopover.addEventListener('click', function (e) {
+      var btn = e.target.closest('.schedule-item');
+      if (!btn) return;
+      var preset = btn.dataset.preset;
+      setSchedulePopover(false);
+      if (preset === 'tomorrow') applySchedule(presetTomorrow());
+      else if (preset === 'monday') applySchedule(presetNextMonday());
+      else if (preset === 'custom') openCustomScheduler();
+    });
+  }
+  function openCustomScheduler() {
+    if (!customOverlay) return;
+    customError.hidden = true; customError.textContent = '';
+    var initial = new Date(Date.now() + 30 * 60 * 1000); initial.setSeconds(0,0);
+    setSelectedDate(initial);
+    customOverlay.classList.add('open');
+    customOverlay.setAttribute('aria-hidden', 'false');
+  }
+  function closeCustomScheduler() {
+    if (!customOverlay) return;
+    customOverlay.classList.remove('open');
+    customOverlay.setAttribute('aria-hidden', 'true');
+  }
+  if (btnCustomClose)  btnCustomClose.addEventListener('click', closeCustomScheduler);
+  if (btnCustomCancel) btnCustomCancel.addEventListener('click', closeCustomScheduler);
+  if (customOverlay) {
+    customOverlay.addEventListener('click', function (e) { if (e.target === customOverlay) closeCustomScheduler(); });
+  }
+  if (btnCustomConfirm) {
+    btnCustomConfirm.addEventListener('click', function () {
+      if (!sched.selected) return;
+      var now = Date.now();
+      var t = sched.selected.getTime();
+      if (t <= now + 60 * 1000) {
+        customError.textContent = 'La hora ya pasó. Elige al menos 1 minuto en el futuro.';
+        customError.hidden = false; return;
+      }
+      if (t > now + 72 * 60 * 60 * 1000) {
+        customError.textContent = 'No se puede programar más de 72 horas en el futuro.';
+        customError.hidden = false; return;
+      }
+      applySchedule(sched.selected);
+      closeCustomScheduler();
+    });
+  }
+
+  // ── Apertura / cierre / minimizar ──
+  window.openCompose = function (aliasId, address, label) {
+    currentAliasId    = aliasId;
+    currentAliasAddr  = address;
+    currentAliasLabel = label || '';
+    fromAddr.textContent = address;
+    fromAddr.title       = label ? (label + ' · ' + address) : address;
+    inputTo.value = ''; inputSubj.value = '';
+    editor.innerHTML = defaultBody();
+    attachedFiles = []; attachedTotalBytes = 0;
+    renderAttachments();
+    clearSchedule();
+    setSchedulePopover(false);
+    setMinimized(false);
+    clearErrors();
+    btnSend.classList.remove('loading');
+    btnSend.disabled = false;
+    overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false');
+    win.classList.add('open'); win.setAttribute('aria-hidden','false');
+    setTimeout(function () { inputTo.focus(); }, 200);
+    saveState();
+  };
+  function closeCompose() {
+    overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true');
+    win.classList.remove('open'); win.setAttribute('aria-hidden','true');
+    currentAliasId = null;
+    clearState();
+  }
+  // Recordamos si estaba ampliado al minimizar para poder restaurarlo
+  // exactamente al estado anterior cuando se vuelve a abrir.
+  var wasMaximizedBeforeMinimize = false;
+  function setMinimized(min) {
+    if (min) {
+      // Si estaba en modo ampliado, recordamos para restaurarlo después
+      // y QUITAMOS la clase maximized — si no, el chip minimizado heredaría
+      // el alto del viewport y se vería como una caja vertical vacía.
+      wasMaximizedBeforeMinimize = win.classList.contains('maximized');
+      win.classList.remove('maximized');
+      win.classList.add('minimized');
+      win.setAttribute('aria-expanded','false');
+      // CLAVE: al minimizar, quitamos el overlay (oscuro + blur) para que
+      // el usuario pueda seguir navegando y haciendo click en la web con
+      // total normalidad. La ventana minimizada queda flotando abajo a
+      // la derecha como un widget independiente, sin bloquear nada.
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden','true');
+      btnMinimize.title = 'Restaurar';
+      btnMinimize.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>';
+    } else {
+      win.classList.remove('minimized');
+      // Si estaba ampliado antes de minimizar, restauramos ese modo.
+      if (wasMaximizedBeforeMinimize) {
+        win.classList.add('maximized');
+        wasMaximizedBeforeMinimize = false;
+      }
+      win.setAttribute('aria-expanded','true');
+      // Al restaurar (solo si la ventana sigue abierta), regresa el overlay.
+      if (win.classList.contains('open')) {
+        overlay.classList.add('open');
+        overlay.setAttribute('aria-hidden','false');
+      }
+      btnMinimize.title = 'Minimizar';
+      btnMinimize.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    }
+    saveState();
+  }
+
+  btnClose.addEventListener('click', function (e) { e.stopPropagation(); closeCompose(); });
+  // Click en el overlay (zona borrosa a los lados): MINIMIZA en lugar de
+  // cerrar. Cerrar borraría todo el contenido del correo (destinatario,
+  // texto, asunto, programación, ...) — minimizar es la acción no destructiva
+  // y consistente con Gmail/Proton. Para cerrar definitivamente está la X.
+  overlay.addEventListener('click', function () {
+    if (!win.classList.contains('open')) return;
+    if (win.classList.contains('minimized')) return;
+    setMinimized(true);
+  });
+  btnMinimize.addEventListener('click', function (e) {
+    e.stopPropagation();
+    setMinimized(!win.classList.contains('minimized'));
+  });
+  // Botón "Ampliar" (↗): toggle del modo horizontal/ampliado.
+  // - Si está minimizado → restaura Y aplica el modo ampliado.
+  // - Si está en tamaño normal → cambia a ampliado.
+  // - Si ya está ampliado → vuelve al tamaño normal.
+  var btnExpand = document.getElementById('composeExpand');
+  if (btnExpand) {
+    btnExpand.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (win.classList.contains('minimized')) {
+        // Restaurar saliendo del modo minimizado y entrar a ampliado
+        win.classList.remove('minimized');
+        win.setAttribute('aria-expanded', 'true');
+        if (win.classList.contains('open')) {
+          overlay.classList.add('open');
+          overlay.setAttribute('aria-hidden', 'false');
+        }
+        btnMinimize.title = 'Minimizar';
+        btnMinimize.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+        win.classList.add('maximized');
+      } else {
+        // Toggle del modo ampliado
+        win.classList.toggle('maximized');
+      }
+      saveState();
+    });
+  }
+  var composeHead = win.querySelector('.compose-head');
+  if (composeHead) {
+    composeHead.addEventListener('click', function (e) {
+      if (!win.classList.contains('minimized')) return;
+      if (e.target.closest('.compose-head-btn')) return;
+      // Click en cabecera → restaurar al tamaño NORMAL (sin ampliar).
+      // Solo el botón ↗ activa el modo ampliado.
+      win.classList.remove('maximized');
+      setMinimized(false);
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && win.classList.contains('open')) {
+      if (win.classList.contains('minimized')) setMinimized(false);
+      else closeCompose();
+    }
+  });
+
+  // ── Submit ──
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!currentAliasId) return;
+    clearErrors();
+    btnSend.classList.add('loading'); btnSend.disabled = true;
+    var fd = new FormData();
+    fd.append('to', inputTo.value);
+    fd.append('subject', inputSubj.value);
+    fd.append('message_html', editor.innerHTML);
+    if (inputScheduled && inputScheduled.value) fd.append('scheduled_at', inputScheduled.value);
+    attachedFiles.forEach(function (f) { fd.append('attachments', f); });
+    fetch('/alias/' + currentAliasId + '/enviar/', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+      body: fd,
+    })
+    .then(function (res) { return res.json().then(function (data) { return { status: res.status, data: data }; }); })
+    .then(function (r) {
+      btnSend.classList.remove('loading'); btnSend.disabled = false;
+      if (r.status === 200 && r.data.ok) {
+        if (window.showToast) {
+          var msg = r.data.message || 'Enviado';
+          if (r.data.attachments_sent) msg += ' · ' + r.data.attachments_sent + ' adjunto' + (r.data.attachments_sent === 1 ? '' : 's');
+          window.showToast({ type:'success', title:'Correo enviado', message: msg, duration: 5000 });
+        }
+        closeCompose();
+      } else {
+        if (r.data && r.data.errors) showErrors(r.data.errors);
+        else if (r.data && r.data.error) {
+          if (window.showToast) window.showToast({ type:'danger', title:'No se pudo enviar', message: r.data.error, duration: 6000 });
+        }
+      }
+    })
+    .catch(function () {
+      btnSend.classList.remove('loading'); btnSend.disabled = false;
+      if (window.showToast) window.showToast({ type:'danger', title:'Error de red', message:'No pudimos conectar con el servidor. Intenta de nuevo.', duration: 6000 });
+    });
+  });
+
+  // ── Restaurar estado al cargar la página ──
+  // Si el usuario estaba con el compose abierto y navegó a otra página,
+  // restauramos todo (alias, texto, asunto, programación, minimizado).
+  // No restauramos los adjuntos (se pierden al navegar — es el trade-off
+  // de no poder serializar `File` objects en sessionStorage).
+  function restoreState() {
+    var raw = null;
+    try { raw = sessionStorage.getItem(STATE_KEY); } catch (e) {}
+    if (!raw) return;
+    var s; try { s = JSON.parse(raw); } catch (e) { return; }
+    if (!s || !s.aliasId) return;
+
+    currentAliasId    = s.aliasId;
+    currentAliasAddr  = s.aliasAddress || '';
+    currentAliasLabel = s.aliasLabel || '';
+    fromAddr.textContent = currentAliasAddr || '—';
+    fromAddr.title       = currentAliasLabel ? (currentAliasLabel + ' · ' + currentAliasAddr) : currentAliasAddr;
+    inputTo.value     = s.to || '';
+    inputSubj.value   = s.subject || '';
+    editor.innerHTML  = s.bodyHtml || defaultBody();
+    if (s.scheduledAt) {
+      try {
+        var d = new Date(s.scheduledAt);
+        if (!isNaN(d.getTime())) {
+          inputScheduled.value = s.scheduledAt;
+          var labelText = d.getDate()+' '+MONTHS_ES[d.getMonth()]+' · '+pad2(d.getHours())+':'+pad2(d.getMinutes());
+          if (schedLabel) schedLabel.textContent = labelText;
+          schedBanner.hidden = false;
+          if (sendText) sendText.textContent = 'Programar';
+        }
+      } catch (e) {}
+    }
+    // La ventana siempre se marca como "abierta"; el overlay lo decide
+    // setMinimized() según el estado guardado: si estaba minimizado al
+    // navegar, NO mostramos el overlay (sin borroso, sin bloquear clicks).
+    win.classList.add('open');
+    win.setAttribute('aria-hidden','false');
+    if (s.maximized && !s.minimized) {
+      // Estaba ampliado y NO minimizado → aplicamos maximized directamente.
+      win.classList.add('maximized');
+      wasMaximizedBeforeMinimize = false;
+    } else if (s.maximized && s.minimized) {
+      // Estaba minimizado pero con intención de ampliado → guardamos la
+      // intención para que al des-minimizar vuelva al modo ampliado.
+      win.classList.remove('maximized');
+      wasMaximizedBeforeMinimize = true;
+    } else {
+      win.classList.remove('maximized');
+      wasMaximizedBeforeMinimize = false;
+    }
+    setMinimized(!!s.minimized);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', restoreState);
+  } else {
+    restoreState();
+  }
+})();
+</script>

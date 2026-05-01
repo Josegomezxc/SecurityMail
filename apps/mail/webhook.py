@@ -935,7 +935,7 @@ def _to_level(score: int) -> str:
 # ══════════════════════════════════════════════════════════════════════
 
 def _send_via_sendgrid(from_addr, to_email, subject, html_body,
-                       reply_to=None, attachments=None):
+                       reply_to=None, attachments=None, send_at=None):
     """
     Envía un correo HTML usando la API REST de SendGrid (v3).
 
@@ -946,6 +946,8 @@ def _send_via_sendgrid(from_addr, to_email, subject, html_body,
         html_body   : str con HTML completo del correo
         reply_to    : str opcional con el correo de respuesta
         attachments : lista opcional de {filename, content (base64 str)}
+        send_at     : Unix timestamp opcional para envío programado.
+                      SendGrid acepta hasta ~72h en el futuro. Debe ser int.
 
     Devuelve True si se envió, False si falló.
     """
@@ -958,7 +960,7 @@ def _send_via_sendgrid(from_addr, to_email, subject, html_body,
         from sendgrid import SendGridAPIClient
         from sendgrid.helpers.mail import (
             Mail, Attachment, FileContent, FileName, FileType,
-            Disposition, ReplyTo, Email,
+            Disposition, ReplyTo, Email, SendAt,
         )
 
         # Parsear "Nombre <correo>" → email + name si viene así
@@ -978,6 +980,15 @@ def _send_via_sendgrid(from_addr, to_email, subject, html_body,
 
         if reply_to:
             message.reply_to = ReplyTo(reply_to)
+
+        # Envío programado: SendGrid acepta `send_at` como timestamp Unix.
+        # Si la fecha está en el pasado o demasiado lejana, SendGrid lo
+        # rechaza con 400 — por eso validamos antes de llegar aquí.
+        if send_at:
+            try:
+                message.send_at = SendAt(int(send_at))
+            except Exception as e:
+                print(f'[webhook] send_at inválido ({send_at}): {e}')
 
         for att in (attachments or []):
             attachment = Attachment(

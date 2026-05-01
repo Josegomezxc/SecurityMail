@@ -8,7 +8,8 @@
     <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
     <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script>
         // Aplica el tema guardado ANTES de renderizar — evita el flash del tema por defecto
         (function () {
@@ -51,6 +52,15 @@
             --radius-xl:     20px;
             --font-sans:     'DM Sans', sans-serif;
             --font-mono:     'DM Mono', monospace;
+            /* Variables usadas por el compose modal global. Se definen aquí
+               (no por página) para que el modal se vea idéntico en TODAS las
+               páginas, incluso aquellas que no las redefinen. */
+            --display:           'Syne', sans-serif;
+            --mono:              'JetBrains Mono', monospace;
+            --ai-purple:         #7c3aed;
+            --ai-purple-light:   #a78bfa;
+            --ai-purple-soft:    rgba(124,58,237,0.08);
+            --ai-purple-border:  rgba(124,58,237,0.22);
         }
 
         /* ── TEMA CLARO ─────────────────────────── */
@@ -1328,6 +1338,32 @@
         }
         .form-control::placeholder { color: var(--text-muted); }
 
+        /* Anular el fondo amarillo/blanco que Chrome/Edge aplican al
+           autocompletar formularios. Vale para login, register, recuperar
+           contraseña, etc. — y para cualquier input/textarea/select del
+           layout que no use .form-control. La técnica es:
+           1) box-shadow inset gigante con el color de fondo del input.
+           2) -webkit-text-fill-color para que el texto autocompletado se
+              pinte con el color del tema en vez del negro nativo.
+           3) transition larguísima para aplazar el repintado nativo. */
+        .form-control:-webkit-autofill,
+        .form-control:-webkit-autofill:hover,
+        .form-control:-webkit-autofill:focus,
+        .form-control:-webkit-autofill:active,
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active,
+        textarea:-webkit-autofill,
+        select:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 1000px var(--bg-elevated) inset !important;
+                    box-shadow: 0 0 0 1000px var(--bg-elevated) inset !important;
+            -webkit-text-fill-color: var(--text-primary) !important;
+            caret-color: var(--accent) !important;
+            border-color: var(--border) !important;
+            transition: background-color 9999s ease-in-out 0s, color 9999s ease-in-out 0s;
+        }
+
         /* ── BADGES ──────────────────────────────── */
         .badge {
             display: inline-flex;
@@ -2597,6 +2633,14 @@ document.addEventListener('keydown', function (e) {
 </script>
 
 {% block extra_js %}{% endblock %}
+
+{# Compose modal global: vive en base.html para que persista entre páginas
+   (al estilo Gmail/Proton). Solo se renderiza si el usuario está logueado
+   — invitados no necesitan poder enviar correos desde alias. #}
+{% if user.is_authenticated %}
+  {% include '_compose_modal.html' %}
+{% endif %}
+
 {% endblock %}
 </body>
 </html>

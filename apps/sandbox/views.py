@@ -28,12 +28,25 @@ from .models import SandboxAnalysis
 @login_required(login_url='login')
 def sandbox_list_view(request):
     """Lista de todos los análisis del usuario ordenados por fecha."""
-    analyses = SandboxAnalysis.objects.filter(
-        email__alias__user=request.user,
-    ).order_by('-analyzed_at')
+    qs = SandboxAnalysis.objects.filter(email__alias__user=request.user)
+
+    # Stats por nivel de riesgo (los 4 cards superiores).
+    # Hay 2 fuentes de verdad para "bloqueado": el flag `blocked` (que se
+    # marca en webhook al guardar) y `risk_score >= 61`. Usamos el flag
+    # cuando esté presente y caemos al score como fallback.
+    total_count   = qs.count()
+    blocked_count = qs.filter(risk_score__gte=61).count()
+    safe_count    = qs.filter(risk_score__lte=30).count()
+    warning_count = qs.filter(risk_score__gt=30, risk_score__lt=61).count()
+
+    analyses = qs.order_by('-analyzed_at')
 
     return render(request, 'sandbox_list.html', {
-        'analyses': analyses,
+        'analyses':      analyses,
+        'total_count':   total_count,
+        'blocked_count': blocked_count,
+        'safe_count':    safe_count,
+        'warning_count': warning_count,
     })
 
 

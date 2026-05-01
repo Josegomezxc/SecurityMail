@@ -17,4 +17,7 @@ urlpatterns = [
 
     # Cambio de contraseña
     path('cuenta/cambiar-password/', views.cambiar_password, name='cambiar_password'),
+
+    # Eliminar cuenta (destructivo — requiere POST + password + reto "ELIMINAR")
+    path('cuenta/eliminar/', views.eliminar_cuenta, name='eliminar_cuenta'),
 ]
