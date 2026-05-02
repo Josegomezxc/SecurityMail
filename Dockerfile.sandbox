@@ -32,6 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #  - py7zr          : extracción de .7z
 #  - tldextract     : análisis de URLs (TLD/dominios)
 RUN pip install --no-cache-dir \
+        --timeout=120 \
+        --retries=10 \
         python-magic==0.4.27 \
         yara-python==4.5.1 \
         oletools==0.60.2 \
@@ -42,7 +44,7 @@ RUN pip install --no-cache-dir \
         tldextract==5.1.3
 
 # Copiamos el código del sandbox (reglas YARA + analizadores)
-COPY app/sandbox/ /app/sandbox/
+COPY apps/sandbox/ /app/sandbox/
 
 # Usuario sin privilegios (defensa en profundidad)
 RUN useradd -m -u 1000 -s /bin/bash sandbox \
