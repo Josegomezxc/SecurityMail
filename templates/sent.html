@@ -50,7 +50,7 @@
       oninput="sentSearch(this.value)">
   </div>
 
-  <!-- Botón Nuevo correo + selector de alias -->
+  <!-- Botón Alias + selector de alias -->
   <div class="compose-new-wrap">
     <button class="compose-new-btn" id="composeNewBtn"
             {% if not active_aliases %}disabled title="Crea un alias activo primero"{% endif %}
@@ -216,21 +216,23 @@
       </svg>
     </div>
     <div class="empty-title">Aún no has enviado correos</div>
-    <div class="empty-sub">Pulsa <strong>"Nuevo correo"</strong> arriba para escribir tu primer mensaje desde un alias.
+    <div class="empty-sub">Pulsa <strong>"Alias"</strong> arriba para escribir tu primer mensaje desde un alias.
     </div>
   </div>
   {% endfor %}
-</div>
 
-<div id="sent-no-results">
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-    style="opacity:0.3;margin-bottom:10px">
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-  <div id="sent-no-results-msg">Sin resultados</div>
-  <span id="sent-no-results-hint"></span>
-</div>
+  <div id="sent-no-results" class="empty-state">
+    <div class="empty-icon-wrap">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </div>
+    <div id="sent-no-results-msg" class="empty-title">Sin resultados</div>
+    <div id="sent-no-results-hint" class="empty-sub"></div>
+  </div>
+</div>{# /#sent-list #}
 
 {% endblock %}
 

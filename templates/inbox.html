@@ -319,15 +319,18 @@
       <div class="empty-sub">Los correos recibidos en tus alias aparecerán aquí.</div>
     </div>
   {% endfor %}
-</div>
 
-<div id="no-results">
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3;margin-bottom:10px">
-    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-  </svg>
-  <div id="no-results-msg">Sin resultados</div>
-  <span id="no-results-hint"></span>
-</div>
+  <div id="no-results" class="empty-state">
+    <div class="empty-icon-wrap">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+        <polyline points="22,6 12,13 2,6"/>
+      </svg>
+    </div>
+    <div id="no-results-msg" class="empty-title">Sin resultados</div>
+    <div id="no-results-hint" class="empty-sub"></div>
+  </div>
+</div>{# /#email-list #}
 
 {% endblock %}
 

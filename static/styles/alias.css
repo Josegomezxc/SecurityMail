@@ -119,13 +119,16 @@
 
 .ccv2-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 28px;
+  grid-template-columns: 1fr;          /* mobile: 1 columna */
+  gap: 20px;                            /* mobile */
   align-items: center;
   position: relative; z-index: 1;
 }
-@media (max-width: 760px) {
-  .ccv2-grid { grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 768px) {
+  .ccv2-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 28px;
+  }
 }
 
 /* ── Lado izquierdo ── */
@@ -394,16 +397,87 @@
   font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px;
 }
 
-/* ── ALIAS CARD ── */
+/* ════════════════════════════════════════════════════════════════════
+   LISTA DE ALIAS — frame card único + scroll interno (mobile + desktop)
+   Las dos variables --alias-row-h y --alias-rows controlan cuánto crece
+   la card antes de que aparezca el scroll. Mobile: 4 filas más altas
+   (porque hacen wrap), desktop: 6 filas más bajas. Si el usuario tiene
+   más alias que ese límite, ve scroll vertical interno y el resto del
+   layout (hero, create-card, toolbar) se mantiene fijo arriba.
+   ════════════════════════════════════════════════════════════════════ */
+#alias-list {
+  --alias-row-h: 280px;                /* mobile: cada card con wrap tiene icon+body+badge+3 botones */
+  --alias-rows:  3;                    /* mobile: 3 alias visibles */
+  display: block;                      /* block en vez de flex-column para que overflow funcione consistente */
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  max-height: calc(var(--alias-row-h) * var(--alias-rows));
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124,58,237,0.45) transparent;
+}
+#alias-list::-webkit-scrollbar { width: 5px; }
+#alias-list::-webkit-scrollbar-track { background: transparent; }
+#alias-list::-webkit-scrollbar-thumb {
+  background: rgba(124,58,237,0.4);
+  border-radius: 3px;
+}
+#alias-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(124,58,237,0.6);
+}
+
+/* Cuando viven dentro de #alias-list, las cards pierden su border-radius
+   y border individual; en su lugar reciben un border-bottom sutil que
+   las separa visualmente como una lista continua. La última fila no
+   dibuja la línea para no chocar con el borde inferior del card.
+   IMPORTANTE: overflow:visible para que la fila de actions wrappeada
+   nunca se recorte (el .alias-card base tiene overflow:hidden por las
+   pseudo-decoraciones, pero dentro de la lista no las necesitamos). */
+#alias-list .alias-card {
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  margin-bottom: 0;
+  background: transparent;
+  overflow: visible;
+}
+/* Pseudo-elementos decorativos del card original ocultos cuando vive
+   dentro de #alias-list (no pueden mostrarse de todos modos por el
+   overflow:hidden del padre y desordenan el layout). */
+#alias-list .alias-card::before,
+#alias-list .alias-card::after { display: none; }
+#alias-list .alias-card:last-child { border-bottom: none; }
+/* El hover translateY(-2px) saca la card del flujo y se ve raro dentro
+   de la lista continua → desactivamos el lift en este contexto */
+#alias-list .alias-card:hover {
+  transform: none;
+  box-shadow: none;
+  background: rgba(124,58,237,0.04);
+}
+
+/* Empty-state v2 (cuando el usuario tiene 0 alias) dentro del card list:
+   el padding default de 60px+ ya da altura cómoda al card. */
+#alias-list .empty-state-v2 { padding: 40px 14px; }
+
+/* ── ALIAS CARD — Mobile First ──
+   Mobile: layout vertical wrap (icon + body en fila 1, actions abajo).
+   Desktop (≥992px): layout horizontal con icon, body flex, actions
+   pegados a la derecha. */
 .alias-card {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 18px 22px;
+  padding: 14px 16px;                  /* mobile */
   margin-bottom: 10px;
   display: flex;
+  flex-wrap: wrap;                     /* mobile: actions bajan a fila propia */
   align-items: center;
-  gap: 18px;
+  gap: 12px;                            /* mobile */
   transition: border-color 0.2s, transform 0.18s, box-shadow 0.25s, background 0.2s;
   position: relative;
   overflow: hidden;
@@ -449,7 +523,7 @@
 .alias-card.destroyed::before { display: none; }
 
 .alias-icon-box {
-  width: 46px; height: 46px;
+  width: 40px; height: 40px;            /* mobile: icon más compacto */
   border-radius: 12px;
   background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(124,58,237,0.06));
   border: 1px solid var(--ai-purple-border);
@@ -474,25 +548,27 @@
 }
 
 .alias-body {
-  flex: 1;
+  flex: 1 1 calc(100% - 56px);         /* mobile: ancho menos icon+gap */
   min-width: 0;
   position: relative;
   z-index: 1;
 }
 .alias-address {
   font-family: var(--mono);
-  font-size: 13.5px;
+  font-size: 12.5px;                   /* mobile */
   font-weight: 600;
   color: var(--ai-purple-light);
   margin-bottom: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;                 /* mobile: wrap */
+  overflow: visible;                   /* mobile */
+  text-overflow: clip;                 /* mobile */
+  word-break: break-all;               /* mobile */
+  overflow-wrap: anywhere;             /* mobile */
   letter-spacing: -0.01em;
 }
 .alias-meta {
   display: flex;
-  gap: 14px;
+  gap: 8px;                             /* mobile */
   flex-wrap: wrap;
   font-size: 11px;
   color: var(--text-muted);
@@ -523,28 +599,51 @@
   padding:3px 10px; font-size:10px; font-weight:700; font-family:var(--mono);
 }
 
-.alias-actions { display:flex; gap:8px; flex-shrink:0; align-items:center; }
+/* Actions — Mobile First.
+   Mobile: ocupan toda la fila inferior, badge + 3 botones envueltos
+   en flex-wrap, repartiendo el ancho disponible.
+   Desktop: ancho natural pegado a la derecha de la card. */
+.alias-actions {
+  display: flex;
+  gap: 6px;                             /* mobile: gap más compacto */
+  flex-wrap: wrap;                     /* mobile: badge y botones envueltos */
+  flex: 1 1 100%;                       /* mobile: fila completa */
+  justify-content: flex-start;
+  align-items: center;
+}
+.alias-badge-active,
+.alias-badge-dead { flex: 0 0 auto; }
 
 .btn-copy {
-  display:inline-flex; align-items:center; gap:6px;
-  background:var(--bg-elevated); border:1px solid var(--border);
-  border-radius:8px; padding:6px 12px;
-  color:var(--text-secondary); font-size:12px; font-weight:600;
-  font-family:var(--mono); cursor:pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;                   /* mobile: padding cómodo touch */
+  color: var(--text-secondary);
+  font-size: 11.5px;                    /* mobile */
+  font-weight: 600;
+  font-family: var(--mono); cursor: pointer;
   transition: all 0.15s;
+  flex: 1 1 auto;                      /* mobile: reparten ancho */
+  justify-content: center;             /* mobile: texto centrado */
 }
 .btn-copy:hover { background:var(--bg-hover); color:var(--text-primary); border-color:var(--ai-purple-border); }
 .btn-copy.copied { color:var(--success); border-color:rgba(46,204,113,0.3); background:rgba(46,204,113,0.06); animation: pop 0.3s ease; }
 
 .btn-destroy {
-  display:inline-flex; align-items:center; gap:6px;
+  display: inline-flex; align-items: center; gap: 6px;
   background: linear-gradient(135deg, #e84040 0%, #c92626 100%);
-  border:1px solid rgba(255,255,255,0.18);
-  border-radius:8px; padding:6px 12px;
-  color:#fff; font-size:12px; font-weight:700;
-  font-family:var(--mono); cursor:pointer;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 8px;
+  padding: 8px 12px;                   /* mobile */
+  color: #fff;
+  font-size: 11.5px;                    /* mobile */
+  font-weight: 700;
+  font-family: var(--mono); cursor: pointer;
   box-shadow: 0 4px 12px rgba(232,64,64,0.35);
   transition: all 0.15s;
+  flex: 1 1 auto;                      /* mobile */
+  justify-content: center;             /* mobile */
 }
 .btn-destroy:hover {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
@@ -554,13 +653,18 @@
 .btn-destroy:active { transform: translateY(0); }
 
 .btn-send {
-  display:inline-flex; align-items:center; gap:6px;
+  display: inline-flex; align-items: center; gap: 6px;
   background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(167,139,250,0.18));
-  border:1px solid var(--ai-purple-border);
-  border-radius:8px; padding:6px 12px;
-  color:var(--ai-purple-light); font-size:12px; font-weight:600;
-  font-family:var(--mono); cursor:pointer;
+  border: 1px solid var(--ai-purple-border);
+  border-radius: 8px;
+  padding: 8px 12px;                   /* mobile */
+  color: var(--ai-purple-light);
+  font-size: 11.5px;                    /* mobile */
+  font-weight: 600;
+  font-family: var(--mono); cursor: pointer;
   transition: all 0.15s;
+  flex: 1 1 auto;                      /* mobile */
+  justify-content: center;             /* mobile */
 }
 .btn-send:hover {
   background: linear-gradient(135deg, rgba(124,58,237,0.28), rgba(167,139,250,0.28));
@@ -731,31 +835,52 @@
   text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px;
 }
 
-/* ── TOOLBAR de búsqueda + filtros ── */
+/* ════════════════════════════════════════════════════════════════════
+   TOOLBAR de búsqueda + filtros — Mobile First.
+   Mobile: la barra entera se desliza horizontalmente con touch para
+   poder ver los filtros que no caben (lupa + input + Todos + Activos
+   + Destruidos). La barra de scroll está oculta para look limpio.
+   Desktop: barra fija sin overflow, filtros caben sin scroll.
+   ════════════════════════════════════════════════════════════════════ */
 .alias-toolbar {
-  display: flex; gap: 10px; margin-bottom: 14px;
-  align-items: center; flex-wrap: wrap;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  align-items: stretch;                /* mobile: stretch para card alta */
+  flex-direction: column;              /* mobile: stack vertical */
   animation: fadeUp 0.4s ease 0.08s both;
 }
 .alias-search-wrap {
-  flex: 1; min-width: 240px;
-  display: flex; align-items: center;
+  display: flex;
+  align-items: center;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 12px;
-  overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s;
+  /* Mobile: scroll horizontal con barra oculta. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;               /* Firefox */
+  width: 100%;                          /* mobile */
+  min-width: 0;                        /* mobile */
 }
+.alias-search-wrap::-webkit-scrollbar { display: none; }   /* WebKit */
 .alias-search-wrap:focus-within {
   border-color: var(--ai-purple-border);
   box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
 }
 .alias-search-wrap > svg { margin: 0 10px 0 13px; color: var(--text-muted); flex-shrink: 0; }
 .alias-search-input {
-  flex: 1; background: transparent; border: none;
+  background: transparent;
+  border: none;
   padding: 10px 12px 10px 0;
-  font-size: 13px; color: var(--text-primary); font-family: var(--mono);
-  outline: none; min-width: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: var(--mono);
+  outline: none;
+  flex: 1 1 160px;                     /* mobile: input siempre visible */
+  min-width: 140px;                    /* mobile: nunca colapsa a 0 */
 }
 .alias-search-input::placeholder { color: var(--text-muted); }
 
@@ -765,6 +890,7 @@
   background: transparent; border: none; cursor: pointer;
   font-size: 11px; font-weight: 600; font-family: var(--mono);
   color: var(--text-muted);
+  border-radius: 8px;                  /* mobile: corners suaves */
   transition: background 0.15s, color 0.15s;
   white-space: nowrap; flex-shrink: 0;
 }
@@ -803,8 +929,92 @@
   background: var(--ai-purple-soft);
 }
 
-#alias-no-results {
-  display: none; text-align: center; padding: 48px 20px;
-  color: var(--text-muted); font-family: var(--mono); font-size: 13px;
+/* "Sin resultados con este filtro" — vive DENTRO de #alias-list y
+   reusa la clase .empty-state (icon-wrap + title + sub) con el icono
+   propio del módulo (caja/regalo morado). Solo necesitamos display:none
+   como estado inicial; el JS lo cambia a display:block cuando un filtro
+   deja la lista vacía. */
+#alias-no-results { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP — ≥ 992px
+   Restaura el layout original: alias-card horizontal con icon a la
+   izquierda, body flex y actions con ancho natural a la derecha.
+   Toolbar como una sola fila con search-wrap flex-1 y filtros.
+   #alias-list crece más en altura permitiendo 6 filas más bajas.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+  /* Toolbar horizontal */
+  .alias-toolbar {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  /* Search-wrap recupera comportamiento de barra fija con filtros visibles */
+  .alias-search-wrap {
+    flex: 1;
+    min-width: 240px;
+    overflow: hidden;                  /* sin scroll horizontal */
+    -webkit-overflow-scrolling: auto;
+    scrollbar-width: auto;
+    width: auto;
+  }
+  .alias-search-wrap::-webkit-scrollbar { display: initial; }
+  .alias-search-input { flex: 1; min-width: 0; }
+
+  /* #alias-list: 6 filas más bajas, scrollbar ligeramente más ancha */
+  #alias-list {
+    --alias-row-h: 96px;
+    --alias-rows:  6;
+  }
+  #alias-list::-webkit-scrollbar { width: 6px; }
+
+  /* alias-card horizontal sin wrap */
+  .alias-card {
+    flex-wrap: nowrap;
+    gap: 18px;
+    padding: 18px 22px;
+  }
+  /* Hover lift devuelto solo en cards FUERA del wrapper #alias-list */
+  .alias-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.22), 0 0 0 1px rgba(124,58,237,0.1);
+  }
+  #alias-list .alias-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .alias-icon-box {
+    width: 46px; height: 46px;
+  }
+  .alias-body {
+    flex: 1;
+  }
+  .alias-address {
+    font-size: 13.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  .alias-meta { gap: 14px; }
+
+  /* Actions: ancho natural a la derecha, sin wrap */
+  .alias-actions {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .btn-copy,
+  .btn-send,
+  .btn-destroy {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .btn-copy:hover,
+  .btn-send:hover,
+  .btn-destroy:hover { transform: translateY(-1px); }
 }
-#alias-no-results span { display: block; margin-top: 8px; font-size: 11px; opacity: 0.6; }

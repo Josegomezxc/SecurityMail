@@ -577,3 +577,53 @@
   .sched-time { flex-direction: row; align-items: center; justify-content: space-between; }
   .sched-time-label { align-self: auto; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE-FIX (< 992px) — compose_modal.css
+   La ventana de redacción ocupa casi toda la pantalla en móvil.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 991.98px) {
+  /* En mobile el modal ya ocupa casi toda la pantalla, así que el botón
+     "Ampliar" no tiene a qué expandirse → se oculta. La funcionalidad
+     queda intacta en desktop (≥992px). */
+  #composeExpand { display: none; }
+
+  .compose-window {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    bottom: 8px;
+    right: 8px;
+    left: 8px;
+    border-radius: 14px;
+  }
+  .compose-header { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
+  .compose-header-title { font-size: 13px; min-width: 0; }
+  .compose-row { padding: 4px 12px; }
+  .compose-row-label { font-size: 10.5px; }
+  .compose-row-input,
+  .compose-editor { font-size: 13px; }
+  .compose-toolbar { flex-wrap: wrap; gap: 6px; padding: 8px 12px; }
+  /* Mobile: el footer se vuelve flex-wrap para no apretar al icono de
+     adjuntar contra el botón Enviar. compose-send-wrap conserva su
+     tamaño natural y se queda a la derecha via el space-between del
+     padre. Si en algún ancho aún no caben, baja a su propia fila. */
+  .compose-foot { flex-wrap: wrap; row-gap: 8px; padding: 10px 12px; }
+  .compose-foot-left { flex: 0 1 auto; }
+  .compose-send-wrap { flex: 0 0 auto; }
+  .compose-attachment-list { padding: 6px 12px; gap: 6px; flex-wrap: wrap; }
+  .compose-attachment {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .compose-attachment-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .schedule-custom-dialog {
+    width: calc(100vw - 32px);
+    max-width: 380px;
+    padding: 14px;
+  }
+}

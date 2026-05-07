@@ -1,3 +1,10 @@
+/* ═══════════════════════════════════════════════════════════════════
+   DRAFTS — Mobile First.
+   Base = móvil (≥360px). El bloque @media (min-width: 992px) al final
+   restaura el layout desktop. Cero cambios visuales (colores, gradientes,
+   sombras, animaciones, hovers): solo el sistema responsivo.
+   ═══════════════════════════════════════════════════════════════════ */
+
 :root {
   --ai-purple:        #7c3aed;
   --ai-purple-light:  #a78bfa;
@@ -11,12 +18,17 @@
 @keyframes shimmer { 0%{background-position:-200% 0}100%{background-position:200% 0} }
 @keyframes pulse   { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0)}60%{box-shadow:0 0 0 6px rgba(245,158,11,0.15)} }
 
-/* ── HERO ── */
+/* ════════════════════════════════════════════════════════════════════
+   HERO
+   Mobile: padding compacto, grid 2 cols (icono+texto), .dr-stat baja
+   a una fila propia ocupando todo el ancho con borde superior.
+   Desktop: grid 3 cols (icono+texto+stat) con stat en su mini-card.
+   ════════════════════════════════════════════════════════════════════ */
 .dr-hero {
   background: var(--bg-surface);
   border: 1px solid rgba(245,158,11,0.22);
   border-radius: 16px;
-  padding: 20px 24px;
+  padding: 14px 14px;                  /* mobile */
   margin-bottom: 16px;
   position: relative; overflow: hidden;
   animation: fadeUp 0.4s ease both;
@@ -34,9 +46,9 @@
 .dr-hero-inner {
   position: relative; z-index: 1;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;     /* mobile: 2 cols */
   align-items: center;
-  gap: 18px;
+  gap: 12px;                            /* mobile */
 }
 .dr-hero-icon {
   width: 46px; height: 46px;
@@ -46,47 +58,106 @@
   box-shadow: 0 6px 20px rgba(245,158,11,0.4);
   animation: pulse 3s ease-in-out infinite;
 }
+.dr-hero-text {
+  min-width: 0;                         /* mobile: permite ellipsis */
+}
 .dr-hero-text h1 {
-  font-family: var(--display); font-size: 19px; font-weight: 800;
+  font-family: var(--display);
+  font-size: 18px;                     /* mobile */
+  font-weight: 800;
   background: linear-gradient(90deg, var(--text-primary) 0%, #fcd34d 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   margin-bottom: 4px;
+  word-break: break-word;              /* mobile */
 }
-.dr-hero-text p { font-size: 11.5px; color: var(--text-secondary); font-family: var(--mono); }
+.dr-hero-text p {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  word-break: break-word;              /* mobile */
+  overflow-wrap: anywhere;             /* mobile */
+}
 .dr-hero-text strong { color: #fbbf24; }
-.dr-stat {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(245,158,11,0.08);
-  border: 1px solid rgba(245,158,11,0.22);
-  border-radius: 10px; padding: 10px 18px; min-width: 70px;
-}
-.dr-stat-val { font-family: var(--display); font-size: 22px; font-weight: 800; line-height: 1.1; color: #fbbf24; }
-.dr-stat-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-top: 3px; font-family: var(--mono); }
 
-/* ── TOOLBAR (filtros + vaciar) ── */
+/* Stat — en móvil ocupa toda la fila como banda inferior con borde
+   superior; en desktop es una mini-card a la derecha del texto.
+   Mantenemos las dos labels visibles porque la fila se ensancha. */
+.dr-stat {
+  display: flex;
+  flex-direction: row;                 /* mobile: número y label lado a lado */
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: transparent;             /* mobile: sin caja propia */
+  border: none;                        /* mobile */
+  border-top: 1px solid rgba(245,158,11,0.22);  /* mobile: separador horizontal */
+  border-radius: 0;                    /* mobile */
+  padding: 10px 0 4px;                  /* mobile */
+  min-width: 0;                        /* mobile */
+  grid-column: 1 / -1;                 /* mobile: ocupa toda la fila */
+  margin-top: 4px;                     /* mobile */
+  width: 100%;                          /* mobile */
+}
+.dr-stat-val {
+  font-family: var(--display);
+  font-size: 22px; font-weight: 800; line-height: 1;
+  color: #fbbf24;
+  /* Lining figures: dígitos a la misma altura (5/8 alineados) */
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: 'lnum' 1, 'tnum' 1;
+}
+.dr-stat-lbl {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-top: 0;                       /* mobile: pegado al lado */
+  font-family: var(--mono);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   TOOLBAR — filtros + vaciar
+   Mobile: stack vertical, tabs en scroll horizontal, botón full-width.
+   Desktop: una fila con tabs flex-1 y botón ancho natural.
+   ════════════════════════════════════════════════════════════════════ */
 .dr-toolbar {
-  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  display: flex;
+  flex-direction: column;              /* mobile */
+  align-items: stretch;                /* mobile */
+  gap: 10px;
   margin-bottom: 14px;
+  flex-wrap: wrap;
   animation: fadeUp 0.4s ease 0.05s both;
 }
 .dr-tabs {
-  display: flex; gap: 4px;
+  display: flex;
+  gap: 4px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 4px;
-  flex: 1;
-  min-width: 280px;
+  flex-wrap: nowrap;                   /* mobile: scroll horizontal */
+  overflow-x: auto;                    /* mobile */
+  overflow-y: hidden;                  /* mobile */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;               /* mobile: barra oculta en Firefox */
+  width: 100%;                          /* mobile */
+  min-width: 0;                        /* mobile */
+  justify-content: flex-start;
 }
+.dr-tabs::-webkit-scrollbar { display: none; }    /* mobile: oculta WebKit */
 .dr-tab-btn {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 14px;
+  padding: 7px 11px;                   /* mobile */
   background: transparent; border: none;
   color: var(--text-muted);
-  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  font-family: var(--mono);
+  font-size: 11.5px;                    /* mobile */
+  font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;                      /* mobile: no se comprime con scroll */
+  white-space: nowrap;
 }
 .dr-tab-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
 .dr-tab-btn.active {
@@ -110,9 +181,12 @@
   border-radius: 12px;
   color: #fff;
   font-family: var(--mono); font-size: 12px; font-weight: 700;
-  cursor: pointer; flex-shrink: 0;
+  cursor: pointer;
+  flex-shrink: 0;
   box-shadow: 0 4px 14px rgba(232,64,64,0.4);
   transition: all 0.15s;
+  width: 100%;                          /* mobile */
+  justify-content: center;              /* mobile */
 }
 .dr-empty-btn:hover {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
@@ -127,26 +201,77 @@
 }
 .dr-empty-btn svg { width: 13px; height: 13px; }
 
-#dr-no-results {
-  display: none; text-align: center; padding: 48px 20px;
-  color: var(--text-muted); font-family: var(--mono); font-size: 13px;
+/* "Sin borradores en este filtro" — vive DENTRO de #drafts-list y
+   reusa la clase .empty-state (icon-wrap + title + sub). Solo
+   necesitamos `display:none` como estado inicial; el JS lo cambia
+   a `display:block` cuando un filtro deja la lista vacía. */
+#dr-no-results { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LISTA DE BORRADORES — frame card + límite de altura con scroll
+   interno (mobile + desktop). Las dos variables --dr-row-h y --dr-rows
+   controlan cuánto crece la card. Mobile: 4 filas más altas (wrap),
+   desktop: 6 filas simples.
+   ═══════════════════════════════════════════════════════════════════ */
+#drafts-list {
+  --dr-row-h: 130px;                    /* mobile: fila más alta (wrap) */
+  --dr-rows:  4;                        /* mobile: 4 filas visibles */
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px 10px;
+  max-height: calc(var(--dr-row-h) * var(--dr-rows));
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245,158,11,0.45) transparent;
+}
+#drafts-list::-webkit-scrollbar { width: 5px; }            /* mobile: scrollbar fino */
+#drafts-list::-webkit-scrollbar-track { background: transparent; }
+#drafts-list::-webkit-scrollbar-thumb {
+  background: rgba(245,158,11,0.4);
+  border-radius: 3px;
+}
+#drafts-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(245,158,11,0.6);
 }
 
-/* ── FILA DE BORRADOR ── */
+/* Cuando viven dentro del card de #drafts-list, las filas se
+   comportan como una lista continua: se quita el border-radius/margin
+   de cada fila y aparece una línea sutil debajo que las separa
+   visualmente. La última no dibuja la línea para no chocar con el
+   borde inferior del card. */
+#drafts-list .dr-row {
+  border-radius: 0;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+#drafts-list .dr-row:last-child { border-bottom: none; }
+
+/* ════════════════════════════════════════════════════════════════════
+   FILA DE BORRADOR
+   Mobile: wrap, padding compacto, contenido respira;
+   desktop: una sola fila, con .dr-delete-btn absolute a la derecha.
+   ════════════════════════════════════════════════════════════════════ */
 .dr-row {
-  display: flex; align-items: flex-start; gap: 14px;
-  padding: 14px 18px;
-  border-radius: 14px; border: 1px solid transparent;
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;                     /* mobile */
+  gap: 10px;                            /* mobile */
+  padding: 12px 14px;                   /* mobile */
+  border-radius: 14px;
+  border: 1px solid transparent;
   margin-bottom: 6px;
   cursor: pointer;
   position: relative;
+  overflow: visible;                    /* mobile */
   animation: fadeUp 0.4s ease both;
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
 }
 .dr-row:hover {
   background: var(--bg-surface);
   border-color: rgba(245,158,11,0.3);
-  transform: translateX(3px);
 }
 .dr-row::before {
   content: '';
@@ -155,6 +280,11 @@
   opacity: 0; transition: opacity 0.18s;
 }
 .dr-row:hover::before { opacity: 1; }
+
+/* Oculta el chevron decorativo de la fila en móvil
+   (es el SVG hijo directo de .dr-row con polyline ">"). En
+   desktop se conserva como indicador de "fila clickable". */
+.dr-row > svg { display: none; }      /* mobile */
 
 .dr-avatar {
   width: 38px; height: 38px; border-radius: 11px;
@@ -166,19 +296,20 @@
 }
 .dr-avatar svg { width: 18px; height: 18px; }
 
-.dr-content { flex: 1; min-width: 0; }
+.dr-content {
+  flex: 1 1 calc(100% - 56px);         /* mobile: ancho menos avatar+gap */
+  min-width: 0;
+}
+
+/* Top: pill BORRADOR + destinatario + tiempo.
+   Mobile: stack vertical (cada uno en su línea); desktop: en fila. */
 .dr-top {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+  display: flex;
+  flex-wrap: wrap;                     /* mobile */
+  align-items: flex-start;             /* mobile */
+  gap: 4px 8px;                         /* mobile */
+  margin-bottom: 4px;
   font-size: 13px;
-}
-.dr-to {
-  font-weight: 600; color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  flex: 1; min-width: 0;
-}
-.dr-to .label { color: var(--text-muted); font-weight: 400; margin-right: 4px; font-family: var(--mono); font-size: 11px; }
-.dr-to em {
-  color: var(--text-muted); font-style: italic; font-weight: 400;
 }
 .dr-pill-draft {
   display: inline-flex; align-items: center; gap: 4px;
@@ -190,36 +321,81 @@
   letter-spacing: 0.04em;
   flex-shrink: 0;
 }
+.dr-to {
+  font-weight: 600; color: var(--text-primary);
+  flex: 1 1 100%;                       /* mobile: ocupa toda la fila */
+  min-width: 0;
+  white-space: nowrap;                 /* mobile: una sola línea con ellipsis */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.dr-to .label {
+  color: var(--text-muted); font-weight: 400; margin-right: 4px;
+  font-family: var(--mono); font-size: 11px;
+}
+.dr-to em {
+  color: var(--text-muted); font-style: italic; font-weight: 400;
+}
 .dr-time {
-  color: var(--text-muted); font-size: 11px; font-family: var(--mono);
+  color: var(--text-muted);
+  font-size: 10.5px;                   /* mobile */
+  font-family: var(--mono);
+  flex: 1 1 100%;                       /* mobile: línea propia */
+  margin-top: 2px;                     /* mobile */
   flex-shrink: 0;
 }
+
 .dr-subject {
   font-size: 13px; font-weight: 700; color: var(--text-primary);
   margin-bottom: 4px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: normal;                 /* mobile: wrap */
+  overflow: visible;                   /* mobile */
+  text-overflow: clip;                 /* mobile */
+  word-break: break-word;              /* mobile */
+  overflow-wrap: anywhere;             /* mobile */
 }
 .dr-subject em { color: var(--text-muted); font-style: italic; font-weight: 400; }
+
 .dr-preview {
   font-size: 12px; color: var(--text-secondary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   margin-bottom: 6px;
+  white-space: normal;                 /* mobile */
+  overflow: visible;                   /* mobile */
+  text-overflow: clip;                 /* mobile */
+  word-break: break-word;              /* mobile */
+  overflow-wrap: anywhere;             /* mobile */
 }
+
 .dr-meta {
-  display: flex; gap: 10px; font-size: 11px;
+  display: flex;
+  gap: 6px;                             /* mobile: gap más chico */
+  font-size: 11px;
   color: var(--text-muted); font-family: var(--mono);
-  align-items: center; flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: wrap;
 }
+
+/* Tag "desde alias@..." con ellipsis en móvil */
 .dr-from-tag {
   font-family: var(--mono); font-size: 11px;
-  background: var(--ai-purple-soft); border: 1px solid var(--ai-purple-border);
-  padding: 2px 8px; border-radius: 5px; color: var(--ai-purple-light);
+  background: var(--ai-purple-soft);
+  border: 1px solid var(--ai-purple-border);
+  padding: 2px 8px; border-radius: 5px;
+  color: var(--ai-purple-light);
+  max-width: 100%;                      /* mobile */
+  overflow: hidden;                     /* mobile */
+  text-overflow: ellipsis;             /* mobile */
+  white-space: nowrap;                 /* mobile */
+  display: inline-block;               /* mobile */
 }
 .dr-from-tag.no-alias {
   background: rgba(232,64,64,0.08);
   border-color: rgba(232,64,64,0.25);
   color: #f87171;
 }
+
 .dr-sched-pill {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 8px; border-radius: 5px;
@@ -230,28 +406,31 @@
 }
 .dr-sched-pill svg { width: 9px; height: 9px; }
 
-/* Botón eliminar borrador (rojo) */
+/* Botón eliminar borrador (rojo).
+   Mobile: en flow normal, alineado al final de la fila;
+   desktop: position:absolute pegado al borde derecho. */
 .dr-delete-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  position: absolute;
-  right: 40px; top: 50%;
-  transform: translateY(-50%);
-  padding: 6px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;                   /* mobile */
   background: linear-gradient(135deg, #e84040 0%, #c92626 100%);
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 8px;
   color: #fff;
-  font-family: var(--mono); font-size: 10.5px; font-weight: 700;
-  cursor: pointer; z-index: 2;
+  font-family: var(--mono);
+  font-size: 11.5px;                    /* mobile */
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 2;
   box-shadow: 0 4px 12px rgba(232,64,64,0.35);
   transition: all 0.15s;
+  margin-left: auto;                    /* mobile: pegado a la derecha */
 }
 .dr-delete-btn:hover {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  transform: translateY(-50%) translateX(2px) scale(1.04);
   box-shadow: 0 6px 18px rgba(232,64,64,0.55);
 }
-.dr-delete-btn:active { transform: translateY(-50%) scale(0.96); }
 .dr-delete-btn svg { width: 11px; height: 11px; }
 
 /* ── EMPTY STATE ── */
@@ -269,3 +448,133 @@
 .empty-title { font-family: var(--display); font-size: 17px; font-weight: 700; margin-bottom: 8px; }
 .empty-sub   { font-size: 13px; color: var(--text-muted); font-family: var(--mono); }
 
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP — ≥ 992px
+   Restaura el layout original: hero en grid 3 cols con stat-card a la
+   derecha, toolbar en fila, filas en una sola línea, delete-btn
+   absolute a la derecha.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+  /* Hero */
+  .dr-hero { padding: 20px 24px; }
+  .dr-hero-inner {
+    grid-template-columns: auto 1fr auto;
+    gap: 18px;
+  }
+  .dr-hero-text h1 {
+    font-size: 19px;
+    word-break: normal;
+  }
+  .dr-hero-text p {
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  /* Stat vuelve a su mini-card a la derecha */
+  .dr-stat {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.22);
+    border-top: 1px solid rgba(245,158,11,0.22);
+    border-radius: 10px;
+    padding: 10px 18px;
+    min-width: 70px;
+    grid-column: auto;
+    margin-top: 0;
+    width: auto;
+  }
+  .dr-stat-val { font-size: 22px; line-height: 1.1; }
+  .dr-stat-lbl { font-size: 9px; margin-top: 3px; }
+
+  /* Toolbar horizontal: tabs flex-1, botón ancho natural */
+  .dr-toolbar {
+    flex-direction: row;
+    align-items: center;
+  }
+  .dr-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    overflow-y: visible;
+    scrollbar-width: auto;
+    flex: 1;
+    min-width: 280px;
+    width: auto;
+  }
+  .dr-tabs::-webkit-scrollbar { display: initial; }
+  .dr-tab-btn { padding: 8px 14px; font-size: 12px; }
+  .dr-empty-btn { width: auto; }
+
+  /* Lista #drafts-list: 6 filas más bajas, scrollbar más ancha */
+  #drafts-list {
+    --dr-row-h: 96px;
+    --dr-rows:  6;
+  }
+  #drafts-list::-webkit-scrollbar { width: 6px; }
+
+  /* Filas vuelven al layout horizontal sin wrap */
+  .dr-row {
+    flex-wrap: nowrap;
+    gap: 14px;
+    padding: 14px 18px;
+    overflow: hidden;
+  }
+  .dr-row:hover { transform: translateX(3px); }
+  .dr-row > svg { display: inline; }    /* chevron visible */
+
+  .dr-content { flex: 1; }
+
+  /* Top en una sola línea: pill + email + tiempo */
+  .dr-top {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .dr-to {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dr-time {
+    font-size: 11px;
+    flex: 0 0 auto;
+    margin-top: 0;
+  }
+
+  /* Asunto y preview con ellipsis (sin wrap) */
+  .dr-subject,
+  .dr-preview {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  /* Tag "desde alias" sin truncado */
+  .dr-from-tag {
+    max-width: none;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    display: inline;
+  }
+
+  .dr-meta { gap: 10px; }
+
+  /* Delete-btn: absolute en la esquina derecha, animación de hover original */
+  .dr-delete-btn {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 0;
+    padding: 6px 11px;
+    font-size: 10.5px;
+  }
+  .dr-delete-btn:hover {
+    transform: translateY(-50%) translateX(2px) scale(1.04);
+  }
+  .dr-delete-btn:active { transform: translateY(-50%) scale(0.96); }
+}

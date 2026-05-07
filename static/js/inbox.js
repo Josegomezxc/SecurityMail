@@ -131,6 +131,26 @@ function applyFilters() {
     if (show) visible++;
   });
 
+  /* Ocultar date-dividers que no tienen ningún correo visible en su grupo.
+     Recorremos los siblings hasta el siguiente divider para ver si hay
+     alguna .email-row visible — si no, escondemos también el divider. */
+  var list = document.getElementById('email-list');
+  if (list) {
+    var dividers = list.querySelectorAll('.date-divider');
+    dividers.forEach(function (div) {
+      var hasVisibleRow = false;
+      var next = div.nextElementSibling;
+      while (next && !next.classList.contains('date-divider')) {
+        if (next.classList.contains('email-row') && next.style.display !== 'none') {
+          hasVisibleRow = true;
+          break;
+        }
+        next = next.nextElementSibling;
+      }
+      div.style.display = hasVisibleRow ? '' : 'none';
+    });
+  }
+
   /* Mensaje de "sin resultados" */
   var noResults = document.getElementById('no-results');
   var msgEl     = document.getElementById('no-results-msg');

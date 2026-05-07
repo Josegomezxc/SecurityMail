@@ -1,11 +1,27 @@
+/* ═══════════════════════════════════════════════════════════════════
+   NOTIFICATIONS — Mobile First.
+   Base = móvil (≥360px). El bloque @media (min-width: 992px) al final
+   restaura el layout desktop. Cero cambios visuales (colores, gradientes,
+   sombras, animaciones, hovers): solo se invierten los breakpoints.
+   ═══════════════════════════════════════════════════════════════════ */
+
   .notif-page { max-width: 920px; }
   .notif-page-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 22px; gap: 16px; flex-wrap: wrap;
+    display: flex;
+    flex-direction: column;             /* mobile */
+    align-items: flex-start;            /* mobile */
+    justify-content: space-between;
+    margin-bottom: 22px;
+    gap: 8px;                            /* mobile */
+    flex-wrap: wrap;
   }
-  .notif-page-title { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+  .notif-page-title { font-size: 19px; font-weight: 700; color: var(--text-primary); }   /* mobile */
   .notif-page-sub { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
-  .notif-stats { display: flex; gap: 10px; }
+  .notif-stats {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;                     /* mobile */
+  }
   .notif-stat-pill {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 6px 12px; border-radius: 20px;
@@ -15,17 +31,40 @@
   }
   .notif-stat-pill.warning { background: rgba(245,158,11,0.1); color: #fbbf24; border-color: rgba(245,158,11,0.3); }
 
+  /* ─────────────────────────────────────────────────────────────
+     LISTA DE NOTIFICACIONES — frame card + límite de altura con
+     scroll interno (mobile + desktop). Las dos variables
+     --notif-row-h y --notif-rows controlan cuánto crece la card;
+     base = mobile (filas más altas porque hacen wrap, 4 visibles).
+     Desktop sobreescribe a 6 filas más bajas.
+     ───────────────────────────────────────────────────────────── */
   .notif-list-card {
+    --notif-row-h: 110px;                /* mobile: fila más alta (wrap) */
+    --notif-rows:  4;                    /* mobile: 4 filas visibles */
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: 14px;
-    overflow: hidden;
+    max-height: calc(var(--notif-row-h) * var(--notif-rows));
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(124,92,255,0.45) transparent;
+  }
+  .notif-list-card::-webkit-scrollbar { width: 5px; }            /* mobile */
+  .notif-list-card::-webkit-scrollbar-track { background: transparent; }
+  .notif-list-card::-webkit-scrollbar-thumb {
+    background: rgba(124,92,255,0.4);
+    border-radius: 3px;
+  }
+  .notif-list-card::-webkit-scrollbar-thumb:hover {
+    background: rgba(124,92,255,0.6);
   }
   .notif-row {
     display: grid;
-    grid-template-columns: 44px 1fr auto;
-    gap: 16px;
-    padding: 16px 20px;
+    grid-template-columns: 40px 1fr;     /* mobile: 2 cols (icono + body) */
+    gap: 12px;                            /* mobile */
+    padding: 12px 14px;                   /* mobile */
     align-items: center;
     border-bottom: 1px solid var(--border-soft);
     text-decoration: none;
@@ -40,10 +79,11 @@
     background: var(--accent);
   }
   .notif-row-icon {
-    width: 44px; height: 44px; border-radius: 12px;
+    width: 40px; height: 40px;            /* mobile */
+    border-radius: 12px;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  .notif-row-icon svg { width: 19px; height: 19px; color: white; }
+  .notif-row-icon svg { width: 16px; height: 16px; color: white; }   /* mobile */
   .notif-row-icon.t-forward_request { background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 4px 14px rgba(245,158,11,0.3); }
   .notif-row-icon.t-forwarded       { background: linear-gradient(135deg, #22c55e, #4ade80); box-shadow: 0 4px 14px rgba(46,204,113,0.3); }
   .notif-row-icon.t-threat_alert    { background: linear-gradient(135deg, var(--danger), #f87171); box-shadow: 0 4px 14px rgba(232,64,64,0.3); }
@@ -54,24 +94,39 @@
   .notif-row-icon.r-warn   { background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 4px 14px rgba(245,158,11,0.3); }
   .notif-row-icon.r-danger { background: linear-gradient(135deg, var(--danger), #f87171); box-shadow: 0 4px 14px rgba(232,64,64,0.3); }
 
-  .notif-row-body { min-width: 0; }
+  .notif-row-body {
+    min-width: 0;
+    grid-column: 2;                      /* mobile: solo columna 2 (icono solo en col 1) */
+  }
   .notif-row-title {
-    font-size: 14px; font-weight: 600; color: var(--text-primary);
+    font-size: 13.5px;                   /* mobile */
+    font-weight: 600; color: var(--text-primary);
     margin-bottom: 3px;
+    word-break: break-word;              /* mobile: aliases largos hacen wrap */
+    overflow-wrap: anywhere;             /* mobile */
+    line-height: 1.35;                   /* mobile */
   }
   .notif-row-msg {
-    font-size: 12.5px; color: var(--text-muted); line-height: 1.45;
+    font-size: 12px;                     /* mobile */
+    color: var(--text-muted); line-height: 1.45;
+    word-break: break-word;              /* mobile */
+    overflow-wrap: anywhere;             /* mobile */
   }
   .notif-row-meta {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center;
+    gap: 8px;                             /* mobile */
     font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
-    white-space: nowrap;
+    flex-wrap: wrap;                      /* mobile */
+    white-space: normal;                  /* mobile */
+    grid-column: 1 / -1;                  /* mobile: meta baja a fila propia */
+    margin-top: 4px;                      /* mobile */
   }
   .notif-status-pill {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: 9.5px; font-weight: 700; font-family: var(--font-mono);
     padding: 3px 8px; border-radius: 5px; letter-spacing: 0.06em;
     text-transform: uppercase;
+    white-space: nowrap;                 /* mobile: el pill no se rompe */
   }
   .ns-pending  { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
   .ns-approved { background: rgba(46,204,113,0.12); color: #4ade80; border: 1px solid rgba(46,204,113,0.3); }
@@ -84,7 +139,10 @@
 
   /* ── TOOLBAR (filtros + acciones) ── */
   .notif-toolbar {
-    display: flex; align-items: center; gap: 14px;
+    display: flex;
+    flex-direction: column;              /* mobile */
+    align-items: stretch;                /* mobile */
+    gap: 10px;                            /* mobile */
     margin-bottom: 16px;
     flex-wrap: wrap;
     justify-content: space-between;
@@ -95,21 +153,31 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 4px;
-    flex-wrap: wrap;
+    overflow-x: auto;                    /* mobile: scroll horizontal */
+    overflow-y: hidden;                  /* mobile: sin scroll vertical */
+    flex-wrap: nowrap;                   /* mobile */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;               /* mobile: oculta barra Firefox */
+    width: 100%;                         /* mobile: ocupa toda la fila */
+    justify-content: flex-start;
   }
+  /* Mobile: oculta la barra de scroll en WebKit (Chrome, Safari Android).
+     El scroll horizontal sigue funcionando con touch/swipe. */
+  .notif-filters::-webkit-scrollbar { display: none; }
   .notif-filter-btn {
     display: inline-flex; align-items: center; gap: 7px;
-    padding: 7px 12px;
+    padding: 6px 10px;                   /* mobile */
     background: transparent;
     border: none;
     border-radius: 8px;
     color: var(--text-secondary);
     font-family: var(--font-sans);
-    font-size: 12.5px;
+    font-size: 11.5px;                   /* mobile */
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
+    flex-shrink: 0;                      /* mobile: no se comprime al scrollear */
   }
   .notif-filter-btn:hover {
     background: rgba(255,255,255,0.04);
@@ -141,8 +209,12 @@
     color: inherit;
   }
 
-  /* Botón "Vaciar" + dropdown */
-  .notif-clear-wrap { position: relative; }
+  /* Botón "Vaciar" + dropdown — base mobile: full-width */
+  .notif-actions { width: 100%; }                          /* mobile */
+  .notif-clear-wrap {
+    position: relative;
+    width: 100%;                                            /* mobile */
+  }
   .notif-clear-btn {
     display: inline-flex; align-items: center; gap: 7px;
     padding: 8px 14px;
@@ -156,6 +228,8 @@
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(232,64,64,0.4);
     transition: all 0.15s;
+    width: 100%;                                            /* mobile */
+    justify-content: center;                                /* mobile */
   }
   .notif-clear-btn:hover {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
@@ -165,8 +239,10 @@
   .notif-clear-btn.open { background: linear-gradient(135deg, #c92626 0%, #a01919 100%); transform: translateY(0); }
   .notif-clear-menu {
     position: absolute;
-    top: calc(100% + 6px); right: 0;
-    width: 280px;
+    top: calc(100% + 6px);
+    right: 0;
+    left: 0;                                                /* mobile: full-width */
+    width: 100%;                                            /* mobile */
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -211,10 +287,106 @@
     from { opacity: 1; transform: translateX(0); max-height: 100px; }
     to   { opacity: 0; transform: translateX(-30px); max-height: 0; padding-top: 0; padding-bottom: 0; }
   }
-  .notif-empty-filtered {
-    padding: 50px 20px; text-align: center; color: var(--text-muted);
-    font-size: 13px;
-  }
+  /* "No hay notificaciones en este filtro" — el JS le pone la clase
+     .notif-empty + .notif-empty-filtered, así hereda el estilo
+     completo del empty-state server-side (icono campana grande +
+     mensaje + hint). Sin reglas adicionales aquí. */
   .notif-empty svg { width: 56px; height: 56px; opacity: 0.4; margin-bottom: 12px; }
-  .notif-empty-msg { font-size: 14px; margin-bottom: 4px; }
-  .notif-empty-hint { font-size: 12px; color: var(--text-muted); }
+  /* Título y subtítulo del empty-state — ahora alineados con el patrón
+     .empty-title / .empty-sub que usan trash, sent, drafts, inbox:
+     Syne 17px bold blanco para el título; JetBrains Mono 13px muted
+     para el subtítulo. Aplica tanto al empty server-side ("No tienes
+     notificaciones todavía") como al empty dinámico de filtros. */
+  .notif-empty-msg {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .notif-empty-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  /* Indicador "actualizando en vivo" — fixed, no choca con compose */
+  .notif-live-indicator {
+    bottom: 12px;                       /* mobile */
+    right: 12px;                        /* mobile */
+    font-size: 10px;                    /* mobile */
+  }
+
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP — ≥ 992px
+   Restaura el layout original: filas en 3 columnas, header en fila,
+   toolbar horizontal con filtros y "Vaciar" lado a lado, etc.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+  .notif-page-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+  .notif-page-title { font-size: 22px; }
+  .notif-stats { flex-wrap: nowrap; }
+
+  /* Toolbar horizontal */
+  .notif-toolbar {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+  .notif-filters {
+    overflow-x: visible;
+    overflow-y: visible;
+    flex-wrap: wrap;
+    width: auto;
+    -webkit-overflow-scrolling: auto;
+    scrollbar-width: auto;               /* desktop: irrelevante (sin overflow) */
+  }
+  .notif-filters::-webkit-scrollbar { display: initial; }
+  .notif-filter-btn { padding: 7px 12px; font-size: 12.5px; }
+
+  /* Botón "Vaciar" y su dropdown ya no son full-width */
+  .notif-actions       { width: auto; }
+  .notif-clear-wrap    { width: auto; }
+  .notif-clear-btn     { width: auto; justify-content: center; }
+  .notif-clear-menu    { width: 280px; left: auto; right: 0; }
+
+  /* Filas vuelven al grid de 3 columnas */
+  .notif-row {
+    grid-template-columns: 44px 1fr auto;
+    gap: 16px;
+    padding: 16px 20px;
+  }
+  .notif-row-icon { width: 44px; height: 44px; }
+  .notif-row-icon svg { width: 19px; height: 19px; }
+  .notif-row-body { grid-column: auto; }
+  .notif-row-title {
+    font-size: 14px;
+    word-break: normal;
+    overflow-wrap: normal;
+    line-height: normal;
+  }
+  .notif-row-msg {
+    font-size: 12.5px;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  .notif-row-meta {
+    grid-column: auto;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    margin-top: 0;
+    gap: 10px;
+  }
+
+  /* Card list: más filas, fila más baja (no hay wrap) */
+  .notif-list-card {
+    --notif-row-h: 78px;
+    --notif-rows:  6;
+  }
+  .notif-list-card::-webkit-scrollbar { width: 6px; }
+}

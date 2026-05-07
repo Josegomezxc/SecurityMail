@@ -1431,3 +1431,77 @@
 .att-pill.danger  { background: rgba(232,64,64,0.12);  color: var(--danger);  border: 1px solid rgba(232,64,64,0.25); }
 .att-pill.warning { background: rgba(245,158,11,0.12);  color: var(--warning); border: 1px solid rgba(245,158,11,0.25); }
 .att-pill.success { background: rgba(46,204,113,0.1);   color: var(--success); border: 1px solid rgba(46,204,113,0.22); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE-FIX (< 992px) — sandbox_report.css
+   - Score card stack vertical (ring + filename respira)
+   - Finding-row, IOCs, evidencias hacen wrap correcto
+   - AI grids ya tenían breakpoint a 560px
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 991.98px) {
+  .score-card {
+    padding: 16px 14px;
+    gap: 14px;
+  }
+  .score-ring-wrap { width: 72px; height: 72px; }
+  .score-ring-num { font-size: 22px; }
+  .score-info { min-width: 0; flex: 1 1 100%; }
+  .score-filename {
+    font-size: 16px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .score-meta { font-size: 11px; word-break: break-word; }
+
+  .section-head { padding: 12px 14px; flex-wrap: wrap; }
+  .section-head-title { font-size: 12.5px; }
+  .section-head-tag { margin-left: 0; flex-basis: 100%; }
+
+  .finding-row {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+  }
+  .finding-val {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .finding-val code {
+    word-break: break-all;
+    white-space: pre-wrap;
+    max-width: 100%;
+  }
+
+  /* AI section header en una sola línea no entra; wrap */
+  .ai-section-header {
+    flex-wrap: wrap;
+    padding: 14px;
+    gap: 10px;
+  }
+  .ai-header-text { flex: 1 1 calc(100% - 60px); }
+  .ai-header-title { font-size: 14px; word-break: break-word; }
+  .ai-model-badge { flex-basis: 100%; justify-content: center; }
+
+  .ai-result-body { padding: 14px; }
+  /* Refuerza grids AI a 1 columna */
+  .ai-top-grid,
+  .ai-bottom-grid { grid-template-columns: 1fr !important; gap: 10px; }
+
+  .ai-loading-wrap { padding: 30px 14px; }
+  .ai-steps { max-width: 100%; }
+
+  /* Pills (att, status, score-badges) */
+  .att-pill { white-space: normal; word-break: keep-all; }
+
+  /* Listas colapsables: padding cómodo */
+  .collapsible-list { gap: 6px; }
+  .collapsible-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* IOC copy buttons: full ancho */
+  .ioc-copy-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}

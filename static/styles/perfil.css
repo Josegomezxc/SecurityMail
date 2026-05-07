@@ -47,14 +47,25 @@
   .alert-success { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2); color: #4ade80; }
   .alert-error   { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2);  color: #f87171; }
 
-  /* ─── GRID ─── */
+  /* ─── GRID — Mobile First ───
+     Mobile (default): una sola columna apilada.
+     Desktop ≥861px: split 280px (avatar+member+tips) | 1fr (formularios). */
   .profile-grid {
     display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 20px;
-    align-items: start;
+    grid-template-columns: 1fr;          /* mobile */
+    gap: 14px;                            /* mobile */
   }
-  @media (max-width: 860px) { .profile-grid { grid-template-columns: 1fr; } }
+  /* Cada columna del grid tiene su propio min-width:0 para que un email
+     largo o un input wide no fuerce el grid a crecer más que el viewport. */
+  .profile-grid > div { min-width: 0; }
+
+  @media (min-width: 861px) {
+    .profile-grid {
+      grid-template-columns: 280px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+  }
 
   /* ─── LEFT SIDEBAR ─── */
   .profile-avatar-card {
@@ -431,6 +442,117 @@
     color: #f0eeff;
   }
 
+  /* ─── SECURITY TIPS CARD ───
+     Vive bajo .member-card en la columna izquierda. Su única razón de
+     existir es rellenar el hueco visual que queda en desktop cuando la
+     columna derecha (info + contraseña) es más alta que avatar+member. */
+  .security-tips-card {
+    background: var(--bg-surface, #13111f);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-top: 16px;
+    animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) 0.15s both;
+  }
+  .stc-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .stc-icon {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: var(--ps);
+    border: 1px solid var(--pb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .stc-title {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    color: #f0eeff;
+    letter-spacing: -0.01em;
+  }
+  .stc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .stc-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .stc-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--pl);
+    box-shadow: 0 0 6px rgba(167,139,250,0.5);
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+  .stc-text strong {
+    display: block;
+    font-family: var(--display);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #f0eeff;
+    margin-bottom: 2px;
+    letter-spacing: -0.005em;
+  }
+  .stc-text p {
+    margin: 0;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.5);
+    font-family: var(--mono);
+  }
+
+  /* ── Desktop: la columna izquierda se estira al alto del row del grid
+     (= alto de la columna derecha). La security-tips-card absorbe el
+     espacio sobrante con flex:1 y scrollea internamente la lista, así
+     nunca empuja el row más alto y nunca deja hueco bajo la columna
+     izquierda. En mobile (≤860px) la card vuelve a su flujo normal. ── */
+  @media (min-width: 861px) {
+    .profile-grid > div:first-child {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .security-tips-card {
+      flex: 1 1 0;
+      min-height: 120px;            /* piso por si el right column es muy bajo */
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .stc-list {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(124,92,255,0.4) transparent;
+    }
+    .stc-list::-webkit-scrollbar { width: 4px; }
+    .stc-list::-webkit-scrollbar-track { background: transparent; }
+    .stc-list::-webkit-scrollbar-thumb {
+      background: rgba(124,92,255,0.4);
+      border-radius: 2px;
+    }
+    .stc-list::-webkit-scrollbar-thumb:hover { background: rgba(124,92,255,0.6); }
+  }
+
   /* ─── RIGHT COLUMN PANELS ─── */
   .profile-panel {
     background: var(--bg-surface, #13111f);
@@ -622,11 +744,13 @@
     box-shadow: 0 8px 24px rgba(124,92,255,0.5), 0 1px 0 rgba(255,255,255,0.1) inset;
   }
 
-  /* ─── FORWARD TOGGLE CARD (reenvío de correos seguros) ─── */
+  /* ─── FORWARD TOGGLE CARD (reenvío de correos seguros) — Mobile First ───
+     Mobile (default): una sola columna, icono y body apilados.
+     Desktop ≥541px: dos columnas con icono fijo a la izquierda. */
   .forward-toggle-card {
     display: grid;
-    grid-template-columns: 44px 1fr;
-    gap: 14px;
+    grid-template-columns: 1fr;          /* mobile */
+    gap: 12px;                            /* mobile */
     background: linear-gradient(135deg, rgba(46,204,113,0.04) 0%, var(--bg-elevated, #1a1828) 60%);
     border: 1px solid rgba(46,204,113,0.18);
     border-radius: 14px;
@@ -659,7 +783,11 @@
   }
   .forward-toggle-card.is-on::after { opacity: 0.12; }
 
-  .ftc-icon-side { display: flex; justify-content: center; padding-top: 2px; }
+  .ftc-icon-side {
+    display: flex;
+    justify-content: flex-start;         /* mobile: icono pegado a la izquierda */
+    padding-top: 2px;
+  }
   .ftc-icon {
     width: 38px; height: 38px;
     border-radius: 11px;
@@ -729,17 +857,25 @@
   }
   .ftc-desc strong { color: var(--text-primary, #f0eeff); font-weight: 600; }
 
+  /* Reglas del forward-toggle — Mobile First.
+     Mobile (default): una columna apilada (mejor lectura en móvil).
+     ≥721px: dos columnas para aprovechar el ancho. */
   .ftc-rules {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px 14px;
+    grid-template-columns: 1fr;          /* mobile */
+    gap: 8px;                             /* mobile */
     margin-bottom: 14px;
     padding: 10px 12px;
     background: rgba(0,0,0,0.15);
     border-radius: 10px;
     border: 1px solid rgba(255,255,255,0.04);
   }
-  @media (max-width: 720px) { .ftc-rules { grid-template-columns: 1fr; } }
+  @media (min-width: 721px) {
+    .ftc-rules {
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 14px;
+    }
+  }
   .ftc-rule {
     display: flex;
     align-items: center;
@@ -822,12 +958,15 @@
     letter-spacing: 0.01em;
   }
 
-  @media (max-width: 540px) {
+  /* Desktop ≥541px: vuelve al layout original de dos columnas con icono
+     centrado. Sólo un override min-width, el resto de los valores
+     ya viven en los defaults mobile-first arriba. */
+  @media (min-width: 541px) {
     .forward-toggle-card {
-      grid-template-columns: 1fr;
-      gap: 12px;
+      grid-template-columns: 44px 1fr;
+      gap: 14px;
     }
-    .ftc-icon-side { justify-content: flex-start; }
+    .ftc-icon-side { justify-content: center; }
   }
 
   /* ─── FILA INFERIOR DE ANCHO COMPLETO
@@ -1208,3 +1347,36 @@
   .da-btn-confirm.loading .da-spinner { display: inline-block; }
   .da-btn-confirm.loading .da-btn-text { opacity: 0.7; }
   @keyframes daSpin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════════════
+   OVERFLOW SAFETY — siempre activo (no media query)
+   Estas reglas evitan que un email/nombre largo (cadena sin espacios)
+   fuerce a la card a crecer más que su columna del grid en mobile. En
+   desktop no rompen nada porque el ancho disponible es mayor que el
+   contenido. ═══════════════════════════════════════════════════════ */
+.profile-email,
+.profile-name,
+.member-date,
+.email-display-val {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODAL "Eliminar cuenta" — overrides puramente mobile (< 540px)
+   El modal vive fuera del flujo de la página y se sale de la grid del
+   perfil, por eso conserva su propio media query desktop-first: en
+   pantallas chicas necesita ocupar (casi) todo el ancho con padding
+   reducido, y los botones de acción deben envolverse y partir el ancho.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 540px) {
+  .da-overlay .da-modal {
+    width: calc(100vw - 32px);
+    max-width: 460px;
+  }
+  .da-head { padding: 18px 18px 12px; }
+  .da-impact { margin: 0 18px 14px; }
+  .da-form { padding: 0 18px 18px; }
+  .da-actions { flex-wrap: wrap; gap: 8px; }
+  .da-actions .da-btn { flex: 1 1 auto; }
+}

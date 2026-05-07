@@ -165,16 +165,61 @@
       if (show) visible++;
     });
 
-    // Mensaje "sin resultados con este filtro"
+    // Mensaje "sin notificaciones en este filtro" — usa la misma
+    // estructura que .notif-empty (server-side empty state): el
+    // icono propio del módulo (campana) en grande dentro de la card,
+    // un título y un subtítulo. Asi queda visualmente idéntico al
+    // empty-state que aparece cuando no hay notificaciones del todo.
+    // El TÍTULO y el SUBTÍTULO cambian según el filtro activo para que
+    // el usuario sepa exactamente qué tipo de notificación falta.
+    const COPY = {
+      all: {
+        title: 'No hay notificaciones',
+        hint:  'Cuando llegue un correo a tus alias o haya un evento, aparecerá aquí.',
+      },
+      unread: {
+        title: 'No hay notificaciones sin leer',
+        hint:  'Estás al día — ya viste todas las notificaciones recibidas.',
+      },
+      pending: {
+        title: 'No hay notificaciones pendientes',
+        hint:  'No tienes solicitudes esperando tu respuesta.',
+      },
+      forwarded: {
+        title: 'No hay notificaciones reenviadas',
+        hint:  'Aún no has aprobado el reenvío de ningún correo a tu bandeja real.',
+      },
+      discarded: {
+        title: 'No hay notificaciones descartadas',
+        hint:  'No has descartado ninguna solicitud de reenvío todavía.',
+      },
+    };
+
     let emptyMsg = container.querySelector('.notif-empty-filtered');
     const hasReal = container.querySelectorAll('.notif-row').length > 0;
     if (visible === 0 && hasReal) {
+      const copy = COPY[filter] || COPY.all;
+      const html =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" ' +
+          'style="display:block;margin:0 auto">' +
+          '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>' +
+          '<path d="M13.73 21a2 2 0 0 1-3.46 0"/>' +
+        '</svg>' +
+        '<div class="notif-empty-msg"></div>' +
+        '<div class="notif-empty-hint"></div>';
       if (!emptyMsg) {
         emptyMsg = document.createElement('div');
-        emptyMsg.className = 'notif-empty-filtered';
-        emptyMsg.textContent = 'No hay notificaciones que coincidan con este filtro.';
+        emptyMsg.className = 'notif-empty notif-empty-filtered';
+        emptyMsg.innerHTML = html;
         container.appendChild(emptyMsg);
       }
+      // Si el usuario cambió de filtro pero el bloque ya existe, refrescamos
+      // los textos para que el copy coincida con el filtro actual.
+      const msgEl  = emptyMsg.querySelector('.notif-empty-msg');
+      const hintEl = emptyMsg.querySelector('.notif-empty-hint');
+      if (msgEl)  msgEl.textContent  = copy.title;
+      if (hintEl) hintEl.textContent = copy.hint;
     } else if (emptyMsg) {
       emptyMsg.remove();
     }

@@ -193,69 +193,71 @@ el sistema de persistencia.
       </div>
       <a href="{% url 'inbox' %}" class="panel-link">Ver bandeja →</a>
     </div>
-    <table class="activity-table">
-      <thead>
-        <tr>
-          <th>Remitente</th>
-          <th>Alias destino</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for email in recent_emails %}
-        <tr>
-          <td>
-            <div class="sender-info">
-              <div class="sender-avatar"
-                   style="background:{% cycle 'rgba(124,92,255,0.12)' 'rgba(34,197,94,0.1)' 'rgba(245,158,11,0.1)' 'rgba(59,130,246,0.1)' %};
-                          color:{% cycle 'var(--pl)' '#4ade80' '#fbbf24' '#60a5fa' %}">
-                {{ email.from_email|first|upper }}
+    <div class="panel-body">
+      <table class="activity-table">
+        <thead>
+          <tr>
+            <th>Remitente</th>
+            <th>Alias destino</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for email in recent_emails %}
+          <tr>
+            <td>
+              <div class="sender-info">
+                <div class="sender-avatar"
+                     style="background:{% cycle 'rgba(124,92,255,0.12)' 'rgba(34,197,94,0.1)' 'rgba(245,158,11,0.1)' 'rgba(59,130,246,0.1)' %};
+                            color:{% cycle 'var(--pl)' '#4ade80' '#fbbf24' '#60a5fa' %}">
+                  {{ email.from_email|first|upper }}
+                </div>
+                <div>
+                  <div class="sender-name">{{ email.subject|truncatechars:30 }}</div>
+                  <div class="sender-email">{{ email.from_email }}</div>
+                </div>
               </div>
-              <div>
-                <div class="sender-name">{{ email.subject|truncatechars:30 }}</div>
-                <div class="sender-email">{{ email.from_email }}</div>
+            </td>
+            <td><span class="mono-tag">{{ email.alias.address|truncatechars:24 }}</span></td>
+            <td>
+              {% if email.risk_score >= 61 %}
+                <span class="risk-badge danger">
+                  <span class="badge-dot"></span>
+                  Bloqueado
+                </span>
+              {% elif email.risk_score >= 31 %}
+                <span class="risk-badge warning">
+                  <span class="badge-dot"></span>
+                  Sospechoso
+                </span>
+              {% else %}
+                <span class="risk-badge success">
+                  <span class="badge-dot"></span>
+                  Seguro
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3">
+              <div class="empty-table">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Aún no hay correos recibidos en tus alias
               </div>
-            </div>
-          </td>
-          <td><span class="mono-tag">{{ email.alias.address|truncatechars:24 }}</span></td>
-          <td>
-            {% if email.risk_score >= 61 %}
-              <span class="risk-badge danger">
-                <span class="badge-dot"></span>
-                Bloqueado
-              </span>
-            {% elif email.risk_score >= 31 %}
-              <span class="risk-badge warning">
-                <span class="badge-dot"></span>
-                Sospechoso
-              </span>
-            {% else %}
-              <span class="risk-badge success">
-                <span class="badge-dot"></span>
-                Seguro
-              </span>
-            {% endif %}
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="3">
-            <div class="empty-table">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
-              </svg>
-              Aún no hay correos recibidos en tus alias
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- COLUMNA DERECHA -->
-  <div style="display:flex;flex-direction:column;gap:18px">
+  <div class="panel-stack">
 
     <!-- MIS ALIAS -->
     <div class="panel" style="animation-delay:260ms">
@@ -266,30 +268,32 @@ el sistema de persistencia.
         </div>
         <a href="{% url 'alias_list' %}" class="panel-link">Ver todos →</a>
       </div>
-      {% for alias in aliases %}
-      <div class="alias-item">
-        <div style="min-width:0;flex:1">
-          <div class="alias-addr">{{ alias.address }}</div>
-          <div class="alias-meta">{{ alias.label }} · {{ alias.email_count }} correos</div>
+      <div class="panel-body">
+        {% for alias in aliases %}
+        <div class="alias-item">
+          <div style="min-width:0;flex:1">
+            <div class="alias-addr">{{ alias.address }}</div>
+            <div class="alias-meta">{{ alias.label }} · {{ alias.email_count }} correos</div>
+          </div>
+          {% if alias.is_active %}
+            <span class="alias-status active">
+              <span class="status-dot"></span>
+              Activo
+            </span>
+          {% else %}
+            <span class="alias-status inactive">Destruido</span>
+          {% endif %}
         </div>
-        {% if alias.is_active %}
-          <span class="alias-status active">
-            <span class="status-dot"></span>
-            Activo
-          </span>
-        {% else %}
-          <span class="alias-status inactive">Destruido</span>
-        {% endif %}
+        {% empty %}
+        <div class="empty-table">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+            <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/>
+          </svg>
+          No tienes alias aún.
+          <a href="{% url 'alias_create' %}" style="color:var(--pl);text-decoration:none;margin-left:4px;font-family:var(--mono)">Crear uno →</a>
+        </div>
+        {% endfor %}
       </div>
-      {% empty %}
-      <div class="empty-table">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-          <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/>
-        </svg>
-        No tienes alias aún.
-        <a href="{% url 'alias_create' %}" style="color:var(--pl);text-decoration:none;margin-left:4px;font-family:var(--mono)">Crear uno →</a>
-      </div>
-      {% endfor %}
     </div>
 
     <!-- SANDBOX -->
@@ -307,23 +311,25 @@ el sistema de persistencia.
         <span class="sandbox-label">Contenedor <strong>activo y listo</strong></span>
       </div>
 
-      {% for analysis in recent_analyses %}
-      <div class="sandbox-analysis">
-        <span class="sandbox-filename">{{ analysis.filename }}</span>
-        <div class="risk-bar-wrap">
-          <div class="risk-bar"
-               style="width:{{ analysis.risk_score }}%;
-                      background:{% if analysis.risk_score >= 61 %}linear-gradient(90deg,#ef4444,#f87171){% elif analysis.risk_score >= 31 %}linear-gradient(90deg,#f59e0b,#fbbf24){% else %}linear-gradient(90deg,#22c55e,#4ade80){% endif %}">
+      <div class="panel-body">
+        {% for analysis in recent_analyses %}
+        <div class="sandbox-analysis">
+          <span class="sandbox-filename">{{ analysis.filename }}</span>
+          <div class="risk-bar-wrap">
+            <div class="risk-bar"
+                 style="width:{{ analysis.risk_score }}%;
+                        background:{% if analysis.risk_score >= 61 %}linear-gradient(90deg,#ef4444,#f87171){% elif analysis.risk_score >= 31 %}linear-gradient(90deg,#f59e0b,#fbbf24){% else %}linear-gradient(90deg,#22c55e,#4ade80){% endif %}">
+            </div>
           </div>
+          <span class="risk-score-num"
+                style="color:{% if analysis.risk_score >= 61 %}#f87171{% elif analysis.risk_score >= 31 %}#fbbf24{% else %}#4ade80{% endif %}">
+            {{ analysis.risk_score }}
+          </span>
         </div>
-        <span class="risk-score-num"
-              style="color:{% if analysis.risk_score >= 61 %}#f87171{% elif analysis.risk_score >= 31 %}#fbbf24{% else %}#4ade80{% endif %}">
-          {{ analysis.risk_score }}
-        </span>
+        {% empty %}
+        <div class="empty-table" style="padding:24px 20px">Sin análisis recientes</div>
+        {% endfor %}
       </div>
-      {% empty %}
-      <div class="empty-table" style="padding:24px 20px">Sin análisis recientes</div>
-      {% endfor %}
     </div>
 
   </div>

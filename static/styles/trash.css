@@ -1,3 +1,10 @@
+/* ═══════════════════════════════════════════════════════════════════
+   TRASH — Mobile First.
+   Base = móvil (≥360px). El bloque @media (min-width: 992px) al final
+   restaura el layout desktop. Cero cambios visuales (colores rojos,
+   gradientes, sombras, animaciones, hovers): solo el sistema responsivo.
+   ═══════════════════════════════════════════════════════════════════ */
+
 :root {
   --ai-purple:        #7c3aed;
   --ai-purple-light:  #a78bfa;
@@ -11,12 +18,17 @@
 @keyframes shimmer { 0%{background-position:-200% 0}100%{background-position:200% 0} }
 @keyframes pulse   { 0%,100%{box-shadow:0 0 0 0 rgba(232,64,64,0)}60%{box-shadow:0 0 0 6px rgba(232,64,64,0.15)} }
 
-/* ── HERO ── */
+/* ════════════════════════════════════════════════════════════════════
+   HERO
+   Mobile: padding compacto, grid 2 cols (icono+texto), .trash-stats
+   baja a una fila propia ocupando todo el ancho con borde superior.
+   Desktop: grid 3 cols (icono+texto+stats) con mini-cards a la derecha.
+   ════════════════════════════════════════════════════════════════════ */
 .trash-hero {
   background: var(--bg-surface);
   border: 1px solid rgba(232,64,64,0.22);
   border-radius: 16px;
-  padding: 20px 24px;
+  padding: 14px 14px;                  /* mobile */
   margin-bottom: 16px;
   position: relative; overflow: hidden;
   animation: fadeUp 0.4s ease both;
@@ -34,9 +46,9 @@
 .trash-hero-inner {
   position: relative; z-index: 1;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;     /* mobile: 2 cols */
   align-items: center;
-  gap: 18px;
+  gap: 12px;                            /* mobile */
 }
 .trash-hero-icon {
   width: 46px; height: 46px;
@@ -46,48 +58,120 @@
   box-shadow: 0 6px 20px rgba(232,64,64,0.35);
   animation: pulse 3s ease-in-out infinite;
 }
+.trash-hero-text {
+  min-width: 0;                         /* mobile: permite ellipsis */
+}
 .trash-hero-text h1 {
-  font-family: var(--display); font-size: 19px; font-weight: 800;
+  font-family: var(--display);
+  font-size: 18px;                     /* mobile */
+  font-weight: 800;
   background: linear-gradient(90deg, var(--text-primary) 0%, #fca5a5 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   margin-bottom: 4px;
+  word-break: break-word;              /* mobile */
 }
-.trash-hero-text p { font-size: 11.5px; color: var(--text-secondary); font-family: var(--mono); }
+.trash-hero-text p {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  word-break: break-word;              /* mobile */
+  overflow-wrap: anywhere;             /* mobile */
+}
 .trash-hero-text strong { color: #f87171; }
-.trash-stats { display: flex; gap: 10px; flex-shrink: 0; }
-.trash-stat {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(232,64,64,0.08);
-  border: 1px solid rgba(232,64,64,0.22);
-  border-radius: 10px; padding: 10px 18px; min-width: 70px;
-}
-.trash-stat-val { font-family: var(--display); font-size: 22px; font-weight: 800; line-height: 1.1; color: #f87171; }
-.trash-stat-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-top: 3px; font-family: var(--mono); }
 
-/* ── TOOLBAR (tabs + vaciar) ── */
+/* Stats — en móvil bajan a una fila propia ocupando todo el ancho,
+   con borde superior rojo en vez de mini-cards. En desktop son
+   mini-cards "Recibidos" y "Enviados" a la derecha del texto. */
+.trash-stats {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  grid-column: 1 / -1;                 /* mobile: ocupa toda la fila */
+  justify-content: space-around;       /* mobile */
+  padding-top: 12px;                    /* mobile */
+  margin-top: 4px;                     /* mobile */
+  border-top: 1px solid rgba(232,64,64,0.22);  /* mobile: línea arriba */
+  width: 100%;                          /* mobile */
+}
+.trash-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;                 /* número centrado sobre label */
+  justify-content: center;
+  background: transparent;             /* mobile: sin caja */
+  border: none;                        /* mobile */
+  border-radius: 0;                    /* mobile */
+  padding: 4px 12px;                   /* mobile */
+  min-width: 0;                        /* mobile */
+  line-height: 1;
+}
+.trash-stat-val {
+  display: block;
+  font-family: var(--display);
+  font-size: 20px;                     /* mobile */
+  font-weight: 800;
+  line-height: 1;
+  color: #f87171;
+  /* Lining figures: dígitos a la misma altura (5/8 alineados) */
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: 'lnum' 1, 'tnum' 1;
+}
+.trash-stat-lbl {
+  display: block;
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-top: 5px;
+  font-family: var(--mono);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   TOOLBAR — tabs + vaciar papelera
+   Mobile: stack vertical, tabs en scroll horizontal, botón full-width.
+   Desktop: una sola fila con tabs flex-1 y botón ancho natural.
+   ════════════════════════════════════════════════════════════════════ */
 .toolbar {
-  display: flex; gap: 10px; margin-bottom: 16px;
-  align-items: center; flex-wrap: wrap;
+  display: flex;
+  flex-direction: column;              /* mobile */
+  align-items: stretch;                /* mobile */
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
   animation: fadeUp 0.4s ease 0.05s both;
 }
 .tabs {
-  display: flex; gap: 4px;
+  display: flex;
+  gap: 4px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 4px;
-  flex: 1;
+  flex-wrap: nowrap;                   /* mobile: scroll horizontal */
+  overflow-x: auto;                    /* mobile */
+  overflow-y: hidden;                  /* mobile */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;               /* mobile: barra oculta Firefox */
+  width: 100%;                          /* mobile */
+  min-width: 0;                        /* mobile */
+  justify-content: flex-start;
 }
+.tabs::-webkit-scrollbar { display: none; }    /* mobile: oculta WebKit */
 .tab-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;                   /* mobile */
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  font-family: var(--mono);
+  font-size: 11.5px;                    /* mobile */
+  font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;                      /* mobile: no se comprime con scroll */
+  white-space: nowrap;
 }
 .tab-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
 .tab-btn.active {
@@ -104,16 +188,21 @@
 .tab-btn svg { width: 12px; height: 12px; }
 
 .empty-trash-btn {
-  display: inline-flex; align-items: center; gap: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   padding: 9px 14px;
   background: linear-gradient(135deg, #e84040 0%, #c92626 100%);
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 12px;
   color: #fff;
   font-family: var(--mono); font-size: 12px; font-weight: 700;
-  cursor: pointer; flex-shrink: 0;
+  cursor: pointer;
+  flex-shrink: 0;
   box-shadow: 0 4px 14px rgba(232,64,64,0.4);
   transition: all 0.15s;
+  width: 100%;                          /* mobile */
+  justify-content: center;              /* mobile */
 }
 .empty-trash-btn:hover {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
@@ -130,34 +219,114 @@
 
 /* ── BANNER de retención ── */
 .retention-banner {
-  display: flex; align-items: center; gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   background: rgba(245,158,11,0.07);
   border: 1px solid rgba(245,158,11,0.22);
   color: var(--warning);
   padding: 10px 14px;
   border-radius: 10px;
-  font-size: 12px; font-family: var(--mono);
+  font-size: 12px;
+  font-family: var(--mono);
   margin-bottom: 14px;
   animation: fadeUp 0.4s ease 0.08s both;
+  flex-wrap: wrap;                     /* mobile */
+  word-break: break-word;              /* mobile */
 }
 .retention-banner svg { width: 14px; height: 14px; flex-shrink: 0; }
 
-/* ── ROWS ── */
+/* ═══════════════════════════════════════════════════════════════════
+   LISTA DE PAPELERA — frame card único que envuelve los 3 tabs
+   (#tab-inbound, #tab-outbound, #tab-draft).  Aunque el filtro JS
+   muestra/oculta cada tab, todos viven dentro de la misma card.
+   Las dos variables --trash-row-h y --trash-rows controlan el
+   tamaño de la card antes del scroll.
+   ═══════════════════════════════════════════════════════════════════ */
+#trash-list {
+  --trash-row-h: 175px;                /* mobile: fila alta (wrap + actions con divisor abajo) */
+  --trash-rows:  4;                    /* mobile: 4 filas visibles */
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  max-height: calc(var(--trash-row-h) * var(--trash-rows));
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232,64,64,0.45) transparent;
+}
+#trash-list::-webkit-scrollbar { width: 5px; }
+#trash-list::-webkit-scrollbar-track { background: transparent; }
+#trash-list::-webkit-scrollbar-thumb {
+  background: rgba(232,64,64,0.4);
+  border-radius: 3px;
+}
+#trash-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(232,64,64,0.6);
+}
+/* Los 3 tab panels viven dentro del card como contenedores
+   transparentes: sin caja propia, sin padding extra. */
+#trash-list > #tab-inbound,
+#trash-list > #tab-outbound,
+#trash-list > #tab-draft {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Cuando viven dentro de la card, las filas se comportan como una
+   lista continua: se quita el border-radius/border/margin de cada
+   fila y aparece una línea sutil debajo que las separa visualmente.
+   TODAS las filas mantienen su border-bottom — la última de la card
+   simplemente se cierra contra el padding inferior. Si quitábamos
+   `:last-child` de cada tab, la fila única del primer tab perdía la
+   línea aunque tuviera vecinos abajo. */
+#trash-list .trash-row {
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  margin-bottom: 0;
+  background: transparent;
+}
+
+/* Empty-state dentro del card: padding cómodo, sin sobrar tanto */
+#trash-list .empty-state {
+  padding: 40px 20px;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   FILA DE PAPELERA
+   Mobile: wrap, padding compacto, .trash-actions baja a una fila propia.
+   Desktop: una sola línea con avatar + content + actions a la derecha.
+   ════════════════════════════════════════════════════════════════════ */
 .trash-row {
-  display: flex; align-items: flex-start; gap: 14px;
-  padding: 14px 18px;
-  border-radius: 14px; border: 1px solid transparent;
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;                     /* mobile */
+  gap: 12px;                            /* mobile: más respiración */
+  padding: 16px 14px;                   /* mobile: padding vertical generoso */
+  border-radius: 14px;
+  border: 1px solid transparent;
   margin-bottom: 6px;
   background: var(--bg-surface);
   border-color: var(--border-soft);
   position: relative;
+  overflow: visible;                    /* mobile */
   animation: fadeUp 0.4s ease both;
   transition: border-color 0.15s, background 0.15s;
 }
-.trash-row:hover { border-color: var(--border); background: var(--bg-hover); }
+.trash-row:hover {
+  border-color: var(--border);
+  background: var(--bg-hover);
+}
 
 .trash-avatar {
-  width: 38px; height: 38px; border-radius: 11px;
+  width: 38px; height: 38px;
+  border-radius: 11px;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--display); font-size: 14px; font-weight: 700;
   flex-shrink: 0;
@@ -166,62 +335,122 @@
   border: 1px solid var(--border-soft);
   filter: grayscale(0.3);
 }
-.trash-content { flex: 1; min-width: 0; }
-.trash-top {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 12.5px; margin-bottom: 4px;
+
+.trash-content {
+  flex: 1 1 calc(100% - 56px);         /* mobile: ancho menos avatar+gap */
+  min-width: 0;
 }
-.trash-top .label { color: var(--text-muted); font-weight: 500; margin-right: 4px; font-family: var(--mono); font-size: 10.5px; }
-.trash-addr { font-weight: 600; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
-.trash-deleted-at { color: var(--text-muted); font-size: 10.5px; font-family: var(--mono); flex-shrink: 0; }
+
+.trash-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  margin-bottom: 8px;                  /* mobile: separación con subject */
+  flex-wrap: wrap;                     /* mobile */
+}
+.trash-top .label {
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-right: 4px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+.trash-addr {
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex: 1 1 100%;                       /* mobile: ocupa toda la fila */
+  min-width: 0;
+  white-space: normal;                 /* mobile: wrap por palabras */
+  overflow: visible;                   /* mobile */
+  text-overflow: clip;                 /* mobile */
+  word-break: break-word;              /* mobile */
+  overflow-wrap: anywhere;             /* mobile */
+}
+.trash-deleted-at {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
 .trash-subject {
-  font-size: 13px; font-weight: 600; color: var(--text-secondary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  margin-bottom: 4px;
-  text-decoration: line-through; text-decoration-color: rgba(232,64,64,0.4);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;                 /* mobile: separación clara con meta */
+  text-decoration: line-through;
+  text-decoration-color: rgba(232,64,64,0.4);
+  white-space: normal;                 /* mobile: wrap */
+  overflow: visible;                   /* mobile */
+  text-overflow: clip;                 /* mobile */
+  word-break: break-word;              /* mobile */
+  overflow-wrap: anywhere;             /* mobile */
 }
 .trash-meta {
-  display: flex; gap: 10px; font-size: 10.5px;
-  color: var(--text-muted); font-family: var(--mono);
-  flex-wrap: wrap; align-items: center;
+  display: flex;
+  gap: 8px 12px;                       /* mobile: gap vertical 8 horizontal 12 */
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  flex-wrap: wrap;
+  align-items: center;
 }
 .trash-kind-pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 8px; border-radius: 5px;
-  font-size: 10px; font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 .trash-kind-pill.inbound  { background: rgba(124,58,237,0.1); color: var(--ai-purple-light); border: 1px solid var(--ai-purple-border); }
 .trash-kind-pill.outbound { background: rgba(46,204,113,0.08); color: var(--success); border: 1px solid rgba(46,204,113,0.22); }
 .trash-kind-pill.draft    { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
 
 .trash-expiry {
-  font-family: var(--mono); font-size: 10px;
-  color: var(--warning); font-weight: 600;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--warning);
+  font-weight: 600;
 }
 
-/* Columna derecha: timestamp arriba + botones de acción abajo. */
+/* Actions: Mobile = ocupa toda la fila como banda inferior con timestamp
+   arriba y botones abajo. Desktop = columna a la derecha. */
 .trash-actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-  align-self: stretch;
+  flex-direction: column;              /* mobile: timestamp arriba, botones abajo */
+  align-items: stretch;                /* mobile */
+  gap: 10px;                           /* mobile */
+  flex: 1 1 100%;                      /* mobile: fila completa */
+  align-self: auto;                    /* mobile */
+  padding-top: 10px;                   /* mobile: separación visual del subject/meta */
+  margin-top: 4px;                     /* mobile */
+  border-top: 1px dashed var(--border-soft);  /* mobile: divisor sutil */
 }
 .trash-actions .trash-deleted-at {
-  margin-bottom: 2px;
+  margin-bottom: 0;
+  text-align: left;                    /* mobile */
 }
 .trash-actions-buttons {
   display: flex;
-  gap: 6px;
+  gap: 8px;                            /* mobile: separación entre botones */
+  flex-wrap: wrap;                     /* mobile */
 }
 .btn-restore, .btn-purge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;                   /* mobile */
   border-radius: 8px;
-  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  font-family: var(--mono);
+  font-size: 11.5px;                    /* mobile */
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+  flex: 1 1 auto;                      /* mobile: se reparten el ancho */
+  justify-content: center;             /* mobile */
 }
 .btn-restore svg, .btn-purge svg { width: 11px; height: 11px; }
 .btn-restore {
@@ -229,7 +458,11 @@
   border: 1px solid var(--ai-purple-border);
   color: var(--ai-purple-light);
 }
-.btn-restore:hover { background: rgba(124,58,237,0.18); border-color: var(--ai-purple); color: #fff; transform: translateY(-1px); }
+.btn-restore:hover {
+  background: rgba(124,58,237,0.18);
+  border-color: var(--ai-purple);
+  color: #fff;
+}
 .btn-purge {
   background: linear-gradient(135deg, #e84040 0%, #c92626 100%);
   border: 1px solid rgba(255,255,255,0.18);
@@ -239,21 +472,150 @@
 }
 .btn-purge:hover {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(232,64,64,0.55);
 }
 
 /* ── EMPTY STATE ── */
 .empty-state {
-  text-align: center; padding: 72px 20px;
+  text-align: center;
+  padding: 72px 20px;
   animation: fadeUp 0.4s ease 0.15s both;
 }
 .empty-icon-wrap {
-  width: 72px; height: 72px; border-radius: 20px;
-  background: rgba(232,64,64,0.06); border: 1px solid rgba(232,64,64,0.18);
+  width: 72px; height: 72px;
+  border-radius: 20px;
+  background: rgba(232,64,64,0.06);
+  border: 1px solid rgba(232,64,64,0.18);
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 20px;
 }
 .empty-title { font-family: var(--display); font-size: 17px; font-weight: 700; margin-bottom: 8px; }
 .empty-sub   { font-size: 13px; color: var(--text-muted); font-family: var(--mono); }
 
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP — ≥ 992px
+   Restaura el layout original: hero en grid 3 cols con stats a la
+   derecha, toolbar en una fila con tabs flex-1 y botón natural,
+   filas en una sola línea con actions en columna a la derecha.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+  /* Hero */
+  .trash-hero { padding: 20px 24px; }
+  .trash-hero-inner {
+    grid-template-columns: auto 1fr auto;
+    gap: 18px;
+  }
+  .trash-hero-text h1 {
+    font-size: 19px;
+    word-break: normal;
+  }
+  .trash-hero-text p {
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  /* Stats vuelven a su mini-cards a la derecha */
+  .trash-stats {
+    grid-column: auto;
+    justify-content: flex-start;
+    padding-top: 0;
+    margin-top: 0;
+    border-top: none;
+    width: auto;
+  }
+  .trash-stat {
+    background: rgba(232,64,64,0.08);
+    border: 1px solid rgba(232,64,64,0.22);
+    border-radius: 10px;
+    padding: 10px 18px;
+    min-width: 70px;
+  }
+  .trash-stat-val { font-size: 22px; line-height: 1.1; }
+  .trash-stat-lbl { margin-top: 3px; }
+
+  /* Toolbar horizontal: tabs flex-1, botón ancho natural */
+  .toolbar {
+    flex-direction: row;
+    align-items: center;
+  }
+  .tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    overflow-y: visible;
+    scrollbar-width: auto;
+    flex: 1;
+    width: auto;
+  }
+  .tabs::-webkit-scrollbar { display: initial; }
+  .tab-btn { padding: 8px 14px; font-size: 12px; }
+  .empty-trash-btn { width: auto; }
+
+  /* Banner: una sola línea */
+  .retention-banner {
+    flex-wrap: nowrap;
+    word-break: normal;
+  }
+
+  /* Card list: 6 filas más bajas, scrollbar más ancha */
+  #trash-list {
+    --trash-row-h: 110px;
+    --trash-rows:  6;
+  }
+  #trash-list::-webkit-scrollbar { width: 6px; }
+
+  /* Filas vuelven al layout horizontal sin wrap */
+  .trash-row {
+    flex-wrap: nowrap;
+    gap: 14px;
+    padding: 14px 18px;
+  }
+
+  .trash-content { flex: 1; min-width: 0; }
+
+  /* Top en una sola línea */
+  .trash-top {
+    flex-wrap: nowrap;
+  }
+  .trash-addr {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  .trash-subject {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  /* Actions vuelven a columna a la derecha del row, sin divisor */
+  .trash-actions {
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    flex: 0 0 auto;
+    align-self: stretch;
+    gap: 8px;
+    padding-top: 0;                     /* desktop: sin separador superior */
+    margin-top: 0;
+    border-top: none;
+  }
+  .trash-actions .trash-deleted-at {
+    margin-bottom: 2px;
+    text-align: right;
+  }
+  .trash-actions-buttons {
+    flex-wrap: nowrap;
+  }
+  .btn-restore, .btn-purge {
+    padding: 6px 11px;
+    font-size: 11px;
+    flex: 0 0 auto;
+  }
+  .btn-restore:hover, .btn-purge:hover { transform: translateY(-1px); }
+}

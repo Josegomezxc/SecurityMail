@@ -233,3 +233,41 @@
   background: rgba(255,255,255,0.14);
   color: inherit;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE-FIX (< 992px) — admin_users.css
+   Tabla de usuarios → cards apiladas
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 991.98px) {
+  .adm-header { padding: 14px; }
+  .adm-header h1 { font-size: 18px; word-break: break-word; }
+  .users-filter-bar { flex-wrap: wrap; gap: 6px; }
+  .users-filter-btn { padding: 6px 10px; font-size: 11.5px; }
+
+  .users-table-wrap { overflow: visible; padding: 0; }
+
+  .users-table,
+  .users-table thead,
+  .users-table tbody,
+  .users-table tr,
+  .users-table th,
+  .users-table td {
+    display: block;
+    width: 100%;
+  }
+  .users-table thead { display: none; }
+  .users-table tr {
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 12px 14px;
+    background: var(--bg-surface);
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  .users-table td {
+    padding: 4px 0;
+    border: none;
+    font-size: 12.5px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+}

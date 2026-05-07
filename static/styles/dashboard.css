@@ -1,3 +1,12 @@
+/* ═══════════════════════════════════════════════════════════════════
+   DASHBOARD — Mobile First.
+   Todos los valores base están pensados para móvil (≥360px).
+   Las media queries (min-width) sólo añaden tamaños/grids para
+   tablet (≥768px) y desktop (≥992px). Los estilos visuales
+   (colores, gradientes, sombras, animaciones, hover) son idénticos
+   al original — sólo cambia el sistema responsivo.
+   ═══════════════════════════════════════════════════════════════════ */
+
   @keyframes fadeUp   { from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)} }
   @keyframes shimmer  { 0%{background-position:-200% 0}100%{background-position:200% 0} }
   @keyframes pulseGlow{ 0%,100%{box-shadow:0 0 0 0 rgba(109,74,255,0)}60%{box-shadow:0 0 0 8px rgba(109,74,255,0.12)} }
@@ -21,12 +30,12 @@
     background: linear-gradient(135deg, #1a1435 0%, #0f0f1a 60%, #0a1628 100%);
     border: 1px solid var(--pb);
     border-radius: 20px;
-    padding: 28px 32px;
-    margin-bottom: 24px;
+    padding: 18px 16px;
+    margin-bottom: 16px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
     position: relative;
     overflow: hidden;
     animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
@@ -48,7 +57,7 @@
     background: radial-gradient(circle, rgba(34,197,94,0.07) 0%, transparent 70%);
     pointer-events: none;
   }
-  .welcome-inner { position: relative; z-index: 1; }
+  .welcome-inner { position: relative; z-index: 1; min-width: 0; }
   .welcome-eyebrow {
     font-family: var(--mono);
     font-size: 10px;
@@ -69,11 +78,13 @@
   }
   .welcome-banner h2 {
     font-family: var(--display);
-    font-size: 26px;
+    font-size: 20px;
     font-weight: 800;
     margin-bottom: 6px;
     color: #f0eeff;
     letter-spacing: -0.02em;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
   .welcome-banner h2 span {
     background: linear-gradient(90deg, #e8e6f0 0%, var(--pl) 100%);
@@ -85,6 +96,8 @@
     font-size: 12px;
     color: rgba(200,190,255,0.55);
     font-family: var(--mono);
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
   .welcome-banner p strong {
     color: var(--pl);
@@ -97,10 +110,12 @@
     display: flex;
     gap: 10px;
     flex-shrink: 0;
+    width: 100%;
   }
   .btn-new-alias {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     padding: 11px 22px;
     border-radius: 12px;
@@ -116,6 +131,7 @@
     white-space: nowrap;
     box-shadow: 0 4px 20px rgba(124,92,255,0.4), 0 1px 0 rgba(255,255,255,0.1) inset;
     letter-spacing: 0.01em;
+    flex: 1 1 auto;
   }
   .btn-new-alias:hover {
     transform: translateY(-2px);
@@ -123,20 +139,18 @@
   }
   .btn-new-alias svg { flex-shrink: 0; }
 
-  /* ─── STAT GRID ─── */
+  /* ─── STAT GRID — Mobile First (1 col → 2 → 4) ─── */
   .stat-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
   }
-  @media (max-width: 1100px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 600px)  { .stat-grid { grid-template-columns: 1fr; } }
 
   .stat-card {
     background: var(--bg-surface, #13111f);
     border-radius: 18px;
-    padding: 22px 24px;
+    padding: 16px 16px;
     position: relative;
     overflow: hidden;
     transition: transform 0.2s cubic-bezier(.22,1,.36,1), box-shadow 0.2s;
@@ -196,11 +210,11 @@
   .stat-card-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 8px;
+    margin-bottom: 12px;
   }
   .stat-icon {
-    width: 34px; height: 34px;
+    width: 32px; height: 32px;
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -227,7 +241,7 @@
   }
   .stat-value {
     font-family: var(--display);
-    font-size: 52px;
+    font-size: 36px;
     font-weight: 700;
     line-height: 1;
     margin-bottom: 8px;
@@ -258,16 +272,30 @@
   .stat-card.danger  .stat-card-glow { background: var(--danger); }
   .stat-card.success .stat-card-glow { background: var(--success); }
 
-  /* ─── TWO COL ─── */
+  /* ─── TWO COL — Mobile First (1 col → split en desktop) ─── */
   .two-col {
     display: grid;
-    grid-template-columns: 1.45fr 1fr;
-    gap: 18px;
+    grid-template-columns: 1fr;
+    gap: 14px;
     align-items: start;
   }
-  @media (max-width: 960px) { .two-col { grid-template-columns: 1fr; } }
 
-  /* ─── PANEL ─── */
+  /* Columna derecha del .two-col (alias + sandbox apilados).
+     Mobile-first: flex column con gap. En desktop (≥992px) se vuelve
+     un grid 1fr/1fr para que sus dos paneles partan el alto en mitades
+     iguales. Ver el bloque @media (min-width: 992px) más abajo. */
+  .panel-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+  }
+
+  /* ─── PANEL — Mobile First.
+     El panel es un flex column con altura limitada: el header (y, en
+     el panel sandbox, .sandbox-status) quedan fijos arriba; .panel-body
+     toma el espacio restante y scrollea por dentro. Así el panel ya
+     no crece indefinidamente cuando hay muchas filas dentro. ─── */
   .panel {
     background: var(--bg-surface, #13111f);
     border: 1px solid rgba(255,255,255,0.07);
@@ -276,16 +304,45 @@
     animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
     box-shadow: 0 4px 24px rgba(0,0,0,0.3);
     transition: box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    max-height: 420px;                   /* mobile: ~3-4 filas visibles */
   }
   .panel:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
 
+  /* El header y el .sandbox-status nunca se comprimen ni scrollean */
+  .panel > .panel-header,
+  .panel > .sandbox-status {
+    flex: 0 0 auto;
+  }
+
+  /* Único hijo scrolleable dentro del panel */
+  .panel-body {
+    flex: 1 1 auto;
+    min-height: 0;                       /* clave para que overflow funcione dentro de flex */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(124,92,255,0.4) transparent;
+  }
+  .panel-body::-webkit-scrollbar { width: 5px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb {
+    background: rgba(124,92,255,0.4);
+    border-radius: 3px;
+  }
+  .panel-body::-webkit-scrollbar-thumb:hover { background: rgba(124,92,255,0.6); }
+
   .panel-header {
-    padding: 18px 22px;
+    padding: 14px 16px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
     background: rgba(255,255,255,0.02);
+    flex-wrap: wrap;
   }
   .panel-title {
     font-family: var(--display);
@@ -296,6 +353,7 @@
     gap: 9px;
     color: var(--text-primary, #f0eeff);
     letter-spacing: -0.01em;
+    min-width: 0;
   }
   .panel-title-dot {
     width: 7px; height: 7px;
@@ -313,32 +371,36 @@
     align-items: center;
     gap: 4px;
     opacity: 0.75;
+    flex-shrink: 0;
   }
   .panel-link:hover { opacity: 1; }
 
-  /* ─── ACTIVITY TABLE ─── */
+  /* ─── ACTIVITY TABLE — Mobile First.
+     Base (móvil): cada fila se renderiza como una tarjeta apilada
+     (display:block en tr/td, thead oculto). Desktop la devuelve a
+     tabla tradicional.                                            ─── */
   .activity-table { width: 100%; border-collapse: collapse; }
-  .activity-table th {
-    text-align: left;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-muted, rgba(255,255,255,0.35));
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    padding: 12px 22px;
+  .activity-table thead { display: none; }
+  .activity-table tbody { display: block; width: 100%; }
+  .activity-table tr {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    font-family: var(--mono);
-    background: rgba(255,255,255,0.01);
+    transition: background 0.12s;
   }
+  .activity-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+  .activity-table tr:last-child { border-bottom: none; }
   .activity-table td {
-    padding: 14px 22px;
-    font-size: 13px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    vertical-align: middle;
+    display: block;
+    padding: 4px 0;
+    font-size: 12.5px;
+    border: none;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
-  .activity-table tr:last-child td { border-bottom: none; }
-  .activity-table tbody tr { transition: background 0.12s; }
-  .activity-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+  .activity-table td:first-child { padding-top: 0; }
+  .activity-table td:last-child  { padding-bottom: 0; }
 
   .sender-info { display: flex; align-items: center; gap: 11px; }
   .sender-avatar {
@@ -353,8 +415,20 @@
     flex-shrink: 0;
     border: 1px solid rgba(255,255,255,0.08);
   }
-  .sender-name  { font-weight: 600; font-size: 13px; color: var(--text-primary, #f0eeff); margin-bottom: 2px; }
-  .sender-email { font-size: 11px; color: var(--text-muted, rgba(255,255,255,0.4)); font-family: var(--mono); }
+  .sender-name  {
+    font-weight: 600; font-size: 13px;
+    color: var(--text-primary, #f0eeff);
+    margin-bottom: 2px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .sender-email {
+    font-size: 11px;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+    font-family: var(--mono);
+    word-break: break-all;
+    overflow-wrap: anywhere;
+  }
 
   .mono-tag {
     font-family: var(--mono);
@@ -366,6 +440,9 @@
     color: var(--pl);
     white-space: nowrap;
     display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .risk-badge {
@@ -417,21 +494,22 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 22px;
+    padding: 12px 14px;
     border-bottom: 1px solid rgba(255,255,255,0.04);
     transition: background 0.12s;
-    gap: 12px;
+    gap: 10px;
+    flex-wrap: wrap;
   }
   .alias-item:last-child { border-bottom: none; }
   .alias-item:hover { background: rgba(255,255,255,0.03); }
+  .alias-item > div { min-width: 0; }
   .alias-addr {
     font-family: var(--mono);
     font-size: 11.5px;
     color: var(--pl);
     margin-bottom: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-all;
+    overflow-wrap: anywhere;
   }
   .alias-meta {
     font-size: 11px;
@@ -468,10 +546,11 @@
 
   /* ─── SANDBOX PANEL ─── */
   .sandbox-status {
-    padding: 16px 22px;
+    padding: 14px 14px;
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     background: rgba(34,197,94,0.04);
   }
@@ -487,6 +566,7 @@
     font-size: 13px;
     color: rgba(255,255,255,0.6);
     font-family: var(--mono);
+    word-break: break-word;
   }
   .sandbox-label strong {
     color: #4ade80;
@@ -497,9 +577,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 22px;
+    flex-wrap: wrap;
+    padding: 12px 14px;
     border-bottom: 1px solid rgba(255,255,255,0.04);
-    gap: 14px;
+    gap: 10px;
     transition: background 0.12s;
   }
   .sandbox-analysis:last-child { border-bottom: none; }
@@ -509,14 +590,14 @@
     font-family: var(--mono);
     font-size: 12px;
     color: rgba(255,255,255,0.6);
-    flex: 1;
+    flex: 1 1 100%;
     min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-all;
+    overflow-wrap: anywhere;
   }
   .risk-bar-wrap {
-    width: 90px; height: 6px;
+    width: 100%;
+    height: 6px;
     background: rgba(255,255,255,0.07);
     border-radius: 10px;
     overflow: hidden;
@@ -546,7 +627,7 @@
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 40px 20px;          /* aire para que el modal "flote" */
+    padding: 20px 12px;
     overflow-y: auto;
   }
   #welcome-overlay.visible { display: flex; animation: fadeUp 0.35s cubic-bezier(.22,1,.36,1) both; }
@@ -555,7 +636,7 @@
     background: linear-gradient(160deg, #1a1435 0%, #0f0f1a 100%);
     border: 1px solid var(--pb);
     border-radius: 22px;
-    padding: 48px 36px 40px;
+    padding: 32px 22px 28px;
     max-width: 420px;
     width: 100%;
     text-align: center;
@@ -577,11 +658,11 @@
     align-items: center;
     gap: 12px;
     justify-content: center;
-    margin-bottom: 22px;
+    margin-bottom: 18px;
     padding: 0 4px;
   }
   .wm-logo-icon {
-    width: 80px; height: 80px;
+    width: 64px; height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -595,7 +676,7 @@
   }
   .wm-logo-text {
     font-family: var(--display);
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 800;
     color: #f0eeff;
     letter-spacing: -0.02em;
@@ -609,7 +690,7 @@
   }
   .wm-title {
     font-family: var(--display);
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 800;
     margin-bottom: 8px;
     color: #f0eeff;
@@ -618,14 +699,14 @@
   .wm-sub {
     font-size: 12.5px;
     color: rgba(200,190,255,0.5);
-    margin-bottom: 26px;
+    margin-bottom: 22px;
     font-family: var(--mono);
   }
   .wm-features {
     display: flex;
     flex-direction: column;
     gap: 11px;
-    margin-bottom: 28px;
+    margin-bottom: 22px;
     text-align: left;
   }
   .wm-feature {
@@ -635,7 +716,7 @@
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 13px;
-    padding: 13px 15px;
+    padding: 13px 14px;
     font-size: 12.5px;
     color: rgba(255,255,255,0.55);
     transition: border-color 0.15s;
@@ -702,19 +783,19 @@
   .stat-trend.flat { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.08); }
   .stat-trend svg { width: 9px; height: 9px; }
 
-  /* ─── THREATS ROW (amenazas recientes en cards) ─── */
+  /* ─── THREATS ROW (amenazas recientes) — 1 col base, auto-fit en desktop ─── */
   .threats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
     animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
   }
   .threat-card {
     background: linear-gradient(160deg, rgba(239,68,68,0.09) 0%, var(--bg-surface, #13111f) 55%);
     border: 1px solid rgba(239,68,68,0.25);
     border-radius: 14px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     text-decoration: none;
     color: inherit;
     transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
@@ -737,6 +818,7 @@
     text-transform: uppercase; letter-spacing: 0.08em;
     color: var(--danger); font-family: var(--mono);
     margin-bottom: 8px;
+    flex-wrap: wrap;
   }
   .threat-head .dot {
     width: 6px; height: 6px; border-radius: 50%;
@@ -747,17 +829,20 @@
     font-size: 13.5px; font-weight: 700;
     color: var(--text-primary, #f0eeff);
     margin-bottom: 4px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
   .threat-meta {
     font-size: 11px; color: var(--text-muted, rgba(255,255,255,0.4));
     font-family: var(--mono);
     display: flex; gap: 10px; flex-wrap: wrap;
     margin-bottom: 8px;
+    word-break: break-word;
   }
   .threat-score-row {
     display: flex; align-items: center; gap: 8px;
     margin-top: 6px;
+    flex-wrap: wrap;
   }
   .threat-score {
     font-family: var(--display); font-size: 16px; font-weight: 800;
@@ -768,7 +853,7 @@
   /* ─── LIVE CHIP (estado del polling) ─── */
   .live-chip {
     position: fixed;
-    bottom: 16px; right: 16px;
+    bottom: 12px; right: 12px;
     display: flex; align-items: center; gap: 7px;
     padding: 6px 12px;
     background: var(--bg-surface, #13111f);
@@ -793,7 +878,7 @@
     align-items: center; gap: 10px;
     padding: 10px 18px;
     margin: 0 auto 16px;
-    max-width: max-content;
+    max-width: calc(100% - 16px);
     background: linear-gradient(135deg, rgba(124,92,255,0.95), rgba(167,139,250,0.95));
     color: white; border-radius: 20px;
     font-family: var(--mono); font-size: 12.5px; font-weight: 600;
@@ -820,8 +905,144 @@
     animation: pulseNum 0.5s cubic-bezier(.22,1,.36,1);
   }
 
-  /* ─── Responsive ─── */
-  @media (max-width: 600px) {
-    .welcome-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
-    .welcome-banner h2 { font-size: 20px; }
+/* ═══════════════════════════════════════════════════════════════════
+   TABLET — ≥ 576px
+   El stat-grid pasa a 2 columnas; el welcome-banner gana algo de aire.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 576px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .welcome-banner { padding: 22px 22px; }
+  .welcome-banner h2 { font-size: 22px; }
+  .welcome-actions { width: auto; }
+  .btn-new-alias { flex: 0 0 auto; }
+  .threats-row { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TABLET GRANDE — ≥ 768px
+   Activity-table vuelve a tabla tradicional (la pantalla ya da para
+   columnas). Sandbox-analysis queda en línea.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  /* Activity-table: vuelve a comportarse como tabla */
+  .activity-table thead { display: table-header-group; }
+  .activity-table tbody { display: table-row-group; }
+  .activity-table tr {
+    display: table-row;
+    padding: 0;
+    border-bottom: none;
   }
+  .activity-table tbody tr { transition: background 0.12s; }
+  .activity-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+  .activity-table th {
+    display: table-cell;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted, rgba(255,255,255,0.35));
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-family: var(--mono);
+    background: rgba(255,255,255,0.01);
+  }
+  .activity-table td {
+    display: table-cell;
+    padding: 12px 18px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: middle;
+    word-break: normal;
+  }
+  .activity-table tr:last-child td { border-bottom: none; }
+
+  /* Sandbox-analysis vuelve a fila */
+  .sandbox-analysis { flex-wrap: nowrap; padding: 12px 18px; gap: 14px; }
+  .sandbox-filename { flex: 1; }
+  .risk-bar-wrap { width: 90px; }
+
+  /* Panels: padding más amplio */
+  .panel-header { padding: 16px 18px; }
+  .alias-item   { padding: 14px 18px; flex-wrap: nowrap; }
+  .sandbox-status { padding: 16px 18px; }
+
+  /* Welcome banner — fila desde tablet */
+  .welcome-banner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 26px;
+    gap: 18px;
+  }
+  .welcome-banner h2 { font-size: 24px; }
+  .welcome-actions { width: auto; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP — ≥ 992px
+   Stat-grid a 4 col, two-col split, y los paddings/tamaños originales.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+  .welcome-banner {
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    gap: 20px;
+  }
+  .welcome-banner h2 { font-size: 26px; }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card { padding: 22px 24px; }
+  .stat-card-header { gap: 10px; margin-bottom: 20px; }
+  .stat-icon { width: 34px; height: 34px; }
+  .stat-value { font-size: 52px; }
+
+  .two-col {
+    grid-template-columns: 1.45fr 1fr;
+    gap: 18px;
+  }
+
+  .panel-header { padding: 18px 22px; }
+  .activity-table th { padding: 12px 22px; }
+  .activity-table td { padding: 14px 22px; }
+  .alias-item { padding: 14px 22px; }
+  .sandbox-status   { padding: 16px 22px; }
+  .sandbox-analysis { padding: 12px 22px; }
+
+  /* Desktop — layout simétrico:
+     • Panel izquierdo (actividad, 220ms) → height fijo 480px
+     • Panel-stack derecho → mismo alto que el izquierdo, repartido en
+       grid 1fr/1fr → cada panel (alias 260ms, sandbox 300ms) ocupa la
+       mitad exacta. No queda hueco bajo la columna corta.
+     El alto interno lo controla .panel-body (overflow:auto), por eso
+     min-height:0 en los hijos del grid. */
+  .two-col > .panel {
+    height: 480px;
+    max-height: 480px;
+  }
+  .panel-stack {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 18px;
+    height: 480px;
+  }
+  .panel-stack > .panel {
+    max-height: none;       /* el alto lo dicta el grid row */
+    min-height: 0;          /* permite que .panel-body scrollee dentro */
+  }
+
+  .live-chip { bottom: 16px; right: 16px; }
+  .live-banner { max-width: max-content; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP GRANDE — ≥ 1100px
+   Stat-grid pasa a 4 columnas (layout original del proyecto).
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 1100px) {
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+}

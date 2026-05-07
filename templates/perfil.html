@@ -164,6 +164,42 @@
         <div class="member-date">{{ user.date_joined|date:"d \d\e F, Y" }}</div>
       </div>
     </div>
+
+    <!-- Consejos de seguridad — rellena el hueco bajo la columna izquierda
+         en desktop. Puramente informativo, sin lógica de Django. -->
+    <div class="security-tips-card">
+      <div class="stc-header">
+        <div class="stc-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div class="stc-title">Consejos de seguridad</div>
+      </div>
+      <ul class="stc-list">
+        <li class="stc-tip">
+          <span class="stc-dot"></span>
+          <div class="stc-text">
+            <strong>Un alias por sitio</strong>
+            <p>Si filtran tus datos sabrás exactamente de dónde vino la fuga.</p>
+          </div>
+        </li>
+        <li class="stc-tip">
+          <span class="stc-dot"></span>
+          <div class="stc-text">
+            <strong>Revisa los sospechosos</strong>
+            <p>Los correos con score 31-60 esperan tu decisión en notificaciones.</p>
+          </div>
+        </li>
+        <li class="stc-tip">
+          <span class="stc-dot"></span>
+          <div class="stc-text">
+            <strong>Destruye al primer indicio</strong>
+            <p>Si un alias empieza a recibir spam, destrúyelo — tu correo real sigue invisible.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
   </div>
 
   <!-- ── COLUMNA DERECHA ── -->

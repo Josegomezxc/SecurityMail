@@ -136,6 +136,12 @@
             box-shadow: 0 0 10px #ff6b8e;
         }
 
+        /* Hard guard global: ningún elemento debe causar scroll horizontal en móvil */
+        html, body {
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+
         body {
             font-family: var(--font-sans);
             background: var(--bg-base);
@@ -145,30 +151,45 @@
             line-height: 1.6;
         }
 
+        /* Img/iframes/canvas nunca exceden su contenedor (clave en móvil) */
+        img, iframe, video, canvas { max-width: 100%; }
+
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 3px; }
 
-        /* Layout principal */
+        /* ─────────────────────────────────────────────────────────
+           LAYOUT PRINCIPAL — MOBILE FIRST
+           Base: sidebar como drawer off-canvas; main-area ocupa todo el viewport.
+           Desktop (≥1024px): sidebar docked a la izquierda, main-area al lado.
+           ───────────────────────────────────────────────────────── */
         .app-layout {
             display: flex;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
+            min-height: 100dvh;
         }
 
-        /* ── SIDEBAR ─────────────────────────────── */
+        /* ── SIDEBAR (BASE = drawer off-canvas para móvil/tablet) ─────────── */
         .sidebar {
-            width: 248px;
-            flex-shrink: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            height: 100dvh;
+            width: 280px;
+            max-width: 85vw;
             background: linear-gradient(180deg, var(--sidebar-top) 0%, var(--sidebar-bottom) 100%);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             overflow: hidden;          /* el scroll lo lleva .sidebar-nav */
-            position: relative;
-            height: 100vh;             /* altura completa del viewport */
+            z-index: 10500;
+            transform: translateX(-100%);
+            transition: transform 0.28s cubic-bezier(.22,1,.36,1);
+            box-shadow: 8px 0 32px rgba(0,0,0,0.4);
         }
+        .sidebar.open { transform: translateX(0); }
         /* TODA la sidebar y sus descendientes son NO-SELECCIONABLES y NO-ARRASTRABLES.
            El editor contenteditable del compose modal puede dejar el navegador en
            "modo selección". Sin esto, los clicks subsiguientes en items del sidebar
@@ -565,30 +586,47 @@
         .user-row:hover .chevron-icon { color: var(--accent-hover); }
         .chevron-icon.up { transform: rotate(180deg); }
 
-        /* ── MAIN AREA ───────────────────────────── */
+        /* ── MAIN AREA ─────────────────────────────
+           Mobile First: ocupa todo el viewport, sin overflow:hidden para
+           que el scroll natural de la página funcione. En desktop (≥1024)
+           recibe overflow:hidden y comparte fila con el sidebar docked. */
         .main-area {
             flex: 1;
+            min-width: 0;
+            min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
 
         .topbar {
             display: flex;
             align-items: center;
-            gap: 14px;
-            padding: 0 24px;
-            height: 60px;
+            gap: 8px;
+            padding: 0 12px;
+            height: 56px;
             background: var(--topbar-bg);
             backdrop-filter: blur(14px) saturate(140%);
             -webkit-backdrop-filter: blur(14px) saturate(140%);
             flex-shrink: 0;
             position: relative;
-            /* 60 supera al toolbar sticky de la inbox (z-index:50) y al
-               live-banner (40), pero queda por debajo del detail-panel
-               modal (100), para que la campana de notificaciones siempre
-               flote sobre el contenido sin tapar los modales. */
-            z-index: 60;
+            /* z-index del topbar: tiene que ser MÁS ALTO que cualquier
+               toolbar/sticky de las páginas (la de inbox usa 50, la de
+               sent usa 100, etc.) porque el .notif-panel y el dropdown
+               de la cuenta están position:absolute DENTRO del topbar y
+               quedan atrapados en su stacking context — si el topbar
+               queda más bajo que un toolbar de página, la campana
+               desplegada se ve por debajo del buscador / botones de la
+               página. Queda por debajo del compose-modal (z:9999) y de
+               los overlays de confirmación (z:11000). */
+            z-index: 200;
+        }
+        @media (min-width: 1024px) {
+            .topbar {
+                gap: 14px;
+                padding: 0 24px;
+                height: 60px;
+            }
         }
         .topbar::after {
             content: '';
@@ -605,7 +643,7 @@
 
         /* ── Título: punto + texto + breadcrumb sutil ── */
         .topbar-title {
-            font-size: 15.5px;
+            font-size: 15px;
             font-weight: 700;
             color: var(--text-primary);
             letter-spacing: -0.015em;
@@ -613,6 +651,23 @@
             align-items: center;
             gap: 11px;
             font-family: var(--font-sans);
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            /* El ::before es el punto pulsante (8x8) con box-shadow halo
+               de 4px alrededor. Sin este padding, al ser el primer flex
+               child su borde izquierdo coincide con el del contenedor y
+               overflow:hidden recorta el halo izquierdo. 6px le da el
+               aire mínimo para que el círculo se vea completo. */
+            padding-left: 6px;
+        }
+        @media (min-width: 1024px) {
+            .topbar-title {
+                font-size: 15.5px;
+                overflow: visible;
+                white-space: normal;
+            }
         }
         .topbar-title::before {
             content: '';
@@ -630,9 +685,10 @@
             50%      { box-shadow: 0 0 18px var(--accent-hover), 0 0 0 6px var(--accent-soft); }
         }
 
-        /* Status chip a la derecha del título — saludo / fecha */
+        /* Status chip a la derecha del título — saludo / fecha.
+           Mobile First: oculto por defecto; aparece desde tablet (≥768px). */
         .topbar-status {
-            display: inline-flex;
+            display: none;
             align-items: center;
             gap: 6px;
             margin-left: 4px;
@@ -646,6 +702,9 @@
             font-family: var(--font-mono);
             letter-spacing: 0.02em;
         }
+        @media (min-width: 768px) {
+            .topbar-status { display: inline-flex; }
+        }
         .topbar-status::before {
             content: '';
             width: 5px; height: 5px;
@@ -654,10 +713,6 @@
             box-shadow: 0 0 6px var(--success);
             animation: dotPulse 2s ease-in-out infinite;
         }
-        @media (max-width: 768px) {
-            .topbar-status { display: none; }
-        }
-
         /* ── Right cluster: agrupa pill amenazas + bell con un wrapper visual ── */
         .topbar-right {
             margin-left: auto;
@@ -673,10 +728,14 @@
         .topbar-right:hover { border-color: var(--border); }
 
         .topbar-right-divider {
+            display: none;     /* Mobile First: oculto por defecto */
             width: 1px;
             height: 22px;
             background: linear-gradient(180deg, transparent, var(--border), transparent);
             margin: 0 2px;
+        }
+        @media (min-width: 1024px) {
+            .topbar-right-divider { display: block; }
         }
 
         /* ── Pill de amenazas (más elegante, mejor jerarquía visual) ── */
@@ -734,10 +793,11 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         .threat-pill .tp-label {
+            display: none;        /* Mobile First: oculto en pantallas chicas */
             font-weight: 600;
         }
-        @media (max-width: 640px) {
-            .threat-pill .tp-label { display: none; }
+        @media (min-width: 640px) {
+            .threat-pill .tp-label { display: inline; }
         }
 
         /* ── BELL DE NOTIFICACIONES ─────────────────── */
@@ -968,15 +1028,25 @@
            ═══════════════════════════════════════════════════════════════ */
         .toast-container {
             position: fixed;
-            top: 18px;
-            right: 18px;
+            top: 12px;
+            right: 12px;
+            left: 12px;
             z-index: 10000;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            width: 380px;
-            max-width: calc(100vw - 32px);
+            width: auto;
+            max-width: calc(100vw - 24px);
             pointer-events: none;
+        }
+        @media (min-width: 576px) {
+            .toast-container {
+                top: 18px;
+                right: 18px;
+                left: auto;
+                width: 380px;
+                max-width: calc(100vw - 32px);
+            }
         }
         .toast {
             pointer-events: auto;
@@ -1107,13 +1177,6 @@
         .toast:hover { transform: translateX(-3px); transition: transform 0.18s; }
         .toast:hover .toast-progress { animation-play-state: paused; }
 
-        @media (max-width: 480px) {
-            .toast-container {
-                top: 12px; right: 12px; left: 12px;
-                width: auto;
-            }
-        }
-
         /* ═══════════════════════════════════════════════════════════════
            MODAL DE CONFIRMACIÓN — reemplazo de window.confirm() nativo
            ═══════════════════════════════════════════════════════════════ */
@@ -1219,11 +1282,17 @@
 
         .cd-actions {
             display: flex;
+            flex-wrap: wrap;
             justify-content: flex-end;
             gap: 8px;
             padding: 18px 22px 20px;
             position: relative;
             z-index: 1;
+        }
+        .cd-actions .cd-btn { flex: 1 1 auto; min-width: 0; }
+        @media (min-width: 576px) {
+            .cd-actions { flex-wrap: nowrap; }
+            .cd-actions .cd-btn { flex: 0 0 auto; }
         }
         .cd-btn {
             display: inline-flex;
@@ -1262,7 +1331,14 @@
         .content-area {
             flex: 1;
             overflow-y: auto;
-            padding: 24px;
+            overflow-x: hidden;
+            padding: 16px 14px;
+        }
+        @media (min-width: 768px) {
+            .content-area { padding: 20px 18px; }
+        }
+        @media (min-width: 1024px) {
+            .content-area { padding: 24px; }
         }
 
         /* ── CARDS ───────────────────────────────── */
@@ -1481,12 +1557,12 @@
 
         .theme-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 14px;
             margin-bottom: 22px;
         }
-        @media (max-width: 540px) {
-            .theme-grid { grid-template-columns: repeat(2, 1fr); }
+        @media (min-width: 768px) {
+            .theme-grid { grid-template-columns: repeat(3, 1fr); }
         }
 
         .theme-card {
@@ -1609,10 +1685,10 @@
         }
 
         /* ──────────────────────────────────────────────────────────
-           BOTÓN HAMBURGUESA (oculto en desktop, visible en mobile/tablet)
+           BOTÓN HAMBURGUESA — base mobile (visible). Se oculta en desktop.
            ────────────────────────────────────────────────────────── */
         .sidebar-toggle {
-            display: none;
+            display: inline-flex;
             background: var(--bg-elevated);
             border: 1px solid var(--border);
             border-radius: 10px;
@@ -1653,57 +1729,35 @@
         }
 
         /* ──────────────────────────────────────────────────────────
-           RESPONSIVE: TABLET + MÓVIL  (< 1024 px)
-           El sidebar pasa a ser un drawer off-canvas. Se abre con la
-           hamburguesa y se cierra con tap fuera, link, o Escape.
+           MÓVIL pequeño (< 380 px): sacrifica el badge de amenazas
            ────────────────────────────────────────────────────────── */
-        @media (max-width: 1023px) {
-            .sidebar-toggle { display: inline-flex; }
-
-            .sidebar {
-                position: fixed;
-                top: 0;
-                left: 0;
-                height: 100vh;
-                height: 100dvh;          /* respeta la barra del navegador móvil */
-                width: 280px;
-                max-width: 85vw;
-                /* Sobre el toast-container (z:10000) — sin esto los toasts de
-                   notificación caen ENCIMA del drawer abierto y los items del
-                   sidebar dejan de responder a los clicks (visualmente cubiertos). */
-                z-index: 10500;
-                transform: translateX(-100%);
-                transition: transform 0.28s cubic-bezier(.22,1,.36,1);
-                box-shadow: 8px 0 32px rgba(0,0,0,0.4);
-            }
-            .sidebar.open { transform: translateX(0); }
-        }
-
-        /* ──────────────────────────────────────────────────────────
-           RESPONSIVE: MÓVIL  (< 640 px)
-           Aprieta paddings, oculta el chip de "Sistema activo",
-           reduce el título y suaviza separadores.
-           ────────────────────────────────────────────────────────── */
-        @media (max-width: 640px) {
-            .topbar {
-                padding: 0 12px;
-                gap: 8px;
-                height: 56px;
-            }
-            .topbar-title {
-                font-size: 15px;
-                min-width: 0;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-            .topbar-status      { display: none !important; }
-            .topbar-right-divider { display: none; }
-            .content-area       { padding: 16px 14px; }
-            .threat-pill .tp-label { display: none; }
-        }
-
-        /* MÓVIL pequeño (< 380 px): sacrifica el badge de amenazas */
         @media (max-width: 380px) {
             .threat-pill { display: none; }
+        }
+
+        /* ══════════════════════════════════════════════════════════════
+           DESKTOP — ≥ 1024 px
+           Aquí el sidebar pasa de drawer a docked, hamburguesa se oculta,
+           topbar gana padding, content-area respira, etc.
+           ══════════════════════════════════════════════════════════════ */
+        @media (min-width: 1024px) {
+            .app-layout {
+                height: 100vh;
+                overflow: hidden;
+            }
+            .sidebar {
+                position: relative;
+                top: auto;
+                left: auto;
+                width: 248px;
+                max-width: none;
+                flex-shrink: 0;
+                transform: none;
+                transition: none;
+                box-shadow: none;
+                z-index: auto;
+            }
+            .sidebar-toggle { display: none; }
+            .sidebar-backdrop { display: none !important; }
+            .main-area { overflow: hidden; }
         }

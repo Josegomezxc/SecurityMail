@@ -89,10 +89,34 @@ function applyFilters() {
       msgEl.textContent  = 'Sin resultados para "' + currentSearch + '"';
       hintEl.textContent = 'Prueba con otro término o cambia el filtro activo';
     } else {
-      msgEl.textContent  = 'No hay análisis en esta categoría';
-      hintEl.textContent = 'Selecciona "Todos" para ver todos los análisis';
+      var copy = FILTER_EMPTY_COPY[currentFilter] || FILTER_EMPTY_COPY.all;
+      msgEl.textContent  = copy.title;
+      hintEl.textContent = copy.hint;
     }
   } else {
     noResults.style.display = 'none';
   }
 }
+
+var FILTER_EMPTY_COPY = {
+  all: {
+    title: 'Sin análisis aún',
+    hint:  'Cuando recibas correos con adjuntos en tus alias, aparecerán aquí.',
+  },
+  malware: {
+    title: 'No hay archivos con malware',
+    hint:  'Ningún adjunto analizado supera el umbral de score 81. Selecciona "Todos" para ver el resto.',
+  },
+  danger: {
+    title: 'No hay archivos de alto riesgo',
+    hint:  'Ningún adjunto cae en el rango de score 61-80. Selecciona "Todos" para ver los demás análisis.',
+  },
+  warning: {
+    title: 'No hay archivos sospechosos',
+    hint:  'Ningún adjunto cae en el rango de score 31-60. Selecciona "Todos" para ver los demás análisis.',
+  },
+  safe: {
+    title: 'No hay archivos seguros',
+    hint:  'Todos los adjuntos analizados tienen algún indicador. Selecciona "Todos" para ver los demás análisis.',
+  },
+};

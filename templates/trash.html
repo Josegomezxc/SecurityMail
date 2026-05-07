@@ -76,6 +76,9 @@
   </button>
 </div>
 
+<!-- ── LISTA AGRUPADA: una sola card que envuelve los 3 tabs ── -->
+<div id="trash-list">
+
 <!-- ── LISTA: RECIBIDOS ── -->
 <div id="tab-inbound">
   {% for em in inbound_trash %}
@@ -210,6 +213,8 @@
     </div>
   {% endfor %}
 </div>
+
+</div>{# /#trash-list — cierra el wrapper único de los 3 tabs #}
 
 {% endblock %}
 

@@ -295,16 +295,16 @@
       noRes.style.display = 'block';
       if (sentSearchQ) {
         msg.textContent  = 'Sin correos que coincidan con "' + sentSearchQ + '"';
-        hint.textContent = 'Prueba otro término o cambia el filtro';
+        hint.textContent = 'Prueba otro término o cambia el filtro.';
       } else if (sentFilter === 'attach') {
         msg.textContent  = 'Sin correos con adjuntos';
-        hint.textContent = '';
+        hint.textContent = 'Prueba con otro filtro o adjunta archivos en tu próximo envío.';
       } else if (sentFilter === 'scheduled') {
         msg.textContent  = 'Sin correos programados';
-        hint.textContent = '';
+        hint.textContent = 'Prueba con otro filtro o programa el envío de un correo nuevo.';
       } else {
         msg.textContent  = 'Sin resultados';
-        hint.textContent = '';
+        hint.textContent = 'Prueba con otro filtro o término de búsqueda.';
       }
     } else {
       noRes.style.display = 'none';

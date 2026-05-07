@@ -321,6 +321,16 @@
 })();
 
 function openThemeModal() {
+    // En móvil/tablet el drawer del sidebar está abierto cuando el usuario
+    // hace clic en "Apariencia" desde el dropdown del usuario; lo escondemos
+    // para que la theme-modal quede visible. Sólo removemos las clases —
+    // body.overflow lo controla la modal abajo (si aquí lo reseteáramos,
+    // dejaríamos la página scrolleable detrás de la modal).
+    var sb = document.getElementById('sidebar');
+    var bd = document.getElementById('sidebarBackdrop');
+    if (sb) sb.classList.remove('open');
+    if (bd) bd.classList.remove('visible');
+
     const current = localStorage.getItem('sms_theme') || 'dark';
     document.querySelectorAll('.theme-card').forEach(c => {
         c.classList.toggle('selected', c.dataset.theme === current);
