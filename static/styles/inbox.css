@@ -5,14 +5,7 @@
    sombras, animaciones, hovers): solo el sistema responsivo.
    ═══════════════════════════════════════════════════════════════════ */
 
-:root {
-  --ai-purple:        #7c3aed;
-  --ai-purple-light:  #a78bfa;
-  --ai-purple-soft:   rgba(124,58,237,0.08);
-  --ai-purple-border: rgba(124,58,237,0.22);
-  --mono: 'JetBrains Mono', monospace;
-  --display: 'Syne', sans-serif;
-}
+@import url('./properties/inbox.css');
 
 @keyframes fadeUp  { from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)} }
 @keyframes shimmer { 0%{background-position:-200% 0}100%{background-position:200% 0} }

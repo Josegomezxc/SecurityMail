@@ -1,15 +1,6 @@
-/* ═══════════════════════════════════════════
-   VARIABLES
-═══════════════════════════════════════════ */
-:root {
-  --ai-purple:        #7c3aed;
-  --ai-purple-light:  #a78bfa;
-  --ai-purple-soft:   rgba(124,58,237,0.08);
-  --ai-purple-border: rgba(124,58,237,0.22);
-  --ai-glow:          0 0 40px rgba(124,58,237,0.12);
-  --mono: 'JetBrains Mono', monospace;
-  --display: 'Syne', sans-serif;
-}
+@import url('./properties/sandbox_report.css');
+
+/* Variables (custom properties) → ./properties/sandbox_report.css */
 
 /* ═══════════════════════════════════════════
    KEYFRAMES
@@ -39,12 +30,55 @@
 /* ═══════════════════════════════════════════
    BANNERS
 ═══════════════════════════════════════════ */
+/* .status-banner — Mobile First (mismo patrón que .dr-hero de drafts).
+   Mobile: grid de 2 cols (auto icono | 1fr texto) en la fila 1; el
+   .status-tag baja a la fila 2 ocupando todo el ancho con un border-top
+   como separador, igual al stat de .dr-hero.
+   Desktop ≥641px: vuelve a layout horizontal flex con todo en una fila. */
 .status-banner {
   border-radius: 14px;
-  padding: 18px 22px;
-  display: flex; align-items: center; gap: 16px;
+  padding: 16px 14px;                      /* mobile: padding compacto */
+  display: grid;
+  grid-template-columns: auto 1fr;          /* mobile: icono + texto */
+  align-items: center;
+  gap: 12px;                                /* mobile */
   margin-bottom: 22px;
   position: relative; overflow: hidden;
+}
+.status-text { min-width: 0; }              /* mobile: permite que título y sub wrappeen */
+.status-tag {
+  /* Mobile: baja a fila completa con separador superior. */
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+  margin-top: 4px;
+  width: 100%;
+  border-top: 1px solid currentColor;       /* el color hereda del banner (red/green) */
+  border-top-color: inherit;                /* fallback */
+}
+/* Border-top tinted con el color del banner para que combine */
+.status-banner.blocked .status-tag { border-top-color: rgba(232,64,64,0.25); }
+.status-banner.safe    .status-tag { border-top-color: rgba(46,204,113,0.22); }
+
+@media (min-width: 641px) {
+  /* Desktop: vuelve a layout flex horizontal — icono | texto | tag */
+  .status-banner {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 16px;
+    padding: 18px 22px;
+  }
+  .status-text { flex: 1 1 0; }
+  .status-tag {
+    grid-column: auto;
+    margin-left: auto;                       /* empuja el tag a la derecha */
+    width: auto;
+    padding-top: 0;
+    margin-top: 0;
+    border-top: none;
+    justify-content: flex-start;
+  }
 }
 .status-banner::before {
   content:'';
@@ -68,8 +102,20 @@
 }
 .status-banner.blocked .status-icon-wrap { background: rgba(232,64,64,0.15); }
 .status-banner.safe    .status-icon-wrap { background: rgba(46,204,113,0.12); }
-.status-title { font-family: var(--display); font-size: 15px; font-weight: 700; margin-bottom: 3px; }
-.status-sub   { font-size: 12.5px; color: var(--text-secondary); }
+.status-title {
+  font-family: var(--display); font-size: 15px; font-weight: 700;
+  margin-bottom: 3px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.status-sub {
+  font-size: 12.5px; color: var(--text-secondary);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+/* El email (<strong>) dentro de status-sub puede tener un usuario muy
+   largo sin separadores; force break para que no agrande la card. */
+.status-sub strong { word-break: break-all; }
 
 /* ═══════════════════════════════════════════
    SCORE CARD
@@ -276,10 +322,11 @@
 /* Result */
 .ai-result-body { padding: 20px; display: none; animation: fadeIn 0.5s ease; }
 
-.ai-top-grid    { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.ai-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media(max-width:560px){
-  .ai-top-grid, .ai-bottom-grid { grid-template-columns: 1fr; }
+/* AI grids — Mobile First. Mobile: 1 col. Desktop ≥561px: 2 cols. */
+.ai-top-grid    { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
+.ai-bottom-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 561px) {
+  .ai-top-grid, .ai-bottom-grid { grid-template-columns: 1fr 1fr; }
 }
 
 .ai-card {
@@ -365,18 +412,27 @@
   gap: 14px;
 }
 
+/* .ai-insight — Mobile First. Mobile: 1 col con icono colapsado arriba.
+   Desktop ≥641px: 56px (icono) + 1fr (contenido). */
 .ai-insight {
   display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 18px;
+  grid-template-columns: 1fr;          /* mobile */
+  gap: 12px;                            /* mobile */
   background: var(--bg-elevated);
   border: 1px solid var(--border-soft);
   border-radius: 14px;
-  padding: 22px 24px 22px 18px;
+  padding: 20px;                        /* mobile */
   position: relative;
   overflow: hidden;
   animation: fadeUp 0.5s ease both;
   transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+}
+@media (min-width: 641px) {
+  .ai-insight {
+    grid-template-columns: 56px 1fr;
+    gap: 18px;
+    padding: 22px 24px 22px 18px;
+  }
 }
 .ai-insight:hover { transform: translateY(-1px); }
 
@@ -431,8 +487,11 @@
 /* Side column — icono circular grande */
 .ai-insight-side {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;             /* mobile: icono pegado a la izq */
   padding-top: 4px;
+}
+@media (min-width: 641px) {
+  .ai-insight-side { justify-content: center; }
 }
 .ai-insight-icon {
   width: 42px; height: 42px;
@@ -513,17 +572,8 @@
   user-select: none;
 }
 
-/* Responsive: en móvil colapsa el side icon */
-@media (max-width: 640px) {
-  .ai-insight {
-    grid-template-columns: 1fr;
-    padding: 20px;
-    gap: 12px;
-  }
-  .ai-insight-side {
-    justify-content: flex-start;
-  }
-}
+/* Bloque max-width: 640 eliminado — los valores mobile ya viven como
+   defaults y los overrides desktop están en @media (min-width: 641px). */
 
 .ai-error-wrap {
   display: none; align-items: center; gap: 10px;
@@ -549,18 +599,20 @@
    ORIGIN FLOW — Atacante → Alias (escudo) → Tu correo (protegido)
    Cuenta visualmente cómo DockerShield protegió al usuario.
    ═══════════════════════════════════════════════════════════════════════ */
+/* .origin-flow — Mobile First.
+   Mobile: 1 col apilada. Tablet ≥881px: 2 cols. Desktop ≥1101px: 4 cols. */
 .origin-flow {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  grid-template-columns: 1fr;          /* mobile */
+  gap: 10px;                            /* mobile */
   align-items: stretch;
   padding: 22px 20px;
 }
-@media (max-width: 1100px) {
-  .origin-flow { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 881px) {
+  .origin-flow { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 }
-@media (max-width: 560px) {
-  .origin-flow { grid-template-columns: 1fr; }
+@media (min-width: 1101px) {
+  .origin-flow { grid-template-columns: repeat(4, 1fr); }
 }
 
 .flow-node {
@@ -755,6 +807,7 @@
 
 /* (Legacy — clases que ya no se renderizan, se conservan por si algún
    componente histórico las referencia.) */
+/* .origin-subject-card — Mobile First. Mobile: 1 col. Desktop ≥641px: icon+content */
 .origin-subject-card {
   margin: 6px 20px 22px;
   padding: 18px 22px;
@@ -764,8 +817,8 @@
   border: 1px solid rgba(245,158,11,0.2);
   border-radius: 14px;
   display: grid;
-  grid-template-columns: 44px 1fr;
-  gap: 16px;
+  grid-template-columns: 1fr;          /* mobile */
+  gap: 10px;                            /* mobile */
   align-items: center;
   position: relative;
   overflow: hidden;
@@ -797,12 +850,16 @@
 }
 
 .osc-icon {
-  width: 44px; height: 44px;
+  width: 36px; height: 36px;               /* mobile */
   border-radius: 12px;
   background: linear-gradient(135deg, var(--warning), #fbbf24);
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 5px 14px rgba(245,158,11,0.35);
   flex-shrink: 0;
+}
+@media (min-width: 641px) {
+  .origin-subject-card { grid-template-columns: 44px 1fr; gap: 16px; }
+  .osc-icon { width: 44px; height: 44px; }
 }
 .osc-icon svg { width: 20px; height: 20px; color: white; }
 
@@ -843,20 +900,12 @@
   padding-left: 22px;
 }
 
-@media (max-width: 640px) {
-  .origin-subject-card {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  .osc-icon { width: 36px; height: 36px; }
-}
-
-/* Responsive: en móvil/tablet apila verticalmente con flechas hacia abajo */
+/* Bloque max-width: 640 / 880 reemplazados por overrides min-width arriba.
+   Solo queda aquí lo que NO pude inferir limpiamente desde el código (las
+   reglas de .flow-arrow rotate y .origin-subject 1col) — se conservan
+   como mobile-only porque sus defaults desktop están dispersos en el archivo
+   y la reescritura inversa arriesga regresiones visuales. */
 @media (max-width: 880px) {
-  .origin-flow {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
   .flow-arrow {
     flex-direction: row;
     justify-content: center;
@@ -911,12 +960,14 @@
   gap: 12px;
 }
 
+/* .action-tile — Mobile First. Mobile: grid columnas más chico, padding compacto.
+   Desktop ≥641px: vuelve a icono 48px + 1fr + 24px arrow, padding generoso. */
 .action-tile {
   display: grid;
-  grid-template-columns: 48px 1fr 24px;
-  gap: 16px;
+  grid-template-columns: 40px 1fr 20px;    /* mobile */
+  gap: 12px;                                /* mobile */
   align-items: center;
-  padding: 18px 18px 18px 16px;
+  padding: 14px 14px 14px 12px;             /* mobile */
   background: linear-gradient(135deg, rgba(124,58,237,0.06) 0%, var(--bg-elevated) 60%);
   border: 1px solid var(--ai-purple-border);
   border-radius: 14px;
@@ -925,6 +976,13 @@
   overflow: hidden;
   box-shadow: 0 6px 18px rgba(124,58,237,0.1);
   transition: transform 0.2s cubic-bezier(.22,1,.36,1), box-shadow 0.2s ease;
+}
+@media (min-width: 641px) {
+  .action-tile {
+    grid-template-columns: 48px 1fr 24px;
+    gap: 16px;
+    padding: 18px 18px 18px 16px;
+  }
 }
 /* Barra lateral SIEMPRE visible */
 .action-tile::before {
@@ -955,7 +1013,7 @@
 
 /* Icono SIEMPRE en estado "encendido" (gradiente morado) */
 .action-tile-icon {
-  width: 48px; height: 48px;
+  width: 40px; height: 40px;               /* mobile */
   border-radius: 12px;
   background: linear-gradient(135deg, var(--ai-purple), var(--ai-purple-light));
   border: 1px solid var(--ai-purple);
@@ -965,23 +1023,33 @@
   position: relative; z-index: 1;
 }
 .action-tile-icon svg {
-  width: 22px; height: 22px;
+  width: 18px; height: 18px;               /* mobile */
   color: white;
+}
+@media (min-width: 641px) {
+  .action-tile-icon { width: 48px; height: 48px; }
+  .action-tile-icon svg { width: 22px; height: 22px; }
 }
 
 .action-tile-body { min-width: 0; position: relative; z-index: 1; }
 .action-tile-title {
   font-family: var(--display, 'Syne', sans-serif);
-  font-size: 14px; font-weight: 700;
+  font-size: 13px; font-weight: 700;       /* mobile */
   color: var(--text-primary);
   letter-spacing: -0.01em;
   margin-bottom: 3px;
   line-height: 1.3;
 }
+@media (min-width: 641px) {
+  .action-tile-title { font-size: 14px; }
+}
 .action-tile-sub {
-  font-size: 11.5px;
+  font-size: 11px;                         /* mobile */
   color: var(--text-muted);
   line-height: 1.45;
+}
+@media (min-width: 641px) {
+  .action-tile-sub { font-size: 11.5px; }
 }
 .action-tile-arrow {
   display: flex; align-items: center; justify-content: center;
@@ -1014,17 +1082,9 @@
   50%      { box-shadow: 0 6px 18px rgba(232,64,64,0.18), 0 0 0 8px rgba(232,64,64,0.05); }
 }
 
-@media (max-width: 640px) {
-  .action-tile {
-    grid-template-columns: 40px 1fr 20px;
-    gap: 12px;
-    padding: 14px 14px 14px 12px;
-  }
-  .action-tile-icon { width: 40px; height: 40px; }
-  .action-tile-icon svg { width: 18px; height: 18px; }
-  .action-tile-title { font-size: 13px; }
-  .action-tile-sub { font-size: 11px; }
-}
+/* Bloque max-width: 640 eliminado — los valores mobile ya viven como
+   defaults arriba y los overrides desktop están en @media (min-width: 641px)
+   junto a cada regla. */
 
 /* ═══════════════════════════════════════════
    FILE FACTS GRID (identificación del archivo)
@@ -1255,11 +1315,20 @@
   border-radius: 0 0 12px 12px;
 }
 
-/* Botón "Ver más" (insertado por JS justo después de cada lista) */
+/* Botón "Ver más" (insertado por JS justo después de cada lista).
+   Combinación que funciona cross-browser:
+   • display: flex (block-level outer) → respeta width sin los problemas
+     de inline-flex que daban overflow en mobile.
+   • width: calc(100% - 32px) → explícito; con flex como block-level
+     outer + box-sizing:border-box (global), el botón ocupa exactamente
+     el ancho del .section-card menos los 16px de margin a cada lado.
+     Resultado: botón full-width con 16px de aire a los costados, texto
+     y chevron centrados via justify-content. */
 .collapsible-toggle {
+  display: flex;
+  width: calc(100% - 32px);
   margin: 12px 16px 14px;
   padding: 9px 16px;
-  width: calc(100% - 32px);
   background: var(--bg-elevated);
   border: 1px dashed var(--border);
   border-radius: 10px;
@@ -1268,7 +1337,6 @@
   font-weight: 600;
   font-family: var(--mono);
   cursor: pointer;
-  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -1494,14 +1562,14 @@
 
   /* Listas colapsables: padding cómodo */
   .collapsible-list { gap: 6px; }
-  .collapsible-toggle {
-    width: 100%;
-    justify-content: center;
-  }
+  /* width:100% removido — combinado con el margin:16px lateral del default
+     causaba overflow de 32px del .section-card en mobile. El default ya
+     usa display:flex + width:auto que ocupa el ancho menos los márgenes. */
+  .collapsible-toggle { justify-content: center; }
 
-  /* IOC copy buttons: full ancho */
-  .ioc-copy-btn {
-    flex: 1 1 auto;
-    justify-content: center;
-  }
+  /* .ioc-copy-btn: el override anterior (flex: 1 1 auto) hacía que el
+     botón se expandiera y peleara con .ioc-text por el ancho — la URL
+     quedaba con la mitad del espacio. El default ya tiene flex-shrink:0
+     y padding compacto, así que en mobile queremos lo mismo: botón
+     compacto con sólo el ancho de "copiar" + padding. */
 }

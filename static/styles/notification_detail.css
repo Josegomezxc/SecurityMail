@@ -1,4 +1,5 @@
-  .nd-page { max-width: 760px; }
+  /* .nd-page — Mobile First. Mobile: padding lateral pequeño. Desktop ≥992px: sin padding. */
+  .nd-page { max-width: 760px; padding: 0 4px; }
 
   /* Breadcrumb */
   .nd-back {
@@ -101,12 +102,15 @@
     white-space: pre-wrap; word-break: break-word;
   }
 
-  /* Action buttons (forward / discard) */
+  /* Action buttons (forward / discard) — Mobile First.
+     Mobile: 1 columna apilada. Desktop ≥561px: 2 columnas en línea. */
   .nd-actions {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    display: grid; grid-template-columns: 1fr; gap: 8px;   /* mobile */
     margin-top: 8px;
   }
-  @media(max-width:560px){ .nd-actions { grid-template-columns: 1fr; } }
+  @media (min-width: 561px) {
+    .nd-actions { grid-template-columns: 1fr 1fr; gap: 12px; }
+  }
 
   .nd-action-btn {
     display: grid; grid-template-columns: 44px 1fr 20px; gap: 14px; align-items: center;
@@ -158,13 +162,14 @@
   .nd-result.ok   { background: rgba(46,204,113,0.1); color: #4ade80; border: 1px solid rgba(46,204,113,0.3); }
   .nd-result.err  { background: rgba(232,64,64,0.1); color: #f87171; border: 1px solid rgba(232,64,64,0.3); }
 
-  /* Banner de advertencia: correo sospechoso pero aún reenviable */
+  /* Banner de advertencia — Mobile First. Mobile: gap y padding compactos.
+     Desktop ≥992px: gap y padding originales. */
   .nd-suspicious-warn {
     display: grid;
     grid-template-columns: 36px 1fr;
-    gap: 12px;
+    gap: 10px;                              /* mobile */
     align-items: flex-start;
-    padding: 14px 16px;
+    padding: 12px;                          /* mobile */
     margin-bottom: 14px;
     background: linear-gradient(135deg, rgba(245,158,11,0.07), var(--bg-elevated));
     border: 1px solid rgba(245,158,11,0.3);
@@ -187,22 +192,29 @@
   }
   .nd-suspicious-warn-msg strong { color: #fbbf24; font-weight: 700; }
 
-/* MOBILE-FIX (< 992px) — notification_detail.css */
+/* Overflow safety always-on para emails y subjects largos */
+.nd-from,
+.nd-to,
+.nd-subject {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP ≥992px — restaura padding generoso del page, banner de
+   advertencia con gap y padding originales. Los demás overrides mobile
+   (.nd-header/.nd-card/.nd-meta-grid) que sólo existen en mobile no
+   tienen counterpart en este archivo, se conservan abajo.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+  .nd-page             { padding: 0; }
+  .nd-suspicious-warn  { gap: 12px; padding: 14px 16px; }
+}
+
+/* Reglas mobile-only para clases sin counterpart desktop en este archivo
+   (legacy / definidas en otros admin_*.css). */
 @media (max-width: 991.98px) {
-  .nd-page { padding: 0 4px; }
   .nd-header,
-  .nd-card { padding: 14px; }
+  .nd-card      { padding: 14px; }
   .nd-meta-grid { grid-template-columns: 1fr !important; gap: 8px; }
-  .nd-actions {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .nd-actions > * { flex: 1 1 auto; justify-content: center; }
-  .nd-from,
-  .nd-to,
-  .nd-subject {
-    word-break: break-word;
-    overflow-wrap: anywhere;
-  }
-  .nd-suspicious-warn { flex-wrap: wrap; gap: 10px; padding: 12px; }
 }

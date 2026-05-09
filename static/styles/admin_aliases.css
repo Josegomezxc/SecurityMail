@@ -1,3 +1,4 @@
+/* Hero del módulo aliases — Mobile First. */
 .adm-hero-al {
   display: flex;
   align-items: center;
@@ -5,7 +6,8 @@
   background: linear-gradient(160deg, rgba(155,109,255,0.08) 0%, var(--bg-surface) 60%);
   border: 1px solid rgba(155,109,255,0.22);
   border-radius: 16px;
-  padding: 22px 26px;
+  padding: 16px 14px;                     /* mobile */
+  flex-wrap: wrap;                         /* mobile */
   margin-bottom: 18px;
   position: relative;
   overflow: hidden;
@@ -30,7 +32,7 @@
 }
 .adm-hero-al-text h1 {
   font-family: 'Syne', sans-serif;
-  font-size: 22px;
+  font-size: 18px;                         /* mobile */
   font-weight: 800;
   letter-spacing: -0.02em;
   background: linear-gradient(90deg, var(--text-primary) 0%, #9b6dff 100%);
@@ -38,11 +40,13 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 3px;
+  word-break: break-word;
 }
 .adm-hero-al-text p {
-  font-size: 12.5px;
+  font-size: 11.5px;                       /* mobile */
   color: var(--text-secondary);
   font-family: var(--font-mono);
+  word-break: break-word;
 }
 .adm-hero-al-stats {
   margin-left: auto;
@@ -146,17 +150,31 @@
   border-radius: 14px;
   overflow: hidden;
 }
+/* .al-row — Mobile First.
+   Mobile (≤720px): 2 columnas. Tablet ≥721px: 4 columnas.
+   Desktop ≥1101px: 6 columnas (todas las celdas visibles).
+   ≥992px: padding y gap generosos. */
 .al-row {
   display: grid;
-  grid-template-columns: 1fr 220px 90px 90px 110px 110px;
-  gap: 14px;
-  padding: 14px 18px;
+  grid-template-columns: 1fr 90px;        /* mobile */
+  gap: 8px;                                /* mobile */
+  padding: 10px 12px;                      /* mobile */
   border-bottom: 1px solid var(--border-soft);
   text-decoration: none;
   color: inherit;
   align-items: center;
   transition: background 0.15s;
 }
+.al-row > div {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+/* Mobile (≤720px): celdas extra ocultas + cabecera oculta */
+.al-row > .al-user,
+.al-row > .al-num,
+.al-row > .al-time { display: none; }
+.al-row.head { display: none; }
 .al-row:last-child { border-bottom: none; }
 .al-row:hover { background: rgba(155,109,255,0.04); }
 .al-row.head {
@@ -269,30 +287,32 @@
   text-align: center;
 }
 
-@media (max-width: 1100px) {
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP — overrides progresivos.
+   ≥721px: tabla pasa a 4 columnas, muestra .al-user y cabecera.
+   ≥992px: hero generoso, rows con padding y gap originales.
+   ≥1101px: tabla pasa a 6 columnas (todas las celdas visibles).
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 721px) {
   .al-row { grid-template-columns: 1fr 160px 80px 100px; }
-  .al-row > .al-num.threats-col, .al-row > .al-time { display: none; }
+  .al-row > .al-user { display: revert; }
+  .al-row.head { display: grid; }
   .al-row.head > div:nth-child(4),
   .al-row.head > div:nth-child(6) { display: none; }
-}
-@media (max-width: 720px) {
-  .al-row { grid-template-columns: 1fr 90px; }
-  .al-row > .al-user, .al-row > .al-num, .al-row > .al-time { display: none; }
-  .al-row.head { display: none; }
+  .al-row > div { word-break: normal; overflow-wrap: normal; }
 }
 
-/* MOBILE-FIX (< 992px) — admin_aliases.css */
-@media (max-width: 991.98px) {
-  .adm-hero-al { flex-wrap: wrap; padding: 16px 14px; }
-  .adm-hero-al h1 { font-size: 18px; word-break: break-word; }
-  .adm-hero-al p { font-size: 11.5px; word-break: break-word; }
-  .al-row {
-    padding: 10px 12px;
-    gap: 8px;
-  }
-  .al-row > div {
-    word-break: break-all;
-    overflow-wrap: anywhere;
-    min-width: 0;
-  }
+@media (min-width: 992px) {
+  .adm-hero-al         { flex-wrap: nowrap; padding: 22px 26px; }
+  .adm-hero-al-text h1 { font-size: 22px; word-break: normal; }
+  .adm-hero-al-text p  { font-size: 12.5px; word-break: normal; }
+  .al-row              { padding: 14px 18px; gap: 14px; }
+}
+
+@media (min-width: 1101px) {
+  .al-row { grid-template-columns: 1fr 220px 90px 90px 110px 110px; }
+  .al-row > .al-num,
+  .al-row > .al-time { display: revert; }
+  .al-row.head > div:nth-child(4),
+  .al-row.head > div:nth-child(6) { display: revert; }
 }

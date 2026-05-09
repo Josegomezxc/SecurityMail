@@ -1,7 +1,4 @@
-  :root {
-    --mono: 'JetBrains Mono', monospace;
-    --display: 'Syne', sans-serif;
-  }
+@import url('./properties/privacidad.css');
 
   body { background: var(--bg-base); }
 
@@ -48,8 +45,9 @@
   .topbar-logo-text span { color: var(--accent); }
 
   /* Hero — con gradiente verde (privacidad) */
+  /* Hero — Mobile First. */
   .legal-hero {
-    padding: 64px 24px 48px;
+    padding: 40px 20px 32px;             /* mobile */
     text-align: center;
     position: relative; overflow: hidden;
     border-bottom: 1px solid var(--border);
@@ -74,7 +72,7 @@
   }
   .legal-hero h1 {
     font-family: var(--display);
-    font-size: 40px; font-weight: 800;
+    font-size: 30px; font-weight: 800;   /* mobile */
     letter-spacing: -0.03em; margin-bottom: 10px;
     position: relative; z-index: 1;
     background: linear-gradient(90deg, #fff, #86efac);
@@ -106,16 +104,18 @@
   }
 
   /* Layout */
+  /* Layout — Mobile First (1 col sin TOC) → desktop ≥901px (TOC + contenido) */
   .legal-layout {
     max-width: 1100px; margin: 0 auto;
-    padding: 40px 24px 60px;
+    padding: 24px 16px 48px;             /* mobile */
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 1fr;          /* mobile */
     gap: 40px; align-items: start;
   }
 
-  /* TOC */
+  /* TOC — oculto en mobile, visible en desktop */
   .toc {
+    display: none;                       /* mobile */
     position: sticky; top: 82px;
     background: var(--bg-surface);
     border: 1px solid var(--border);
@@ -212,7 +212,7 @@
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 28px 32px;
+    padding: 22px 20px;                  /* mobile */
     margin-bottom: 18px;
     scroll-margin-top: 90px;
     /* fade-in eliminado — opacity:0 + transform causaban re-paint masivo */
@@ -347,18 +347,21 @@
   .data-table {
     width: 100%; border-collapse: collapse;
   }
+  /* th/td — Mobile First. Mobile: padding compacto, font-size unificado a 12px.
+     Desktop ≥901px: padding generoso, font sizes diferenciados (th 10.5, td 13). */
   .data-table th {
-    text-align: left; font-size: 10.5px;
+    text-align: left; font-size: 12px;   /* mobile */
     font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.07em; color: var(--text-muted);
-    padding: 13px 16px;
+    padding: 10px 12px;                  /* mobile */
     border-bottom: 1px solid var(--border);
     font-family: var(--mono);
     background: rgba(255,255,255,0.02);
   }
   .data-table td {
-    font-size: 13px; color: var(--text-secondary);
-    padding: 13px 16px;
+    font-size: 12px;                     /* mobile */
+    color: var(--text-secondary);
+    padding: 10px 12px;                  /* mobile */
     border-bottom: 1px solid var(--border-soft);
     line-height: 1.55;
     vertical-align: middle;
@@ -367,7 +370,7 @@
   .data-table tr:hover td { background: rgba(255,255,255,0.02); }
   .data-table td:first-child {
     color: var(--text-primary); font-weight: 500;
-    white-space: nowrap;
+    white-space: normal;                 /* mobile: deja que envuelva */
     display: flex; align-items: center; gap: 9px;
   }
   .data-table td:first-child svg {
@@ -439,13 +442,15 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* Responsive */
-  @media (max-width: 900px) {
-    .legal-layout { grid-template-columns: 1fr; padding: 24px 16px 48px; }
-    .toc { display: none; }
-    .legal-section { padding: 22px 20px; }
-    .legal-hero { padding: 40px 20px 32px; }
-    .legal-hero h1 { font-size: 30px; }
-    .data-table th, .data-table td { padding: 10px 12px; font-size: 12px; }
-    .data-table td:first-child { white-space: normal; }
+  /* Desktop ≥901px — restaura layout split, TOC visible, padding y tipografía
+     más generosos. Los valores mobile ya viven como defaults arriba. */
+  @media (min-width: 901px) {
+    .legal-layout              { grid-template-columns: 240px 1fr; padding: 40px 24px 60px; }
+    .toc                       { display: block; }
+    .legal-section             { padding: 28px 32px; }
+    .legal-hero                { padding: 64px 24px 48px; }
+    .legal-hero h1             { font-size: 40px; }
+    .data-table th             { padding: 13px 16px; font-size: 10.5px; }
+    .data-table td             { padding: 13px 16px; font-size: 13px; }
+    .data-table td:first-child { white-space: nowrap; }
   }

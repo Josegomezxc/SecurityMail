@@ -1,7 +1,4 @@
-  :root {
-    --mono: 'JetBrains Mono', monospace;
-    --display: 'Syne', sans-serif;
-  }
+@import url('./properties/terminos.css');
 
   body { background: var(--bg-base); }
 
@@ -62,8 +59,9 @@
   /* ═══════════════════════════════════════════
      HERO con gradiente animado
   ═══════════════════════════════════════════ */
+  /* Hero — Mobile First. Mobile: padding compacto. Desktop ≥901px: padding generoso. */
   .legal-hero {
-    padding: 64px 24px 48px;
+    padding: 40px 20px 32px;             /* mobile */
     text-align: center;
     position: relative;
     overflow: hidden;
@@ -91,7 +89,7 @@
   }
   .legal-hero h1 {
     font-family: var(--display);
-    font-size: 40px; font-weight: 800;
+    font-size: 30px; font-weight: 800;   /* mobile */
     letter-spacing: -0.03em;
     margin-bottom: 10px;
     position: relative; z-index: 1;
@@ -131,18 +129,21 @@
   /* ═══════════════════════════════════════════
      LAYOUT 2 COLUMNAS
   ═══════════════════════════════════════════ */
+  /* Layout — Mobile First. Mobile: 1 columna sin TOC.
+     Desktop ≥901px: split 240px (TOC sticky) + 1fr (contenido). */
   .legal-layout {
     max-width: 1100px;
     margin: 0 auto;
-    padding: 40px 24px 60px;
+    padding: 24px 16px 48px;             /* mobile */
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 1fr;          /* mobile */
     gap: 40px;
     align-items: start;
   }
 
-  /* ─── TOC sticky ─── */
+  /* ─── TOC sticky — oculto en mobile, visible en desktop ─── */
   .toc {
+    display: none;                       /* mobile */
     position: sticky; top: 82px;
     background: var(--bg-surface);
     border: 1px solid var(--border);
@@ -279,7 +280,7 @@
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 28px 32px;
+    padding: 22px 20px;                  /* mobile */
     margin-bottom: 18px;
     scroll-margin-top: 90px;
     /* fade-in eliminado — causaba re-paint de cada sección al scrollear */
@@ -484,12 +485,13 @@
   }
 
   /* ═══════════════════════════════════════════
-     RESPONSIVE
+     DESKTOP ≥901px — restaura layout split con TOC, padding generoso
+     y tipografía mayor. Los valores mobile ya viven como defaults arriba.
   ═══════════════════════════════════════════ */
-  @media (max-width: 900px) {
-    .legal-layout { grid-template-columns: 1fr; padding: 24px 16px 48px; }
-    .toc { display: none; }
-    .legal-section { padding: 22px 20px; }
-    .legal-hero { padding: 40px 20px 32px; }
-    .legal-hero h1 { font-size: 30px; }
+  @media (min-width: 901px) {
+    .legal-layout    { grid-template-columns: 240px 1fr; padding: 40px 24px 60px; }
+    .toc             { display: block; }
+    .legal-section   { padding: 28px 32px; }
+    .legal-hero      { padding: 64px 24px 48px; }
+    .legal-hero h1   { font-size: 40px; }
   }

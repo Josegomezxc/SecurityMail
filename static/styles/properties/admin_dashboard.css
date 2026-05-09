@@ -1,0 +1,10 @@
+/* ════════════════════════════════════════════════════════════════════
+   PROPERTIES — admin_dashboard.css
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  --adm-orange: #f59e0b;
+  --adm-orange-soft: rgba(245,158,11,0.1);
+  --adm-orange-border: rgba(245,158,11,0.25);
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+}

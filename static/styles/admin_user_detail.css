@@ -1,4 +1,4 @@
-:root { --mono: 'JetBrains Mono', monospace; --display: 'Syne', sans-serif; }
+@import url('./properties/admin_user_detail.css');
 @keyframes fadeUp { from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);} }
 
 .back-to-list {
@@ -60,14 +60,16 @@
   width: 6px; height: 6px; border-radius: 50%; background: currentColor;
 }
 
-/* Stats mini row */
+/* Stats mini row — Mobile First. Mobile: 1 columna apilada. Desktop ≥641px: 3 columnas. */
 .mini-stats-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;          /* mobile */
   gap: 12px;
   margin-bottom: 18px;
 }
-@media (max-width: 640px) { .mini-stats-row { grid-template-columns: 1fr; } }
+@media (min-width: 641px) {
+  .mini-stats-row { grid-template-columns: repeat(3, 1fr); }
+}
 
 .mini-stat {
   background: var(--bg-surface);
@@ -184,14 +186,20 @@
   background: var(--bg-hover); color: var(--text-muted);
 }
 
-/* Emails list */
+/* Emails list — Mobile First. Mobile: 1 columna apilada con texto wrappeable.
+   Desktop ≥992px: 4 columnas en línea (icono + contenido + meta + tiempo). */
 .em-row {
   display: grid;
-  grid-template-columns: 34px 1fr auto auto;
-  gap: 12px;
-  padding: 11px 20px;
+  grid-template-columns: 1fr;          /* mobile */
+  gap: 6px;                             /* mobile */
+  padding: 10px 12px;                   /* mobile */
   border-bottom: 1px solid var(--border-soft);
   align-items: center;
+}
+.em-row > * {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .em-row:last-child { border-bottom: none; }
 .em-avatar {
@@ -226,7 +234,28 @@
 
 .empty-sec { padding: 40px 20px; text-align: center; color: var(--text-muted); font-family: var(--mono); font-size: 12px; }
 
-/* MOBILE-FIX (< 992px) — admin_user_detail.css */
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP ≥992px — restaura layout original.
+   .em-row vuelve a 4 columnas en línea con padding generoso.
+   Las clases .ud-header, .ud-grid, .ud-card no están definidas en este
+   archivo (sus estilos viven en otros admin .css o son legacy del
+   template viejo) — se preservan los overrides mobile-only por si
+   algún template aún las usa.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+  .em-row {
+    grid-template-columns: 34px 1fr auto auto;
+    gap: 12px;
+    padding: 11px 20px;
+  }
+  .em-row > * {
+    word-break: normal;
+    overflow-wrap: normal;
+    white-space: normal;
+  }
+}
+
+/* Reglas mobile-only para clases que sólo existen en mobile (legacy/templates externos) */
 @media (max-width: 991.98px) {
   .ud-header,
   .user-detail-header {
@@ -240,15 +269,4 @@
   }
   .ud-card,
   .user-detail-card { padding: 14px; }
-  .em-row {
-    grid-template-columns: 1fr;
-    gap: 6px;
-    padding: 10px 12px;
-  }
-  .em-row > * {
-    word-break: break-word;
-    overflow-wrap: anywhere;
-    white-space: normal;
-  }
-  .em-time { white-space: nowrap; }
 }

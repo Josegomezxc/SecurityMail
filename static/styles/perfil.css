@@ -1,19 +1,11 @@
+@import url('./properties/perfil.css');
+
   @keyframes fadeUp  { from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)} }
   @keyframes dotPulse{ 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.85)} }
   @keyframes barFill { from{width:0} }
   @keyframes avatarIn{ from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)} }
 
-  :root {
-    --p:    #7c5cff;
-    --pl:   #a78bfa;
-    --ps:   rgba(124,92,255,0.12);
-    --pb:   rgba(124,92,255,0.28);
-    --danger:  #ef4444;
-    --warning: #f59e0b;
-    --success: #22c55e;
-    --display: 'Syne', sans-serif;
-    --mono:    'JetBrains Mono', monospace;
-  }
+  /* Custom properties → ./properties/perfil.css */
 
   /* ─── PAGE HEADER ─── */
   .page-header {
@@ -24,13 +16,13 @@
     font-family: var(--display);
     font-size: 26px;
     font-weight: 800;
-    color: #f0eeff;
+    color: var(--text-primary);
     letter-spacing: -0.02em;
     margin-bottom: 4px;
   }
   .page-header p {
     font-size: 12.5px;
-    color: rgba(200,190,255,0.45);
+    color: var(--text-muted);
     font-family: var(--mono);
   }
 
@@ -145,7 +137,7 @@
     left: 50%;
     transform: translateX(-50%);
     background: var(--bg-elevated, #1a1829);
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 6px;
     min-width: 200px;
@@ -172,11 +164,11 @@
     text-align: left;
     transition: background 0.12s;
   }
-  .avatar-menu-item:hover { background: rgba(255,255,255,0.05); }
+  .avatar-menu-item:hover { background: var(--border-soft); }
   .avatar-menu-item.danger { color: #f87171; }
   .avatar-menu-item.danger:hover { background: rgba(239,68,68,0.08); }
   .avatar-menu-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
-  .avatar-menu-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 6px; }
+  .avatar-menu-divider { height: 1px; background: var(--border-soft); margin: 4px 6px; }
 
   /* ─── MODAL DE PREVISUALIZACIÓN DEL AVATAR (estilo welcome modal) ─── */
   #avatarPreviewOverlay {
@@ -232,7 +224,7 @@
     font-family: var(--display);
     font-size: 15px;
     font-weight: 700;
-    color: #f0eeff;
+    color: var(--text-primary);
     letter-spacing: -0.01em;
     position: relative;
     z-index: 1;
@@ -241,7 +233,7 @@
     margin-top: 4px;
     font-family: var(--mono);
     font-size: 11px;
-    color: rgba(200,190,255,0.45);
+    color: var(--text-muted);
     letter-spacing: 0.04em;
     position: relative;
     z-index: 1;
@@ -251,8 +243,8 @@
     top: 14px; right: 14px;
     width: 34px; height: 34px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--border-soft);
+    border: 1px solid var(--border);
     color: rgba(240,238,255,0.8);
     cursor: pointer;
     display: flex;
@@ -271,7 +263,7 @@
 
   .avatar-hint {
     font-size: 10.5px;
-    color: rgba(200,190,255,0.45);
+    color: var(--text-muted);
     font-family: var(--mono);
     margin-bottom: 10px;
     position: relative; z-index: 1;
@@ -281,14 +273,14 @@
     font-family: var(--display);
     font-size: 17px;
     font-weight: 800;
-    color: #f0eeff;
+    color: var(--text-primary);
     margin-bottom: 5px;
     position: relative; z-index: 1;
     letter-spacing: -0.01em;
   }
   .profile-email {
     font-size: 11.5px;
-    color: rgba(200,190,255,0.45);
+    color: var(--text-muted);
     font-family: var(--mono);
     position: relative; z-index: 1;
   }
@@ -323,7 +315,7 @@
     justify-content: space-around;
     margin-top: 22px;
     padding-top: 20px;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid var(--border-soft);
     position: relative; z-index: 1;
   }
   .ps-item { text-align: center; }
@@ -335,16 +327,22 @@
     line-height: 1;
     margin-bottom: 4px;
   }
+  /* Color condicional por tema para el contador "Correos":
+     • dark / carbon (default): #f0eeff (off-white claro, como antes)
+     • light: #60a5fa (azul cielo, mantiene legibilidad sobre fondo blanco
+       y combina con el morado del alias y el rojo de bloqueados). */
+  .ps-val--emails { color: #f0eeff; }
+  html[data-theme="light"] .ps-val--emails { color: #60a5fa; }
   .ps-lbl {
     font-size: 10px;
     font-family: var(--mono);
-    color: rgba(255,255,255,0.35);
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
   .ps-divider {
     width: 1px;
-    background: rgba(255,255,255,0.06);
+    background: var(--border-soft);
     align-self: stretch;
   }
 
@@ -352,7 +350,7 @@
   .security-meter {
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid var(--border-soft);
     text-align: left;
     position: relative; z-index: 1;
   }
@@ -368,7 +366,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.09em;
-    color: rgba(255,255,255,0.35);
+    color: var(--text-muted);
   }
   .sec-level {
     font-size: 10px;
@@ -383,7 +381,7 @@
   .sec-level.low    { background: rgba(239,68,68,0.1);  color: #f87171;  border: 1px solid rgba(239,68,68,0.2); }
   .sec-bar-wrap {
     height: 7px;
-    background: rgba(255,255,255,0.06);
+    background: var(--border-soft);
     border-radius: 10px;
     overflow: hidden;
     margin-bottom: 8px;
@@ -399,7 +397,7 @@
   .sec-bar.low    { background: linear-gradient(90deg, #ef4444, #f87171); }
   .sec-hint {
     font-size: 11px;
-    color: rgba(255,255,255,0.3);
+    color: var(--text-muted);
     font-family: var(--mono);
     line-height: 1.5;
   }
@@ -407,7 +405,7 @@
   /* member since card */
   .member-card {
     background: var(--bg-surface, #13111f);
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid var(--border);
     border-radius: 16px;
     padding: 18px 20px;
     margin-top: 16px;
@@ -432,14 +430,14 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.09em;
-    color: rgba(255,255,255,0.35);
+    color: var(--text-muted);
     margin-bottom: 3px;
   }
   .member-date {
     font-family: var(--display);
     font-size: 14px;
     font-weight: 700;
-    color: #f0eeff;
+    color: var(--text-primary);
   }
 
   /* ─── SECURITY TIPS CARD ───
@@ -448,7 +446,7 @@
      columna derecha (info + contraseña) es más alta que avatar+member. */
   .security-tips-card {
     background: var(--bg-surface, #13111f);
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid var(--border);
     border-radius: 16px;
     padding: 16px 18px;
     margin-top: 16px;
@@ -460,7 +458,7 @@
     gap: 10px;
     margin-bottom: 12px;
     padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid var(--border-soft);
   }
   .stc-icon {
     width: 30px; height: 30px;
@@ -476,7 +474,7 @@
     font-family: var(--display);
     font-size: 13px;
     font-weight: 700;
-    color: #f0eeff;
+    color: var(--text-primary);
     letter-spacing: -0.01em;
   }
   .stc-list {
@@ -505,7 +503,7 @@
     font-family: var(--display);
     font-size: 12.5px;
     font-weight: 700;
-    color: #f0eeff;
+    color: var(--text-primary);
     margin-bottom: 2px;
     letter-spacing: -0.005em;
   }
@@ -513,7 +511,7 @@
     margin: 0;
     font-size: 11.5px;
     line-height: 1.45;
-    color: rgba(255,255,255,0.5);
+    color: var(--text-secondary);
     font-family: var(--mono);
   }
 
@@ -556,7 +554,7 @@
   /* ─── RIGHT COLUMN PANELS ─── */
   .profile-panel {
     background: var(--bg-surface, #13111f);
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid var(--border);
     border-radius: 18px;
     overflow: hidden;
     animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
@@ -567,8 +565,8 @@
 
   .panel-header {
     padding: 12px 16px 12px 22px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--bg-elevated);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -594,7 +592,7 @@
     font-family: var(--display);
     font-size: 14px;
     font-weight: 700;
-    color: #f0eeff;
+    color: var(--text-primary);
     letter-spacing: -0.01em;
   }
   .panel-body { padding: 18px 22px 20px; }
@@ -610,18 +608,18 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.09em;
-    color: rgba(255,255,255,0.4);
+    color: var(--text-muted);
     margin-bottom: 8px;
   }
   .form-control {
     width: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--border-soft);
+    border: 1px solid var(--border);
     border-radius: 11px;
     padding: 11px 14px;
     font-size: 13.5px;
     font-family: var(--mono);
-    color: #f0eeff;
+    color: var(--text-primary);
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     box-sizing: border-box;
@@ -634,9 +632,9 @@
   .form-control:disabled {
     opacity: 0.45;
     cursor: not-allowed;
-    background: rgba(255,255,255,0.02);
+    background: var(--bg-elevated);
   }
-  .form-control::placeholder { color: rgba(255,255,255,0.2); }
+  .form-control::placeholder { color: var(--text-muted); }
 
   /* Eye toggle wrapper */
   .input-eye-wrap {
@@ -653,7 +651,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: rgba(255,255,255,0.3);
+    color: var(--text-muted);
     padding: 4px;
     display: flex;
     align-items: center;
@@ -672,8 +670,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
     border-radius: 11px;
     padding: 11px 14px;
   }
@@ -681,7 +679,7 @@
   .email-display-val {
     font-family: var(--mono);
     font-size: 13px;
-    color: rgba(240,238,255,0.7);
+    color: var(--text-secondary);
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -695,9 +693,9 @@
     font-family: var(--mono);
     font-size: 10px;
     font-weight: 600;
-    color: rgba(255,255,255,0.25);
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
+    color: var(--text-muted);
+    background: var(--border-soft);
+    border: 1px solid var(--border);
     border-radius: 6px;
     padding: 3px 8px;
     white-space: nowrap;
@@ -710,7 +708,7 @@
     border-radius: 11px;
     padding: 12px 14px;
     font-size: 12px;
-    color: rgba(200,190,255,0.55);
+    color: var(--text-secondary);
     font-family: var(--mono);
     line-height: 1.65;
     margin-top: 16px;
@@ -718,7 +716,7 @@
     align-items: flex-start;
     gap: 10px;
   }
-  .info-box strong { color: #f0eeff; font-weight: 600; }
+  .info-box strong { color: var(--text-primary); font-weight: 600; }
 
   /* buttons */
   .btn-primary {
@@ -735,13 +733,31 @@
     border: none;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(.22,1,.36,1);
-    box-shadow: 0 4px 16px rgba(124,92,255,0.35), 0 1px 0 rgba(255,255,255,0.1) inset;
+    box-shadow: 0 4px 16px rgba(124,92,255,0.35), 0 1px 0 var(--border) inset;
     letter-spacing: 0.01em;
     margin-top: 20px;
   }
   .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(124,92,255,0.5), 0 1px 0 rgba(255,255,255,0.1) inset;
+    box-shadow: 0 8px 24px rgba(124,92,255,0.5), 0 1px 0 var(--border) inset;
+  }
+
+  /* Mobile-first: los .btn-primary dentro de .profile-panel ("Guardar
+     cambios" y "Actualizar contraseña") se centran horizontalmente en
+     mobile usando display:flex (block-level) + margin auto.
+     Desktop ≥861px vuelven a inline-flex (alineados a la izquierda en el
+     flujo del formulario, comportamiento original). */
+  .profile-panel .btn-primary {
+    display: flex;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  @media (min-width: 861px) {
+    .profile-panel .btn-primary {
+      display: inline-flex;
+      margin-left: 0;
+      margin-right: 0;
+    }
   }
 
   /* ─── FORWARD TOGGLE CARD (reenvío de correos seguros) — Mobile First ───
@@ -815,7 +831,7 @@
     font-family: var(--display);
     font-size: 15px;
     font-weight: 700;
-    color: #f0eeff;
+    color: var(--text-primary);
     letter-spacing: -0.01em;
     margin: 0;
   }
@@ -838,9 +854,9 @@
     border: 1px solid rgba(46,204,113,0.3);
   }
   .ftc-pill.off {
-    background: rgba(255,255,255,0.04);
+    background: var(--border-soft);
     color: var(--text-muted, #6b6884);
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid var(--border);
   }
   .ftc-dot {
     width: 6px; height: 6px;
@@ -868,7 +884,7 @@
     padding: 10px 12px;
     background: rgba(0,0,0,0.15);
     border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.04);
+    border: 1px solid var(--border-soft);
   }
   @media (min-width: 721px) {
     .ftc-rules {
@@ -911,6 +927,16 @@
     color: #f87171;
   }
 
+  /* ── Tema claro: las pasteles (#86efac, #fcd34d, #fca5a5) son demasiado
+     claras sobre fondo blanco/gris. Sustituimos por versiones del mismo
+     hue pero más oscuras y saturadas para mantener el sentido semántico
+     (verde=ok, amarillo=warn, rojo=danger) sin perder legibilidad. El
+     fondo gris de .ftc-rules también lo aclaramos para más contraste. */
+  html[data-theme="light"] .ftc-rules     { background: rgba(0,0,0,0.04); }
+  html[data-theme="light"] .ftc-rule--ok   { color: #15803d; }   /* verde oscuro */
+  html[data-theme="light"] .ftc-rule--warn { color: #b45309; }   /* ámbar oscuro */
+  html[data-theme="light"] .ftc-rule--no   { color: #b91c1c; }   /* rojo oscuro */
+
   .ftc-form { margin: 0; }
   .ftc-toggle {
     display: inline-flex;
@@ -918,8 +944,8 @@
     gap: 12px;
     padding: 8px 16px 8px 8px;
     border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
     cursor: pointer;
     transition: all 0.2s;
     font-family: inherit;
@@ -931,7 +957,7 @@
   .ftc-toggle-track {
     width: 36px; height: 20px;
     border-radius: 999px;
-    background: rgba(255,255,255,0.1);
+    background: var(--border);
     position: relative;
     transition: background 0.25s;
     flex-shrink: 0;
@@ -954,7 +980,7 @@
   .ftc-toggle-label {
     font-size: 12.5px;
     font-weight: 600;
-    color: #f0eeff;
+    color: var(--text-primary);
     letter-spacing: 0.01em;
   }
 
@@ -1028,7 +1054,7 @@
   }
   .danger-zone p {
     font-size: 12px;
-    color: rgba(255,255,255,0.5);
+    color: var(--text-secondary);
     font-family: var(--mono);
     line-height: 1.55;
     margin: 0;
@@ -1086,7 +1112,7 @@
     border: 1px solid rgba(239,68,68,0.25);
     border-radius: 18px;
     box-shadow: 0 32px 80px rgba(0,0,0,0.6),
-                0 0 0 1px rgba(255,255,255,0.04) inset,
+                0 0 0 1px var(--border-soft) inset,
                 0 0 60px rgba(232,64,64,0.08);
     overflow: hidden;
     position: relative;
@@ -1320,7 +1346,7 @@
   .da-btn-cancel:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
-    border-color: rgba(255,255,255,0.14);
+    border-color: var(--border);
   }
   .da-btn-confirm {
     background: linear-gradient(135deg, var(--danger), #f87171);

@@ -1,27 +1,23 @@
-:root {
-  --adm-orange: #f59e0b;
-  --adm-orange-soft: rgba(245,158,11,0.1);
-  --adm-orange-border: rgba(245,158,11,0.25);
-  --mono: 'JetBrains Mono', monospace;
-  --display: 'Syne', sans-serif;
-}
+@import url('./properties/admin_dashboard.css');
 @keyframes fadeUp  { from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);} }
 @keyframes dotPulse{ 0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.6;transform:scale(0.85);} }
 
-/* Hero */
+/* Hero — Mobile First. */
 .adm-hero {
   background: linear-gradient(160deg, rgba(245,158,11,0.08), var(--bg-surface) 55%);
   border: 1px solid var(--adm-orange-border);
   border-radius: 18px;
-  padding: 22px 26px;
+  padding: 16px 14px;                     /* mobile */
   margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;                         /* mobile */
   animation: fadeUp 0.4s ease both;
   position: relative;
   overflow: hidden;
 }
+.adm-hero-text { min-width: 0; }
 .adm-hero::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
   background: linear-gradient(90deg, transparent, var(--adm-orange), transparent);
@@ -35,9 +31,14 @@
   flex-shrink: 0;
 }
 .adm-hero-text h1 {
-  font-family: var(--display); font-size: 20px; font-weight: 800; color: var(--text-primary);
+  font-family: var(--display); font-size: 18px; font-weight: 800; color: var(--text-primary);   /* mobile */
+  word-break: break-word;
 }
-.adm-hero-text p { font-size: 12px; color: var(--text-secondary); font-family: var(--mono); margin-top: 3px; }
+.adm-hero-text p {
+  font-size: 11.5px;                       /* mobile */
+  color: var(--text-secondary); font-family: var(--mono); margin-top: 3px;
+  word-break: break-word;
+}
 .adm-badge {
   margin-left: auto;
   display: inline-flex; align-items: center; gap: 7px;
@@ -50,15 +51,16 @@
 }
 .adm-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--adm-orange); animation: dotPulse 2s infinite; }
 
-/* Stats grid — idéntico estilo al dashboard */
+/* Stats grid — Mobile First.
+   Mobile: 1 columna. Tablet ≥601px: 2 columnas. Desktop ≥1101px: 4 columnas. */
 .adm-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr;          /* mobile */
   gap: 14px;
   margin-bottom: 20px;
 }
-@media (max-width: 1100px) { .adm-stats { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 600px)  { .adm-stats { grid-template-columns: 1fr; } }
+@media (min-width: 601px)  { .adm-stats { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1101px) { .adm-stats { grid-template-columns: repeat(4, 1fr); } }
 
 .adm-stat {
   background: var(--bg-surface);
@@ -109,14 +111,14 @@
 }
 .adm-stat-sub strong { color: var(--text-secondary); }
 
-/* Two-col */
+/* Two-col — Mobile First. Mobile: 1 columna. Desktop ≥961px: split 1.3fr/1fr. */
 .adm-two-col {
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
+  grid-template-columns: 1fr;          /* mobile */
   gap: 16px;
   align-items: start;
 }
-@media (max-width: 960px) { .adm-two-col { grid-template-columns: 1fr; } }
+@media (min-width: 961px) { .adm-two-col { grid-template-columns: 1.3fr 1fr; } }
 
 /* Panel */
 .adm-panel {
@@ -238,16 +240,17 @@
 /* ════════════════════════════════════════════════════════════
    DISTRIBUCIÓN DE RIESGO (barras + donut)
    ════════════════════════════════════════════════════════════ */
+/* .risk-dist — Mobile First. Mobile: 1 columna sin .risk-summary.
+   Desktop ≥721px: 1fr + 130px con .risk-summary visible. */
 .risk-dist {
   padding: 18px 22px 22px;
   display: grid;
-  grid-template-columns: 1fr 130px;
+  grid-template-columns: 1fr;          /* mobile */
   gap: 24px;
   align-items: center;
 }
-@media (max-width: 720px) {
-  .risk-dist { grid-template-columns: 1fr; }
-  .risk-summary { display: none; }
+@media (min-width: 721px) {
+  .risk-dist { grid-template-columns: 1fr 130px; }
 }
 .risk-row { margin-bottom: 14px; }
 .risk-row:last-child { margin-bottom: 0; }
@@ -302,9 +305,12 @@
 .risk-fill.danger { background: linear-gradient(90deg, var(--danger), #f87171); box-shadow: 0 0 12px rgba(232,64,64,0.4); }
 
 .risk-summary {
-  display: flex;
+  display: none;                       /* mobile: oculto */
   align-items: center;
   justify-content: center;
+}
+@media (min-width: 721px) {
+  .risk-summary { display: flex; }
 }
 .risk-summary-circle {
   width: 110px;
@@ -399,14 +405,15 @@
 /* ════════════════════════════════════════════════════════════
    ESTADO DEL SISTEMA (grid de indicadores)
    ════════════════════════════════════════════════════════════ */
+/* .health-grid — Mobile First. Mobile: 2 columnas. Desktop ≥721px: 4 columnas. */
 .health-grid {
   padding: 18px 22px 22px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);   /* mobile */
   gap: 14px;
 }
-@media (max-width: 720px) {
-  .health-grid { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 721px) {
+  .health-grid { grid-template-columns: repeat(4, 1fr); }
 }
 .health-cell {
   display: flex;
@@ -525,14 +532,20 @@
 .trend-pill.flat { background: rgba(255,255,255,0.06); color: var(--text-muted); }
 
 /* ═══════════════════════════════════════════════════════════════════
-   MOBILE-FIX (< 992px) — admin_dashboard.css
+   DESKTOP ≥992px — restaura el hero con padding generoso, h1 a 20px y
+   p a 12px (los valores mobile ya viven como defaults arriba).
    ═══════════════════════════════════════════════════════════════════ */
-@media (max-width: 991.98px) {
-  .adm-hero { flex-wrap: wrap; padding: 16px 14px; }
-  .adm-hero-text { min-width: 0; }
-  .adm-hero-text h1 { font-size: 18px; word-break: break-word; }
-  .adm-hero-text p  { font-size: 11.5px; word-break: break-word; }
+@media (min-width: 992px) {
+  .adm-hero         { flex-wrap: nowrap; padding: 22px 26px; }
+  .adm-hero-text h1 { font-size: 20px; word-break: normal; }
+  .adm-hero-text p  { font-size: 12px;  word-break: normal; }
+}
 
+/* Reglas mobile-only para clases que sólo existen en mobile (.adm-kpi-grid,
+   .adm-kpi-card, .adm-kpi-num, .adm-table, etc) — no tienen counterpart
+   en este archivo, son legacy / definidas en otros admin_*.css. Si algún
+   template las usa estas reglas las preservan. */
+@media (max-width: 991.98px) {
   .adm-kpi-grid,
   [class*="-kpi-grid"] {
     grid-template-columns: 1fr 1fr !important;

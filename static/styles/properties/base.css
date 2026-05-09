@@ -1,0 +1,86 @@
+/* ════════════════════════════════════════════════════════════════════
+   PROPERTIES — base.css
+   Custom properties globales del proyecto + variables por tema (dark,
+   light, carbon). Importado al inicio de base.css.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root,
+html[data-theme="dark"] {
+    --bg-base:       #1c1b29;
+    --bg-surface:    #252438;
+    --bg-elevated:   #2e2c47;
+    --bg-hover:      #35334f;
+    --sidebar-top:   #1a1828;
+    --sidebar-bottom:#15131f;
+    --topbar-bg:     rgba(37,36,56,0.75);
+    --accent:        #6d4aff;
+    --accent-hover:  #7c5cff;
+    --accent-soft:   rgba(109,74,255,0.15);
+    --accent-border: rgba(109,74,255,0.4);
+    --danger:        #e84040;
+    --danger-soft:   rgba(232,64,64,0.12);
+    --success:       #2ecc71;
+    --success-soft:  rgba(46,204,113,0.12);
+    --warning:       #f59e0b;
+    --warning-soft:  rgba(245,158,11,0.12);
+    --text-primary:  #e8e6f0;
+    --text-secondary:#9e9cb8;
+    --text-muted:    #6b6884;
+    --border:        rgba(255,255,255,0.07);
+    --border-soft:   rgba(255,255,255,0.04);
+    --radius-sm:     6px;
+    --radius-md:     10px;
+    --radius-lg:     14px;
+    --radius-xl:     20px;
+    --font-sans:     'DM Sans', sans-serif;
+    --font-mono:     'DM Mono', monospace;
+    /* Variables usadas por el compose modal global. Se definen aquí
+       (no por página) para que el modal se vea idéntico en TODAS las
+       páginas, incluso aquellas que no las redefinen. */
+    --display:           'Syne', sans-serif;
+    --mono:              'JetBrains Mono', monospace;
+    --ai-purple:         #7c3aed;
+    --ai-purple-light:   #a78bfa;
+    --ai-purple-soft:    rgba(124,58,237,0.08);
+    --ai-purple-border:  rgba(124,58,237,0.22);
+}
+
+/* ── TEMA CLARO ─────────────────────────── */
+html[data-theme="light"] {
+    --bg-base:       #f4f4fb;
+    --bg-surface:    #ffffff;
+    --bg-elevated:   #f8f8fd;
+    --bg-hover:      #eceaf5;
+    --sidebar-top:   #ffffff;
+    --sidebar-bottom:#f1f0f9;
+    --topbar-bg:     rgba(255,255,255,0.8);
+    --accent:        #6d4aff;
+    --accent-hover:  #7c5cff;
+    --accent-soft:   rgba(109,74,255,0.1);
+    --accent-border: rgba(109,74,255,0.3);
+    --text-primary:  #1a1830;
+    --text-secondary:#4d4b66;
+    --text-muted:    #8a889e;
+    --border:        rgba(20,15,45,0.08);
+    --border-soft:   rgba(20,15,45,0.04);
+}
+
+/* ── TEMA CARBON (negro profundo) ─────── */
+html[data-theme="carbon"] {
+    --bg-base:       #08080f;
+    --bg-surface:    #101018;
+    --bg-elevated:   #17171f;
+    --bg-hover:      #1e1e2a;
+    --sidebar-top:   #0d0d14;
+    --sidebar-bottom:#06060c;
+    --topbar-bg:     rgba(16,16,24,0.85);
+    --accent:        #ff4f7a;
+    --accent-hover:  #ff6b8e;
+    --accent-soft:   rgba(255,79,122,0.14);
+    --accent-border: rgba(255,79,122,0.4);
+    --text-primary:  #eeecf5;
+    --text-secondary:#9b98ae;
+    --text-muted:    #65637a;
+    --border:        rgba(255,255,255,0.06);
+    --border-soft:   rgba(255,255,255,0.03);
+}

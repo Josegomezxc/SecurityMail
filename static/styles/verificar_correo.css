@@ -18,11 +18,14 @@
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: 18px;
-    padding: 36px 36px 32px;
+    padding: 28px 22px 24px;             /* mobile */
     box-shadow: 0 24px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04) inset;
     position: relative;
     overflow: hidden;
     animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
+  }
+  @media (min-width: 481px) {
+    .verify-card { padding: 36px 36px 32px; }
   }
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(14px); }
@@ -124,24 +127,30 @@
   .code-input-wrap {
     display: flex;
     justify-content: center;
-    gap: 9px;
+    gap: 6px;                             /* mobile */
     margin-bottom: 22px;
   }
+  @media (min-width: 481px) {
+    .code-input-wrap { gap: 9px; }
+  }
   .code-digit {
-    width: 50px;
-    height: 60px;
+    width: 42px;                          /* mobile */
+    height: 52px;                         /* mobile */
     border-radius: 12px;
     background: var(--bg-elevated);
     border: 1.5px solid var(--border);
     color: var(--text-primary);
     font-family: 'JetBrains Mono', 'Courier New', monospace;
-    font-size: 26px;
+    font-size: 22px;                      /* mobile */
     font-weight: 700;
     text-align: center;
     outline: none;
     transition: border-color 0.18s, background 0.18s, transform 0.12s;
     -webkit-appearance: none;
     -moz-appearance: textfield;
+  }
+  @media (min-width: 481px) {
+    .code-digit { width: 50px; height: 60px; font-size: 26px; }
   }
   .code-digit::-webkit-outer-spin-button,
   .code-digit::-webkit-inner-spin-button {
@@ -159,11 +168,9 @@
     color: var(--accent-hover);
   }
 
-  @media (max-width: 480px) {
-    .verify-card { padding: 28px 22px 24px; }
-    .code-digit { width: 42px; height: 52px; font-size: 22px; }
-    .code-input-wrap { gap: 6px; }
-  }
+  /* Bloque max-width removido: los valores mobile ya viven como defaults
+     y los overrides desktop están dentro de @media (min-width: 481px)
+     junto a cada regla. */
 
   .verify-btn {
     width: 100%;

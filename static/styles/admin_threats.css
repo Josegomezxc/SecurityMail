@@ -1,3 +1,5 @@
+/* Hero del módulo amenazas — Mobile First. Mobile: padding compacto y wrap;
+   Desktop ≥992px: padding generoso, sin wrap. */
 .adm-hero-th {
   display: flex;
   align-items: center;
@@ -5,7 +7,8 @@
   background: linear-gradient(160deg, rgba(232,64,64,0.08) 0%, var(--bg-surface) 60%);
   border: 1px solid rgba(232,64,64,0.22);
   border-radius: 16px;
-  padding: 22px 26px;
+  padding: 16px 14px;                     /* mobile */
+  flex-wrap: wrap;                         /* mobile */
   margin-bottom: 18px;
   position: relative;
   overflow: hidden;
@@ -30,7 +33,7 @@
 }
 .adm-hero-th-text h1 {
   font-family: 'Syne', sans-serif;
-  font-size: 22px;
+  font-size: 18px;                         /* mobile */
   font-weight: 800;
   letter-spacing: -0.02em;
   background: linear-gradient(90deg, var(--text-primary) 0%, #f87171 100%);
@@ -38,11 +41,13 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 3px;
+  word-break: break-word;
 }
 .adm-hero-th-text p {
-  font-size: 12.5px;
+  font-size: 11.5px;                       /* mobile */
   color: var(--text-secondary);
   font-family: var(--font-mono);
+  word-break: break-word;
 }
 .adm-hero-th-stats {
   margin-left: auto;
@@ -145,17 +150,30 @@
   border-radius: 14px;
   overflow: hidden;
 }
+/* .th-row — Mobile First.
+   Mobile: 2 columnas (score + contenido). Tablet/Desktop ≥901px: 5 columnas
+   con todas las celdas visibles. ≥992px: padding y gap generosos. */
 .th-row {
   display: grid;
-  grid-template-columns: 70px 1fr 220px 130px 120px;
-  gap: 14px;
-  padding: 14px 18px;
+  grid-template-columns: 55px 1fr;         /* mobile */
+  gap: 8px;                                 /* mobile */
+  padding: 10px 12px;                       /* mobile */
   border-bottom: 1px solid var(--border-soft);
   text-decoration: none;
   color: inherit;
   align-items: center;
   transition: background 0.15s;
 }
+.th-row > div {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+/* Mobile: ocultamos las celdas que no caben en el layout 2-col */
+.th-row > .th-user,
+.th-row > .th-alias,
+.th-row > .th-time { display: none; }
+.th-row.head { display: none; }            /* mobile: cabecera de tabla oculta */
 .th-row:last-child { border-bottom: none; }
 .th-row:hover { background: rgba(232,64,64,0.04); }
 .th-row.head {
@@ -266,21 +284,28 @@
   text-align: center;
 }
 
-@media (max-width: 900px) {
-  .th-row { grid-template-columns: 55px 1fr; }
-  .th-row > .th-user, .th-row > .th-alias, .th-row > .th-time { display: none; }
-  .th-row.head { display: none; }
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP — overrides progresivos.
+   ≥901px: tabla pasa a 5 columnas (todas las celdas visibles, head visible).
+   ≥992px: hero con padding generoso, tipografía mayor; rows con padding y
+            gap originales.
+   Los valores mobile viven como defaults arriba.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 901px) {
+  .th-row { grid-template-columns: 70px 1fr 220px 130px 120px; }
+  .th-row > .th-user,
+  .th-row > .th-alias,
+  .th-row > .th-time { display: revert; }
+  .th-row.head { display: grid; }
+  .th-row > div {
+    word-break: normal;
+    overflow-wrap: normal;
+  }
 }
 
-/* MOBILE-FIX (< 992px) — admin_threats.css */
-@media (max-width: 991.98px) {
-  .adm-hero-th { flex-wrap: wrap; padding: 16px 14px; }
-  .adm-hero-th h1 { font-size: 18px; word-break: break-word; }
-  .adm-hero-th p { font-size: 11.5px; word-break: break-word; }
-  .th-row { padding: 10px 12px; gap: 8px; }
-  .th-row > div {
-    word-break: break-all;
-    overflow-wrap: anywhere;
-    min-width: 0;
-  }
+@media (min-width: 992px) {
+  .adm-hero-th         { flex-wrap: nowrap; padding: 22px 26px; }
+  .adm-hero-th-text h1 { font-size: 22px; word-break: normal; }
+  .adm-hero-th-text p  { font-size: 12.5px; word-break: normal; }
+  .th-row              { padding: 14px 18px; gap: 14px; }
 }

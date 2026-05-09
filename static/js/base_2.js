@@ -7,15 +7,28 @@
     var backdrop = document.getElementById('sidebarBackdrop');
     if (!toggle || !sidebar || !backdrop) return;
 
+    /* Bloqueo de scroll cuando el drawer está abierto.
+       Solo body.overflow:hidden no alcanza en móvil: por la regla
+       html,body{overflow-x:hidden} algunos navegadores móviles usan
+       <html> como elemento scrolleable, y queda libre. Bloqueamos
+       overflow en ambos. Guardamos los valores previos por si otra
+       cosa (modal de tema, compose modal) ya los había modificado. */
+    var prevHtmlOverflow = '';
+    var prevBodyOverflow = '';
+
     function openSidebar() {
         sidebar.classList.add('open');
         backdrop.classList.add('visible');
+        prevHtmlOverflow = document.documentElement.style.overflow;
+        prevBodyOverflow = document.body.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
     }
     function closeSidebar() {
         sidebar.classList.remove('open');
         backdrop.classList.remove('visible');
-        document.body.style.overflow = '';
+        document.documentElement.style.overflow = prevHtmlOverflow;
+        document.body.style.overflow = prevBodyOverflow;
     }
     function isOpen() {
         return sidebar.classList.contains('open');
