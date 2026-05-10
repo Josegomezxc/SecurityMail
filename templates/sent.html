@@ -14,7 +14,7 @@
 {% block body %}
 
 <!-- ── HERO ── -->
-<div class="sent-hero">
+<header class="sent-hero">
   <div class="sent-hero-inner">
     <div class="sent-hero-icon">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -37,10 +37,10 @@
       </div>
     </div>
   </div>
-</div>
+</header>
 
 <!-- ── TOOLBAR ── -->
-<div class="toolbar">
+<section class="toolbar" role="search" aria-label="Buscar y componer enviados">
   <div class="search-wrap">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="11" cy="11" r="8" />
@@ -106,7 +106,7 @@
       {% endfor %}
     </div>
   </div>
-</div>
+</section>
 
 <!-- ── FILTROS + VACIAR ── -->
 <div class="sent-filters">
@@ -137,11 +137,11 @@
 </div>
 
 <!-- ── LISTA DE ENVIADOS ── -->
-<div id="sent-list">
+<section id="sent-list" aria-label="Lista de correos enviados">
   {% for group in sent_groups %}
-  <div class="date-divider">{{ group.label }} <span class="count">{{ group.emails|length }}</span></div>
+  <div class="date-divider" role="separator" aria-label="{{ group.label }}">{{ group.label }} <span class="count">{{ group.emails|length }}</span></div>
   {% for em in group.emails %}
-  <div class="sent-row" data-id="{{ em.id }}" data-to="{{ em.to_email|lower }}" data-subject="{{ em.subject|lower }}"
+  <article class="sent-row" data-id="{{ em.id }}" data-to="{{ em.to_email|lower }}" data-subject="{{ em.subject|lower }}"
     data-alias="{{ em.alias.address|lower }}"
     data-has-attach="{% if em.attachments_count %}1{% else %}0{% endif %}"
     data-scheduled="{% if em.scheduled_at %}1{% else %}0{% endif %}"
@@ -204,7 +204,7 @@
       data-attachments-meta="{{ em.attachments_meta_json|default:'[]' }}"
       data-body="{{ em.body_html|default:'' }}">
     </div>
-  </div>
+  </article>
   {% endfor %}
   {% empty %}
   <div class="empty-state">
@@ -232,7 +232,7 @@
     <div id="sent-no-results-msg" class="empty-title">Sin resultados</div>
     <div id="sent-no-results-hint" class="empty-sub"></div>
   </div>
-</div>{# /#sent-list #}
+</section>{# /#sent-list #}
 
 {% endblock %}
 

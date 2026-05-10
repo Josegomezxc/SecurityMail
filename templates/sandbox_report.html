@@ -22,7 +22,7 @@
 
 <!-- ── STATUS BANNER ── -->
 {% if analysis.risk_score >= 61 %}
-<div class="status-banner blocked" style="animation:fadeUp 0.4s ease">
+<header class="status-banner blocked" style="animation:fadeUp 0.4s ease" role="alert">
   <div class="status-icon-wrap">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round">
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -36,9 +36,9 @@
   <div class="status-tag">
     <span class="tag tag-red">BLOQUEADO</span>
   </div>
-</div>
+</header>
 {% else %}
-<div class="status-banner safe" style="animation:fadeUp 0.4s ease">
+<header class="status-banner safe" style="animation:fadeUp 0.4s ease" role="status">
   <div class="status-icon-wrap">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
@@ -54,11 +54,11 @@
     {% elif analysis.risk_score >= 31 %}<span class="tag tag-yellow">SOSPECHOSO</span>
     {% else %}<span class="tag tag-green">SEGURO</span>{% endif %}
   </div>
-</div>
+</header>
 {% endif %}
 
 <!-- ── SCORE CARD ── -->
-<div class="score-card" style="animation:fadeUp 0.4s ease 0.05s both">
+<section class="score-card" style="animation:fadeUp 0.4s ease 0.05s both" aria-label="Resumen del análisis">
   <div class="score-ring-wrap">
     <svg width="88" height="88" viewBox="0 0 88 88">
       <circle cx="44" cy="44" r="38" fill="none"
@@ -103,23 +103,23 @@
       {% endif %}
     </div>
   </div>
-</div>
+</section>
 
 <!-- ── IDENTIFICACIÓN DEL ARCHIVO ── -->
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.1s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.1s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(59,130,246,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
       </svg>
     </div>
-    <span class="section-head-title">Identificación del archivo</span>
+    <h2 class="section-head-title">Identificación del archivo</h2>
     <div class="section-head-tag">
       {% if analysis.category and analysis.category != 'unknown' %}
         <span class="tag tag-blue">{{ analysis.get_category_display }}</span>
       {% endif %}
     </div>
-  </div>
+  </header>
 
   <div class="facts-grid">
     <div class="fact">
@@ -163,20 +163,20 @@
     </div>
     {% endif %}
   </div>
-</div>
+</section>
 
 <!-- ── TODOS LOS ADJUNTOS (si el correo traía varios) ── -->
 {% if analysis.attachments_reports and analysis.attachments_reports|length > 1 %}
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.11s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.11s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(245,158,11,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round">
         <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
       </svg>
     </div>
-    <span class="section-head-title">Adjuntos del correo</span>
+    <h2 class="section-head-title">Adjuntos del correo</h2>
     <div class="section-head-tag"><span class="tag tag-yellow">{{ analysis.attachments_reports|length }} archivos analizados</span></div>
-  </div>
+  </header>
 
   <div class="att-list">
     {% for att in analysis.attachments_reports %}
@@ -221,18 +221,18 @@
       {% endwith %}
     {% endfor %}
   </div>
-</div>
+</section>
 {% endif %}
 
 <!-- ── EVIDENCIA (CORE: cada indicador detectado) ── -->
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.13s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.13s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(232,64,64,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
       </svg>
     </div>
-    <span class="section-head-title">Evidencia detectada</span>
+    <h2 class="section-head-title">Evidencia detectada</h2>
     <div class="section-head-tag">
       {% if analysis.evidence %}
         <span class="tag tag-red">{{ analysis.evidence|length }} indicador{{ analysis.evidence|length|pluralize:"es" }}</span>
@@ -240,7 +240,7 @@
         <span class="tag tag-green">Sin hallazgos</span>
       {% endif %}
     </div>
-  </div>
+  </header>
 
   {% if analysis.evidence %}
     <div class="evidence-list collapsible-list" data-show="5" data-label="indicadores">
@@ -306,22 +306,22 @@
       <div>El análisis no encontró indicadores sospechosos en este archivo.</div>
     </div>
   {% endif %}
-</div>
+</section>
 
 <!-- ── YARA MATCHES (si hay) ── -->
 {% if analysis.yara_matches %}
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.16s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.16s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(124,58,237,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2" stroke-linecap="round">
         <path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/>
       </svg>
     </div>
-    <span class="section-head-title">Reglas YARA coincidentes</span>
+    <h2 class="section-head-title">Reglas YARA coincidentes</h2>
     <div class="section-head-tag">
       <span class="tag tag-purple">{{ analysis.yara_matches|length }} match{{ analysis.yara_matches|length|pluralize:"es" }}</span>
     </div>
-  </div>
+  </header>
   <div class="yara-list collapsible-list" data-show="3" data-label="reglas">
     {% for match in analysis.yara_matches %}
       <div class="yara-rule">
@@ -334,21 +334,21 @@
       </div>
     {% endfor %}
   </div>
-</div>
+</section>
 {% endif %}
 
 <!-- ── IOCs (URLs, IPs, dominios) ── -->
 {% if analysis.iocs.urls or analysis.iocs.ips or analysis.iocs.domains %}
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.18s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.18s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(59,130,246,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round">
         <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
       </svg>
     </div>
-    <span class="section-head-title">Indicadores de compromiso (IOCs)</span>
+    <h2 class="section-head-title">Indicadores de compromiso (IOCs)</h2>
     <div class="section-head-tag"><span class="tag tag-blue">extraídos del análisis</span></div>
-  </div>
+  </header>
 
   {% if analysis.iocs.urls %}
   <div class="ioc-group">
@@ -400,19 +400,19 @@
     </div>
   </div>
   {% endif %}
-</div>
+</section>
 {% endif %}
 
 <!-- ── ANÁLISIS DEL CUERPO DEL CORREO ── -->
 {% if analysis.body_score > 0 or analysis.body_evidence %}
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.2s both">
-  <div class="section-head body-card-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.2s both">
+  <header class="section-head body-card-head">
     <div class="section-icon-box" style="background:rgba(245,158,11,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round">
         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
       </svg>
     </div>
-    <span class="section-head-title">Análisis del cuerpo del correo</span>
+    <h2 class="section-head-title">Análisis del cuerpo del correo</h2>
     <div class="section-head-tag">
       {% if analysis.body_score >= 61 %}
         <span class="tag tag-red">Score {{ analysis.body_score }}</span>
@@ -422,7 +422,7 @@
         <span class="tag tag-blue">Score {{ analysis.body_score }}</span>
       {% endif %}
     </div>
-  </div>
+  </header>
 
   <div class="body-summary">
     <div class="body-score-num"
@@ -482,25 +482,25 @@
       {% endfor %}
     </div>
   {% endif %}
-</div>
+</section>
 {% endif %}
 
 <!-- ── ANALIZADORES EJECUTADOS ── -->
 {% if analysis.analyzers_run %}
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.22s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.22s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(46,204,113,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round">
         <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
       </svg>
     </div>
-    <span class="section-head-title">Analizadores ejecutados</span>
+    <h2 class="section-head-title">Analizadores ejecutados</h2>
     <div class="section-head-tag">
       <span class="tag tag-green" title="Cada adjunto se ejecuta o inspecciona en un contenedor Docker sin acceso a internet, sin disco persistente y con límite de memoria/CPU. Esto previene que el malware se propague, se conecte a un C&C o exfiltre datos durante el análisis.">
         contenedor aislado · sin red · sin disco · sin privilegios
       </span>
     </div>
-  </div>
+  </header>
   <div class="analyzer-chips">
     {% for a in analysis.analyzers_run %}
       <span class="analyzer-chip">
@@ -509,13 +509,13 @@
       </span>
     {% endfor %}
   </div>
-</div>
+</section>
 {% endif %}
 
 <!-- ══════════════════════════════════════
      AI SECTION
 ══════════════════════════════════════ -->
-<div class="ai-section" style="animation:fadeUp 0.4s ease 0.2s both">
+<section class="ai-section" style="animation:fadeUp 0.4s ease 0.2s both" aria-label="Análisis de IA">
 
   <div class="ai-section-header">
     <div class="ai-header-icon">
@@ -628,20 +628,20 @@
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <span id="ai-error-msg">Análisis IA no disponible.</span>
   </div>
-</div>
+</section>
 
 <!-- ── CORREO ORIGEN — Flow visual del ataque y la protección ── -->
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.25s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.25s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:var(--bg-hover)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round">
         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
         <polyline points="22,6 12,13 2,6"/>
       </svg>
     </div>
-    <span class="section-head-title">Trayectoria del correo</span>
+    <h2 class="section-head-title">Trayectoria del correo</h2>
     <div class="section-head-tag"><span class="tag tag-blue">cómo te protegimos</span></div>
-  </div>
+  </header>
 
   <div class="origin-flow">
 
@@ -722,10 +722,10 @@
     </div>
 
   </div>
-</div>
+</section>
 
 <!-- ── PRÓXIMOS PASOS — tarjetas de acción ── -->
-<div class="next-actions" style="animation:fadeUp 0.4s ease 0.3s both">
+<section class="next-actions" style="animation:fadeUp 0.4s ease 0.3s both" aria-label="Próximos pasos sugeridos">
   <div class="next-actions-label">¿Y AHORA QUÉ?</div>
   <div class="next-actions-grid">
 
@@ -788,7 +788,7 @@
     </a>
 
   </div>
-</div>
+</section>
 
 <!-- ── AI SCRIPT ── -->
 <script>

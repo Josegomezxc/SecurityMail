@@ -28,7 +28,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
 <div class="compose-overlay" id="composeOverlay" aria-hidden="true"></div>
 
 <div class="compose-window" id="composeWindow" role="dialog" aria-labelledby="composeTitle" aria-hidden="true">
-  <div class="compose-head">
+  <header class="compose-head">
     <div class="compose-head-brand">
       {# Drag handle (6 puntos): visible solo en estado minimizado #}
       <div class="compose-head-handle" aria-hidden="true">
@@ -71,7 +71,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
         </svg>
       </button>
     </div>
-  </div>
+  </header>
 
   <form id="composeForm" class="compose-body">
     {% csrf_token %}
@@ -138,7 +138,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
     <div class="compose-attachments" id="composeAttachments"></div>
     <input type="file" id="composeFileInput" multiple style="display:none">
 
-    <div class="compose-foot">
+    <footer class="compose-foot">
       <div class="compose-foot-left">
         <button type="button" class="compose-foot-icon" id="composeAttachBtn" title="Adjuntar archivos">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -193,7 +193,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
           </button>
         </div>
       </div>
-    </div>
+    </footer>
 
     <input type="hidden" id="composeScheduledAt" name="scheduled_at" value="">
     <div class="compose-scheduled-banner" id="composeScheduledBanner" hidden>

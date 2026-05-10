@@ -10,10 +10,10 @@
 
 {% block body %}
 <div class="notif-page">
-  <div class="notif-page-header">
+  <header class="notif-page-header">
     <div>
-      <div class="notif-page-title">Tus notificaciones</div>
-      <div class="notif-page-sub">Eventos y correos que necesitan tu atención.</div>
+      <h1 class="notif-page-title">Tus notificaciones</h1>
+      <p class="notif-page-sub">Eventos y correos que necesitan tu atención.</p>
     </div>
     <div class="notif-stats">
       {% if pending_count %}
@@ -24,11 +24,11 @@
       {% endif %}
       <span class="notif-stat-pill">{{ notifications.count }} total</span>
     </div>
-  </div>
+  </header>
 
   <!-- ── Toolbar: filtros + acciones ── -->
-  <div class="notif-toolbar">
-    <div class="notif-filters" id="notif-filters">
+  <section class="notif-toolbar" aria-label="Filtros y acciones de notificaciones">
+    <nav class="notif-filters" id="notif-filters" aria-label="Filtros por estado">
       <button type="button" class="notif-filter-btn active" data-filter="all">
         Todas
         <span class="notif-filter-count" data-count="all">{{ counts.all }}</span>
@@ -49,7 +49,7 @@
         Descartadas
         <span class="notif-filter-count" data-count="discarded">{{ counts.discarded }}</span>
       </button>
-    </div>
+    </nav>
 
     <div class="notif-actions">
       <div class="notif-clear-wrap" id="notif-clear-wrap">
@@ -87,9 +87,9 @@
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="notif-list-card" id="notif-list-container">
+  <section class="notif-list-card" id="notif-list-container" aria-label="Lista de notificaciones">
     {% for n in notifications %}
       <a href="{% url 'notification_detail' n.id %}"
          class="notif-row {% if not n.read %}unread{% endif %}"
@@ -127,10 +127,10 @@
         <div class="notif-empty-hint">Cuando llegue un correo a tus alias, aparecerá aquí.</div>
       </div>
     {% endfor %}
-  </div>
+  </section>
 
   <!-- Indicador "live" pequeñito abajo a la derecha -->
-  <div class="notif-live-indicator">
+  <div class="notif-live-indicator" role="status" aria-live="polite">
     <span class="notif-live-dot"></span>
     Actualizando en vivo
   </div>

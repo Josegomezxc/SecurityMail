@@ -12,10 +12,10 @@
 
 {% block body %}
 
-<div class="page-header">
+<header class="page-header">
   <h1>Mi perfil</h1>
   <p>Gestiona tu cuenta y configuración de seguridad.</p>
-</div>
+</header>
 
 {% if messages %}
   {% for message in messages %}
@@ -27,7 +27,7 @@
 
   <!-- ── COLUMNA IZQUIERDA ── -->
   <div>
-    <div class="profile-avatar-card">
+    <section class="profile-avatar-card" aria-label="Información del perfil">
 
       <div style="position:relative;display:inline-block;width:100px;height:100px;margin:0 auto 18px">
         <div class="big-avatar" id="avatarBox"
@@ -150,9 +150,9 @@
         </div>
       </div>
 
-    </div>
+    </section>
 
-    <div class="member-card">
+    <aside class="member-card" aria-label="Antigüedad de la cuenta">
       <div class="member-icon">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round">
           <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
@@ -163,19 +163,19 @@
         <div class="member-label">Miembro desde</div>
         <div class="member-date">{{ user.date_joined|date:"d \d\e F, Y" }}</div>
       </div>
-    </div>
+    </aside>
 
     <!-- Consejos de seguridad — rellena el hueco bajo la columna izquierda
          en desktop. Puramente informativo, sin lógica de Django. -->
-    <div class="security-tips-card">
-      <div class="stc-header">
+    <aside class="security-tips-card" aria-labelledby="tips-title">
+      <header class="stc-header">
         <div class="stc-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
         </div>
-        <div class="stc-title">Consejos de seguridad</div>
-      </div>
+        <h2 class="stc-title" id="tips-title">Consejos de seguridad</h2>
+      </header>
       <ul class="stc-list">
         <li class="stc-tip">
           <span class="stc-dot"></span>
@@ -199,18 +199,18 @@
           </div>
         </li>
       </ul>
-    </div>
+    </aside>
   </div>
 
   <!-- ── COLUMNA DERECHA ── -->
   <div>
 
     <!-- Información de cuenta -->
-    <div class="profile-panel" style="animation-delay:60ms">
-      <div class="panel-header">
-        <div class="panel-header-dot" style="background:var(--pl);box-shadow:0 0 6px rgba(167,139,250,0.5)"></div>
-        <div class="panel-header-title">Información de la cuenta</div>
-      </div>
+    <section class="profile-panel" style="animation-delay:60ms" aria-labelledby="panel-info-title">
+      <header class="panel-header">
+        <span class="panel-header-dot" style="background:var(--pl);box-shadow:0 0 6px rgba(167,139,250,0.5)"></span>
+        <h2 class="panel-header-title" id="panel-info-title">Información de la cuenta</h2>
+      </header>
       <div class="panel-body">
         <form method="post">
           {% csrf_token %}
@@ -292,14 +292,14 @@
           </div>
         </form>
       </div>
-    </div>
+    </section>
 
     <!-- Cambiar contraseña -->
-    <div class="profile-panel" style="animation-delay:100ms">
-      <div class="panel-header">
-        <div class="panel-header-dot" style="background:var(--p);box-shadow:0 0 6px rgba(124,92,255,0.5)"></div>
-        <div class="panel-header-title">Cambiar contraseña</div>
-      </div>
+    <section class="profile-panel" style="animation-delay:100ms" aria-labelledby="panel-pwd-title">
+      <header class="panel-header">
+        <span class="panel-header-dot" style="background:var(--p);box-shadow:0 0 6px rgba(124,92,255,0.5)"></span>
+        <h2 class="panel-header-title" id="panel-pwd-title">Cambiar contraseña</h2>
+      </header>
       <div class="panel-body">
         <form method="post">
           {% csrf_token %}
@@ -333,7 +333,7 @@
           </button>
         </form>
       </div>
-    </div>
+    </section>
 
   </div>
 </div>
@@ -344,10 +344,10 @@
 <div class="profile-bottom-row">
 
   <!-- Reenvío de correos seguros (opt-in) -->
-  <div class="profile-panel" style="animation-delay:140ms">
-    <div class="panel-header">
-      <div class="panel-header-dot" style="background:var(--success);box-shadow:0 0 6px rgba(46,204,113,0.5)"></div>
-      <div class="panel-header-title">Notificaciones</div>
+  <section class="profile-panel" style="animation-delay:140ms" aria-labelledby="panel-notif-title">
+    <header class="panel-header">
+      <span class="panel-header-dot" style="background:var(--success);box-shadow:0 0 6px rgba(46,204,113,0.5)"></span>
+      <h2 class="panel-header-title" id="panel-notif-title">Notificaciones</h2>
       <div class="panel-header-spacer"></div>
       <form method="post" class="ftc-form {% if user.profile.forward_safe_emails %}ftc-form-on{% endif %}">
         {% csrf_token %}
@@ -362,10 +362,10 @@
           </span>
         </button>
       </form>
-    </div>
+    </header>
     <div class="panel-body">
 
-      <div class="forward-toggle-card {% if user.profile.forward_safe_emails %}is-on{% endif %}">
+      <article class="forward-toggle-card {% if user.profile.forward_safe_emails %}is-on{% endif %}">
         <div class="ftc-icon-side">
           <div class="ftc-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -409,14 +409,14 @@
             </div>
           </div>
         </div>
-      </div>
+      </article>
 
     </div>
-  </div>
+  </section>
 
   <!-- Zona de peligro -->
-  <div class="danger-zone">
-    <div class="danger-head">
+  <section class="danger-zone" aria-labelledby="danger-title">
+    <header class="danger-head">
       <div class="danger-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -424,9 +424,9 @@
         </svg>
       </div>
       <div class="danger-text">
-        <h4>Zona de peligro</h4>
+        <h2 id="danger-title">Zona de peligro</h2>
       </div>
-    </div>
+    </header>
     <p>Eliminar tu cuenta destruirá todos tus alias, correos analizados y notificaciones. Esta acción es permanente y no se puede deshacer.</p>
     <button type="button" class="btn-danger" id="deleteAccountBtn">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -435,7 +435,7 @@
       </svg>
       Eliminar mi cuenta
     </button>
-  </div>
+  </section>
 
 </div><!-- /.profile-bottom-row -->
 

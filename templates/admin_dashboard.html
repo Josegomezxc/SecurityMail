@@ -11,7 +11,7 @@
 
 {% block body %}
 
-<div class="adm-hero">
+<header class="adm-hero">
   <div class="adm-hero-icon">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
       <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -26,15 +26,15 @@
     <span class="dot"></span>
     ADMINISTRADOR
   </span>
-</div>
+</header>
 
 <!-- ─── STATS GLOBALES ─── -->
-<div class="adm-stats">
+<section class="adm-stats" aria-label="Estadísticas globales del sistema">
 
   <a href="{% url 'admin_users' %}" style="text-decoration:none;color:inherit">
-  <div class="adm-stat users" style="animation-delay:60ms;cursor:pointer">
+  <article class="adm-stat users" style="animation-delay:60ms;cursor:pointer">
     <div class="adm-stat-label">
-      <div class="adm-stat-icon">
+      <span class="adm-stat-icon">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/></svg>
       </div>
       Usuarios
@@ -43,12 +43,12 @@
     <div class="adm-stat-sub">
       <strong>{{ users_staff }}</strong> administrador{{ users_staff|pluralize:"es" }}
     </div>
-  </div>
+  </article>
   </a>
 
-  <div class="adm-stat aliases" style="animation-delay:100ms">
+  <article class="adm-stat aliases" style="animation-delay:100ms">
     <div class="adm-stat-label">
-      <div class="adm-stat-icon">
+      <span class="adm-stat-icon">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
       </div>
       Aliases
@@ -57,11 +57,11 @@
     <div class="adm-stat-sub">
       <strong>{{ aliases_active }}</strong> activos
     </div>
-  </div>
+  </article>
 
-  <div class="adm-stat emails" style="animation-delay:140ms">
+  <article class="adm-stat emails" style="animation-delay:140ms">
     <div class="adm-stat-label">
-      <div class="adm-stat-icon">
+      <span class="adm-stat-icon">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       </div>
       Correos totales
@@ -70,11 +70,11 @@
     <div class="adm-stat-sub">
       <strong>+{{ emails_24h }}</strong> en 24 h · {{ emails_7d }} en 7 días
     </div>
-  </div>
+  </article>
 
-  <div class="adm-stat threats" style="animation-delay:180ms">
+  <article class="adm-stat threats" style="animation-delay:180ms">
     <div class="adm-stat-label">
-      <div class="adm-stat-icon">
+      <span class="adm-stat-icon">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
       </div>
       Amenazas bloqueadas
@@ -83,9 +83,9 @@
     <div class="adm-stat-sub">
       <strong>+{{ threats_24h }}</strong> en 24 h · {{ sandbox_blocked }} malware
     </div>
-  </div>
+  </article>
 
-</div>
+</section>
 
 <div class="adm-two-col">
 

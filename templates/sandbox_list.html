@@ -14,7 +14,7 @@
 {% block body %}
 
 <!-- ── HERO ── -->
-<div class="sb-hero">
+<header class="sb-hero">
   <div class="sb-hero-inner">
     <div class="sb-hero-icon">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
@@ -26,76 +26,76 @@
       <p>cada adjunto se ejecuta en un contenedor Docker aislado · tu PC nunca lo toca</p>
     </div>
     <div class="sb-live-badge">
-      <div class="sb-live-dot"></div>
+      <span class="sb-live-dot"></span>
       Contenedor activo
     </div>
   </div>
-</div>
+</header>
 
 <!-- ── HOW IT WORKS ── -->
-<div class="how-section">
-  <div class="how-title">
+<section class="how-section" aria-labelledby="how-title">
+  <h2 class="how-title" id="how-title">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     Cómo funciona
-  </div>
-  <div class="how-steps">
-    <div class="how-step-card">
+  </h2>
+  <ol class="how-steps">
+    <li class="how-step-card">
       <div class="how-num">01</div>
       <div class="how-step-body">
         <strong>Recepción</strong>
         <span>El adjunto llega al alias. Django lo intercepta antes de que llegue a ti.</span>
       </div>
-    </div>
-    <div class="how-step-card">
+    </li>
+    <li class="how-step-card">
       <div class="how-num">02</div>
       <div class="how-step-body">
         <strong>Análisis estático</strong>
         <span>MIME real, hash SHA-256, firmas YARA, imports sospechosos y macros.</span>
       </div>
-    </div>
-    <div class="how-step-card">
+    </li>
+    <li class="how-step-card">
       <div class="how-num">03</div>
       <div class="how-step-body">
         <strong>Análisis en sandbox</strong>
         <span>Docker aislado — sin red, sin disco, sin privilegios. Se monitorea el comportamiento.</span>
       </div>
-    </div>
-    <div class="how-step-card">
+    </li>
+    <li class="how-step-card">
       <div class="how-num">04</div>
       <div class="how-step-body">
         <strong>Reporte + IA</strong>
         <span>Score 0-100, evidencia por severidad, IOCs, y veredicto IA con Groq.</span>
       </div>
-    </div>
-  </div>
-</div>
+    </li>
+  </ol>
+</section>
 
 <!-- ── STATS ── -->
-<div class="stats-grid">
-  <div class="stat-card total">
+<section class="stats-grid" aria-label="Estadísticas de análisis">
+  <article class="stat-card total">
     <svg class="stat-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     <div class="stat-val" style="color:var(--ai-purple-light)">{{ analyses.count }}</div>
     <div class="stat-lbl">Total analizados</div>
-  </div>
-  <div class="stat-card blocked">
+  </article>
+  <article class="stat-card blocked">
     <svg class="stat-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
     <div class="stat-val" style="color:var(--danger)">{{ blocked_count|default:0 }}</div>
     <div class="stat-lbl">Bloqueados</div>
-  </div>
-  <div class="stat-card safe">
+  </article>
+  <article class="stat-card safe">
     <svg class="stat-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
     <div class="stat-val" style="color:var(--success)">{{ safe_count|default:0 }}</div>
     <div class="stat-lbl">Seguros</div>
-  </div>
-  <div class="stat-card suspect">
+  </article>
+  <article class="stat-card suspect">
     <svg class="stat-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <div class="stat-val" style="color:var(--warning)">{{ warning_count|default:0 }}</div>
     <div class="stat-lbl">Sospechosos</div>
-  </div>
-</div>
+  </article>
+</section>
 
 <!-- ── TOOLBAR: búsqueda + filtros ── -->
-<div class="toolbar">
+<section class="toolbar" role="search" aria-label="Buscar y filtrar análisis">
   <div class="search-wrap">
     <div class="search-icon-wrap">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -146,18 +146,18 @@
       <span class="qbadge" id="qb-safe">0</span>
     </button>
   </div>
-</div>
+</section>
 
 <!-- ── LIST ── -->
-<div class="list-header">
-  <div class="list-header-title">
+<header class="list-header">
+  <h2 class="list-header-title">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
     Análisis recientes
-  </div>
+  </h2>
   <span class="list-count">{{ analyses.count }} total</span>
-</div>
+</header>
 
-<div id="analysis-list">
+<section id="analysis-list" aria-label="Lista de análisis recientes">
 {% for analysis in analyses %}
 {% with score=analysis.risk_score %}
 <a href="{% url 'sandbox_report' analysis.pk %}"
@@ -306,7 +306,7 @@
     <div id="no-results-hint" class="empty-sub"></div>
   </div>
 
-</div>{# /#analysis-list #}
+</section>{# /#analysis-list #}
 
 <script src="{% static 'js/sandbox_list.js' %}"></script>
 

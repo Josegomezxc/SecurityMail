@@ -7,8 +7,8 @@
 {% endblock %}
 
 {% block body_outer %}
-<div class="verify-wrapper">
-  <div class="verify-card">
+<main class="verify-wrapper">
+  <section class="verify-card" aria-labelledby="verify-title">
 
     <a href="/" class="verify-logo">
       <div class="verify-logo-icon">
@@ -26,7 +26,7 @@
       </svg>
     </div>
 
-    <h1 class="verify-title">Verifica tu correo</h1>
+    <h1 class="verify-title" id="verify-title">Verifica tu correo</h1>
     <p class="verify-subtitle">
       Te enviamos un código de 6 dígitos a <strong>{{ email }}</strong>.
       Revisa tu bandeja (y la carpeta de spam).
@@ -83,8 +83,8 @@
     <div class="verify-back">
       ¿Te equivocaste de cuenta? <a href="{% url 'registro' %}">Volver al registro</a>
     </div>
-  </div>
-</div>
+  </section>
+</main>
 
 <script src="{% static 'js/verificar_correo.js' %}"></script>
 {% endblock %}

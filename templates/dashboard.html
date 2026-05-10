@@ -38,10 +38,10 @@ el sistema de persistencia.
 <!-- Banner manual eliminado: los stats del dashboard se actualizan solos con polling -->
 
 <!-- ── WELCOME BANNER ── -->
-<div class="welcome-banner" style="animation-delay:0ms">
+<section class="welcome-banner" style="animation-delay:0ms" aria-labelledby="welcome-greeting">
   <div class="welcome-inner">
     <div class="welcome-eyebrow">Panel de control</div>
-    <h2><span>Hola, {{ user.get_full_name|default:user.email }}</span></h2>
+    <h2 id="welcome-greeting"><span>Hola, {{ user.get_full_name|default:user.email }}</span></h2>
     <p>Sesión activa · correo real <strong>{{ user.email }}</strong> nunca expuesto</p>
   </div>
   <div class="welcome-actions">
@@ -52,12 +52,12 @@ el sistema de persistencia.
       Nuevo alias
     </a>
   </div>
-</div>
+</section>
 
 <!-- ── STAT CARDS ── -->
-<div class="stat-grid">
+<section class="stat-grid" aria-label="Estadísticas de la cuenta">
 
-  <div class="stat-card accent" style="animation-delay:60ms">
+  <article class="stat-card accent" style="animation-delay:60ms">
     <div class="stat-card-glow"></div>
     <div class="stat-card-header">
       <div class="stat-icon">
@@ -73,9 +73,9 @@ el sistema de persistencia.
       <div class="stat-value" data-stat="alias_count">{{ alias_count|default:"0" }}</div>
       <div class="stat-sub">correos reales protegidos</div>
     </div>
-  </div>
+  </article>
 
-  <div class="stat-card neutral" style="animation-delay:100ms">
+  <article class="stat-card neutral" style="animation-delay:100ms">
     <div class="stat-card-header">
       <div class="stat-icon">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.8" stroke-linecap="round">
@@ -105,9 +105,9 @@ el sistema de persistencia.
         <span class="stat-trend down" data-trend="total_emails">menos que ayer</span>
       {% endif %}
     </div>
-  </div>
+  </article>
 
-  <div class="stat-card danger" style="animation-delay:140ms">
+  <article class="stat-card danger" style="animation-delay:140ms">
     <div class="stat-card-glow"></div>
     <div class="stat-card-header">
       <div class="stat-icon">
@@ -132,9 +132,9 @@ el sistema de persistencia.
         tasa de bloqueo: <strong style="margin-left:3px" data-stat="block_rate">{{ block_rate|default:"0" }}</strong>%
       </span>
     </div>
-  </div>
+  </article>
 
-  <div class="stat-card success" style="animation-delay:180ms">
+  <article class="stat-card success" style="animation-delay:180ms">
     <div class="stat-card-glow"></div>
     <div class="stat-card-header">
       <div class="stat-icon">
@@ -149,13 +149,13 @@ el sistema de persistencia.
       <div class="stat-value" data-stat="safe_count">{{ safe_count|default:"0" }}</div>
       <div class="stat-sub">verificados por sandbox</div>
     </div>
-  </div>
+  </article>
 
-</div>
+</section>
 
 <!-- ── AMENAZAS RECIENTES (solo aparece si hay) ── -->
 {% if recent_threats %}
-<div class="threats-row" id="threatsRow">
+<section class="threats-row" id="threatsRow" aria-label="Amenazas recientes">
   {% for t in recent_threats %}
     <a href="{% if t.analysis %}{% url 'sandbox_report' t.analysis.pk %}{% else %}{% url 'inbox' %}{% endif %}" class="threat-card">
       <div class="threat-head">
@@ -178,21 +178,21 @@ el sistema de persistencia.
       </div>
     </a>
   {% endfor %}
-</div>
+</section>
 {% endif %}
 
 <!-- ── DOS COLUMNAS ── -->
 <div class="two-col">
 
   <!-- ACTIVIDAD RECIENTE -->
-  <div class="panel" style="animation-delay:220ms">
-    <div class="panel-header">
-      <div class="panel-title">
-        <div class="panel-title-dot" style="background:var(--pl);box-shadow:0 0 6px rgba(167,139,250,0.5)"></div>
+  <section class="panel" style="animation-delay:220ms" aria-labelledby="panel-activity-title">
+    <header class="panel-header">
+      <h2 class="panel-title" id="panel-activity-title">
+        <span class="panel-title-dot" style="background:var(--pl);box-shadow:0 0 6px rgba(167,139,250,0.5)"></span>
         Actividad reciente
-      </div>
+      </h2>
       <a href="{% url 'inbox' %}" class="panel-link">Ver bandeja →</a>
-    </div>
+    </header>
     <div class="panel-body">
       <table class="activity-table">
         <thead>
@@ -254,20 +254,20 @@ el sistema de persistencia.
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 
   <!-- COLUMNA DERECHA -->
   <div class="panel-stack">
 
     <!-- MIS ALIAS -->
-    <div class="panel" style="animation-delay:260ms">
-      <div class="panel-header">
-        <div class="panel-title">
-          <div class="panel-title-dot" style="background:var(--p);box-shadow:0 0 6px rgba(124,92,255,0.5)"></div>
+    <section class="panel" style="animation-delay:260ms" aria-labelledby="panel-aliases-title">
+      <header class="panel-header">
+        <h2 class="panel-title" id="panel-aliases-title">
+          <span class="panel-title-dot" style="background:var(--p);box-shadow:0 0 6px rgba(124,92,255,0.5)"></span>
           Mis alias
-        </div>
+        </h2>
         <a href="{% url 'alias_list' %}" class="panel-link">Ver todos →</a>
-      </div>
+      </header>
       <div class="panel-body">
         {% for alias in aliases %}
         <div class="alias-item">
@@ -294,17 +294,17 @@ el sistema de persistencia.
         </div>
         {% endfor %}
       </div>
-    </div>
+    </section>
 
     <!-- SANDBOX -->
-    <div class="panel" style="animation-delay:300ms">
-      <div class="panel-header">
-        <div class="panel-title">
-          <div class="panel-title-dot" style="background:var(--success);box-shadow:0 0 6px rgba(34,197,94,0.5)"></div>
+    <section class="panel" style="animation-delay:300ms" aria-labelledby="panel-sandbox-title">
+      <header class="panel-header">
+        <h2 class="panel-title" id="panel-sandbox-title">
+          <span class="panel-title-dot" style="background:var(--success);box-shadow:0 0 6px rgba(34,197,94,0.5)"></span>
           Estado del sandbox
-        </div>
+        </h2>
         <a href="{% url 'sandbox_list' %}" class="panel-link">Ver análisis →</a>
-      </div>
+      </header>
 
       <div class="sandbox-status">
         <div class="sandbox-dot"></div>
@@ -330,7 +330,7 @@ el sistema de persistencia.
         <div class="empty-table" style="padding:24px 20px">Sin análisis recientes</div>
         {% endfor %}
       </div>
-    </div>
+    </section>
 
   </div>
 </div>

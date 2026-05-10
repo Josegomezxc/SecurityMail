@@ -12,7 +12,7 @@
 {% block body %}
 
 <!-- ── HERO ── -->
-<div class="inbox-hero">
+<header class="inbox-hero">
   <div class="inbox-hero-inner">
     <div class="inbox-hero-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
@@ -39,10 +39,10 @@
       </div>
     </div>
   </div>
-</div>
+</header>
 
 <!-- ── TOOLBAR: barra con filtros integrados ── -->
-<div class="toolbar">
+<section class="toolbar" role="search" aria-label="Buscar y filtrar bandeja">
   <div class="search-wrap" id="search-wrap">
 
     <!-- Icono lupa -->
@@ -165,7 +165,7 @@
       </button>
     </div>
   </div>
-</div>
+</section>
 
 <!-- Banner manual eliminado: los correos nuevos se insertan solos via polling -->
 
@@ -176,14 +176,14 @@
 </div>
 
 <!-- ── EMAIL LIST ── -->
-<div id="email-list">
+<section id="email-list" aria-label="Lista de correos">
   {% for group in email_groups %}
-    <div class="date-divider" data-group="{{ group.label|lower }}">
+    <div class="date-divider" data-group="{{ group.label|lower }}" role="separator" aria-label="{{ group.label }}">
       {{ group.label }}
       <span class="count">{{ group.emails|length }}</span>
     </div>
     {% for email in group.emails %}
-    <div class="email-row {% if not email.read %}unread{% endif %} {% if email.risk_score >= 61 %}threat{% endif %}"
+    <article class="email-row {% if not email.read %}unread{% endif %} {% if email.risk_score >= 61 %}threat{% endif %}"
          data-id="{{ email.id }}"
          data-read="{{ email.read|yesno:'true,false' }}"
          data-attachment="{{ email.has_attachment|yesno:'true,false' }}"
@@ -288,7 +288,7 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="flex-shrink:0;margin-top:2px">
         <polyline points="9 18 15 12 9 6"/>
       </svg>
-    </div>
+    </article>
 
     <!-- Datos para el panel lateral (HTML del cuerpo se carga bajo demanda vía AJAX para no inflar el peso de la página) -->
     <div id="detail-{{ email.id }}" style="display:none"
@@ -330,7 +330,7 @@
     <div id="no-results-msg" class="empty-title">Sin resultados</div>
     <div id="no-results-hint" class="empty-sub"></div>
   </div>
-</div>{# /#email-list #}
+</section>{# /#email-list #}
 
 {% endblock %}
 

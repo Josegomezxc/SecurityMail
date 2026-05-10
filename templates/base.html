@@ -61,7 +61,7 @@
         <div class="sidebar-nav">
 
         <!-- Navegación principal -->
-        <div class="sidebar-section">
+        <nav class="sidebar-section" aria-label="Navegación principal">
             <div class="sidebar-label">Principal</div>
 
             <a href="{% url 'dashboard' %}" class="sidebar-link {% block nav_dashboard %}{% endblock %}">
@@ -153,11 +153,11 @@
                     <span class="badge-accent-pill">{{ notif_unread_count }}</span>
                 {% endif %}
             </a>
-        </div>
+        </nav>
 
         <!-- Sección solo visible para administradores -->
         {% if user.is_authenticated and user.is_staff %}
-        <div class="sidebar-section">
+        <nav class="sidebar-section" aria-label="Navegación de administración">
             <div class="sidebar-label" style="color:#f59e0b">Administración</div>
 
             <a href="{% url 'admin_dashboard' %}" class="sidebar-link {% block nav_admin_dash %}{% endblock %}">
@@ -194,13 +194,13 @@
                 </svg>
                 Alias globales
             </a>
-        </div>
+        </nav>
         {% endif %}
 
         </div><!-- /.sidebar-nav -->
 
         <!-- Footer: avatar + dropdown de cuenta -->
-        <div class="sidebar-footer">
+        <footer class="sidebar-footer">
 
             <!-- Menú desplegable (sale hacia arriba) -->
             <div class="user-dropdown" id="userDropdown">
@@ -255,13 +255,13 @@
                 </svg>
             </div>
 
-        </div>
+        </footer>
     </aside>
 
     <!-- ═══════════════════════════════════════════
          MAIN
     ════════════════════════════════════════════ -->
-    <div class="main-area">
+    <main class="main-area">
 
         <!-- Top bar -->
         <header class="topbar">
@@ -326,7 +326,7 @@
             {% block body %}{% endblock %}
         </div>
 
-    </div>
+    </main>
 </div>
 
 <!-- ═══════════════════════════════════════════

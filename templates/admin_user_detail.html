@@ -16,7 +16,7 @@
   Volver a la lista de usuarios
 </a>
 
-<div class="user-header-card">
+<header class="user-header-card">
   <div class="big-user-avatar">
     {{ target.email|first|upper }}{{ target.email|slice:"1:2"|upper }}
   </div>
@@ -62,32 +62,32 @@
       {% endif %}
     </form>
   {% endif %}
-</div>
+</header>
 
-<div class="mini-stats-row">
-  <div class="mini-stat">
+<section class="mini-stats-row" aria-label="Estadísticas del usuario">
+  <article class="mini-stat">
     <div class="mini-stat-label">Aliases</div>
     <div class="mini-stat-val accent">{{ aliases|length }}</div>
-  </div>
-  <div class="mini-stat">
+  </article>
+  <article class="mini-stat">
     <div class="mini-stat-label">Correos recibidos</div>
     <div class="mini-stat-val">{{ emails_total }}</div>
-  </div>
-  <div class="mini-stat">
+  </article>
+  <article class="mini-stat">
     <div class="mini-stat-label">Amenazas bloqueadas</div>
     <div class="mini-stat-val {% if threats_total %}threat{% endif %}">{{ threats_total }}</div>
-  </div>
-</div>
+  </article>
+</section>
 
 <!-- ── ALIASES ── -->
-<div class="section-card">
-  <div class="section-head">
+<section class="section-card" aria-label="Aliases del usuario">
+  <header class="section-head">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
     <span class="t">Aliases del usuario</span>
     <span class="count-chip">{{ aliases|length }}</span>
-  </div>
+  </header>
   {% for a in aliases %}
-    <div class="alias-row-adm">
+    <article class="alias-row-adm">
       <div style="min-width:0">
         <div class="alias-addr-adm">{{ a.address }}</div>
         <div class="alias-label-adm">{{ a.label }} · creado {{ a.created_at|timesince }} atrás</div>
@@ -117,21 +117,21 @@
           </button>
         {% endif %}
       </form>
-    </div>
+    </article>
   {% empty %}
     <div class="empty-sec">Este usuario aún no tiene aliases.</div>
   {% endfor %}
-</div>
+</section>
 
 <!-- ── CORREOS RECIENTES ── -->
-<div class="section-card">
-  <div class="section-head">
+<section class="section-card" aria-label="Correos recientes del usuario">
+  <header class="section-head">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
     <span class="t">Últimos correos recibidos</span>
     <span class="count-chip">{{ recent_emails|length }}</span>
-  </div>
+  </header>
   {% for em in recent_emails %}
-    <div class="em-row">
+    <article class="em-row">
       <div class="em-avatar">{{ em.from_email|first|upper }}</div>
       <div class="em-info">
         <div class="em-subject">{{ em.subject|truncatechars:60 }}</div>
@@ -145,11 +145,11 @@
         <span class="em-score safe">{{ em.risk_score|default:0 }}</span>
       {% endif %}
       <span class="em-time">{{ em.received_at|timesince }} atrás</span>
-    </div>
+    </article>
   {% empty %}
     <div class="empty-sec">Este usuario no ha recibido correos todavía.</div>
   {% endfor %}
-</div>
+</section>
 
 <script src="{% static 'js/admin_user_detail.js' %}"></script>
 

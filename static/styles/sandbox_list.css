@@ -88,6 +88,7 @@
 }
 .how-title::after { content:''; flex:1; height:1px; background: var(--border-soft); }
 .how-steps {
+  list-style: none;                    /* es <ol> ahora — quitamos el numbering nativo */
   display: grid;
   grid-template-columns: 1fr;          /* mobile: 1 columna */
   gap: 10px;

@@ -1045,7 +1045,7 @@
   }
   .danger-icon svg { width: 16px; height: 16px; }
   .danger-text { min-width: 0; flex: 1; }
-  .danger-text h4 {
+  .danger-text h2 {
     font-family: var(--display);
     font-size: 14.5px;
     font-weight: 800;

@@ -11,21 +11,21 @@
 
 {% block body %}
 
-<div class="adm-header">
+<header class="adm-header">
   <div>
     <h1>Usuarios registrados</h1>
     <p>{{ users|length }} cuenta{{ users|length|pluralize:"s" }} · gestiona roles y revisa actividad</p>
   </div>
-  <div class="search-bar">
+  <div class="search-bar" role="search">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
-    <input type="text" id="userSearch" placeholder="Buscar por correo o nombre..." oninput="filterUsers(this.value)">
+    <input type="text" id="userSearch" placeholder="Buscar por correo o nombre..." oninput="filterUsers(this.value)" aria-label="Buscar usuarios">
   </div>
-</div>
+</header>
 
 <!-- ── Filtros por rol ── -->
-<div class="users-filters" id="usersFilters">
+<nav class="users-filters" id="usersFilters" aria-label="Filtros por rol">
   <button type="button" class="users-filter-btn active" data-role-filter="all">
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
     Todos
@@ -46,7 +46,7 @@
     Con amenazas
     <span class="users-filter-count" id="cnt-threats">0</span>
   </button>
-</div>
+</nav>
 
 {% if messages %}
   {% for message in messages %}

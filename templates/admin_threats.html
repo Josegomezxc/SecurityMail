@@ -11,7 +11,7 @@
 {% block body %}
 
 <!-- HERO -->
-<div class="adm-hero-th">
+<header class="adm-hero-th">
   <div class="adm-hero-th-icon">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -40,10 +40,10 @@
       <div class="adm-hero-th-stat-lbl">24 h</div>
     </div>
   </div>
-</div>
+</header>
 
 <!-- Toolbar -->
-<form method="get" class="th-toolbar">
+<form method="get" class="th-toolbar" role="search">
   <div class="th-search">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input type="text" name="q" value="{{ current_q }}" placeholder="Buscar por remitente, asunto, alias o usuario..." autocomplete="off">

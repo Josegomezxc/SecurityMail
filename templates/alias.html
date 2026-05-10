@@ -13,7 +13,7 @@
 {% block body %}
 
 <!-- ── HERO ── -->
-<div class="alias-hero">
+<header class="alias-hero">
   <div class="alias-hero-inner">
     <div class="alias-hero-icon">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
@@ -42,12 +42,12 @@
       {% endif %}
     </div>
   </div>
-</div>
+</header>
 
 <!-- ── MESSAGES ── -->
 {% if messages %}
   {% for message in messages %}
-    <div class="{% if message.tags == 'error' %}msg-error{% else %}msg-success{% endif %}">
+    <div class="{% if message.tags == 'error' %}msg-error{% else %}msg-success{% endif %}" role="alert">
       {% if message.tags == 'error' %}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
       {% else %}
@@ -59,7 +59,7 @@
 {% endif %}
 
 <!-- ── CREATE FORM (rediseñado) ── -->
-<div class="create-card-v2">
+<section class="create-card-v2" aria-labelledby="ccv2-title">
   <!-- Glow morado decorativo en la esquina -->
   <div class="ccv2-glow"></div>
 
@@ -70,7 +70,7 @@
         <span class="ccv2-eyebrow-dot"></span>
         GENERADOR INSTANTÁNEO
       </div>
-      <h2 class="ccv2-title">Crea un alias <span>seguro</span> al instante</h2>
+      <h2 class="ccv2-title" id="ccv2-title">Crea un alias <span>seguro</span> al instante</h2>
       <p class="ccv2-desc">
         Sin escribir nada. Sin pensar. El sistema genera un nombre creativo,
         único y completamente anónimo — listo para usar en cualquier sitio.
@@ -133,10 +133,10 @@
       </div>
     </div>
   </div>
-</div>
+</section>
 
 <!-- ── TOOLBAR DE BÚSQUEDA + FILTROS ── -->
-<div class="alias-toolbar">
+<section class="alias-toolbar" role="search" aria-label="Buscar y filtrar alias">
   <div class="alias-search-wrap">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -166,26 +166,26 @@
       Destruidos <span class="qbadge" id="ab-destroyed">{{ destroyed_count|default:0 }}</span>
     </button>
   </div>
-</div>
+</section>
 
 <!-- ── LIST HEADER ── -->
-<div class="list-hdr">
-  <div class="list-hdr-title">
+<header class="list-hdr">
+  <h2 class="list-hdr-title">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
       <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
       <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
     </svg>
     Tus alias
-  </div>
+  </h2>
   <span class="list-hdr-count">{{ aliases|length }} total</span>
-</div>
+</header>
 
 <!-- ── ALIAS LIST: una sola card que contiene todos los .alias-card ── -->
-<div id="alias-list">
+<section id="alias-list" aria-label="Lista de alias">
 
 {% for alias in aliases %}
-<div class="alias-card {% if not alias.is_active %}destroyed{% endif %}"
+<article class="alias-card {% if not alias.is_active %}destroyed{% endif %}"
      data-active="{{ alias.is_active|yesno:'true,false' }}"
      data-label="{{ alias.label|lower }}"
      data-address="{{ alias.address|lower }}"
@@ -259,7 +259,7 @@
     {% endif %}
   </div>
 
-</div>
+</article>
 {% empty %}
 <div class="empty-state-v2">
   <!-- 3 cards "fantasma" decorativas que sugieren cómo se verán los alias -->
@@ -309,7 +309,7 @@
     <div id="alias-no-results-hint" class="empty-sub"></div>
   </div>
 
-</div>{# /#alias-list #}
+</section>{# /#alias-list #}
 
 <script src="{% static 'js/alias.js' %}"></script>
 {% endblock %}

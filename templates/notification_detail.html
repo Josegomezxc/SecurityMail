@@ -17,7 +17,7 @@
   </a>
 
   <!-- HERO -->
-  <div class="nd-hero t-{{ notif.type }}">
+  <header class="nd-hero t-{{ notif.type }}">
     <div class="nd-hero-head">
       <div class="nd-hero-icon t-{{ notif.type }}">
         {% if notif.type == 'forward_request' %}
@@ -32,7 +32,7 @@
       </div>
       <div style="flex:1; min-width:0">
         <div class="nd-hero-meta">{{ notif.get_type_display }}</div>
-        <div class="nd-hero-title">{{ notif.title }}</div>
+        <h1 class="nd-hero-title">{{ notif.title }}</h1>
       </div>
     </div>
     {% if notif.message %}<div class="nd-hero-msg">{{ notif.message }}</div>{% endif %}
@@ -44,15 +44,15 @@
         <span><strong>Acción tomada:</strong> {{ notif.actioned_at|date:"d M Y · H:i" }}</span>
       {% endif %}
     </div>
-  </div>
+  </header>
 
   {% if email %}
   <!-- PREVIEW DEL CORREO -->
-  <div class="nd-section">
-    <div class="nd-section-title">
+  <section class="nd-section" aria-labelledby="nd-email-title">
+    <h2 class="nd-section-title" id="nd-email-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       Detalles del correo
-    </div>
+    </h2>
     <div class="nd-fields">
       <div class="nd-field-label">De:</div>
       <div class="nd-field-value">{{ email.from_email }}</div>
@@ -83,17 +83,17 @@
     {% if email.body %}
     <div class="nd-body-preview">{{ email.body|truncatechars:1500 }}</div>
     {% endif %}
-  </div>
+  </section>
   {% endif %}
 
   <!-- ACCIONES (forward_request pendiente: correo seguro o sospechoso) -->
   {% if notif.is_actionable %}
   {% with email_risk=email.risk_score|default:0 %}
-  <div class="nd-section">
-    <div class="nd-section-title">
+  <section class="nd-section" aria-labelledby="nd-actions-title">
+    <h2 class="nd-section-title" id="nd-actions-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       ¿Qué quieres hacer?
-    </div>
+    </h2>
 
     {% if email_risk > 30 %}
     <!-- Aviso: correo sospechoso (score 31-60) -->
@@ -159,7 +159,7 @@
     </div>
 
     <div class="nd-result" id="nd-result"></div>
-  </div>
+  </section>
   {% endwith %}
   {% endif %}
 

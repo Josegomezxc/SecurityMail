@@ -12,7 +12,7 @@
 {% block body %}
 
 <!-- ── HERO ── -->
-<div class="trash-hero">
+<header class="trash-hero">
   <div class="trash-hero-inner">
     <div class="trash-hero-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -37,18 +37,18 @@
       </div>
     </div>
   </div>
-</div>
+</header>
 
 <!-- ── BANNER ── -->
 {% if total_trash %}
-<div class="retention-banner">
+<aside class="retention-banner" role="note">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
   Los correos en papelera se eliminan automáticamente tras {{ retention_days }} días. Restáuralos antes si los necesitas.
-</div>
+</aside>
 {% endif %}
 
 <!-- ── TABS + VACIAR ── -->
-<div class="toolbar">
+<section class="toolbar" aria-label="Filtros y acciones de papelera">
   <div class="tabs">
     <button class="tab-btn active" data-tab="all" onclick="switchTab('all')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -74,15 +74,15 @@
     </svg>
     Vaciar papelera
   </button>
-</div>
+</section>
 
 <!-- ── LISTA AGRUPADA: una sola card que envuelve los 3 tabs ── -->
-<div id="trash-list">
+<section id="trash-list" aria-label="Lista de correos en papelera">
 
 <!-- ── LISTA: RECIBIDOS ── -->
 <div id="tab-inbound">
   {% for em in inbound_trash %}
-    <div class="trash-row" id="trash-row-inbound-{{ em.id }}">
+    <article class="trash-row" id="trash-row-inbound-{{ em.id }}">
       <div class="trash-avatar">{{ em.from_email|first|upper }}</div>
       <div class="trash-content">
         <div class="trash-top">
@@ -108,7 +108,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </article>
   {% empty %}
     <div class="empty-state" id="empty-inbound">
       <div class="empty-icon-wrap">
@@ -125,7 +125,7 @@
 <!-- ── LISTA: ENVIADOS ── -->
 <div id="tab-outbound" style="display:none">
   {% for em in outbound_trash %}
-    <div class="trash-row" id="trash-row-outbound-{{ em.id }}">
+    <article class="trash-row" id="trash-row-outbound-{{ em.id }}">
       <div class="trash-avatar">{{ em.to_email|first|upper }}</div>
       <div class="trash-content">
         <div class="trash-top">
@@ -151,7 +151,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </article>
   {% empty %}
     <div class="empty-state" id="empty-outbound">
       <div class="empty-icon-wrap">
@@ -168,7 +168,7 @@
 <!-- ── LISTA: BORRADORES ── -->
 <div id="tab-draft" style="display:none">
   {% for d in drafts_trash %}
-    <div class="trash-row" id="trash-row-draft-{{ d.id }}">
+    <article class="trash-row" id="trash-row-draft-{{ d.id }}">
       <div class="trash-avatar">{% if d.to_email %}{{ d.to_email|first|upper }}{% else %}—{% endif %}</div>
       <div class="trash-content">
         <div class="trash-top">
@@ -199,7 +199,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </article>
   {% empty %}
     <div class="empty-state" id="empty-draft">
       <div class="empty-icon-wrap">
@@ -214,7 +214,7 @@
   {% endfor %}
 </div>
 
-</div>{# /#trash-list — cierra el wrapper único de los 3 tabs #}
+</section>{# /#trash-list — cierra el wrapper único de los 3 tabs #}
 
 {% endblock %}
 

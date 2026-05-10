@@ -12,7 +12,7 @@
 {% block body %}
 
 <!-- ── HERO ── -->
-<div class="dr-hero">
+<header class="dr-hero">
   <div class="dr-hero-inner">
     <div class="dr-hero-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -29,10 +29,10 @@
       <span class="dr-stat-lbl">Total</span>
     </div>
   </div>
-</div>
+</header>
 
 <!-- ── TOOLBAR: filtros + vaciar ── -->
-<div class="dr-toolbar">
+<section class="dr-toolbar" aria-label="Filtros y acciones de borradores">
   <div class="dr-tabs">
     <button type="button" class="dr-tab-btn active" data-filter="all" onclick="filterDrafts('all', this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -57,14 +57,17 @@
     </svg>
     Vaciar borradores
   </button>
-</div>
+</section>
 
 <!-- ── LISTA ── -->
-<div id="drafts-list">
+<section id="drafts-list" aria-label="Lista de borradores">
   {% for d in drafts %}
-    <div class="dr-row" id="draft-row-{{ d.id }}"
+    <article class="dr-row" id="draft-row-{{ d.id }}"
          data-has-recipient="{% if d.to_email %}1{% else %}0{% endif %}"
          data-scheduled="{% if d.scheduled_at %}1{% else %}0{% endif %}"
+         tabindex="0"
+         role="button"
+         aria-label="Continuar editando borrador"
          onclick="resumeDraft({{ d.id }})">
       <div class="dr-avatar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -118,7 +121,7 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="flex-shrink:0;margin-top:2px">
         <polyline points="9 18 15 12 9 6"/>
       </svg>
-    </div>
+    </article>
   {% empty %}
     <div class="empty-state">
       <div class="empty-icon-wrap">
@@ -145,7 +148,7 @@
     <div id="dr-no-results-msg" class="empty-title">Sin borradores en este filtro</div>
     <div class="empty-sub">Prueba con otro filtro o crea un borrador nuevo.</div>
   </div>
-</div>{# /#drafts-list #}
+</section>{# /#drafts-list #}
 
 {% endblock %}
 
