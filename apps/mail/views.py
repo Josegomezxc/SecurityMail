@@ -11,6 +11,7 @@ from datetime import timedelta
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -30,12 +31,39 @@ def dashboard_view(request):
     stats = dashboard_stats(request.user)
 
     aliases         = Alias.objects.filter(user=request.user, is_active=True)[:5]
-    recent_emails   = EmailMessage.objects.filter(
-                          alias__user=request.user, deleted_at__isnull=True,
-                      ).order_by('-received_at')[:8]
-    recent_analyses = SandboxAnalysis.objects.filter(
-                          email__alias__user=request.user
-                      ).order_by('-analyzed_at')[:3]
+    # 20 correos = 5 páginas de 4 en la tabla "Actividad reciente".
+    # La paginación se hace en el cliente (todas las filas en DOM).
+    recent_emails   = list(
+        EmailMessage.objects.filter(
+            alias__user=request.user, deleted_at__isnull=True,
+        ).order_by('-received_at')[:20]
+    )
+    # Pre-computamos un timestamp compacto para la columna "Hora" — Django
+    # `timesince` devuelve "4 minutos, 30 segundos" y queda feo cuando lo
+    # truncamos en el template. Acá decidimos la unidad correcta y la
+    # abreviamos en 4-5 chars.
+    _now = timezone.now()
+    for em in recent_emails:
+        delta = _now - em.received_at
+        secs = int(delta.total_seconds())
+        if   secs < 45:        em.time_short = 'ahora'
+        elif secs < 3600:      em.time_short = f'{max(1, secs // 60)} min'
+        elif secs < 86400:     em.time_short = f'{secs // 3600} h'
+        elif secs < 86400 * 7: em.time_short = f'{secs // 86400} d'
+        else:                  em.time_short = f'{secs // (86400*7)} sem'
+    recent_analyses = list(
+        SandboxAnalysis.objects.filter(
+            email__alias__user=request.user
+        ).order_by('-analyzed_at')[:3]
+    )
+    for an in recent_analyses:
+        delta = _now - an.analyzed_at
+        secs = int(delta.total_seconds())
+        if   secs < 45:        an.time_short = 'ahora'
+        elif secs < 3600:      an.time_short = f'{max(1, secs // 60)} min'
+        elif secs < 86400:     an.time_short = f'{secs // 3600} h'
+        elif secs < 86400 * 7: an.time_short = f'{secs // 86400} d'
+        else:                  an.time_short = f'{secs // (86400*7)} sem'
     recent_threats  = EmailMessage.objects.filter(
                           alias__user=request.user, risk_score__gte=61,
                           deleted_at__isnull=True,
@@ -101,10 +129,10 @@ def dashboard_live_api(request):
         "alias":       em.alias.address,
         "risk_score":  em.risk_score or 0,
         "time_human":  timesince_short(em.received_at),
-        "analysis_id": (
-            em.analysis.pk
+        "analysis_url": (
+            reverse('sandbox_report', kwargs={'pk': em.analysis.pk})
             if hasattr(em, 'analysis') and getattr(em, 'analysis', None)
-            else None
+            else ''
         ),
     } for em in threats]
 
@@ -161,7 +189,12 @@ def inbox_view(request):
 def mark_email_read_api(request, pk):
     """
     Marca un correo como leído. Solo el dueño del alias puede hacerlo.
-    Devuelve {ok, unread_count} para que el cliente actualice contadores.
+    También marca como leídas las notificaciones asociadas a ese correo —
+    si el usuario ya abrió el correo y vio el análisis, no tiene sentido
+    seguir recordándoselo en la campana / lista de notificaciones.
+
+    Devuelve {ok, unread_count, notif_unread_count} para que el cliente
+    actualice los dos badges (correos no leídos + bell).
     """
     try:
         em = EmailMessage.objects.select_related('alias').get(
@@ -174,11 +207,27 @@ def mark_email_read_api(request, pk):
         em.read = True
         em.save(update_fields=['read'])
 
+    # Marcar leídas las notificaciones de ese correo. No tocamos el `status`
+    # (una forward_request sigue 'pending' hasta que el usuario decida
+    # reenviar/descartar) — solo el flag `read`, que es lo que cuenta el
+    # badge de la campana.
+    from apps.notifications.models import Notification
+    Notification.objects.filter(
+        user=request.user, related_email=em, read=False,
+    ).update(read=True)
+
     unread_count = EmailMessage.objects.filter(
         alias__user=request.user, read=False,
     ).count()
+    notif_unread_count = Notification.objects.filter(
+        user=request.user, read=False,
+    ).count()
 
-    return JsonResponse({"ok": True, "unread_count": unread_count})
+    return JsonResponse({
+        "ok": True,
+        "unread_count": unread_count,
+        "notif_unread_count": notif_unread_count,
+    })
 
 
 @login_required(login_url='login')
@@ -223,9 +272,9 @@ def inbox_new_api(request):
     )
 
     def _row(em):
-        analysis_id = None
+        analysis_url = ''
         try:
-            analysis_id = em.analysis.pk
+            analysis_url = reverse('sandbox_report', kwargs={'pk': em.analysis.pk})
         except SandboxAnalysis.DoesNotExist:
             pass
         return {
@@ -243,7 +292,7 @@ def inbox_new_api(request):
             "has_attachment":  em.has_attachment,
             "attachment_name": em.attachment_name or "",
             "risk_score":      em.risk_score or 0,
-            "analysis_id":     analysis_id,
+            "analysis_url":    analysis_url,
         }
 
     return JsonResponse({
@@ -353,6 +402,85 @@ def sent_empty_api(request):
     count = qs.count()
     qs.update(deleted_at=timezone.now())
     return JsonResponse({'ok': True, 'moved': count})
+
+
+_CONTACT_EMAIL_RX = re.compile(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}')
+
+
+@login_required(login_url='login')
+def compose_contacts_api(request):
+    """Autocompletado de destinatarios al escribir en el campo "Para".
+
+    Fuente: destinatarios previos del usuario (SentEmail.to_email, que ahora
+    puede ser comma-separated) + remitentes que han escrito a sus alias
+    (EmailMessage.from_email, extrayendo el correo del "Nombre <correo>").
+
+    Devuelve hasta 8 sugerencias ordenadas por uso reciente, filtradas por
+    `q` (substring case-insensitive en el email o en el nombre).
+    """
+    q = (request.GET.get('q', '') or '').strip().lower()
+
+    # Email → {label, last_seen}. Nos quedamos con el label más informativo
+    # y el timestamp más reciente para ordenar.
+    contacts: dict = {}
+
+    def _bump(email: str, label: str, when):
+        email = (email or '').strip().lower()
+        if not email or '@' not in email:
+            return
+        cur = contacts.get(email)
+        if cur is None or when > cur['last_seen']:
+            contacts[email] = {
+                'email':     email,
+                'label':     label or (cur['label'] if cur else ''),
+                'last_seen': when,
+            }
+        elif label and not cur['label']:
+            cur['label'] = label
+
+    # 1. Destinatarios de correos enviados (los más relevantes)
+    for s in (SentEmail.objects
+              .filter(alias__user=request.user)
+              .order_by('-sent_at')
+              .values_list('to_email', 'sent_at')[:500]):
+        to_field, when = s
+        for addr in (to_field or '').split(','):
+            _bump(addr.strip(), '', when)
+
+    # 2. Remitentes de correos recibidos en los alias del usuario
+    for em in (EmailMessage.objects
+               .filter(alias__user=request.user)
+               .order_by('-received_at')
+               .values_list('from_email', 'received_at')[:500]):
+        raw, when = em
+        if not raw:
+            continue
+        # Soporta "Nombre <correo>" y correo pelado
+        m = _CONTACT_EMAIL_RX.search(raw)
+        if not m:
+            continue
+        email = m.group(0).lower()
+        # Display name = lo que viene antes del < (si existe)
+        label = ''
+        if '<' in raw:
+            label = raw.split('<', 1)[0].strip().strip('"').strip()
+        _bump(email, label, when)
+
+    # Filtrar por query
+    items = list(contacts.values())
+    if q:
+        items = [c for c in items
+                 if q in c['email'] or q in (c['label'] or '').lower()]
+
+    items.sort(key=lambda c: c['last_seen'], reverse=True)
+
+    return JsonResponse({
+        'ok': True,
+        'results': [
+            {'email': c['email'], 'label': c['label']}
+            for c in items[:8]
+        ],
+    })
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -554,12 +682,11 @@ def trash_view(request):
 #  BORRADORES
 # ═════════════════════════════════════════════════════════════════════
 
-def _draft_has_content(to, subject, body_html):
-    """Un borrador es 'no vacío' si tiene destinatario, asunto, o cuerpo
-    con texto real (excluyendo el firmón <p><br></p> que el editor pone
-    por defecto)."""
-    if to.strip() or subject.strip():
-        return True
+def _draft_has_content(body_html):
+    """Un borrador es 'no vacío' SOLO si el cuerpo tiene texto real escrito
+    por el usuario. Destinatario o asunto solos no cuentan: cuando el
+    compose se abre prerrellenado (responder, plantillas) o el usuario
+    solo lo abrió y lo cerró, no debe crearse un borrador."""
     plain = re.sub(r'<[^>]+>', '', body_html or '').strip()
     return bool(plain)
 
@@ -587,7 +714,7 @@ def draft_save_api(request):
     scheduled_raw = (request.POST.get('scheduled_at', '') or '').strip()
 
     # Si no hay nada que valga la pena guardar, no creamos el borrador.
-    if not _draft_has_content(to, subject, message_html):
+    if not _draft_has_content(message_html):
         return JsonResponse({'ok': True, 'draft_id': None, 'empty': True})
 
     # Resolver alias (debe pertenecer al usuario)

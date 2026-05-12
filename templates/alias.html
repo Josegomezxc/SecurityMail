@@ -817,6 +817,19 @@
   color: var(--text-muted); font-family: var(--mono); font-size: 13px;
 }
 #alias-no-results span { display: block; margin-top: 8px; font-size: 11px; opacity: 0.6; }
+
+/* ── Modo claro: la card de EJEMPLO usa fondo negro transparente y
+   textos en lila claro / verde claro, todo invisible sobre blanco. */
+html[data-theme="light"] .ccv2-preview-card {
+  background: rgba(124,58,237,0.05);
+  border-color: rgba(124,58,237,0.32);
+}
+html[data-theme="light"] .ccv2-preview-text { color: var(--ai-purple); }
+html[data-theme="light"] .ccv2-preview-tag.ok {
+  color: #15803d;
+  background: rgba(34,197,94,0.1);
+  border-color: rgba(34,197,94,0.32);
+}
 </style>
 {% endblock %}
 

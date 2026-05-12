@@ -90,6 +90,14 @@
         html[data-theme="light"] .sidebar-footer::before {
             background: linear-gradient(90deg, transparent, rgba(109,74,255,0.22), transparent);
         }
+        /* El logo está diseñado con texto claro sobre fondo oscuro. En modo
+           claro las letras se pierden contra el sidebar blanco — invertimos
+           los tonos (blanco → casi-negro) y rotamos la tonalidad para que
+           el escudo conserve su violeta original. Truco estándar para
+           reaprovechar un PNG sin necesidad de un asset alternativo. */
+        html[data-theme="light"] .sidebar-logo .logo-icon img {
+            filter: invert(1) hue-rotate(180deg);
+        }
         html[data-theme="light"] .sidebar-link:hover { background: rgba(109,74,255,0.07); }
         html[data-theme="light"] .sidebar-link.active {
             background: linear-gradient(90deg, rgba(109,74,255,0.12), rgba(109,74,255,0.02));
@@ -375,10 +383,12 @@
             opacity: 0.75;
             transition: opacity 0.18s, color 0.18s, transform 0.18s;
         }
-        .sidebar-link:hover .icon { opacity: 1; }
+        .sidebar-link:hover .icon { opacity: 1; transform: scale(1.06); }
         .sidebar-link.active .icon {
             opacity: 1;
             color: #b69dff;
+            stroke-width: 2;
+            filter: drop-shadow(0 0 6px rgba(182,157,255,0.45));
         }
 
         /* ── Badges en nav ── */
@@ -606,10 +616,10 @@
             -webkit-backdrop-filter: blur(14px) saturate(140%);
             flex-shrink: 0;
             position: relative;
-            /* 60 supera al toolbar sticky de la inbox (z-index:50) y al
-               live-banner (40), pero queda por debajo del detail-panel
-               modal (100), para que la campana de notificaciones siempre
-               flote sobre el contenido sin tapar los modales. */
+            /* 60 supera al toolbar sticky de la inbox (z-index:50) pero
+               queda por debajo del detail-panel modal (100), para que la
+               campana de notificaciones siempre flote sobre el contenido
+               sin tapar los modales. */
             z-index: 60;
         }
         .topbar::after {
@@ -1769,33 +1779,33 @@
              El PNG ya tiene "DockerShield" incluido, sin texto duplicado. -->
         <a href="{% url 'dashboard' %}" class="sidebar-logo">
             <div class="logo-icon">
-                <img src="{% static 'img/logo.png' %}" alt="DockerShield">
+                <img src="{% static 'img/logo_2.png' %}" alt="DockerShield">
             </div>
         </a>
 
         <!-- Wrapper con scroll interno: si el contenido es más alto que el
              espacio disponible, solo este bloque scrollea. El logo arriba y
              el footer abajo siempre quedan visibles. -->
-        <div class="sidebar-nav">
+        <div class="sidebar-nav" id="sidebarNav">
 
         <!-- Navegación principal -->
         <div class="sidebar-section">
             <div class="sidebar-label">Principal</div>
 
             <a href="{% url 'dashboard' %}" class="sidebar-link {% block nav_dashboard %}{% endblock %}">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                    <rect x="3" y="3" width="7" height="7" rx="1"/>
-                    <rect x="14" y="3" width="7" height="7" rx="1"/>
-                    <rect x="3" y="14" width="7" height="7" rx="1"/>
-                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="9" rx="1"/>
+                    <rect x="14" y="3" width="7" height="5" rx="1"/>
+                    <rect x="14" y="12" width="7" height="9" rx="1"/>
+                    <rect x="3" y="16" width="7" height="5" rx="1"/>
                 </svg>
                 Dashboard
             </a>
 
             <a href="{% url 'inbox' %}" class="sidebar-link {% block nav_inbox %}{% endblock %}">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                    <polyline points="22,6 12,13 2,6"/>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+                    <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
                 </svg>
                 Bandeja
                 {% if unread_count %}
@@ -1836,12 +1846,9 @@
             </a>
 
             <a href="{% url 'alias_list' %}" class="sidebar-link {% block nav_aliases %}{% endblock %}">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                    <path d="M20 12V22H4V12"/>
-                    <path d="M22 7H2v5h20V7z"/>
-                    <path d="M12 22V7"/>
-                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4"/>
+                    <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>
                 </svg>
                 Mis Alias
                 {% if alias_count %}
@@ -1850,8 +1857,9 @@
             </a>
 
             <a href="{% url 'sandbox_list' %}" class="sidebar-link {% block nav_sandbox %}{% endblock %}">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+                    <path d="m9 12 2 2 4-4"/>
                 </svg>
                 Sandbox
                 {% if threats_count %}
@@ -1865,11 +1873,9 @@
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
                 Notificaciones
-                {% if notif_pending_count %}
-                    <span class="badge-warning-pill">{{ notif_pending_count }}</span>
-                {% elif notif_unread_count %}
-                    <span class="badge-accent-pill">{{ notif_unread_count }}</span>
-                {% endif %}
+                <span id="navNotifBadge"
+                      class="{% if notif_unread_pending_count %}badge-warning-pill{% else %}badge-accent-pill{% endif %}"
+                      {% if not notif_unread_count %}hidden{% endif %}>{{ notif_unread_count }}</span>
             </a>
         </div>
 
@@ -1907,8 +1913,9 @@
 
             <a href="{% url 'admin_aliases' %}" class="sidebar-link {% block nav_admin_aliases %}{% endblock %}">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                    <polyline points="22,6 12,13 2,6"/>
+                    <path d="m15 5 6.3 6.3a2.4 2.4 0 0 1 0 3.4L17 19"/>
+                    <path d="M9.586 5.586A2 2 0 0 0 8.172 5H3a1 1 0 0 0-1 1v5.172a2 2 0 0 0 .586 1.414L8.29 18.29a2.426 2.426 0 0 0 3.42 0l3.58-3.58a2.426 2.426 0 0 0 0-3.42z"/>
+                    <circle cx="6.5" cy="9.5" r=".5" fill="currentColor"/>
                 </svg>
                 Alias globales
             </a>
@@ -2145,6 +2152,44 @@
     // Si el viewport crece a desktop, asegurar estado limpio
     window.addEventListener('resize', function () {
         if (window.innerWidth >= 1024 && isOpen()) closeSidebar();
+    });
+})();
+
+/* ════════════════════════════════════════════════════════════════════
+   SIDEBAR SCROLL — persiste la posición entre navegaciones
+   ════════════════════════════════════════════════════════════════════
+   Al hacer click en un item de abajo (Notificaciones, etc.) la página
+   se recarga y el scroll volvía a 0. Guardamos scrollTop en sessionStorage
+   y lo restauramos al cargar — para que el sidebar se quede donde estaba. */
+(function () {
+    var nav = document.getElementById('sidebarNav');
+    if (!nav) return;
+    var KEY = 'sms_sidebar_scroll';
+
+    // Restaurar inmediatamente. El script vive al final del body, así que
+    // el div ya está en el DOM — no hace falta esperar DOMContentLoaded.
+    try {
+        var saved = sessionStorage.getItem(KEY);
+        if (saved) nav.scrollTop = parseInt(saved, 10) || 0;
+    } catch (e) {}
+
+    // Throttle con requestAnimationFrame para no escribir en cada pixel.
+    var pending = false;
+    nav.addEventListener('scroll', function () {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(function () {
+            pending = false;
+            try { sessionStorage.setItem(KEY, String(nav.scrollTop)); } catch (e) {}
+        });
+    }, { passive: true });
+
+    // Back/forward del navegador — bfcache puede saltarse el restore inicial.
+    window.addEventListener('pageshow', function () {
+        try {
+            var v = sessionStorage.getItem(KEY);
+            if (v) nav.scrollTop = parseInt(v, 10) || 0;
+        } catch (e) {}
     });
 })();
 </script>
@@ -2555,8 +2600,22 @@ document.addEventListener('keydown', function (e) {
     };
 
     let openPanel = false;
-    let lastUnread = 0;
-    let seenNotifIds = null;   // null = primera carga (no disparar toasts)
+    // Último id de notificación que el usuario ya vio. Se guarda en
+    // localStorage para sobrevivir recargas (F5) y comparar contra los
+    // ids que devuelve el endpoint en cada carga de página. Si después
+    // de F5 hay ids mayores, disparamos un toast por cada uno.
+    // Si es la PRIMERA vez del usuario (clave inexistente), no toasteamos
+    // las viejas — solo guardamos el máximo actual para futuras visitas.
+    const SEEN_KEY = 'sms_notif_last_seen_id';
+    function getLastSeenId() {
+        try {
+            const v = localStorage.getItem(SEEN_KEY);
+            return v === null ? null : (parseInt(v, 10) || 0);
+        } catch (e) { return null; }
+    }
+    function setLastSeenId(id) {
+        try { localStorage.setItem(SEEN_KEY, String(id)); } catch (e) {}
+    }
 
     function setOpen(state) {
         openPanel = state;
@@ -2614,7 +2673,7 @@ document.addEventListener('keydown', function (e) {
         fetch('/notificaciones/api/unread/', { credentials: 'same-origin' })
             .then(r => r.ok ? r.json() : Promise.reject(r.status))
             .then(data => {
-                // Badge
+                // Badge del bell
                 const n = data.unread_count || 0;
                 if (n > 0) {
                     badge.textContent = n > 99 ? '99+' : n;
@@ -2624,13 +2683,22 @@ document.addEventListener('keydown', function (e) {
                     badge.style.display = 'none';
                     bell.classList.remove('has-unread');
                 }
-                // Animación de campana solo cuando AUMENTA el contador
-                if (n > lastUnread && lastUnread > 0) {
-                    bell.classList.remove('has-unread');
-                    void bell.offsetWidth;        // reflow para reiniciar animación
-                    bell.classList.add('has-unread');
+
+                // Badge del sidebar (item "Notificaciones") — sincronizado con
+                // el del bell para que también baje al instante cuando el
+                // usuario abre un correo o una notificación.
+                const navBadge = document.getElementById('navNotifBadge');
+                if (navBadge) {
+                    if (n > 0) {
+                        navBadge.textContent = n > 99 ? '99+' : n;
+                        navBadge.hidden = false;
+                        const urgent = (data.unread_pending_count || 0) > 0;
+                        navBadge.classList.toggle('badge-warning-pill', urgent);
+                        navBadge.classList.toggle('badge-accent-pill', !urgent);
+                    } else {
+                        navBadge.hidden = true;
+                    }
                 }
-                lastUnread = n;
 
                 // Lista
                 if (!data.recent || data.recent.length === 0) {
@@ -2639,43 +2707,57 @@ document.addEventListener('keydown', function (e) {
                     list.innerHTML = data.recent.map(renderItem).join('');
                 }
 
-                // ── Toasts: dispara solo para NOTIFICACIONES NUEVAS ──
-                // En la primera carga no disparamos nada (seenNotifIds=null) para
-                // no spamear con notificaciones viejas al abrir la página.
-                if (seenNotifIds !== null && data.recent && data.recent.length > 0) {
-                    const newOnes = data.recent.filter(item => !seenNotifIds.has(item.id));
-                    newOnes.reverse().forEach(item => {   // mostramos en orden cronológico
-                        // Color del toast por nivel de riesgo del correo:
-                        //   amenaza (≥61)    → rojo
-                        //   sospechoso (31-60) → amarillo
-                        //   seguro (≤30)      → verde
-                        // Si la notificación no tiene email asociado (raro),
-                        // caemos al criterio por tipo.
-                        let toastType;
-                        const r = (typeof item.risk_score === 'number') ? item.risk_score : null;
-                        if (item.type === 'threat_alert' || (r !== null && r >= 61)) {
-                            toastType = 'danger';
-                        } else if (r !== null && r >= 31) {
-                            toastType = 'warning';
-                        } else if (r !== null && r >= 0) {
-                            toastType = 'success';
-                        } else {
-                            // Sin score → usamos el criterio antiguo por tipo
-                            toastType =
-                                item.type === 'forward_request' ? 'warning' :
-                                item.type === 'forwarded'       ? 'success' :
-                                                                  'info';
-                        }
-                        window.showToast({
-                            type:    toastType,
-                            title:   item.title,
-                            message: item.message,
-                            href:    item.url,
-                            duration: 9500,
+                // ── Toasts en cada recarga: dispara solo para notificaciones
+                // que el usuario NO ha visto antes (id > último visto, guardado
+                // en localStorage). Primera visita del usuario (sin clave): no
+                // toasteamos nada — solo guardamos el máximo para la próxima.
+                if (data.recent && data.recent.length > 0) {
+                    const lastSeen = getLastSeenId();
+                    const maxId = data.recent.reduce(
+                        (m, it) => (it.id > m ? it.id : m), 0
+                    );
+
+                    if (lastSeen !== null && maxId > lastSeen) {
+                        const newOnes = data.recent.filter(it => it.id > lastSeen);
+                        // Mostramos en orden cronológico (más antigua primero)
+                        // para que la más reciente quede arriba del stack.
+                        newOnes.sort((a, b) => a.id - b.id).forEach(item => {
+                            // Color del toast por nivel de riesgo del correo
+                            // asociado a la notificación:
+                            //   amenaza (≥61)    → rojo
+                            //   sospechoso (31-60) → amarillo
+                            //   seguro (≤30)      → verde
+                            // Sin score → criterio por tipo.
+                            let toastType;
+                            const r = (typeof item.risk_score === 'number') ? item.risk_score : null;
+                            if (item.type === 'threat_alert' || (r !== null && r >= 61)) {
+                                toastType = 'danger';
+                            } else if (r !== null && r >= 31) {
+                                toastType = 'warning';
+                            } else if (r !== null && r >= 0) {
+                                toastType = 'success';
+                            } else {
+                                toastType =
+                                    item.type === 'forward_request' ? 'warning' :
+                                    item.type === 'forwarded'       ? 'success' :
+                                                                      'info';
+                            }
+                            window.showToast({
+                                type:    toastType,
+                                title:   item.title,
+                                message: item.message,
+                                href:    item.url,
+                                duration: 9500,
+                            });
                         });
-                    });
+                    }
+
+                    // Persistimos el máximo para que la próxima recarga sepa
+                    // cuáles son "nuevas". Esto se hace incluso en la primera
+                    // visita — así el usuario solo ve toasts a partir de la
+                    // siguiente recarga, sin spam inicial.
+                    setLastSeenId(maxId);
                 }
-                seenNotifIds = new Set((data.recent || []).map(i => i.id));
             })
             .catch(err => console.debug('[notif] poll error:', err));
     }
@@ -2689,14 +2771,10 @@ document.addEventListener('keydown', function (e) {
         });
     }
 
-    // Carga inicial + polling cada 6s (rápido pero sin sobrecargar)
+    // Carga inicial — pinta el badge y el contenido del dropdown con los
+    // datos del servidor cuando la página carga. Sin auto-refresh: para
+    // ver el contador actualizado, el usuario debe recargar la página.
     refresh();
-    setInterval(refresh, 6000);
-
-    // También refrescamos cuando la pestaña vuelve a estar visible
-    document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') refresh();
-    });
 })();
 </script>
 
@@ -2710,7 +2788,7 @@ Compose modal global: vive en base.html para que persista entre páginas
 {% if user.is_authenticated %}
   {% include '_compose_modal.html' %}
 {% endif %}
-
+y
 {% endblock %}
 </body>
 </html>

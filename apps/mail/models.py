@@ -65,7 +65,9 @@ class SentEmail(models.Model):
     alias       = models.ForeignKey(
         'aliases.Alias', on_delete=models.CASCADE, related_name='sent_emails',
     )
-    to_email    = models.EmailField()
+    # Lista de destinatarios separada por comas (envíos grupales).
+    # Tope 2500 chars ≈ 50 correos largos — más que suficiente.
+    to_email    = models.CharField(max_length=2500)
     subject     = models.CharField(max_length=255, blank=True)
     body_html   = models.TextField(blank=True, help_text="HTML enviado (ya saneado)")
     sent_at     = models.DateTimeField(auto_now_add=True)

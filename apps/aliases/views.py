@@ -144,7 +144,21 @@ _HTML_JS_HREF_RX = re.compile(r'(href|src)\s*=\s*("javascript:[^"]*"|\'javascrip
 
 MAX_TOTAL_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_ATTACHMENTS            = 10
+MAX_RECIPIENTS             = 50
 ALLOWED_ATTACHMENT_NAME_RX = re.compile(r'[^A-Za-z0-9._\- ()áéíóúüñÁÉÍÓÚÜÑ]+')
+
+
+def _parse_recipients(raw: str) -> list:
+    """Acepta destinatarios separados por coma, punto y coma o espacios.
+    Devuelve la lista deduplicada en minúsculas, en el orden original."""
+    parts = re.split(r'[,;\s]+', (raw or '').strip().lower())
+    seen, out = set(), []
+    for p in parts:
+        p = p.strip()
+        if p and p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
 
 
 def _sanitize_html(html: str) -> str:
@@ -175,19 +189,27 @@ def alias_compose_view(request, pk):
             'error': 'Este alias está destruido. Crea uno nuevo para enviar correos.',
         }, status=400)
 
-    to            = (request.POST.get('to', '') or '').strip().lower()
+    raw_to        = (request.POST.get('to', '') or '').strip()
     subject       = (request.POST.get('subject', '') or '').strip()
     message_html  = (request.POST.get('message_html', '') or '').strip()
     scheduled_at  = (request.POST.get('scheduled_at', '') or '').strip()
     plain_text = re.sub(r'<[^>]+>', '', message_html).strip()
 
+    recipients = _parse_recipients(raw_to)
+    alias_addr_lower = alias.address.lower()
+
     errors = {}
-    if not to:
+    if not recipients:
         errors['to'] = 'Ingresa el correo del destinatario.'
-    elif len(to) > 254:
-        errors['to'] = 'El correo del destinatario es demasiado largo.'
-    elif not _EMAIL_RX.match(to):
-        errors['to'] = 'El correo del destinatario no es válido.'
+    elif len(recipients) > MAX_RECIPIENTS:
+        errors['to'] = f'Máximo {MAX_RECIPIENTS} destinatarios por correo.'
+    else:
+        invalid = [r for r in recipients if len(r) > 254 or not _EMAIL_RX.match(r)]
+        if invalid:
+            shown = ', '.join(invalid[:3])
+            errors['to'] = f'Correo(s) no válido(s): {shown}'
+        elif alias_addr_lower in recipients:
+            errors['to'] = 'No puedes enviarte un correo a ti mismo desde este alias.'
 
     if not subject:
         subject = '(sin asunto)'
@@ -198,9 +220,6 @@ def alias_compose_view(request, pk):
         errors['message'] = 'El mensaje no puede estar vacío.'
     elif len(message_html) > 200000:
         errors['message'] = 'El mensaje supera el tamaño máximo.'
-
-    if to and to == alias.address.lower():
-        errors['to'] = 'No puedes enviarte un correo a ti mismo desde este alias.'
 
     uploaded_files = request.FILES.getlist('attachments')
     if len(uploaded_files) > MAX_ATTACHMENTS:
@@ -260,7 +279,7 @@ def alias_compose_view(request, pk):
     from_addr = f'"{alias.label}" <{alias.address}>'
     ok = _send_via_sendgrid(
         from_addr   = from_addr,
-        to_email    = to,
+        to_email    = recipients if len(recipients) > 1 else recipients[0],
         subject     = subject,
         html_body   = body_html,
         attachments = sendgrid_attachments or None,
@@ -298,7 +317,7 @@ def alias_compose_view(request, pk):
             })
         sent_obj = SentEmail.objects.create(
             alias=alias,
-            to_email=to,
+            to_email=', '.join(recipients)[:2500],
             subject=subject,
             body_html=body_html,
             scheduled_at=scheduled_dt,
@@ -330,8 +349,10 @@ def alias_compose_view(request, pk):
         from datetime import datetime
         when_local = datetime.fromtimestamp(send_at_ts).strftime('%d %b · %H:%M')
         msg = f'Programado para {when_local}'
+    elif len(recipients) == 1:
+        msg = f'Correo enviado a {recipients[0]}'
     else:
-        msg = f'Correo enviado a {to}'
+        msg = f'Correo enviado a {len(recipients)} destinatarios'
 
     return JsonResponse({
         'ok':               True,

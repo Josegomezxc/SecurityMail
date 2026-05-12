@@ -520,68 +520,6 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
 }
 .blocked-asset:hover::after { opacity: 1; }
 
-/* ── LIVE NEW EMAIL BANNER ── */
-.live-banner {
-  position: sticky;
-  top: 8px;
-  z-index: 40;
-  display: none;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
-  margin: 0 auto 12px;
-  max-width: max-content;
-  background: linear-gradient(135deg, rgba(124,58,237,0.95), rgba(167,139,250,0.95));
-  color: white;
-  border-radius: 20px;
-  font-family: var(--mono);
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.2);
-  box-shadow: 0 8px 24px rgba(124,58,237,0.35);
-  animation: fadeUp 0.25s cubic-bezier(.4,0,.2,1);
-  transition: transform 0.15s;
-  user-select: none;
-}
-.live-banner:hover { transform: translateY(-1px); }
-.live-banner.visible { display: flex; }
-.live-banner-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: #4ade80;
-  box-shadow: 0 0 8px #4ade80;
-  animation: blink 1.2s ease-in-out infinite;
-}
-.live-banner svg { width: 12px; height: 12px; }
-
-/* Chip indicador "live" en la esquina (poll status) */
-.live-indicator {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  font-size: 10.5px;
-  font-family: var(--mono);
-  color: var(--text-muted);
-  opacity: 0.6;
-  transition: opacity 0.2s;
-  z-index: 30;
-  user-select: none;
-}
-.live-indicator:hover { opacity: 1; }
-.live-indicator-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #4ade80;
-  animation: blink 2s ease-in-out infinite;
-}
-.live-indicator.paused .live-indicator-dot { background: var(--text-muted); animation: none; }
-
 /* Animación entrada de correos nuevos */
 @keyframes newEmailSlide {
   from { opacity: 0; transform: translateY(-8px); max-height: 0; margin-top: 0; }
@@ -811,14 +749,6 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
   </div>
 </div>
 
-<!-- Banner manual eliminado: los correos nuevos se insertan solos via polling -->
-
-<!-- Chip indicador de estado del polling -->
-<div class="live-indicator" id="liveIndicator" title="Clic para pausar/reanudar la actualización automática" onclick="toggleLivePolling()">
-  <span class="live-indicator-dot"></span>
-  <span id="liveIndicatorText">en vivo</span>
-</div>
-
 <!-- ── EMAIL LIST ── -->
 <div id="email-list">
   {% for group in email_groups %}
@@ -835,7 +765,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
          data-from="{{ email.from_email|lower }}"
          data-subject="{{ email.subject|lower }}"
          data-body="{{ email.body|truncatechars:120|lower }}"
-         data-analysis-id="{% if email.analysis %}{{ email.analysis.pk }}{% endif %}"
+         data-analysis-url="{% if email.analysis %}{% url 'sandbox_report' email.analysis.pk %}{% endif %}"
          onclick="openEmail({{ email.id }})">
 
       {% if not email.read %}<div class="unread-dot"></div>{% endif %}
@@ -915,7 +845,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
               data-email-id="{{ email.id }}"
               data-from="{{ email.from_email }}"
               data-subject="{{ email.subject }}"
-              data-body="{{ email.body|escapejs }}"
+              data-body="{{ email.body }}"
               data-alias-id="{{ email.alias.id }}"
               data-alias-address="{{ email.alias.address }}"
               data-alias-label="{{ email.alias.label }}"
@@ -939,7 +869,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
          data-id="{{ email.id }}"
          data-from="{{ email.from_email }}"
          data-subject="{{ email.subject }}"
-         data-body="{{ email.body|escapejs }}"
+         data-body="{{ email.body }}"
          data-has-html="{% if email.body_html %}1{% else %}0{% endif %}"
          data-alias="{{ email.alias.address }}"
          data-alias-id="{{ email.alias.id }}"
@@ -948,7 +878,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
          data-time="{{ email.received_at|date:'d/m/Y H:i' }}"
          data-attachment="{{ email.attachment_name }}"
          data-risk="{{ email.risk_score|default:0 }}"
-         data-analysis-id="{% if email.analysis %}{{ email.analysis.pk }}{% endif %}">
+         data-analysis-url="{% if email.analysis %}{% url 'sandbox_report' email.analysis.pk %}{% endif %}">
     </div>
     {% endfor %}
   {% empty %}
@@ -1244,7 +1174,11 @@ function openEmail(id) {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-    }).catch(function (e) { console.debug('[read] persist error:', e); });
+    })
+    /* El backend marca como leído el correo y sus notificaciones asociadas;
+       el contador del bell se verá actualizado en la próxima recarga de
+       página (auto-refresh deshabilitado en todo el proyecto). */
+    .catch(function (e) { console.debug('[read] persist error:', e); });
   }
 
   /* Rellenar panel */
@@ -1355,12 +1289,12 @@ function openEmail(id) {
 
   /* Riesgo */
   var risk = parseInt(data.dataset.risk) || 0;
-  var analysisId = data.dataset.analysisId;
+  var analysisUrl = data.dataset.analysisUrl;
   var riskSection = document.getElementById('panel-risk-section');
   var reportLink = document.getElementById('panel-report-link');
 
   /* Mostrar la sección si hay score O si hay análisis (aunque score=0) */
-  if (risk > 0 || analysisId) {
+  if (risk > 0 || analysisUrl) {
     riskSection.style.display = 'block';
     var color = risk >= 61 ? 'var(--danger)' : risk >= 31 ? 'var(--warning)' : 'var(--success)';
     var bar   = document.getElementById('panel-risk-bar');
@@ -1379,8 +1313,8 @@ function openEmail(id) {
       badge.innerHTML = '<span class="risk-pill success"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Seguro — sin amenazas</span>';
 
     /* Botón "Ver reporte" — siempre que exista un análisis */
-    if (analysisId) {
-      reportLink.href = '/sandbox/reporte/' + analysisId + '/';
+    if (analysisUrl) {
+      reportLink.href = analysisUrl;
       reportLink.style.display = 'inline-flex';
     } else {
       reportLink.style.display = 'none';
@@ -1396,8 +1330,8 @@ function openEmail(id) {
     attSection.style.display = 'block';
     document.getElementById('panel-att-name-text').textContent = attName;
     var link = document.getElementById('panel-sandbox-link');
-    if (analysisId) {
-      link.href = '/sandbox/reporte/' + analysisId + '/';
+    if (analysisUrl) {
+      link.href = analysisUrl;
       link.style.display = 'inline-flex';
     } else {
       link.style.display = 'none';
@@ -1495,11 +1429,12 @@ function replyFromButton(btn) {
 
   /* 2) Sobrescribir "Para" y "Asunto". openCompose deja estos campos
         vacíos por defecto — los rellenamos justo después. */
-  var toInput   = document.getElementById('composeTo');
   var subjInput = document.getElementById('composeSubject');
   var editor    = document.getElementById('composeMessage');
 
-  if (toInput)   toInput.value   = fromEmail;
+  if (typeof window.composeSetRecipients === 'function') {
+    window.composeSetRecipients(fromEmail);
+  }
   if (subjInput) {
     var hasRePrefix = /^\s*re\s*:/i.test(subject);
     subjInput.value = hasRePrefix ? subject : ('Re: ' + subject);
@@ -1619,267 +1554,6 @@ function trashEmail(btn, kind) {
     }
   });
 }
-
-/* ══════════════════════════════════════════
-   AUTO-REFRESH: polling al backend cada 15s
-   ══════════════════════════════════════════ */
-var livePollingEnabled = true;
-var livePollTimer      = null;
-var pendingNewEmails   = [];     // buffer de correos nuevos esperando merge
-var lastSeenId         = (function () {
-  var rows = document.querySelectorAll('.email-row[data-id]');
-  var max = 0;
-  rows.forEach(function (r) {
-    var id = parseInt(r.dataset.id);
-    if (id > max) max = id;
-  });
-  return max;
-})();
-
-function toggleLivePolling() {
-  livePollingEnabled = !livePollingEnabled;
-  var ind = document.getElementById('liveIndicator');
-  var txt = document.getElementById('liveIndicatorText');
-  if (livePollingEnabled) {
-    ind.classList.remove('paused');
-    txt.textContent = 'en vivo';
-    schedulePoll(3000);   /* poll rápido al reanudar */
-  } else {
-    ind.classList.add('paused');
-    txt.textContent = 'pausado';
-  }
-}
-
-function schedulePoll(delayMs) {
-  if (livePollTimer) clearTimeout(livePollTimer);
-  livePollTimer = setTimeout(pollNewEmails, delayMs || 6000);
-}
-
-async function pollNewEmails() {
-  if (!livePollingEnabled) return;
-
-  /* Pulso visual en el chip cuando estamos consultando */
-  var chip = document.getElementById('liveIndicator');
-  chip.style.opacity = '1';
-
-  try {
-    var url = "{% url 'inbox_new_api' %}?after=" + lastSeenId;
-    var res = await fetch(url, {
-        credentials: 'same-origin',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    });
-    if (!res.ok) throw new Error('http ' + res.status);
-    var data = await res.json();
-    if (data.emails && data.emails.length > 0) {
-      console.info('[live] ' + data.emails.length + ' correo(s) nuevo(s) — auto-merging');
-      data.emails.forEach(function (em) {
-        if (!pendingNewEmails.some(function (p) { return p.id === em.id; })) {
-          pendingNewEmails.push(em);
-        }
-      });
-      // Esperamos 400ms para que el TOAST aparezca primero (su slide-in dura ~420ms).
-      // El correo se inserta justo cuando el toast termina su animación → se siente coordinado.
-      setTimeout(mergeNewEmails, 400);
-    }
-  } catch (e) {
-    console.warn('[live] poll error:', e);
-  } finally {
-    setTimeout(function () { chip.style.opacity = '0.6'; }, 400);
-    schedulePoll(6000);
-  }
-}
-
-function showLiveBanner(count) {
-  var b = document.getElementById('liveBanner');
-  var t = document.getElementById('liveBannerText');
-  t.textContent = count + ' correo' + (count === 1 ? '' : 's') + ' nuevo' + (count === 1 ? '' : 's');
-  b.classList.add('visible');
-}
-
-function mergeNewEmails() {
-  var list = document.getElementById('email-list');
-  var banner = document.getElementById('liveBanner');
-  if (pendingNewEmails.length === 0) return;
-
-  /* Quita el empty-state si había */
-  var empty = list.querySelector('.empty-state');
-  if (empty) empty.remove();
-
-  /* Asegura que existe el separador "Hoy" al inicio */
-  var hoyDivider = list.querySelector('.date-divider[data-group="hoy"]');
-  if (!hoyDivider) {
-    hoyDivider = document.createElement('div');
-    hoyDivider.className = 'date-divider';
-    hoyDivider.dataset.group = 'hoy';
-    hoyDivider.innerHTML = 'Hoy <span class="count">0</span>';
-    list.insertBefore(hoyDivider, list.firstChild);
-  }
-  var countEl = hoyDivider.querySelector('.count');
-  var currentCount = parseInt(countEl?.textContent || '0') || 0;
-
-  /* Inserta después del separador "Hoy" */
-  pendingNewEmails.sort(function (a, b) { return b.id - a.id; });
-  pendingNewEmails.forEach(function (em) {
-    var row = buildEmailRow(em);
-    hoyDivider.parentNode.insertBefore(row, hoyDivider.nextSibling);
-    if (em.id > lastSeenId) lastSeenId = em.id;
-    currentCount++;
-  });
-  if (countEl) countEl.textContent = currentCount;
-
-  pendingNewEmails = [];
-  banner.classList.remove('visible');
-  updateCounts();
-  applyFilters();
-}
-
-function buildEmailRow(em) {
-  /* Crea un .email-row equivalente al que genera Django */
-  var row = document.createElement('div');
-  var classes = ['email-row', 'new-arrival'];
-  if (!em.read)             classes.push('unread');
-  if (em.risk_score >= 61)  classes.push('threat');
-  row.className = classes.join(' ');
-
-  row.dataset.id         = em.id;
-  row.dataset.read       = em.read ? 'true' : 'false';
-  row.dataset.attachment = em.has_attachment ? 'true' : 'false';
-  row.dataset.risk       = em.risk_score || 0;
-  row.dataset.from       = (em.from_email || '').toLowerCase();
-  row.dataset.subject    = (em.subject || '').toLowerCase();
-  row.dataset.body       = (em.body || '').toLowerCase().slice(0, 120);
-  row.onclick = function () { openEmail(em.id); };
-
-  var avatarColors = [
-    ['rgba(124,58,237,0.1)', 'var(--ai-purple-light)'],
-    ['rgba(46,204,113,0.1)', 'var(--success)'],
-    ['rgba(245,158,11,0.1)', 'var(--warning)'],
-    ['rgba(59,130,246,0.1)', '#60a5fa'],
-    ['rgba(232,64,64,0.1)',  'var(--danger)'],
-  ];
-  var avColor = avatarColors[em.id % avatarColors.length];
-  var firstLetter = (em.from_email || '?').charAt(0).toUpperCase();
-
-  var riskPill = '';
-  if (em.risk_score >= 61) {
-    riskPill = '<span class="risk-pill danger"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>Bloqueado</span>';
-  } else if (em.risk_score >= 31) {
-    riskPill = '<span class="risk-pill warning">Sospechoso</span>';
-  } else if (em.risk_score > 0) {
-    riskPill = '<span class="risk-pill success"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Seguro</span>';
-  }
-  var attPill = '';
-  if (em.has_attachment) {
-    attPill = '<span class="att-pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>' + escapeHtml(em.attachment_name || '') + '</span>';
-  }
-
-  /* Botón Responder con todos los data-* que necesita replyFromButton().
-     Si el alias está destruido, lo dejamos visible pero deshabilitado. */
-  var aliasActive = em.alias_active ? '1' : '0';
-  var replyDisabled = em.alias_active ? '' : 'disabled';
-  var replyClass = em.alias_active ? 'quick-reply' : 'quick-reply disabled';
-  var replyTitle = em.alias_active
-    ? 'Responder este correo'
-    : 'Alias destruido — no se puede responder';
-  var replyBtn =
-    '<button type="button" class="' + replyClass + '" ' +
-            'data-email-id="' + em.id + '" ' +
-            'data-from="' + escapeHtml(em.from_email || '') + '" ' +
-            'data-subject="' + escapeHtml(em.subject || '') + '" ' +
-            'data-body="' + escapeHtml(em.body || '') + '" ' +
-            'data-alias-id="' + escapeHtml(String(em.alias_id || '')) + '" ' +
-            'data-alias-address="' + escapeHtml(em.alias || '') + '" ' +
-            'data-alias-label="' + escapeHtml(em.alias_label || '') + '" ' +
-            'data-alias-active="' + aliasActive + '" ' +
-            'data-time="' + escapeHtml((em.received_at_iso || '').replace('T', ' ').slice(0, 16)) + '" ' +
-            'onclick="event.stopPropagation();replyFromButton(this)" ' +
-            'title="' + replyTitle + '" ' + replyDisabled + '>' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
-        '<polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>' +
-      '</svg>Responder</button>';
-
-  /* Botón "reporte" — solo si el correo tiene análisis del sandbox.
-     URL hardcodeada: /sandbox/reporte/<id>/ (definida en apps/sandbox/urls.py). */
-  var reportBtn = '';
-  if (em.analysis_id) {
-    reportBtn =
-      '<a href="/sandbox/reporte/' + encodeURIComponent(em.analysis_id) + '/" ' +
-         'class="quick-report" onclick="event.stopPropagation()">' +
-        '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">' +
-          '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
-          '<polyline points="14 2 14 8 20 8"/>' +
-        '</svg>reporte</a>';
-  }
-
-  /* Botón "Eliminar" (mover a papelera) */
-  var trashBtn =
-    '<button type="button" class="quick-trash" data-email-id="' + em.id + '" ' +
-            'onclick="event.stopPropagation();trashEmail(this, \'inbound\')" ' +
-            'title="Mover a papelera">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-        '<polyline points="3 6 5 6 21 6"/>' +
-        '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>' +
-      '</svg>Eliminar</button>';
-
-  row.innerHTML =
-    (!em.read ? '<div class="unread-dot"></div>' : '') +
-    '<div class="sender-avatar" style="background:' + avColor[0] + ';color:' + avColor[1] + '">' + firstLetter + '</div>' +
-    '<div class="email-content">' +
-      '<div class="email-top">' +
-        '<span class="email-from">' + escapeHtml(em.from_email || '').slice(0, 32) + '</span>' +
-        '<span class="email-time">' + escapeHtml(em.received_human || '') + ' atrás</span>' +
-      '</div>' +
-      '<div class="email-subject">' + escapeHtml(em.subject || '') + '</div>' +
-      '<div class="email-preview">' + escapeHtml((em.body || '').slice(0, 80)) + '</div>' +
-      '<div class="email-meta">' +
-        '<span class="alias-tag">→ ' + escapeHtml(em.alias || '') + '</span>' +
-        attPill + riskPill +
-      '</div>' +
-    '</div>' +
-    reportBtn +
-    trashBtn +
-    replyBtn +
-    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="flex-shrink:0;margin-top:2px"><polyline points="9 18 15 12 9 6"/></svg>';
-
-  /* detail-* oculto para que openEmail() funcione */
-  var detail = document.createElement('div');
-  detail.id = 'detail-' + em.id;
-  detail.style.display = 'none';
-  detail.dataset.from          = em.from_email || '';
-  detail.dataset.subject       = em.subject || '';
-  detail.dataset.body          = em.body || '';
-  detail.dataset.alias         = em.alias || '';
-  detail.dataset.aliasId       = em.alias_id || '';
-  detail.dataset.aliasLabel    = em.alias_label || '';
-  detail.dataset.aliasActive   = em.alias_active ? '1' : '0';
-  detail.dataset.time          = (em.received_at_iso || '').replace('T', ' ').slice(0, 16);
-  detail.dataset.attachment    = em.attachment_name || '';
-  detail.dataset.risk          = em.risk_score || 0;
-  if (em.analysis_id) detail.dataset.analysisId = em.analysis_id;
-  row.appendChild(detail);
-
-  return row;
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-/* Pausar cuando la pestaña no es visible (ahorra ancho de banda) */
-document.addEventListener('visibilitychange', function () {
-  if (document.hidden) {
-    if (livePollTimer) clearTimeout(livePollTimer);
-  } else {
-    schedulePoll(3000);
-  }
-});
-
-/* Arrancar polling INMEDIATAMENTE — no esperamos a DOMContentLoaded porque
-   este script se inyecta al final del body y el evento ya pudo haber pasado. */
-console.info('[live] polling activado — lastSeenId=' + lastSeenId);
-pollNewEmails();           // primera llamada inmediata
 
 
 /* ════════════════════════════════════════════════════════════════════

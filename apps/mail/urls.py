@@ -17,8 +17,9 @@ urlpatterns = [
     path('bandeja/<int:pk>/html/',  views.email_html_api,      name='email_html_api'),
 
     # Enviados
-    path('enviados/',        views.sent_view,          name='sent_list'),
-    path('enviados/vaciar/', views.sent_empty_api,     name='sent_empty'),
+    path('enviados/',        views.sent_view,           name='sent_list'),
+    path('enviados/vaciar/', views.sent_empty_api,      name='sent_empty'),
+    path('contactos/',       views.compose_contacts_api, name='compose_contacts'),
 
     # Papelera
     path('papelera/',                  views.trash_view,         name='trash_list'),

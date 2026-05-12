@@ -1217,6 +1217,110 @@
   .da-btn-confirm.loading .da-spinner { display: inline-block; }
   .da-btn-confirm.loading .da-btn-text { opacity: 0.7; }
   @keyframes daSpin { to { transform: rotate(360deg); } }
+
+  /* ══════════════════════════════════════════════════════════════════
+     OVERRIDES DE TEMA CLARO — el resto del CSS está pensado para fondo
+     oscuro y usa muchos `#f0eeff` / `rgba(255,255,255,...)` hardcoded
+     que se vuelven invisibles sobre blanco. Este bloque los corrige.
+     ══════════════════════════════════════════════════════════════════ */
+  html[data-theme="light"] .page-header h1 { color: #1a1830; }
+  html[data-theme="light"] .page-header p,
+  html[data-theme="light"] .avatar-hint,
+  html[data-theme="light"] .profile-email,
+  html[data-theme="light"] .ps-lbl,
+  html[data-theme="light"] .sec-title,
+  html[data-theme="light"] .sec-hint,
+  html[data-theme="light"] .member-label,
+  html[data-theme="light"] .form-label { color: #6c6884; }
+
+  html[data-theme="light"] .profile-name,
+  html[data-theme="light"] .ps-val,
+  html[data-theme="light"] .member-date,
+  html[data-theme="light"] .panel-header-title,
+  html[data-theme="light"] .ftc-title,
+  html[data-theme="light"] .ftc-toggle-label { color: #1a1830; }
+
+  /* Bordes y tracks que estaban en rgba(255,255,255, ...) */
+  html[data-theme="light"] .profile-stats,
+  html[data-theme="light"] .security-meter { border-top-color: rgba(20,15,45,0.08); }
+  html[data-theme="light"] .ps-divider     { background: rgba(20,15,45,0.08); }
+  html[data-theme="light"] .sec-bar-wrap   { background: rgba(20,15,45,0.08); }
+
+  /* Cards / paneles con fondo oscuro hardcoded */
+  html[data-theme="light"] .member-card,
+  html[data-theme="light"] .profile-panel {
+    background: #ffffff;
+    border-color: rgba(20,15,45,0.08);
+    box-shadow: 0 4px 18px rgba(20,15,45,0.06);
+  }
+  html[data-theme="light"] .panel-header {
+    background: rgba(124,92,255,0.04);
+    border-bottom-color: rgba(20,15,45,0.06);
+  }
+
+  /* Inputs */
+  html[data-theme="light"] .form-control {
+    background: rgba(20,15,45,0.025);
+    border-color: rgba(20,15,45,0.12);
+    color: #1a1830;
+  }
+  html[data-theme="light"] .form-control:focus {
+    background: rgba(124,92,255,0.04);
+    border-color: rgba(124,92,255,0.45);
+  }
+  html[data-theme="light"] .form-control::placeholder { color: rgba(20,15,45,0.35); }
+  html[data-theme="light"] .form-control:disabled { background: rgba(20,15,45,0.04); }
+
+  /* Email display (no editable) y la pill ESTÁNDAR / ACCESO TOTAL */
+  html[data-theme="light"] .email-display-wrap {
+    background: rgba(20,15,45,0.025);
+    border-color: rgba(20,15,45,0.1);
+  }
+  html[data-theme="light"] .email-display-val { color: #2c2845; }
+  html[data-theme="light"] .email-display-lock {
+    color: #6c6884;
+    background: rgba(20,15,45,0.05);
+    border-color: rgba(20,15,45,0.1);
+  }
+
+  /* Info box (recordatorio "Tu correo real está oculto…") */
+  html[data-theme="light"] .info-box {
+    color: #4d4b66;
+    background: rgba(124,92,255,0.06);
+    border-color: rgba(124,92,255,0.22);
+  }
+  html[data-theme="light"] .info-box strong { color: #1a1830; }
+
+  /* Notificaciones — bloque del switch de reenvío */
+  html[data-theme="light"] .ftc-desc { color: #4d4b66; }
+  html[data-theme="light"] .ftc-desc strong { color: #1a1830; }
+  html[data-theme="light"] .ftc-rules {
+    background: rgba(20,15,45,0.03);
+    border-color: rgba(20,15,45,0.06);
+  }
+  /* Score legend (los tres "Score 0-30 / Score 31-60 / Score 61+") —
+     los tonos pastel se pierden en blanco; bajamos a tonos saturados. */
+  html[data-theme="light"] .ftc-rule--ok   { color: #15803d; }
+  html[data-theme="light"] .ftc-rule--warn { color: #b45309; }
+  html[data-theme="light"] .ftc-rule--no   { color: #b91c1c; }
+  html[data-theme="light"] .ftc-pill.off {
+    background: rgba(20,15,45,0.05);
+    border-color: rgba(20,15,45,0.1);
+  }
+
+  /* Zona de peligro — el párrafo descriptivo era rgba(255,255,255,0.5) */
+  html[data-theme="light"] .danger-zone {
+    background: linear-gradient(135deg, rgba(239,68,68,0.06) 0%, #ffffff 60%);
+  }
+  html[data-theme="light"] .danger-zone p { color: #6c6884; }
+  html[data-theme="light"] .danger-text h4 { color: #b91c1c; }
+
+  /* Avatar card (columna izquierda) */
+  html[data-theme="light"] .profile-avatar-card {
+    background: linear-gradient(160deg, rgba(124,92,255,0.06) 0%, #ffffff 55%);
+    border-color: rgba(124,92,255,0.18);
+    box-shadow: 0 6px 24px rgba(20,15,45,0.06);
+  }
 </style>
 {% endblock %}
 

@@ -334,22 +334,49 @@
     text-transform: uppercase;
     letter-spacing: 0.09em;
     padding: 12px 22px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.06));
     font-family: var(--mono);
-    background: rgba(255,255,255,0.01);
+    background: rgba(124,92,255,0.025);
   }
   .activity-table td {
     padding: 14px 22px;
     font-size: 13px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.04));
     vertical-align: middle;
   }
   .activity-table tr:last-child td { border-bottom: none; }
-  .activity-table tbody tr { transition: background 0.12s; }
-  .activity-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+
+  /* Fila clicable con banda lateral coloreada por riesgo. */
+  .activity-table tbody tr.activity-row {
+    cursor: pointer;
+    transition: background 0.12s, transform 0.18s cubic-bezier(.22,1,.36,1);
+  }
+  .activity-table tbody tr.activity-row:hover {
+    background: rgba(124,92,255,0.05);
+    transform: translateX(2px);
+  }
+  .activity-table tbody tr.activity-row:hover .chev {
+    transform: translateX(3px);
+    opacity: 1;
+    color: var(--pl);
+  }
+  /* La banda lateral: 3px de color en el primer td según el risk score. */
+  .activity-table tbody tr.activity-row td:first-child {
+    box-shadow: inset 3px 0 0 var(--row-stripe, transparent);
+  }
+  .activity-table tbody tr.risk-safe    { --row-stripe: #22c55e; }
+  .activity-table tbody tr.risk-warning { --row-stripe: #f59e0b; }
+  .activity-table tbody tr.risk-danger  { --row-stripe: #ef4444; }
+
+  /* Tema claro: fondos hover y header en tono violeta tenue, no blanco. */
+  html[data-theme="light"] .activity-table th  { background: rgba(124,92,255,0.04); }
+  html[data-theme="light"] .activity-table tbody tr.activity-row:hover {
+    background: rgba(124,92,255,0.06);
+  }
 
   .sender-info { display: flex; align-items: center; gap: 11px; }
   .sender-avatar {
+    position: relative;
     width: 34px; height: 34px;
     border-radius: 50%;
     display: flex;
@@ -361,8 +388,108 @@
     flex-shrink: 0;
     border: 1px solid rgba(255,255,255,0.08);
   }
-  .sender-name  { font-weight: 600; font-size: 13px; color: var(--text-primary, #f0eeff); margin-bottom: 2px; }
-  .sender-email { font-size: 11px; color: var(--text-muted, rgba(255,255,255,0.4)); font-family: var(--mono); }
+  /* Punto morado pequeño arriba-derecha del avatar para correos no leídos. */
+  .sender-avatar.unread::after {
+    content: '';
+    position: absolute;
+    top: -2px; right: -2px;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--pl);
+    border: 2px solid var(--bg-surface, #13111f);
+    box-shadow: 0 0 6px rgba(167,139,250,0.55);
+  }
+  .sender-name {
+    font-weight: 600; font-size: 13px;
+    color: var(--text-primary, #f0eeff);
+    margin-bottom: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .sender-name .attach-icon {
+    width: 12px; height: 12px;
+    color: var(--text-muted, rgba(255,255,255,0.5));
+    flex-shrink: 0;
+    opacity: 0.75;
+  }
+  .sender-email {
+    font-size: 11px;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+    font-family: var(--mono);
+  }
+
+  /* Chip de tiempo discreto a la derecha. */
+  .time-chip {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+    background: rgba(124,92,255,0.06);
+    border: 1px solid rgba(124,92,255,0.14);
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  html[data-theme="light"] .time-chip {
+    color: var(--text-secondary, #4d4b66);
+  }
+
+  /* Chevron a la derecha que se desplaza al hover. */
+  .chev-cell {
+    width: 24px; padding-right: 18px !important; padding-left: 0 !important;
+    text-align: right;
+  }
+  .chev {
+    width: 14px; height: 14px;
+    color: var(--text-muted, rgba(255,255,255,0.25));
+    opacity: 0.5;
+    transition: transform 0.18s cubic-bezier(.22,1,.36,1), opacity 0.18s, color 0.18s;
+  }
+
+  /* ─── Paginador de la tabla de actividad ─── */
+  .activity-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 12px 22px;
+    border-top: 1px solid var(--border-soft, rgba(255,255,255,0.05));
+    background: rgba(124,92,255,0.025);
+  }
+  html[data-theme="light"] .activity-pagination { background: rgba(124,92,255,0.035); }
+
+  .activity-pagination .page-info {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary, rgba(255,255,255,0.55));
+    min-width: 42px;
+    text-align: center;
+  }
+  .activity-pagination .page-btn {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: rgba(124,92,255,0.08);
+    border: 1px solid rgba(124,92,255,0.18);
+    color: var(--pl);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, transform 0.12s;
+    padding: 0;
+  }
+  .activity-pagination .page-btn:hover:not(:disabled) {
+    background: rgba(124,92,255,0.16);
+    border-color: rgba(124,92,255,0.32);
+    transform: translateY(-1px);
+  }
+  .activity-pagination .page-btn:active:not(:disabled) { transform: translateY(0); }
+  .activity-pagination .page-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .activity-pagination .page-btn svg { width: 14px; height: 14px; }
 
   .mono-tag {
     font-family: var(--mono);
@@ -426,12 +553,29 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 22px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    transition: background 0.12s;
+    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.04));
+    transition: background 0.12s, transform 0.18s cubic-bezier(.22,1,.36,1);
     gap: 12px;
   }
   .alias-item:last-child { border-bottom: none; }
-  .alias-item:hover { background: rgba(255,255,255,0.03); }
+  .alias-item:hover {
+    background: rgba(124,92,255,0.05);
+    transform: translateX(2px);
+  }
+  html[data-theme="light"] .alias-item:hover { background: rgba(124,92,255,0.06); }
+
+  /* Icono @ a la izquierda con gradiente violeta. */
+  .alias-leading-icon {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(124,92,255,0.18), rgba(167,139,250,0.12));
+    border: 1px solid rgba(124,92,255,0.28);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pl);
+    flex-shrink: 0;
+  }
+  .alias-leading-icon svg { width: 16px; height: 16px; }
+
   .alias-addr {
     font-family: var(--mono);
     font-size: 11.5px;
@@ -440,11 +584,26 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-weight: 600;
   }
   .alias-meta {
     font-size: 11px;
     color: var(--text-muted, rgba(255,255,255,0.35));
     font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  /* Chip pequeño con conteo de correos del alias. */
+  .alias-count-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(124,92,255,0.1);
+    border: 1px solid rgba(124,92,255,0.22);
+    color: var(--pl);
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 10px;
   }
   .alias-status {
     display: inline-flex;
@@ -480,8 +639,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    background: rgba(34,197,94,0.04);
+    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.05));
+    background: rgba(34,197,94,0.08);
   }
   .sandbox-dot {
     width: 9px; height: 9px;
@@ -493,30 +652,78 @@
   }
   .sandbox-label {
     font-size: 13px;
-    color: rgba(255,255,255,0.6);
+    color: var(--text-secondary, rgba(255,255,255,0.6));
     font-family: var(--mono);
   }
   .sandbox-label strong {
-    color: #4ade80;
-    font-weight: 600;
+    color: #16a34a;
+    font-weight: 700;
   }
+  /* En modo oscuro el verde necesita ser más claro para tener contraste */
+  html[data-theme="dark"] .sandbox-label strong,
+  html[data-theme="carbon"] .sandbox-label strong { color: #4ade80; }
+
+  /* Icono de tipo de archivo a la izquierda de cada análisis. */
+  .file-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #fff;
+    text-transform: uppercase;
+  }
+  .file-icon.pdf  { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 10px rgba(239,68,68,0.25); }
+  .file-icon.doc  { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 4px 10px rgba(59,130,246,0.25); }
+  .file-icon.xls  { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 4px 10px rgba(34,197,94,0.25); }
+  .file-icon.zip  { background: linear-gradient(135deg, #a855f7, #7e22ce); box-shadow: 0 4px 10px rgba(168,85,247,0.25); }
+  .file-icon.exe  { background: linear-gradient(135deg, #dc2626, #7f1d1d); box-shadow: 0 4px 10px rgba(220,38,38,0.35); }
+  .file-icon.img  { background: linear-gradient(135deg, #ec4899, #be185d); box-shadow: 0 4px 10px rgba(236,72,153,0.25); }
+  .file-icon.txt  { background: linear-gradient(135deg, #64748b, #475569); }
+  .file-icon.gen  { background: linear-gradient(135deg, #6b7280, #4b5563); }
 
   .sandbox-analysis {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 12px 22px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.04));
     gap: 14px;
-    transition: background 0.12s;
+    transition: background 0.12s, transform 0.18s cubic-bezier(.22,1,.36,1);
+    text-decoration: none;
+    color: inherit;
   }
   .sandbox-analysis:last-child { border-bottom: none; }
-  .sandbox-analysis:hover { background: rgba(255,255,255,0.03); }
+  .sandbox-analysis:hover {
+    background: rgba(124,92,255,0.07);
+    transform: translateX(2px);
+  }
+  .sandbox-analysis-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+  .sandbox-analysis-meta {
+    display: flex; flex-direction: column; min-width: 0; flex: 1;
+  }
+  .sandbox-analysis-time {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted, rgba(255,255,255,0.35));
+    margin-top: 2px;
+  }
 
   .sandbox-filename {
     font-family: var(--mono);
     font-size: 12px;
-    color: rgba(255,255,255,0.6);
+    color: var(--text-secondary, rgba(255,255,255,0.6));
     flex: 1;
     min-width: 0;
     white-space: nowrap;
@@ -525,7 +732,7 @@
   }
   .risk-bar-wrap {
     width: 90px; height: 6px;
-    background: rgba(255,255,255,0.07);
+    background: rgba(124,92,255,0.14);
     border-radius: 10px;
     overflow: hidden;
     flex-shrink: 0;
@@ -773,51 +980,6 @@
   }
   .threat-score small { font-size: 11px; color: rgba(255,255,255,0.35); font-weight: 500; }
 
-  /* ─── LIVE CHIP (estado del polling) ─── */
-  .live-chip {
-    position: fixed;
-    bottom: 16px; right: 16px;
-    display: flex; align-items: center; gap: 7px;
-    padding: 6px 12px;
-    background: var(--bg-surface, #13111f);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px;
-    font-size: 10.5px; font-family: var(--mono);
-    color: rgba(255,255,255,0.5);
-    opacity: 0.55; transition: opacity 0.2s;
-    z-index: 30; user-select: none; cursor: pointer;
-  }
-  .live-chip:hover { opacity: 1; }
-  .live-chip .dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #4ade80; animation: dotPulse 2s infinite;
-  }
-  .live-chip.paused .dot { background: rgba(255,255,255,0.3); animation: none; }
-
-  /* ─── LIVE BANNER (cuando hay novedades) ─── */
-  .live-banner {
-    position: sticky; top: 8px;
-    z-index: 40; display: none;
-    align-items: center; gap: 10px;
-    padding: 10px 18px;
-    margin: 0 auto 16px;
-    max-width: max-content;
-    background: linear-gradient(135deg, rgba(124,92,255,0.95), rgba(167,139,250,0.95));
-    color: white; border-radius: 20px;
-    font-family: var(--mono); font-size: 12.5px; font-weight: 600;
-    cursor: pointer;
-    border: 1px solid rgba(255,255,255,0.2);
-    box-shadow: 0 8px 24px rgba(124,92,255,0.35);
-    user-select: none;
-    animation: fadeUp 0.25s cubic-bezier(.22,1,.36,1);
-  }
-  .live-banner.visible { display: flex; }
-  .live-banner .live-dot-bn {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #4ade80; box-shadow: 0 0 8px #4ade80;
-    animation: dotPulse 1.2s infinite;
-  }
-
   /* Animación al cambiar un número stat */
   @keyframes pulseNum {
     0%   { transform: scale(1); }
@@ -1064,28 +1226,41 @@ el sistema de persistencia.
     <table class="activity-table">
       <thead>
         <tr>
-          <th>Remitente</th>
+          <th>Correo</th>
           <th>Alias destino</th>
+          <th>Hora</th>
           <th>Estado</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {% for email in recent_emails %}
-        <tr>
+        <tr class="activity-row {% if email.risk_score >= 61 %}risk-danger{% elif email.risk_score >= 31 %}risk-warning{% else %}risk-safe{% endif %}"
+            onclick="window.location='{% url 'inbox' %}'"
+            tabindex="0"
+            title="Abrir bandeja">
           <td>
             <div class="sender-info">
-              <div class="sender-avatar"
+              <div class="sender-avatar {% if not email.read %}unread{% endif %}"
                    style="background:{% cycle 'rgba(124,92,255,0.12)' 'rgba(34,197,94,0.1)' 'rgba(245,158,11,0.1)' 'rgba(59,130,246,0.1)' %};
                           color:{% cycle 'var(--pl)' '#4ade80' '#fbbf24' '#60a5fa' %}">
                 {{ email.from_email|first|upper }}
               </div>
               <div>
-                <div class="sender-name">{{ email.subject|truncatechars:30 }}</div>
-                <div class="sender-email">{{ email.from_email }}</div>
+                <div class="sender-name">
+                  {{ email.subject|truncatechars:30|default:"(sin asunto)" }}
+                  {% if email.has_attachment %}
+                  <svg class="attach-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Tiene adjunto">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                  </svg>
+                  {% endif %}
+                </div>
+                <div class="sender-email">{{ email.from_email|truncatechars:32 }}</div>
               </div>
             </div>
           </td>
           <td><span class="mono-tag">{{ email.alias.address|truncatechars:24 }}</span></td>
+          <td><span class="time-chip">{{ email.time_short }}</span></td>
           <td>
             {% if email.risk_score >= 61 %}
               <span class="risk-badge danger">
@@ -1104,22 +1279,44 @@ el sistema de persistencia.
               </span>
             {% endif %}
           </td>
+          <td class="chev-cell">
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="3">
+          <td colspan="5">
             <div class="empty-table">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                 <polyline points="22,6 12,13 2,6"/>
               </svg>
-              Aún no hay correos recibidos en tus alias
+              Aún no hay correos recibidos en tus alias.
+              <a href="{% url 'alias_create' %}" style="color:var(--pl);text-decoration:none;margin-left:4px;font-family:var(--mono);font-weight:600">Crear un alias →</a>
             </div>
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+
+    {% if recent_emails|length > 4 %}
+    <nav class="activity-pagination" id="activityPagination" aria-label="Paginación de actividad reciente">
+      <button type="button" id="activityPagePrev" class="page-btn" aria-label="Página anterior" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <span id="activityPageInfo" class="page-info">1 / 1</span>
+      <button type="button" id="activityPageNext" class="page-btn" aria-label="Página siguiente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
+    </nav>
+    {% endif %}
   </div>
 
   <!-- COLUMNA DERECHA -->
@@ -1135,10 +1332,19 @@ el sistema de persistencia.
         <a href="{% url 'alias_list' %}" class="panel-link">Ver todos →</a>
       </div>
       {% for alias in aliases %}
-      <div class="alias-item">
+      <div class="alias-item" onclick="window.location='{% url 'alias_list' %}'" tabindex="0" style="cursor:pointer">
+        <div class="alias-leading-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>
+          </svg>
+        </div>
         <div style="min-width:0;flex:1">
           <div class="alias-addr">{{ alias.address }}</div>
-          <div class="alias-meta">{{ alias.label }} · {{ alias.email_count }} correos</div>
+          <div class="alias-meta">
+            <span>{{ alias.label }}</span>
+            <span class="alias-count-chip">{{ alias.email_count }} correos</span>
+          </div>
         </div>
         {% if alias.is_active %}
           <span class="alias-status active">
@@ -1176,8 +1382,27 @@ el sistema de persistencia.
       </div>
 
       {% for analysis in recent_analyses %}
-      <div class="sandbox-analysis">
-        <span class="sandbox-filename">{{ analysis.filename }}</span>
+      <a class="sandbox-analysis" href="{% url 'sandbox_report' analysis.pk %}" title="Ver reporte del análisis">
+        <div class="sandbox-analysis-info">
+          {# Icono por extensión: clasifica visualmente el tipo de archivo. #}
+          {% with ext=analysis.extension|lower %}
+          <span class="file-icon
+            {% if ext == '.pdf' %}pdf
+            {% elif ext == '.doc' or ext == '.docx' or ext == '.rtf' %}doc
+            {% elif ext == '.xls' or ext == '.xlsx' or ext == '.csv' %}xls
+            {% elif ext == '.zip' or ext == '.rar' or ext == '.7z' or ext == '.tar' %}zip
+            {% elif ext == '.exe' or ext == '.msi' or ext == '.dll' or ext == '.scr' %}exe
+            {% elif ext == '.png' or ext == '.jpg' or ext == '.jpeg' or ext == '.gif' %}img
+            {% elif ext == '.txt' or ext == '.log' %}txt
+            {% else %}gen{% endif %}" aria-hidden="true">
+            {% if ext %}{{ ext|cut:"."|slice:":3" }}{% else %}?{% endif %}
+          </span>
+          {% endwith %}
+          <div class="sandbox-analysis-meta">
+            <span class="sandbox-filename">{{ analysis.filename }}</span>
+            <span class="sandbox-analysis-time">hace {{ analysis.time_short }}</span>
+          </div>
+        </div>
         <div class="risk-bar-wrap">
           <div class="risk-bar"
                style="width:{{ analysis.risk_score }}%;
@@ -1188,7 +1413,7 @@ el sistema de persistencia.
               style="color:{% if analysis.risk_score >= 61 %}#f87171{% elif analysis.risk_score >= 31 %}#fbbf24{% else %}#4ade80{% endif %}">
           {{ analysis.risk_score }}
         </span>
-      </div>
+      </a>
       {% empty %}
       <div class="empty-table" style="padding:24px 20px">Sin análisis recientes</div>
       {% endfor %}
@@ -1197,12 +1422,6 @@ el sistema de persistencia.
   </div>
 </div>
 
-
-<!-- Chip flotante de estado del polling -->
-<div class="live-chip" id="dashLiveChip" onclick="toggleDashLive()" title="Actualización automática">
-  <span class="dot"></span>
-  <span id="dashLiveChipText">en vivo</span>
-</div>
 
 <!-- ── MODAL BIENVENIDA ── -->
 <div id="welcome-overlay">
@@ -1262,117 +1481,52 @@ el sistema de persistencia.
     document.getElementById('welcome-overlay').classList.remove('visible');
   }
 
-  /* ══════════════════════════════════════════
-     AUTO-REFRESH DEL DASHBOARD
-     ══════════════════════════════════════════ */
-  var dashLiveEnabled = true;
-  var dashPollTimer   = null;
-  var dashLastStats   = null;     // para detectar cambios
+</script>
 
-  function toggleDashLive() {
-    dashLiveEnabled = !dashLiveEnabled;
-    var chip = document.getElementById('dashLiveChip');
-    var txt  = document.getElementById('dashLiveChipText');
-    if (dashLiveEnabled) {
-      chip.classList.remove('paused');
-      txt.textContent = 'en vivo';
-      scheduleDashPoll(3000);
-    } else {
-      chip.classList.add('paused');
-      txt.textContent = 'pausado';
-    }
-  }
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   PAGINADOR DE LA TABLA "ACTIVIDAD RECIENTE"
+   ════════════════════════════════════════════════════════════════════
+   Todas las filas viven en el DOM. JS solo cambia cuáles son visibles
+   (4 por página). Sin recargas. Si hay 4 o menos filas, el `<nav>` del
+   paginador no se renderiza desde Django y este script no hace nada. */
+(function () {
+  const PER_PAGE = 4;
+  const rows = document.querySelectorAll('.activity-table tbody tr.activity-row');
+  const nav  = document.getElementById('activityPagination');
+  if (!nav || rows.length === 0) return;
 
-  function scheduleDashPoll(delayMs) {
-    if (dashPollTimer) clearTimeout(dashPollTimer);
-    dashPollTimer = setTimeout(pollDashboard, delayMs || 15000);
-  }
+  const btnPrev  = document.getElementById('activityPagePrev');
+  const btnNext  = document.getElementById('activityPageNext');
+  const pageInfo = document.getElementById('activityPageInfo');
+  const totalPages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
+  let page = 1;
 
-  function reloadDashboard() {
-    window.location.reload();
-  }
-
-  async function pollDashboard() {
-    if (!dashLiveEnabled) return;
-    var chip = document.getElementById('dashLiveChip');
-    chip.style.opacity = '1';
-
-    try {
-      var res = await fetch("{% url 'dashboard_live_api' %}", {
-        credentials: 'same-origin',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      });
-      if (!res.ok) throw new Error('http ' + res.status);
-      var data = await res.json();
-      updateDashboardFromData(data);
-    } catch (e) {
-      console.warn('[dashboard-live] error:', e);
-    } finally {
-      setTimeout(function () { chip.style.opacity = '0.55'; }, 400);
-      scheduleDashPoll(15000);
-    }
-  }
-
-  function updateDashboardFromData(data) {
-    /* Compara stats con la última snapshot. Anima los que cambiaron. */
-    var keys = ['alias_count', 'total_emails', 'threats_count', 'safe_count', 'block_rate'];
-    var anyChanged = false;
-    var threatDelta = 0;
-
-    keys.forEach(function (k) {
-      var el = document.querySelector('[data-stat="' + k + '"]');
-      if (!el) return;
-      var newVal = parseInt(data[k]) || 0;
-      var oldVal = parseInt(el.textContent) || 0;
-      if (newVal !== oldVal) {
-        animateStat(el, oldVal, newVal);
-        if (dashLastStats !== null) {
-          anyChanged = true;
-          if (k === 'threats_count') threatDelta = newVal - oldVal;
-        }
-      }
+  function render() {
+    rows.forEach((row, i) => {
+      const rowPage = Math.floor(i / PER_PAGE) + 1;
+      row.style.display = (rowPage === page) ? '' : 'none';
     });
-
-    /* Banner manual eliminado: los stats se actualizan solos con animateStat. */
-    /* (Si quieres recordar que algo cambió, deja un console.info para debugging.) */
-    if (anyChanged && dashLastStats !== null) {
-      console.info('[dashboard-live] stats updated automatically');
-    }
-
-    dashLastStats = { ...data };
+    pageInfo.textContent = page + ' / ' + totalPages;
+    btnPrev.disabled = (page === 1);
+    btnNext.disabled = (page === totalPages);
   }
 
-  function animateStat(el, from, to) {
-    el.classList.remove('bumped');
-    void el.offsetWidth;
-    el.classList.add('bumped');
-
-    /* Tween rápido de números (200ms) */
-    var diff = to - from;
-    var start = performance.now();
-    var dur = 400;
-    function frame(t) {
-      var pct = Math.min(1, (t - start) / dur);
-      var pctEased = 1 - Math.pow(1 - pct, 3);
-      el.textContent = Math.round(from + diff * pctEased);
-      if (pct < 1) requestAnimationFrame(frame);
-      else el.textContent = to;
-    }
-    requestAnimationFrame(frame);
-  }
-
-  /* Pausar cuando la pestaña no está visible */
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) {
-      if (dashPollTimer) clearTimeout(dashPollTimer);
-    } else {
-      scheduleDashPoll(2000);
-    }
+  btnPrev.addEventListener('click', () => {
+    if (page > 1) { page--; render(); }
+  });
+  btnNext.addEventListener('click', () => {
+    if (page < totalPages) { page++; render(); }
   });
 
-  /* Arrancar el polling inmediatamente */
-  console.info('[dashboard-live] polling activado');
-  pollDashboard();
+  /* Soporte de flechas izq/der cuando los botones están enfocados. */
+  nav.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft'  && !btnPrev.disabled) { page--; render(); btnPrev.focus(); }
+    if (e.key === 'ArrowRight' && !btnNext.disabled) { page++; render(); btnNext.focus(); }
+  });
+
+  render();
+})();
 </script>
 
 {% endblock %}

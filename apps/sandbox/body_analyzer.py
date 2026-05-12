@@ -90,7 +90,16 @@ def analyze(body_text: str = "", body_html: str = "",
 
     # 1. URLs (en text y href)
     urls_text = re.findall(r'https?://[^\s<>"\']+', body_text)
-    urls_html = re.findall(r'href\s*=\s*["\']([^"\']+)["\']', body_html, re.IGNORECASE)
+    urls_html_raw = re.findall(r'href\s*=\s*["\']([^"\']+)["\']', body_html, re.IGNORECASE)
+    # Descartar esquemas no-web. mailto:/tel:/cid:… no son URLs phisheables y
+    # urlparse los confunde con credenciales embebidas (user@host) tras el
+    # parche "http://" — disparaba falso positivo 85/100 en respuestas de Gmail.
+    urls_html = [
+        u for u in urls_html_raw
+        if not u.strip().lower().startswith(
+            ("mailto:", "tel:", "cid:", "sms:", "callto:", "xmpp:", "skype:")
+        )
+    ]
     all_urls = list(dict.fromkeys(urls_text + urls_html))
 
     for url in all_urls[:30]:

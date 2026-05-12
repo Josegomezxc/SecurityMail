@@ -80,6 +80,9 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
 /* Chips de adjuntos en modo solo-lectura: sin botón de eliminar y con
    cursor por defecto (puro indicador visual). */
 .compose-window.readonly .compose-attachment-remove { display: none !important; }
+.compose-window.readonly .compose-chip-x,
+.compose-window.readonly .compose-chips-input { display: none !important; }
+.compose-window.readonly .compose-chip { cursor: default; }
 .compose-window.readonly .compose-attachment { cursor: default; }
 .compose-window.readonly .compose-attachment:hover {
   background: rgba(124,92,237,0.1);
@@ -266,6 +269,73 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
   background-color: transparent !important; background-clip: content-box !important;
   caret-color: var(--accent) !important;
   transition: background-color 9999s ease-out 0s;
+}
+
+/* ── Chips de destinatarios (estilo Gmail) ───────────────────────────── */
+.compose-row-to { position: relative; flex-wrap: wrap; }
+.compose-chips {
+  flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
+  padding: 7px 0 7px 14px; min-height: 32px;
+}
+.compose-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(124,92,237,0.14); border: 1px solid rgba(124,92,237,0.35);
+  color: var(--text-primary); border-radius: 999px;
+  padding: 3px 4px 3px 11px; font-size: 12.5px; line-height: 1.3;
+  font-family: var(--font-sans); max-width: 100%; min-height: 24px;
+  transition: background 0.12s, border-color 0.12s;
+}
+.compose-chip:hover { background: rgba(124,92,237,0.2); border-color: rgba(124,92,237,0.55); }
+.compose-chip.invalid { background: rgba(220,38,38,0.14); border-color: rgba(220,38,38,0.45); }
+.compose-chip.invalid:hover { background: rgba(220,38,38,0.2); }
+.compose-chip-text {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px;
+}
+.compose-chip-x {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%; background: transparent;
+  border: none; color: var(--text-muted); cursor: pointer; font-size: 14px;
+  padding: 0; line-height: 1; transition: background 0.12s, color 0.12s;
+}
+.compose-chip-x:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+.compose-chips-input {
+  flex: 1; min-width: 140px; background: transparent; border: none; outline: none;
+  color: var(--text-primary); font-size: 13.5px; font-family: var(--font-sans);
+  padding: 4px 0; caret-color: var(--accent);
+}
+.compose-chips-input::placeholder {
+  color: rgba(255,255,255,0.28); font-style: italic; opacity: 1;
+}
+
+/* ── Dropdown de sugerencias ─────────────────────────────────────────── */
+.compose-suggestions {
+  position: absolute; left: 80px; right: 18px; top: 100%; z-index: 12;
+  background: var(--bg-surface); border: 1px solid var(--border-soft);
+  border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+  max-height: 280px; overflow-y: auto; margin-top: 4px;
+  padding: 6px 0;
+}
+.compose-suggestion {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+  cursor: pointer; font-size: 13px; color: var(--text-primary);
+  transition: background 0.1s;
+}
+.compose-suggestion:hover,
+.compose-suggestion.active { background: rgba(124,92,237,0.16); }
+.compose-suggestion-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #6d4aff, #9b6dff);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; color: #fff; text-transform: uppercase;
+}
+.compose-suggestion-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.compose-suggestion-name {
+  font-weight: 600; color: var(--text-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.compose-suggestion-email {
+  font-size: 11.5px; color: var(--text-muted); font-family: var(--mono);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .compose-row-from {
   flex: 1; display: inline-flex; align-items: center; gap: 6px;
@@ -665,12 +735,16 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
       </span>
     </div>
 
-    <div class="compose-row">
-      <label class="compose-row-label" for="composeTo">
+    <div class="compose-row compose-row-to">
+      <label class="compose-row-label" for="composeToTyping">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
         Para
       </label>
-      <input type="email" id="composeTo" name="to" class="compose-row-input" placeholder="destinatario@correo.com" autocomplete="email" required>
+      <div class="compose-chips" id="composeChips">
+        <input type="text" id="composeToTyping" class="compose-chips-input" placeholder="destinatario@correo.com" autocomplete="off" spellcheck="false">
+      </div>
+      <input type="hidden" id="composeTo" name="to">
+      <div class="compose-suggestions" id="composeSuggestions" hidden></div>
     </div>
     <div class="compose-error-row" id="composeErrTo"></div>
 
@@ -871,8 +945,11 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
   var overlay     = document.getElementById('composeOverlay');
   var win         = document.getElementById('composeWindow');
   var fromAddr    = document.getElementById('composeFromAddr');
-  var inputTo     = document.getElementById('composeTo');
-  var inputSubj   = document.getElementById('composeSubject');
+  var inputTo       = document.getElementById('composeTo');         // hidden, valor real
+  var inputToTyping = document.getElementById('composeToTyping');    // visible, donde el usuario teclea
+  var chipsBox      = document.getElementById('composeChips');
+  var suggestBox    = document.getElementById('composeSuggestions');
+  var inputSubj     = document.getElementById('composeSubject');
   var editor      = document.getElementById('composeMessage');
   var errTo       = document.getElementById('composeErrTo');
   var errSubj     = document.getElementById('composeErrSubject');
@@ -895,6 +972,10 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
   var currentAliasAddr = '';
   var currentAliasLabel = '';
   var currentDraftId   = null;               // id del borrador asociado (si lo hay)
+  var bodyDirty        = false;              // ¿el usuario escribió en el cuerpo?
+  var recipients       = [];                 // [{email, label}] — chips committed
+  var suggestActive    = -1;                 // índice resaltado en el dropdown
+  var suggestItems     = [];                 // resultados actuales del dropdown
   var attachedFiles    = [];                 // File[] (no se persiste)
   var attachedTotalBytes = 0;
   var MAX_TOTAL_BYTES  = 25 * 1024 * 1024;
@@ -995,13 +1076,15 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
     editor.addEventListener('mouseup', updateToolbarState);
     editor.addEventListener('focus', updateToolbarState);
     editor.addEventListener('input', saveState);
+    editor.addEventListener('input', function () { bodyDirty = true; });
     editor.addEventListener('paste', function (e) {
       e.preventDefault();
       var text = (e.clipboardData || window.clipboardData).getData('text/plain');
       document.execCommand('insertText', false, text);
     });
   }
-  inputTo.addEventListener('input', saveState);
+  // El input de "Para" ya tiene su listener específico en el bloque de
+  // chips (más abajo) — ahí mismo llama a saveState tras sync.
   inputSubj.addEventListener('input', saveState);
 
   // ── Adjuntos ──
@@ -1367,12 +1450,14 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
 
   // ── Helpers de borrador ────────────────────────────────────────
   // Considera el contenido "no vacío" si hay destinatario, asunto, o
-  // texto plano real en el editor (excluyendo el <p><br></p> default).
+  // Solo guardamos un borrador si el usuario escribió algo en el CUERPO.
+  // Destinatario o asunto solos no cuentan, y el contenido prerellenado
+  // (cita de respuesta, plantillas) tampoco — bodyDirty solo se vuelve
+  // true cuando el editor dispara un `input` real del usuario.
   function hasDraftContent() {
-    var to   = (inputTo.value   || '').trim();
-    var subj = (inputSubj.value || '').trim();
+    if (!bodyDirty) return false;
     var text = (editor.innerText || '').trim();
-    return !!(to || subj || text);
+    return !!text;
   }
 
   // Guarda (o actualiza) el borrador de forma síncrona. Usa
@@ -1426,6 +1511,267 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
     }).catch(function () { return null; });
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  //  CHIPS + AUTOCOMPLETADO DE DESTINATARIOS
+  // ══════════════════════════════════════════════════════════════════════
+  var EMAIL_RX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+
+  function escText(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // El input oculto `inputTo` siempre refleja: chips + lo que el usuario
+  // está tecleando ahora mismo. Así todo el código existente que lee
+  // `inputTo.value` (form submit, saveDraftRemote, saveState…) sigue
+  // funcionando sin cambios.
+  function syncHiddenTo() {
+    var typed = (inputToTyping.value || '').trim().replace(/[,;]+$/, '');
+    var emails = recipients.map(function (r) { return r.email; });
+    if (typed) emails.push(typed);
+    inputTo.value = emails.join(', ');
+  }
+
+  function renderChips() {
+    // Quita chips actuales, inserta los nuevos antes del input de tipeo.
+    var old = chipsBox.querySelectorAll('.compose-chip');
+    for (var i = 0; i < old.length; i++) old[i].remove();
+    recipients.forEach(function (r, idx) {
+      var valid = EMAIL_RX.test(r.email);
+      var chip  = document.createElement('span');
+      chip.className = 'compose-chip' + (valid ? '' : ' invalid');
+      chip.title = (r.label ? (r.label + ' <' + r.email + '>') : r.email)
+                 + (valid ? '' : ' — formato inválido');
+      chip.innerHTML =
+        '<span class="compose-chip-text">' + escText(r.label || r.email) + '</span>'
+        + '<button type="button" class="compose-chip-x" aria-label="Quitar destinatario">×</button>';
+      chip.querySelector('.compose-chip-x').addEventListener('click', function (e) {
+        e.stopPropagation();
+        recipients.splice(idx, 1);
+        renderChips();
+        syncHiddenTo();
+        saveState();
+        inputToTyping.focus();
+      });
+      chipsBox.insertBefore(chip, inputToTyping);
+    });
+  }
+
+  function addRecipient(email, label) {
+    email = (email || '').trim().toLowerCase();
+    if (!email) return false;
+    // Dedup
+    if (recipients.some(function (r) { return r.email === email; })) return false;
+    recipients.push({ email: email, label: label || '' });
+    renderChips();
+    return true;
+  }
+
+  function commitTyped() {
+    var typed = (inputToTyping.value || '').trim().replace(/[,;]+$/, '');
+    inputToTyping.value = '';
+    if (!typed) { syncHiddenTo(); return false; }
+    var ok = addRecipient(typed, '');
+    syncHiddenTo();
+    saveState();
+    return ok;
+  }
+
+  // Llamar desde openCompose / openDraft / restoreState para reconstruir
+  // los chips a partir de un string coma-separado.
+  function setToValue(str) {
+    recipients = [];
+    inputToTyping.value = '';
+    if (str) {
+      String(str).split(/[,;\s]+/).forEach(function (p) {
+        p = p.trim();
+        if (p) recipients.push({ email: p.toLowerCase(), label: '' });
+      });
+    }
+    renderChips();
+    syncHiddenTo();
+  }
+
+  // Expuesto para flujos externos (botón "Responder" del inbox, etc.):
+  // recibe un string con uno o varios correos separados por coma/espacio
+  // y los pinta como chips. NO triggerea autocompletado.
+  window.composeSetRecipients = setToValue;
+
+  // ── Dropdown de sugerencias ──
+  var suggestTimer = null;
+  var suggestCache = {};   // q → results (cache simple para evitar re-fetch)
+
+  function fetchSuggestions(q) {
+    clearTimeout(suggestTimer);
+    suggestTimer = setTimeout(function () {
+      var key = q.toLowerCase();
+      if (suggestCache[key]) {
+        applySuggestions(suggestCache[key]);
+        return;
+      }
+      fetch('/contactos/?q=' + encodeURIComponent(q), {
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var results = (data && data.results) || [];
+        suggestCache[key] = results;
+        applySuggestions(results);
+      })
+      .catch(function () { hideSuggestions(); });
+    }, 120);
+  }
+
+  function applySuggestions(results) {
+    var taken = recipients.map(function (r) { return r.email; });
+    suggestItems = results.filter(function (c) {
+      return taken.indexOf(c.email) === -1;
+    });
+    suggestActive = suggestItems.length ? 0 : -1;
+    renderSuggestions();
+  }
+
+  function renderSuggestions() {
+    if (!suggestItems.length) {
+      suggestBox.hidden = true;
+      suggestBox.innerHTML = '';
+      return;
+    }
+    suggestBox.innerHTML = suggestItems.map(function (it, i) {
+      var disp = it.label || it.email;
+      var letter = (disp || '?').charAt(0).toUpperCase();
+      var nameRow = it.label
+        ? ('<span class="compose-suggestion-name">' + escText(it.label) + '</span>'
+           + '<span class="compose-suggestion-email">' + escText(it.email) + '</span>')
+        : ('<span class="compose-suggestion-name">' + escText(it.email) + '</span>');
+      return '<div class="compose-suggestion'
+           + (i === suggestActive ? ' active' : '')
+           + '" data-i="' + i + '">'
+           + '<span class="compose-suggestion-avatar">' + escText(letter) + '</span>'
+           + '<span class="compose-suggestion-text">' + nameRow + '</span>'
+           + '</div>';
+    }).join('');
+    suggestBox.hidden = false;
+    Array.prototype.forEach.call(
+      suggestBox.querySelectorAll('.compose-suggestion'),
+      function (el) {
+        el.addEventListener('mousedown', function (e) {
+          e.preventDefault();   // evita que el blur del input cierre el dropdown
+          pickSuggestion(parseInt(el.dataset.i, 10));
+        });
+        el.addEventListener('mouseenter', function () {
+          suggestActive = parseInt(el.dataset.i, 10);
+          // Re-render sin reasignar handlers (solo cambiamos clases activas)
+          var nodes = suggestBox.querySelectorAll('.compose-suggestion');
+          for (var j = 0; j < nodes.length; j++) {
+            nodes[j].classList.toggle('active', j === suggestActive);
+          }
+        });
+      }
+    );
+  }
+
+  function pickSuggestion(i) {
+    var it = suggestItems[i];
+    if (!it) return;
+    inputToTyping.value = '';
+    addRecipient(it.email, it.label);
+    syncHiddenTo();
+    saveState();
+    hideSuggestions();
+    inputToTyping.focus();
+  }
+
+  function hideSuggestions() {
+    suggestBox.hidden = true;
+    suggestItems = []; suggestActive = -1;
+  }
+
+  // ── Eventos del input de tipeo ──
+  inputToTyping.addEventListener('input', function () {
+    syncHiddenTo();
+    saveState();
+    var v = (inputToTyping.value || '').trim();
+    if (!v) { hideSuggestions(); return; }
+    fetchSuggestions(v);
+  });
+
+  inputToTyping.addEventListener('keydown', function (e) {
+    // Navegación del dropdown
+    if (!suggestBox.hidden && suggestItems.length) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        suggestActive = (suggestActive + 1) % suggestItems.length;
+        renderSuggestions();
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        suggestActive = (suggestActive - 1 + suggestItems.length) % suggestItems.length;
+        renderSuggestions();
+        return;
+      }
+      if (e.key === 'Enter' && suggestActive >= 0) {
+        e.preventDefault();
+        pickSuggestion(suggestActive);
+        return;
+      }
+      if (e.key === 'Escape') { e.preventDefault(); hideSuggestions(); return; }
+    }
+    // Confirmar chip con Enter / Tab / coma / punto y coma / espacio.
+    // (Espacio solo cuenta como separador si el texto contiene '@' — si
+    // no, sería molesto que cada espacio convirtiera lo escrito en chip.)
+    var isSpace = e.key === ' ' || e.key === 'Spacebar';
+    var typedNow = (inputToTyping.value || '').trim();
+    if (e.key === 'Enter' || e.key === 'Tab' || e.key === ',' || e.key === ';'
+        || (isSpace && typedNow.indexOf('@') >= 0)) {
+      if (typedNow) {
+        e.preventDefault();
+        commitTyped();
+        hideSuggestions();
+      }
+      return;
+    }
+    // Backspace en input vacío → quita el último chip
+    if (e.key === 'Backspace' && !inputToTyping.value && recipients.length) {
+      recipients.pop();
+      renderChips();
+      syncHiddenTo();
+      saveState();
+      return;
+    }
+  });
+
+  inputToTyping.addEventListener('blur', function () {
+    // Pequeño delay para que el mousedown del dropdown registre primero.
+    setTimeout(function () {
+      if ((inputToTyping.value || '').trim()) commitTyped();
+      hideSuggestions();
+    }, 150);
+  });
+
+  inputToTyping.addEventListener('paste', function (e) {
+    var text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
+    // Si el pegado tiene varios separadores, lo expandimos a varios chips.
+    if (/[,;\s\n]/.test(text)) {
+      e.preventDefault();
+      text.split(/[,;\s\n]+/).forEach(function (p) {
+        p = p.trim();
+        if (p) addRecipient(p, '');
+      });
+      inputToTyping.value = '';
+      syncHiddenTo();
+      saveState();
+      hideSuggestions();
+    }
+  });
+
+  // Click en el contenedor (no en un chip) enfoca el input de tipeo
+  chipsBox.addEventListener('click', function (e) {
+    if (e.target === chipsBox) inputToTyping.focus();
+  });
+
   // ── Apertura / cierre / minimizar ──
   window.openCompose = function (aliasId, address, label, opts) {
     currentAliasId    = aliasId;
@@ -1438,14 +1784,16 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
     var readonly     = !!(opts && opts.readonly);
     fromAddr.textContent = address;
     fromAddr.title       = label ? (label + ' · ' + address) : address;
-    inputTo.value = ''; inputSubj.value = '';
+    setToValue(''); inputSubj.value = '';
     editor.innerHTML = defaultBody();
+    bodyDirty = false;
     attachedFiles = []; attachedTotalBytes = 0;
     renderAttachments();
     clearSchedule();
     setSchedulePopover(false);
     setMinimized(false);
     clearErrors();
+    hideSuggestions();
     btnSend.classList.remove('loading');
     btnSend.disabled = false;
 
@@ -1456,7 +1804,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
        editar ni reenviar — solo verlo. */
     if (readonly) {
       win.classList.add('readonly');
-      inputTo.readOnly       = true;
+      inputToTyping.readOnly = true;
       inputSubj.readOnly     = true;
       editor.contentEditable = 'false';
       editor.setAttribute('aria-readonly', 'true');
@@ -1464,7 +1812,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
       if (titleEl) titleEl.textContent = 'Correo enviado';
     } else {
       win.classList.remove('readonly');
-      inputTo.readOnly       = false;
+      inputToTyping.readOnly = false;
       inputSubj.readOnly     = false;
       editor.contentEditable = 'true';
       editor.removeAttribute('aria-readonly');
@@ -1475,7 +1823,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
     overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false');
     win.classList.add('open'); win.setAttribute('aria-hidden','false');
     if (!readonly) {
-      setTimeout(function () { inputTo.focus(); }, 200);
+      setTimeout(function () { inputToTyping.focus(); }, 200);
     }
     saveState();
   };
@@ -1520,7 +1868,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
       }
       window.openCompose(d.alias_id, d.alias_address, d.alias_label, { draftId: d.id });
       /* Rellena los campos después de abrir (openCompose los reseteó). */
-      inputTo.value   = d.to || '';
+      setToValue(d.to || '');
       inputSubj.value = d.subject || '';
       if (d.body_html) editor.innerHTML = d.body_html;
       currentDraftId = d.id;
@@ -1535,7 +1883,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
     var wasReadonly = win.classList.contains('readonly');
     if (wasReadonly) {
       win.classList.remove('readonly');
-      inputTo.readOnly       = false;
+      inputToTyping.readOnly = false;
       inputSubj.readOnly     = false;
       editor.contentEditable = 'true';
       editor.removeAttribute('aria-readonly');
@@ -1548,6 +1896,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
       win.classList.remove('open'); win.setAttribute('aria-hidden','true');
       currentAliasId = null;
       currentDraftId = null;
+      bodyDirty = false;
       clearState();
       return;
     }
@@ -1580,6 +1929,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
     win.classList.remove('open'); win.setAttribute('aria-hidden','true');
     currentAliasId = null;
     currentDraftId = null;
+    bodyDirty = false;
     clearState();
   }
   // Recordamos si estaba ampliado al minimizar para poder restaurarlo
@@ -1731,7 +2081,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
            Vaciamos los campos antes de cerrar para que closeCompose
            NO crea otro borrador "fantasma" al detectar contenido. */
         deleteDraftRemote();
-        inputTo.value = '';
+        setToValue('');
         inputSubj.value = '';
         editor.innerHTML = '';
         closeCompose();
@@ -1765,9 +2115,12 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
     currentAliasLabel = s.aliasLabel || '';
     fromAddr.textContent = currentAliasAddr || '—';
     fromAddr.title       = currentAliasLabel ? (currentAliasLabel + ' · ' + currentAliasAddr) : currentAliasAddr;
-    inputTo.value     = s.to || '';
+    setToValue(s.to || '');
     inputSubj.value   = s.subject || '';
     editor.innerHTML  = s.bodyHtml || defaultBody();
+    // Si el body restaurado no es el placeholder, asumimos que el usuario
+    // ya había escrito antes de navegar — así al cerrar lo guardamos.
+    bodyDirty = !!(s.bodyHtml && s.bodyHtml !== defaultBody());
     if (s.scheduledAt) {
       try {
         var d = new Date(s.scheduledAt);

@@ -12,7 +12,6 @@ from django.contrib.auth import authenticate, login as django_login
 from django.contrib.auth.models import User
 from django.contrib.sessions.models import Session
 from django.core.cache import cache
-from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.utils import timezone
 
@@ -172,18 +171,19 @@ def authenticate_flexible(request, identifier: str, password: str):
 def admin_required(view_fn):
     """
     Protege una vista: solo usuarios con `is_staff=True` pueden acceder.
-    Los no autenticados se redirigen a /, los usuarios normales reciben 403.
+    No autenticados → login. Usuarios normales que intenten entrar a la
+    URL de admin: los devolvemos a la página de la que venían (HTTP_REFERER)
+    sin mostrar pantalla de error ni filtrar nada.
     """
     @wraps(view_fn)
     def _wrapped(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect('login')
         if not request.user.is_staff:
-            return HttpResponseForbidden(
-                "<h2 style='font-family:sans-serif;padding:40px;color:#e84040'>"
-                "403 — Acceso restringido</h2>"
-                "<p style='font-family:sans-serif;padding:0 40px;color:#666'>"
-                "Esta sección es solo para administradores.</p>"
-            )
+            referer = request.META.get('HTTP_REFERER', '')
+            host = request.get_host()
+            if referer and (host in referer):
+                return redirect(referer)
+            return redirect('dashboard')
         return view_fn(request, *args, **kwargs)
     return _wrapped

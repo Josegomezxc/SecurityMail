@@ -17,8 +17,9 @@ def sidebar_counts(request):
             'alias_count':         0,
             'unread_count':        0,
             'threats_count':       0,
-            'notif_pending_count': 0,
-            'notif_unread_count':  0,
+            'notif_pending_count':         0,
+            'notif_unread_count':          0,
+            'notif_unread_pending_count':  0,
             'drafts_count':        0,
             'trash_count':         0,
             'avatar_initials':     '',
@@ -46,6 +47,12 @@ def sidebar_counts(request):
         type='forward_request', status='pending'
     ).count()
     notif_unread_count = notif_qs.filter(read=False).count()
+    # Pendientes que ADEMÁS están sin leer — son las que mantienen el badge
+    # del sidebar en tono "urgente". Si el usuario ya las vio (aunque sigan
+    # pendientes de aprobar/descartar), no queremos seguir gritándole.
+    notif_unread_pending_count = notif_qs.filter(
+        type='forward_request', status='pending', read=False,
+    ).count()
 
     drafts_count = Draft.objects.filter(user=user, deleted_at__isnull=True).count()
 
@@ -60,8 +67,9 @@ def sidebar_counts(request):
         'alias_count':         alias_count,
         'unread_count':        unread_count,
         'threats_count':       threats_count,
-        'notif_pending_count': notif_pending_count,
-        'notif_unread_count':  notif_unread_count,
+        'notif_pending_count':         notif_pending_count,
+        'notif_unread_count':          notif_unread_count,
+        'notif_unread_pending_count':  notif_unread_pending_count,
         'drafts_count':        drafts_count,
         'trash_count':         trash_count,
         # Iniciales y color del avatar — disponibles en TODAS las páginas

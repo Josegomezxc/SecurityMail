@@ -1040,9 +1040,10 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
         # apunten al mismo dominio (settings.SITE_URL ← .env SITE_URL),
         # y la barra final se normalice automáticamente.
         from apps.core.services.email_service import get_site_url
+        from django.urls import reverse
         base_url   = get_site_url()
         report_url = (
-            f"{base_url}/sandbox/reporte/{sandbox_id}/"
+            f"{base_url}{reverse('sandbox_report', kwargs={'pk': sandbox_id})}"
             if sandbox_id
             else f"{base_url}/sandbox/"
         )

@@ -249,3 +249,29 @@ def admin_user_detail_view(request, pk):
         'threats_total': EmailMessage.objects.filter(
                               alias__user=target, risk_score__gte=61).count(),
     })
+
+
+# ─────────────────────────────────────────────────────────────────────
+#  Handlers de error — devolvemos al usuario a la página de la que venía
+#  (HTTP_REFERER). Nunca mostramos pantalla de error ni filtramos rutas.
+#  Si no hay referer (escribieron la URL a mano en una pestaña nueva),
+#  caemos al dashboard si están logueados o al login si no lo están.
+# ─────────────────────────────────────────────────────────────────────
+
+def _safe_back(request):
+    referer = request.META.get('HTTP_REFERER', '')
+    # Solo aceptamos refs del mismo host — evita que un atacante con un
+    # link externo logre que terceros vuelvan a su sitio (open redirect).
+    host = request.get_host()
+    if referer and (host in referer):
+        return redirect(referer)
+    fallback = 'dashboard' if request.user.is_authenticated else 'login'
+    return redirect(fallback)
+
+
+def page_not_found_view(request, _exception=None):
+    return _safe_back(request)
+
+
+def server_error_view(request):
+    return _safe_back(request)

@@ -78,6 +78,16 @@ def notification_unread_api(request):
     )
     unread_count  = qs.filter(read=False).count()
     pending_count = qs.filter(type='forward_request', status='pending').count()
+    # Pendientes que además están sin leer — el sidebar lo usa para decidir
+    # si pintar el badge en amarillo (urgencia) o en violeta (informativo).
+    unread_pending_count = qs.filter(
+        type='forward_request', status='pending', read=False,
+    ).count()
+    # IDs de las que están sin leer ahora mismo. La página /notificaciones/
+    # los usa para sincronizar el estado visual de las filas en vivo (ej.
+    # quitar la clase `unread` de las que ya leyó el usuario en otra
+    # pestaña / al abrir el correo). Capamos a 500 para no inflar el JSON.
+    unread_ids = list(qs.filter(read=False).values_list('id', flat=True)[:500])
     recent = list(qs[:8])
 
     def _row(n):
@@ -104,10 +114,12 @@ def notification_unread_api(request):
         }
 
     return JsonResponse({
-        'unread_count':  unread_count,
-        'pending_count': pending_count,
-        'total':         qs.count(),
-        'recent':        [_row(n) for n in recent],
+        'unread_count':         unread_count,
+        'pending_count':        pending_count,
+        'unread_pending_count': unread_pending_count,
+        'unread_ids':           unread_ids,
+        'total':                qs.count(),
+        'recent':               [_row(n) for n in recent],
     })
 
 
