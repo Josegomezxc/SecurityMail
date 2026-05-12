@@ -1,239 +1,19 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Notificaciones — DockerShield{% endblock %}
 {% block page_title %}Notificaciones{% endblock %}
 {% block nav_notifications %}active{% endblock %}
 
 {% block extra_css %}
-<style>
-  .notif-page { max-width: 920px; }
-  .notif-page-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 22px; gap: 16px; flex-wrap: wrap;
-  }
-  .notif-page-title { font-size: 22px; font-weight: 700; color: var(--text-primary); }
-  .notif-page-sub { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
-  .notif-stats { display: flex; gap: 10px; }
-  .notif-stat-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 12px; border-radius: 20px;
-    font-size: 11.5px; font-weight: 600; font-family: var(--font-mono);
-    background: var(--bg-elevated); border: 1px solid var(--border);
-    color: var(--text-secondary);
-  }
-  .notif-stat-pill.warning { background: rgba(245,158,11,0.1); color: #fbbf24; border-color: rgba(245,158,11,0.3); }
-
-  .notif-list-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-  }
-  .notif-row {
-    display: grid;
-    grid-template-columns: 44px 1fr auto;
-    gap: 16px;
-    padding: 16px 20px;
-    align-items: center;
-    border-bottom: 1px solid var(--border-soft);
-    text-decoration: none;
-    transition: background 0.15s;
-    position: relative;
-  }
-  .notif-row:last-child { border-bottom: none; }
-  .notif-row:hover { background: rgba(255,255,255,0.025); }
-  .notif-row.unread { background: rgba(124,92,255,0.04); }
-  .notif-row.unread::before {
-    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-    background: var(--accent);
-  }
-  .notif-row-icon {
-    width: 44px; height: 44px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .notif-row-icon svg { width: 19px; height: 19px; color: white; }
-  .notif-row-icon.t-forward_request { background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 4px 14px rgba(245,158,11,0.3); }
-  .notif-row-icon.t-forwarded       { background: linear-gradient(135deg, #22c55e, #4ade80); box-shadow: 0 4px 14px rgba(46,204,113,0.3); }
-  .notif-row-icon.t-threat_alert    { background: linear-gradient(135deg, var(--danger), #f87171); box-shadow: 0 4px 14px rgba(232,64,64,0.3); }
-  .notif-row-icon.t-system          { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); }
-  /* Override por nivel de riesgo del correo asociado: si el correo es
-     seguro/sospechoso/amenaza, el icono refleja eso (gana sobre el tipo). */
-  .notif-row-icon.r-safe   { background: linear-gradient(135deg, #22c55e, #4ade80); box-shadow: 0 4px 14px rgba(46,204,113,0.3); }
-  .notif-row-icon.r-warn   { background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 4px 14px rgba(245,158,11,0.3); }
-  .notif-row-icon.r-danger { background: linear-gradient(135deg, var(--danger), #f87171); box-shadow: 0 4px 14px rgba(232,64,64,0.3); }
-
-  .notif-row-body { min-width: 0; }
-  .notif-row-title {
-    font-size: 14px; font-weight: 600; color: var(--text-primary);
-    margin-bottom: 3px;
-  }
-  .notif-row-msg {
-    font-size: 12.5px; color: var(--text-muted); line-height: 1.45;
-  }
-  .notif-row-meta {
-    display: flex; align-items: center; gap: 10px;
-    font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
-    white-space: nowrap;
-  }
-  .notif-status-pill {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 9.5px; font-weight: 700; font-family: var(--font-mono);
-    padding: 3px 8px; border-radius: 5px; letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .ns-pending  { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
-  .ns-approved { background: rgba(46,204,113,0.12); color: #4ade80; border: 1px solid rgba(46,204,113,0.3); }
-  .ns-discarded{ background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
-  .ns-done     { background: rgba(124,92,255,0.1); color: var(--accent-hover); border: 1px solid rgba(124,92,255,0.25); }
-
-  .notif-empty {
-    padding: 60px 20px; text-align: center; color: var(--text-muted);
-  }
-
-  /* ── TOOLBAR (filtros + acciones) ── */
-  .notif-toolbar {
-    display: flex; align-items: center; gap: 14px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-    justify-content: space-between;
-  }
-  .notif-filters {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 4px;
-    flex-wrap: wrap;
-  }
-  .notif-filter-btn {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 7px 12px;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    color: var(--text-secondary);
-    font-family: var(--font-sans);
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .notif-filter-btn:hover {
-    background: rgba(255,255,255,0.04);
-    color: var(--text-primary);
-  }
-  .notif-filter-btn.active {
-    background: var(--accent-soft);
-    color: var(--accent-hover);
-    box-shadow: 0 0 0 1px var(--accent-border) inset;
-  }
-  .notif-filter-btn.warn.active   { background: rgba(245,158,11,0.12); color: #fbbf24; box-shadow: 0 0 0 1px rgba(245,158,11,0.3) inset; }
-  .notif-filter-btn.ok.active     { background: rgba(46,204,113,0.12); color: #4ade80; box-shadow: 0 0 0 1px rgba(46,204,113,0.3) inset; }
-  .notif-filter-btn.danger.active { background: rgba(232,64,64,0.12);  color: #f87171; box-shadow: 0 0 0 1px rgba(232,64,64,0.3) inset; }
-  .notif-filter-btn.muted.active  { background: rgba(255,255,255,0.06); color: var(--text-primary); box-shadow: 0 0 0 1px var(--border) inset; }
-  .notif-filter-count {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 20px; height: 18px;
-    padding: 0 6px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 9px;
-    font-size: 10px;
-    font-weight: 700;
-    font-family: var(--font-mono);
-    color: var(--text-muted);
-    line-height: 1;
-  }
-  .notif-filter-btn.active .notif-filter-count {
-    background: rgba(255,255,255,0.14);
-    color: inherit;
-  }
-
-  /* Botón "Vaciar" + dropdown */
-  .notif-clear-wrap { position: relative; }
-  .notif-clear-btn {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 8px 14px;
-    background: linear-gradient(135deg, #e84040 0%, #c92626 100%);
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 10px;
-    color: #fff;
-    font-family: var(--font-sans);
-    font-size: 12.5px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(232,64,64,0.4);
-    transition: all 0.15s;
-  }
-  .notif-clear-btn:hover {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(232,64,64,0.6);
-  }
-  .notif-clear-btn.open { background: linear-gradient(135deg, #c92626 0%, #a01919 100%); transform: translateY(0); }
-  .notif-clear-menu {
-    position: absolute;
-    top: calc(100% + 6px); right: 0;
-    width: 280px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 5px;
-    box-shadow: 0 14px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-8px) scale(0.97);
-    transform-origin: top right;
-    transition: all 0.18s cubic-bezier(.22,1,.36,1);
-    z-index: 100;
-  }
-  .notif-clear-menu.open { opacity: 1; pointer-events: all; transform: translateY(0) scale(1); }
-  .ncm-item {
-    display: flex; align-items: flex-start; gap: 12px;
-    padding: 11px 12px;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    width: 100%;
-    text-align: left;
-    color: var(--text-secondary);
-    font-family: var(--font-sans);
-    cursor: pointer;
-    transition: all 0.12s;
-  }
-  .ncm-item:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
-  .ncm-item svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; opacity: 0.7; }
-  .ncm-title { font-size: 12.5px; font-weight: 600; line-height: 1.3; margin-bottom: 2px; }
-  .ncm-sub { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
-  .ncm-item-danger { color: #f87171; }
-  .ncm-item-danger:hover { background: rgba(232,64,64,0.08); color: #fca5a5; }
-  .ncm-item-danger .ncm-sub { color: rgba(252,165,165,0.7); }
-  .ncm-sep { height: 1px; background: var(--border-soft); margin: 4px 8px; }
-
-  /* Estado: oculto por filtro (sin display:none para no romper animaciones) */
-  .notif-row.filtered-out { display: none !important; }
-  .notif-row.removing-out {
-    animation: notifRemoveOut 0.3s cubic-bezier(.22,1,.36,1) forwards;
-  }
-  @keyframes notifRemoveOut {
-    from { opacity: 1; transform: translateX(0); max-height: 100px; }
-    to   { opacity: 0; transform: translateX(-30px); max-height: 0; padding-top: 0; padding-bottom: 0; }
-  }
-  .notif-empty-filtered {
-    padding: 50px 20px; text-align: center; color: var(--text-muted);
-    font-size: 13px;
-  }
-  .notif-empty svg { width: 56px; height: 56px; opacity: 0.4; margin-bottom: 12px; }
-  .notif-empty-msg { font-size: 14px; margin-bottom: 4px; }
-  .notif-empty-hint { font-size: 12px; color: var(--text-muted); }
-</style>
+<link rel="stylesheet" href="{% static 'styles/notifications.css' %}">
 {% endblock %}
 
 {% block body %}
 <div class="notif-page">
-  <div class="notif-page-header">
+  <header class="notif-page-header">
     <div>
-      <div class="notif-page-title">Tus notificaciones</div>
-      <div class="notif-page-sub">Eventos y correos que necesitan tu atención.</div>
+      <h1 class="notif-page-title">Tus notificaciones</h1>
+      <p class="notif-page-sub">Eventos y correos que necesitan tu atención.</p>
     </div>
     <div class="notif-stats">
       {% if pending_count %}
@@ -244,11 +24,11 @@
       {% endif %}
       <span class="notif-stat-pill">{{ notifications.count }} total</span>
     </div>
-  </div>
+  </header>
 
   <!-- ── Toolbar: filtros + acciones ── -->
-  <div class="notif-toolbar">
-    <div class="notif-filters" id="notif-filters">
+  <section class="notif-toolbar" aria-label="Filtros y acciones de notificaciones">
+    <nav class="notif-filters" id="notif-filters" aria-label="Filtros por estado">
       <button type="button" class="notif-filter-btn active" data-filter="all">
         Todas
         <span class="notif-filter-count" data-count="all">{{ counts.all }}</span>
@@ -269,7 +49,7 @@
         Descartadas
         <span class="notif-filter-count" data-count="discarded">{{ counts.discarded }}</span>
       </button>
-    </div>
+    </nav>
 
     <div class="notif-actions">
       <div class="notif-clear-wrap" id="notif-clear-wrap">
@@ -307,9 +87,9 @@
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="notif-list-card" id="notif-list-container">
+  <section class="notif-list-card" id="notif-list-container" aria-label="Lista de notificaciones">
     {% for n in notifications %}
       <a href="{% url 'notification_detail' n.id %}"
          class="notif-row {% if not n.read %}unread{% endif %}"
@@ -347,232 +127,21 @@
         <div class="notif-empty-hint">Cuando llegue un correo a tus alias, aparecerá aquí.</div>
       </div>
     {% endfor %}
-  </div>
+  </section>
 
+  <!-- Indicador "live" pequeñito abajo a la derecha -->
+  <div class="notif-live-indicator" role="status" aria-live="polite">
+    <span class="notif-live-dot"></span>
+    Actualizando en vivo
+  </div>
 </div>
 
-<style>
-  /* Animación de entrada para las notificaciones nuevas */
-  @keyframes notifSlideIn {
-    from { opacity: 0; transform: translateY(-12px); max-height: 0; }
-    to   { opacity: 1; transform: translateY(0); max-height: 200px; }
-  }
-  .notif-row.is-new {
-    animation: notifSlideIn 0.35s cubic-bezier(.22,1,.36,1) both;
-    background: rgba(124,92,255,0.1) !important;
-    box-shadow: inset 3px 0 0 var(--accent);
-  }
-  .notif-row.is-new .new-badge {
-    display: inline-flex !important;
-  }
-  .new-badge {
-    display: none;
-    align-items: center;
-    gap: 4px;
-    font-size: 9px;
-    font-weight: 800;
-    font-family: var(--font-mono);
-    padding: 3px 7px;
-    border-radius: 5px;
-    background: var(--accent);
-    color: white;
-    letter-spacing: 0.08em;
-    margin-left: 6px;
-    animation: badgePulse 2s ease-in-out infinite;
-  }
-  @keyframes badgePulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-  }
-
-</style>
+<link rel="stylesheet" href="{% static 'styles/notifications_2.css' %}">
 
 <script>
-/* ════════════════════════════════════════════════════════════════════
-   FILTROS + VACIAR LISTA
-   ════════════════════════════════════════════════════════════════════ */
-(function () {
-  const container = document.getElementById('notif-list-container');
-  const filtersBar = document.getElementById('notif-filters');
-  if (!container || !filtersBar) return;
-
-  let activeFilter = 'all';
-
-  function getCsrf() {
-    const c = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
-    return c ? c.split('=')[1] : '';
-  }
-
-  /* ── Filtrado client-side ── */
-  function applyFilter(filter) {
-    activeFilter = filter;
-    // Botones activos
-    filtersBar.querySelectorAll('.notif-filter-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.filter === filter);
-    });
-
-    // Mostrar / ocultar filas
-    let visible = 0;
-    container.querySelectorAll('.notif-row').forEach(row => {
-      const type   = row.dataset.type;
-      const status = row.dataset.status;
-      let show = false;
-      if      (filter === 'all')       show = true;
-      else if (filter === 'unread')    show = row.dataset.read === '0';
-      else if (filter === 'pending')   show = status === 'pending';
-      else if (filter === 'forwarded') show = type === 'forwarded' || status === 'approved';
-      else if (filter === 'discarded') show = status === 'discarded';
-      row.classList.toggle('filtered-out', !show);
-      if (show) visible++;
-    });
-
-    // Mensaje "sin resultados con este filtro"
-    let emptyMsg = container.querySelector('.notif-empty-filtered');
-    const hasReal = container.querySelectorAll('.notif-row').length > 0;
-    if (visible === 0 && hasReal) {
-      if (!emptyMsg) {
-        emptyMsg = document.createElement('div');
-        emptyMsg.className = 'notif-empty-filtered';
-        emptyMsg.textContent = 'No hay notificaciones que coincidan con este filtro.';
-        container.appendChild(emptyMsg);
-      }
-    } else if (emptyMsg) {
-      emptyMsg.remove();
-    }
-  }
-
-  // Click en pills de filtro
-  filtersBar.querySelectorAll('.notif-filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => applyFilter(btn.dataset.filter));
-  });
-
-  /* ── Recalcula los counts del toolbar a partir del DOM ── */
-  function recountFilters() {
-    const rows = container.querySelectorAll('.notif-row');
-    const counts = { all: rows.length, unread: 0, pending: 0, forwarded: 0, discarded: 0 };
-    rows.forEach(r => {
-      const type   = r.dataset.type;
-      const status = r.dataset.status;
-      if (r.dataset.read === '0')                              counts.unread++;
-      if (status === 'pending')                                counts.pending++;
-      if (type === 'forwarded' || status === 'approved')       counts.forwarded++;
-      if (status === 'discarded')                              counts.discarded++;
-    });
-    Object.keys(counts).forEach(key => {
-      const span = filtersBar.querySelector('[data-count="' + key + '"]');
-      if (span) span.textContent = counts[key];
-    });
-  }
-
-  /* ── Dropdown "Vaciar" ── */
-  const clearBtn  = document.getElementById('notif-clear-btn');
-  const clearMenu = document.getElementById('notif-clear-menu');
-  const clearWrap = document.getElementById('notif-clear-wrap');
-
-  function setMenuOpen(state) {
-    clearMenu.classList.toggle('open', state);
-    clearBtn.classList.toggle('open', state);
-  }
-  clearBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    setMenuOpen(!clearMenu.classList.contains('open'));
-  });
-  document.addEventListener('click', e => {
-    if (!clearWrap.contains(e.target)) setMenuOpen(false);
-  });
-  clearMenu.addEventListener('click', e => e.stopPropagation());
-
-  /* ── Acciones de vaciar ── */
-  const SCOPE_META = {
-    read: {
-      title:   'Borrar notificaciones leídas',
-      message: 'Se eliminarán todas las notificaciones que ya viste.\nEsta acción no se puede deshacer.',
-      confirm: 'Borrar leídas',
-    },
-    discarded: {
-      title:   'Borrar notificaciones descartadas',
-      message: 'Se eliminarán todas las solicitudes de reenvío que descartaste.\nEsta acción no se puede deshacer.',
-      confirm: 'Borrar descartadas',
-    },
-    all: {
-      title:   'Vaciar todas las notificaciones',
-      message: 'Se eliminarán todas, excepto las pendientes de aprobación.\nEsta acción no se puede deshacer.',
-      confirm: 'Vaciar todo',
-    },
-  };
-
-  clearMenu.querySelectorAll('.ncm-item[data-scope]').forEach(item => {
-    item.addEventListener('click', async () => {
-      const scope = item.dataset.scope;
-      setMenuOpen(false);
-      const meta = SCOPE_META[scope] || SCOPE_META.read;
-
-      const ok = window.confirmDialog
-        ? await window.confirmDialog({
-            danger:      true,
-            icon:        'trash',
-            title:       meta.title,
-            message:     meta.message,
-            confirmText: meta.confirm,
-            cancelText:  'Cancelar',
-          })
-        : confirm(meta.title + '\n\n' + meta.message);
-      if (!ok) return;
-
-      try {
-        const fd = new FormData();
-        fd.append('scope', scope);
-        const res = await fetch("{% url 'notification_clear' %}", {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
-          body: fd,
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error || 'error');
-
-        // Decide qué filas borrar según el scope
-        const toRemove = [];
-        container.querySelectorAll('.notif-row').forEach(row => {
-          if (scope === 'read'      && row.dataset.read === '1') toRemove.push(row);
-          else if (scope === 'discarded' && row.dataset.status === 'discarded') toRemove.push(row);
-          else if (scope === 'all'  && !(row.dataset.type === 'forward_request' && row.dataset.status === 'pending')) toRemove.push(row);
-        });
-
-        // Animación de salida
-        toRemove.forEach((row, i) => {
-          setTimeout(() => {
-            row.classList.add('removing-out');
-            setTimeout(() => row.remove(), 300);
-          }, i * 35);   // efecto cascada
-        });
-
-        // Actualizar counts y mostrar toast
-        setTimeout(() => {
-          recountFilters();
-          applyFilter(activeFilter);
-        }, toRemove.length * 35 + 320);
-
-        if (window.showToast) {
-          showToast({
-            type: 'success',
-            title: 'Notificaciones eliminadas',
-            message: data.deleted + ' notificacion' + (data.deleted === 1 ? '' : 'es') + ' borrada' + (data.deleted === 1 ? '' : 's'),
-            duration: 4500,
-          });
-        }
-      } catch (err) {
-        if (window.showToast) {
-          showToast({
-            type: 'danger',
-            title: 'No se pudo vaciar',
-            message: 'Intenta de nuevo en unos segundos.',
-            duration: 5000,
-          });
-        }
-      }
-    });
-  });
-})();
+window.__NOTIFICATIONS_CTX__ = {
+  clearUrl: "{% url 'notification_clear' %}"
+};
 </script>
+<script src="{% static 'js/notifications.js' %}"></script>
 {% endblock %}

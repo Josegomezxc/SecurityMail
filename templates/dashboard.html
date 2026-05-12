@@ -1,1001 +1,12 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Dashboard — DockerShield{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 {% block nav_dashboard %}active{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<style>
-  @keyframes fadeUp   { from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)} }
-  @keyframes shimmer  { 0%{background-position:-200% 0}100%{background-position:200% 0} }
-  @keyframes pulseGlow{ 0%,100%{box-shadow:0 0 0 0 rgba(109,74,255,0)}60%{box-shadow:0 0 0 8px rgba(109,74,255,0.12)} }
-  @keyframes dotPulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.85)} }
-  @keyframes slideIn  { from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)} }
-
-  :root {
-    --p:    #7c5cff;
-    --pl:   #a78bfa;
-    --ps:   rgba(124,92,255,0.12);
-    --pb:   rgba(124,92,255,0.28);
-    --danger:  #ef4444;
-    --warning: #f59e0b;
-    --success: #22c55e;
-    --display: 'Syne', sans-serif;
-    --mono:    'JetBrains Mono', monospace;
-  }
-
-  /* ─── WELCOME BANNER ─── */
-  .welcome-banner {
-    background: linear-gradient(135deg, #1a1435 0%, #0f0f1a 60%, #0a1628 100%);
-    border: 1px solid var(--pb);
-    border-radius: 20px;
-    padding: 28px 32px;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    position: relative;
-    overflow: hidden;
-    animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(124,92,255,0.08) inset;
-  }
-  .welcome-banner::before {
-    content: '';
-    position: absolute;
-    top: -60px; left: -60px;
-    width: 280px; height: 280px;
-    background: radial-gradient(circle, rgba(124,92,255,0.18) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .welcome-banner::after {
-    content: '';
-    position: absolute;
-    bottom: -40px; right: 120px;
-    width: 200px; height: 200px;
-    background: radial-gradient(circle, rgba(34,197,94,0.07) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .welcome-inner { position: relative; z-index: 1; }
-  .welcome-eyebrow {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--pl);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    opacity: 0.85;
-  }
-  .welcome-eyebrow::before {
-    content: '';
-    width: 20px; height: 1px;
-    background: linear-gradient(90deg, var(--pl), transparent);
-  }
-  .welcome-banner h2 {
-    font-family: var(--display);
-    font-size: 26px;
-    font-weight: 800;
-    margin-bottom: 6px;
-    color: #f0eeff;
-    letter-spacing: -0.02em;
-  }
-  .welcome-banner h2 span {
-    background: linear-gradient(90deg, #e8e6f0 0%, var(--pl) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .welcome-banner p {
-    font-size: 12px;
-    color: rgba(200,190,255,0.55);
-    font-family: var(--mono);
-  }
-  .welcome-banner p strong {
-    color: var(--pl);
-    -webkit-text-fill-color: var(--pl);
-    font-weight: 500;
-  }
-  .welcome-actions {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-  .btn-new-alias {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 22px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--p) 0%, #9b6dff 100%);
-    color: white;
-    font-family: var(--display);
-    font-size: 13px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.2s cubic-bezier(.22,1,.36,1);
-    white-space: nowrap;
-    box-shadow: 0 4px 20px rgba(124,92,255,0.4), 0 1px 0 rgba(255,255,255,0.1) inset;
-    letter-spacing: 0.01em;
-  }
-  .btn-new-alias:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 28px rgba(124,92,255,0.55), 0 1px 0 rgba(255,255,255,0.1) inset;
-  }
-  .btn-new-alias svg { flex-shrink: 0; }
-
-  /* ─── STAT GRID ─── */
-  .stat-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  @media (max-width: 1100px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 600px)  { .stat-grid { grid-template-columns: 1fr; } }
-
-  .stat-card {
-    background: var(--bg-surface, #13111f);
-    border-radius: 18px;
-    padding: 22px 24px;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.2s cubic-bezier(.22,1,.36,1), box-shadow 0.2s;
-    animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
-    cursor: default;
-  }
-  .stat-card:hover { transform: translateY(-3px); }
-
-  /* Color accent top strip */
-  .stat-card::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    border-radius: 18px 18px 0 0;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-  .stat-card:hover::after { opacity: 1; }
-
-  .stat-card.accent {
-    border: 1px solid rgba(124,92,255,0.22);
-    background: linear-gradient(160deg, rgba(124,92,255,0.08) 0%, var(--bg-surface, #13111f) 50%);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(124,92,255,0.06) inset;
-  }
-  .stat-card.accent::after { background: linear-gradient(90deg, transparent, var(--p), transparent); }
-  .stat-card.accent:hover { box-shadow: 0 8px 32px rgba(124,92,255,0.2), 0 0 0 1px rgba(124,92,255,0.15) inset; }
-
-  .stat-card.danger {
-    border: 1px solid rgba(239,68,68,0.18);
-    background: linear-gradient(160deg, rgba(239,68,68,0.07) 0%, var(--bg-surface, #13111f) 50%);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-  }
-  .stat-card.danger::after { background: linear-gradient(90deg, transparent, var(--danger), transparent); }
-  .stat-card.danger:hover { box-shadow: 0 8px 32px rgba(239,68,68,0.18); }
-
-  .stat-card.success {
-    border: 1px solid rgba(34,197,94,0.18);
-    background: linear-gradient(160deg, rgba(34,197,94,0.07) 0%, var(--bg-surface, #13111f) 50%);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-  }
-  .stat-card.success::after { background: linear-gradient(90deg, transparent, var(--success), transparent); }
-  .stat-card.success:hover { box-shadow: 0 8px 32px rgba(34,197,94,0.18); }
-
-  .stat-card.neutral {
-    border: 1px solid rgba(255,255,255,0.07);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-    transition: transform 0.2s cubic-bezier(.22,1,.36,1), box-shadow 0.2s, border-color 0.2s;
-  }
-  .stat-card.neutral::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,1), transparent); }
-  .stat-card.neutral:hover {
-    border-color: rgba(255,255,255,0.22);
-    box-shadow: 0 8px 32px rgba(255,255,255,0.08), 0 0 0 1px rgba(255,255,255,0.06) inset, 0 2px 8px rgba(0,0,0,0.4);
-  }
-
-  /* ─── STAT CARD INNER LAYOUT ─── */
-  .stat-card-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  .stat-icon {
-    width: 34px; height: 34px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .stat-card.accent  .stat-icon { background: rgba(124,92,255,0.15); border: 1px solid rgba(124,92,255,0.2); }
-  .stat-card.danger  .stat-icon { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.18); }
-  .stat-card.success .stat-icon { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.18); }
-  .stat-card.neutral .stat-icon { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); }
-
-  .stat-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-muted, rgba(255,255,255,0.4));
-    font-family: var(--mono);
-    line-height: 1.3;
-  }
-  .stat-body {
-    text-align: center;
-    padding: 4px 0 8px;
-  }
-  .stat-value {
-    font-family: var(--display);
-    font-size: 52px;
-    font-weight: 700;
-    line-height: 1;
-    margin-bottom: 8px;
-    letter-spacing: -0.04em;
-    animation: fadeUp 0.5s cubic-bezier(.22,1,.36,1) both;
-  }
-  .stat-card.accent  .stat-value { color: var(--pl); }
-  .stat-card.danger  .stat-value { color: var(--danger); }
-  .stat-card.success .stat-value { color: var(--success); }
-  .stat-card.neutral .stat-value { color: var(--text-primary, #f0eeff); }
-
-  .stat-sub {
-    font-size: 11px;
-    color: var(--text-muted, rgba(255,255,255,0.35));
-    font-family: var(--mono);
-  }
-
-  /* Decorative circle */
-  .stat-card-glow {
-    position: absolute;
-    bottom: -30px; right: -30px;
-    width: 100px; height: 100px;
-    border-radius: 50%;
-    opacity: 0.06;
-    pointer-events: none;
-  }
-  .stat-card.accent  .stat-card-glow { background: var(--p); }
-  .stat-card.danger  .stat-card-glow { background: var(--danger); }
-  .stat-card.success .stat-card-glow { background: var(--success); }
-
-  /* ─── TWO COL ─── */
-  .two-col {
-    display: grid;
-    grid-template-columns: 1.45fr 1fr;
-    gap: 18px;
-    align-items: start;
-  }
-  @media (max-width: 960px) { .two-col { grid-template-columns: 1fr; } }
-
-  /* ─── PANEL ─── */
-  .panel {
-    background: var(--bg-surface, #13111f);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 18px;
-    overflow: hidden;
-    animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-    transition: box-shadow 0.2s;
-  }
-  .panel:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-
-  .panel-header {
-    padding: 18px 22px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(255,255,255,0.02);
-  }
-  .panel-title {
-    font-family: var(--display);
-    font-size: 14px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    color: var(--text-primary, #f0eeff);
-    letter-spacing: -0.01em;
-  }
-  .panel-title-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .panel-link {
-    font-size: 11.5px;
-    color: var(--pl);
-    text-decoration: none;
-    font-family: var(--mono);
-    font-weight: 500;
-    transition: opacity 0.15s, gap 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    opacity: 0.75;
-  }
-  .panel-link:hover { opacity: 1; }
-
-  /* ─── ACTIVITY TABLE ─── */
-  .activity-table { width: 100%; border-collapse: collapse; }
-  .activity-table th {
-    text-align: left;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-muted, rgba(255,255,255,0.35));
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    padding: 12px 22px;
-    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.06));
-    font-family: var(--mono);
-    background: rgba(124,92,255,0.025);
-  }
-  .activity-table td {
-    padding: 14px 22px;
-    font-size: 13px;
-    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.04));
-    vertical-align: middle;
-  }
-  .activity-table tr:last-child td { border-bottom: none; }
-
-  /* Fila clicable con banda lateral coloreada por riesgo. */
-  .activity-table tbody tr.activity-row {
-    cursor: pointer;
-    transition: background 0.12s, transform 0.18s cubic-bezier(.22,1,.36,1);
-  }
-  .activity-table tbody tr.activity-row:hover {
-    background: rgba(124,92,255,0.05);
-    transform: translateX(2px);
-  }
-  .activity-table tbody tr.activity-row:hover .chev {
-    transform: translateX(3px);
-    opacity: 1;
-    color: var(--pl);
-  }
-  /* La banda lateral: 3px de color en el primer td según el risk score. */
-  .activity-table tbody tr.activity-row td:first-child {
-    box-shadow: inset 3px 0 0 var(--row-stripe, transparent);
-  }
-  .activity-table tbody tr.risk-safe    { --row-stripe: #22c55e; }
-  .activity-table tbody tr.risk-warning { --row-stripe: #f59e0b; }
-  .activity-table tbody tr.risk-danger  { --row-stripe: #ef4444; }
-
-  /* Tema claro: fondos hover y header en tono violeta tenue, no blanco. */
-  html[data-theme="light"] .activity-table th  { background: rgba(124,92,255,0.04); }
-  html[data-theme="light"] .activity-table tbody tr.activity-row:hover {
-    background: rgba(124,92,255,0.06);
-  }
-
-  .sender-info { display: flex; align-items: center; gap: 11px; }
-  .sender-avatar {
-    position: relative;
-    width: 34px; height: 34px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--display);
-    font-size: 12px;
-    font-weight: 800;
-    flex-shrink: 0;
-    border: 1px solid rgba(255,255,255,0.08);
-  }
-  /* Punto morado pequeño arriba-derecha del avatar para correos no leídos. */
-  .sender-avatar.unread::after {
-    content: '';
-    position: absolute;
-    top: -2px; right: -2px;
-    width: 9px; height: 9px;
-    border-radius: 50%;
-    background: var(--pl);
-    border: 2px solid var(--bg-surface, #13111f);
-    box-shadow: 0 0 6px rgba(167,139,250,0.55);
-  }
-  .sender-name {
-    font-weight: 600; font-size: 13px;
-    color: var(--text-primary, #f0eeff);
-    margin-bottom: 2px;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .sender-name .attach-icon {
-    width: 12px; height: 12px;
-    color: var(--text-muted, rgba(255,255,255,0.5));
-    flex-shrink: 0;
-    opacity: 0.75;
-  }
-  .sender-email {
-    font-size: 11px;
-    color: var(--text-muted, rgba(255,255,255,0.4));
-    font-family: var(--mono);
-  }
-
-  /* Chip de tiempo discreto a la derecha. */
-  .time-chip {
-    display: inline-block;
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--text-muted, rgba(255,255,255,0.4));
-    background: rgba(124,92,255,0.06);
-    border: 1px solid rgba(124,92,255,0.14);
-    padding: 3px 8px;
-    border-radius: 6px;
-    white-space: nowrap;
-  }
-  html[data-theme="light"] .time-chip {
-    color: var(--text-secondary, #4d4b66);
-  }
-
-  /* Chevron a la derecha que se desplaza al hover. */
-  .chev-cell {
-    width: 24px; padding-right: 18px !important; padding-left: 0 !important;
-    text-align: right;
-  }
-  .chev {
-    width: 14px; height: 14px;
-    color: var(--text-muted, rgba(255,255,255,0.25));
-    opacity: 0.5;
-    transition: transform 0.18s cubic-bezier(.22,1,.36,1), opacity 0.18s, color 0.18s;
-  }
-
-  /* ─── Paginador de la tabla de actividad ─── */
-  .activity-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    padding: 12px 22px;
-    border-top: 1px solid var(--border-soft, rgba(255,255,255,0.05));
-    background: rgba(124,92,255,0.025);
-  }
-  html[data-theme="light"] .activity-pagination { background: rgba(124,92,255,0.035); }
-
-  .activity-pagination .page-info {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary, rgba(255,255,255,0.55));
-    min-width: 42px;
-    text-align: center;
-  }
-  .activity-pagination .page-btn {
-    width: 28px; height: 28px;
-    border-radius: 8px;
-    background: rgba(124,92,255,0.08);
-    border: 1px solid rgba(124,92,255,0.18);
-    color: var(--pl);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.12s, border-color 0.12s, transform 0.12s;
-    padding: 0;
-  }
-  .activity-pagination .page-btn:hover:not(:disabled) {
-    background: rgba(124,92,255,0.16);
-    border-color: rgba(124,92,255,0.32);
-    transform: translateY(-1px);
-  }
-  .activity-pagination .page-btn:active:not(:disabled) { transform: translateY(0); }
-  .activity-pagination .page-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-  .activity-pagination .page-btn svg { width: 14px; height: 14px; }
-
-  .mono-tag {
-    font-family: var(--mono);
-    font-size: 11px;
-    background: rgba(124,92,255,0.1);
-    border: 1px solid rgba(124,92,255,0.22);
-    padding: 3px 9px;
-    border-radius: 6px;
-    color: var(--pl);
-    white-space: nowrap;
-    display: inline-block;
-  }
-
-  .risk-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 700;
-    font-family: var(--mono);
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-  }
-  .risk-badge.danger  {
-    background: rgba(239,68,68,0.12);
-    color: #f87171;
-    border: 1px solid rgba(239,68,68,0.25);
-    box-shadow: 0 0 12px rgba(239,68,68,0.1);
-  }
-  .risk-badge.warning {
-    background: rgba(245,158,11,0.12);
-    color: #fbbf24;
-    border: 1px solid rgba(245,158,11,0.25);
-  }
-  .risk-badge.success {
-    background: rgba(34,197,94,0.1);
-    color: #4ade80;
-    border: 1px solid rgba(34,197,94,0.22);
-  }
-  .risk-badge .badge-dot {
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: currentColor;
-    flex-shrink: 0;
-  }
-
-  .empty-table {
-    text-align: center;
-    padding: 44px 20px;
-    color: var(--text-muted, rgba(255,255,255,0.35));
-    font-size: 13px;
-    font-family: var(--mono);
-  }
-  .empty-table svg { opacity: 0.25; margin: 0 auto 12px; display: block; }
-
-  /* ─── ALIAS LIST ─── */
-  .alias-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 22px;
-    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.04));
-    transition: background 0.12s, transform 0.18s cubic-bezier(.22,1,.36,1);
-    gap: 12px;
-  }
-  .alias-item:last-child { border-bottom: none; }
-  .alias-item:hover {
-    background: rgba(124,92,255,0.05);
-    transform: translateX(2px);
-  }
-  html[data-theme="light"] .alias-item:hover { background: rgba(124,92,255,0.06); }
-
-  /* Icono @ a la izquierda con gradiente violeta. */
-  .alias-leading-icon {
-    width: 34px; height: 34px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, rgba(124,92,255,0.18), rgba(167,139,250,0.12));
-    border: 1px solid rgba(124,92,255,0.28);
-    display: flex; align-items: center; justify-content: center;
-    color: var(--pl);
-    flex-shrink: 0;
-  }
-  .alias-leading-icon svg { width: 16px; height: 16px; }
-
-  .alias-addr {
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--pl);
-    margin-bottom: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-weight: 600;
-  }
-  .alias-meta {
-    font-size: 11px;
-    color: var(--text-muted, rgba(255,255,255,0.35));
-    font-family: var(--mono);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  /* Chip pequeño con conteo de correos del alias. */
-  .alias-count-chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: rgba(124,92,255,0.1);
-    border: 1px solid rgba(124,92,255,0.22);
-    color: var(--pl);
-    padding: 2px 7px;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 10px;
-  }
-  .alias-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 700;
-    font-family: var(--mono);
-    flex-shrink: 0;
-    letter-spacing: 0.04em;
-  }
-  .alias-status.active {
-    background: rgba(34,197,94,0.1);
-    color: #4ade80;
-    border: 1px solid rgba(34,197,94,0.22);
-  }
-  .alias-status.active .status-dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    background: #4ade80;
-    animation: dotPulse 2s ease-in-out infinite;
-  }
-  .alias-status.inactive {
-    background: rgba(255,255,255,0.04);
-    color: rgba(255,255,255,0.35);
-    border: 1px solid rgba(255,255,255,0.08);
-  }
-
-  /* ─── SANDBOX PANEL ─── */
-  .sandbox-status {
-    padding: 16px 22px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.05));
-    background: rgba(34,197,94,0.08);
-  }
-  .sandbox-dot {
-    width: 9px; height: 9px;
-    border-radius: 50%;
-    background: var(--success);
-    box-shadow: 0 0 8px rgba(34,197,94,0.6), 0 0 16px rgba(34,197,94,0.3);
-    flex-shrink: 0;
-    animation: dotPulse 2.5s ease-in-out infinite;
-  }
-  .sandbox-label {
-    font-size: 13px;
-    color: var(--text-secondary, rgba(255,255,255,0.6));
-    font-family: var(--mono);
-  }
-  .sandbox-label strong {
-    color: #16a34a;
-    font-weight: 700;
-  }
-  /* En modo oscuro el verde necesita ser más claro para tener contraste */
-  html[data-theme="dark"] .sandbox-label strong,
-  html[data-theme="carbon"] .sandbox-label strong { color: #4ade80; }
-
-  /* Icono de tipo de archivo a la izquierda de cada análisis. */
-  .file-icon {
-    width: 28px; height: 28px;
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-family: var(--mono);
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    color: #fff;
-    text-transform: uppercase;
-  }
-  .file-icon.pdf  { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 10px rgba(239,68,68,0.25); }
-  .file-icon.doc  { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 4px 10px rgba(59,130,246,0.25); }
-  .file-icon.xls  { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 4px 10px rgba(34,197,94,0.25); }
-  .file-icon.zip  { background: linear-gradient(135deg, #a855f7, #7e22ce); box-shadow: 0 4px 10px rgba(168,85,247,0.25); }
-  .file-icon.exe  { background: linear-gradient(135deg, #dc2626, #7f1d1d); box-shadow: 0 4px 10px rgba(220,38,38,0.35); }
-  .file-icon.img  { background: linear-gradient(135deg, #ec4899, #be185d); box-shadow: 0 4px 10px rgba(236,72,153,0.25); }
-  .file-icon.txt  { background: linear-gradient(135deg, #64748b, #475569); }
-  .file-icon.gen  { background: linear-gradient(135deg, #6b7280, #4b5563); }
-
-  .sandbox-analysis {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 22px;
-    border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.04));
-    gap: 14px;
-    transition: background 0.12s, transform 0.18s cubic-bezier(.22,1,.36,1);
-    text-decoration: none;
-    color: inherit;
-  }
-  .sandbox-analysis:last-child { border-bottom: none; }
-  .sandbox-analysis:hover {
-    background: rgba(124,92,255,0.07);
-    transform: translateX(2px);
-  }
-  .sandbox-analysis-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    min-width: 0;
-  }
-  .sandbox-analysis-meta {
-    display: flex; flex-direction: column; min-width: 0; flex: 1;
-  }
-  .sandbox-analysis-time {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text-muted, rgba(255,255,255,0.35));
-    margin-top: 2px;
-  }
-
-  .sandbox-filename {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-secondary, rgba(255,255,255,0.6));
-    flex: 1;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .risk-bar-wrap {
-    width: 90px; height: 6px;
-    background: rgba(124,92,255,0.14);
-    border-radius: 10px;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-  .risk-bar {
-    height: 100%;
-    border-radius: 10px;
-    transition: width 0.6s cubic-bezier(.22,1,.36,1);
-  }
-  .risk-score-num {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 700;
-    flex-shrink: 0;
-    min-width: 32px;
-    text-align: right;
-  }
-
-  /* ─── MODAL BIENVENIDA ─── */
-  #welcome-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(6px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;          /* aire para que el modal "flote" */
-    overflow-y: auto;
-  }
-  #welcome-overlay.visible { display: flex; animation: fadeUp 0.35s cubic-bezier(.22,1,.36,1) both; }
-
-  #welcome-modal {
-    background: linear-gradient(160deg, #1a1435 0%, #0f0f1a 100%);
-    border: 1px solid var(--pb);
-    border-radius: 22px;
-    padding: 48px 36px 40px;
-    max-width: 420px;
-    width: 100%;
-    text-align: center;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,92,255,0.08) inset;
-    position: relative;
-    overflow: hidden;
-    margin: auto;
-  }
-  #welcome-modal::before {
-    content: '';
-    position: absolute;
-    top: -80px; left: -80px;
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(124,92,255,0.12) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .wm-logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    justify-content: center;
-    margin-bottom: 22px;
-    padding: 0 4px;
-  }
-  .wm-logo-icon {
-    width: 80px; height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: pulseGlow 3s ease-in-out infinite;
-  }
-  .wm-logo-icon img {
-    width: 100%; height: 100%;
-    object-fit: contain;
-    display: block;
-    filter: drop-shadow(0 8px 24px rgba(124,92,255,0.45));
-  }
-  .wm-logo-text {
-    font-family: var(--display);
-    font-size: 26px;
-    font-weight: 800;
-    color: #f0eeff;
-    letter-spacing: -0.02em;
-    line-height: 1;
-  }
-  .wm-logo-text span {
-    background: linear-gradient(90deg, var(--pl), #b69dff);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .wm-title {
-    font-family: var(--display);
-    font-size: 24px;
-    font-weight: 800;
-    margin-bottom: 8px;
-    color: #f0eeff;
-    letter-spacing: -0.02em;
-  }
-  .wm-sub {
-    font-size: 12.5px;
-    color: rgba(200,190,255,0.5);
-    margin-bottom: 26px;
-    font-family: var(--mono);
-  }
-  .wm-features {
-    display: flex;
-    flex-direction: column;
-    gap: 11px;
-    margin-bottom: 28px;
-    text-align: left;
-  }
-  .wm-feature {
-    display: flex;
-    align-items: center;
-    gap: 13px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 13px;
-    padding: 13px 15px;
-    font-size: 12.5px;
-    color: rgba(255,255,255,0.55);
-    transition: border-color 0.15s;
-    line-height: 1.45;
-  }
-  .wm-feature:hover { border-color: var(--pb); }
-  .wm-feature-icon {
-    width: 34px; height: 34px;
-    border-radius: 10px;
-    background: var(--ps);
-    border: 1px solid var(--pb);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .wm-feature-icon svg { width: 15px; height: 15px; }
-  .wm-feature strong {
-    color: #f0eeff;
-    font-weight: 700;
-    display: block;
-    margin-bottom: 2px;
-    font-family: var(--display);
-    font-size: 13px;
-    letter-spacing: -0.01em;
-  }
-  .btn-welcome {
-    width: 100%;
-    padding: 13px;
-    font-size: 14px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--p) 0%, #9b6dff 100%);
-    color: white;
-    font-family: var(--display);
-    font-weight: 700;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s cubic-bezier(.22,1,.36,1);
-    box-shadow: 0 6px 24px rgba(124,92,255,0.4), 0 1px 0 rgba(255,255,255,0.1) inset;
-    position: relative;
-    z-index: 1;
-    letter-spacing: 0.01em;
-  }
-  .btn-welcome:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(124,92,255,0.55), 0 1px 0 rgba(255,255,255,0.1) inset;
-  }
-
-  /* ─── TENDENCIA en stat cards ─── */
-  .stat-trend {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    margin-top: 6px;
-    padding: 2px 7px;
-    border-radius: 10px;
-    font-size: 10.5px;
-    font-weight: 700;
-    font-family: var(--mono);
-    letter-spacing: 0.02em;
-  }
-  .stat-trend.up   { background: rgba(239,68,68,0.1);  color: #f87171; border: 1px solid rgba(239,68,68,0.22); }
-  .stat-trend.down { background: rgba(34,197,94,0.08); color: #4ade80; border: 1px solid rgba(34,197,94,0.22); }
-  .stat-trend.flat { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.08); }
-  .stat-trend svg { width: 9px; height: 9px; }
-
-  /* ─── THREATS ROW (amenazas recientes en cards) ─── */
-  .threats-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
-    animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
-  }
-  .threat-card {
-    background: linear-gradient(160deg, rgba(239,68,68,0.09) 0%, var(--bg-surface, #13111f) 55%);
-    border: 1px solid rgba(239,68,68,0.25);
-    border-radius: 14px;
-    padding: 14px 16px;
-    text-decoration: none;
-    color: inherit;
-    transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
-    display: block;
-    position: relative;
-    overflow: hidden;
-  }
-  .threat-card::before {
-    content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
-    background: linear-gradient(180deg, var(--danger), #f87171);
-  }
-  .threat-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(239,68,68,0.45);
-    box-shadow: 0 8px 24px rgba(239,68,68,0.18);
-  }
-  .threat-head {
-    display: flex; align-items: center; gap: 9px;
-    font-size: 10.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--danger); font-family: var(--mono);
-    margin-bottom: 8px;
-  }
-  .threat-head .dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--danger); animation: dotPulse 1.6s infinite;
-  }
-  .threat-subject {
-    font-family: var(--display);
-    font-size: 13.5px; font-weight: 700;
-    color: var(--text-primary, #f0eeff);
-    margin-bottom: 4px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .threat-meta {
-    font-size: 11px; color: var(--text-muted, rgba(255,255,255,0.4));
-    font-family: var(--mono);
-    display: flex; gap: 10px; flex-wrap: wrap;
-    margin-bottom: 8px;
-  }
-  .threat-score-row {
-    display: flex; align-items: center; gap: 8px;
-    margin-top: 6px;
-  }
-  .threat-score {
-    font-family: var(--display); font-size: 16px; font-weight: 800;
-    color: #f87171;
-  }
-  .threat-score small { font-size: 11px; color: rgba(255,255,255,0.35); font-weight: 500; }
-
-  /* Animación al cambiar un número stat */
-  @keyframes pulseNum {
-    0%   { transform: scale(1); }
-    30%  { transform: scale(1.12); }
-    100% { transform: scale(1); }
-  }
-  .stat-value.bumped {
-    animation: pulseNum 0.5s cubic-bezier(.22,1,.36,1);
-  }
-
-  /* ─── Responsive ─── */
-  @media (max-width: 600px) {
-    .welcome-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
-    .welcome-banner h2 { font-size: 20px; }
-  }
-</style>
+<link rel="stylesheet" href="{% static 'styles/dashboard.css' %}">
 {% endblock %}
 
 {% block body %}
@@ -1015,63 +26,22 @@ el sistema de persistencia.
 {% endcomment %}
 {% if messages %}
 <script>
-  (function () {
-    var pending = [
-      {% for message in messages %}
-      { tags: "{{ message.tags|escapejs }}", text: "{{ message|escapejs }}" }{% if not forloop.last %},{% endif %}
-      {% endfor %}
-    ];
-    var SEEN_KEY = 'sms_seen_django_msgs';
-    function loadSeen() {
-      try { return JSON.parse(sessionStorage.getItem(SEEN_KEY) || '[]'); }
-      catch (e) { return []; }
-    }
-    function saveSeen(arr) {
-      try { sessionStorage.setItem(SEEN_KEY, JSON.stringify(arr.slice(-20))); }
-      catch (e) {}
-    }
-    function fingerprint(m) { return m.tags + '|' + m.text; }
-
-    function showAll() {
-      if (!window.showToast) { setTimeout(showAll, 100); return; }
-      var seen = loadSeen();
-      pending.forEach(function (m) {
-        var fp = fingerprint(m);
-        if (seen.indexOf(fp) !== -1) return;   // ya mostrado esta sesión
-        seen.push(fp);
-
-        var type = m.tags === 'error'   ? 'danger'
-                 : m.tags === 'success' ? 'success'
-                 : m.tags === 'warning' ? 'warning'
-                 : 'info';
-        var title = m.tags === 'success' ? '¡Listo!'
-                  : m.tags === 'error'   ? 'Atención'
-                  : 'Aviso';
-        window.showToast({
-          type:     type,
-          title:    title,
-          message:  m.text,
-          duration: 6000,
-        });
-      });
-      saveSeen(seen);
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', showAll);
-    } else {
-      showAll();
-    }
-  })();
+  window.__DASHBOARD_MESSAGES__ = [
+    {% for message in messages %}
+    { tags: "{{ message.tags|escapejs }}", text: "{{ message|escapejs }}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
 </script>
+<script src="{% static 'js/dashboard_messages.js' %}"></script>
 {% endif %}
 
 <!-- Banner manual eliminado: los stats del dashboard se actualizan solos con polling -->
 
 <!-- ── WELCOME BANNER ── -->
-<div class="welcome-banner" style="animation-delay:0ms">
+<section class="welcome-banner" style="animation-delay:0ms" aria-labelledby="welcome-greeting">
   <div class="welcome-inner">
     <div class="welcome-eyebrow">Panel de control</div>
-    <h2><span>Hola, {{ user.get_full_name|default:user.email }}</span></h2>
+    <h2 id="welcome-greeting"><span>Hola, {{ user.get_full_name|default:user.email }}</span></h2>
     <p>Sesión activa · correo real <strong>{{ user.email }}</strong> nunca expuesto</p>
   </div>
   <div class="welcome-actions">
@@ -1082,12 +52,12 @@ el sistema de persistencia.
       Nuevo alias
     </a>
   </div>
-</div>
+</section>
 
 <!-- ── STAT CARDS ── -->
-<div class="stat-grid">
+<section class="stat-grid" aria-label="Estadísticas de la cuenta">
 
-  <div class="stat-card accent" style="animation-delay:60ms">
+  <article class="stat-card accent" style="animation-delay:60ms">
     <div class="stat-card-glow"></div>
     <div class="stat-card-header">
       <div class="stat-icon">
@@ -1103,9 +73,9 @@ el sistema de persistencia.
       <div class="stat-value" data-stat="alias_count">{{ alias_count|default:"0" }}</div>
       <div class="stat-sub">correos reales protegidos</div>
     </div>
-  </div>
+  </article>
 
-  <div class="stat-card neutral" style="animation-delay:100ms">
+  <article class="stat-card neutral" style="animation-delay:100ms">
     <div class="stat-card-header">
       <div class="stat-icon">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.8" stroke-linecap="round">
@@ -1135,9 +105,9 @@ el sistema de persistencia.
         <span class="stat-trend down" data-trend="total_emails">menos que ayer</span>
       {% endif %}
     </div>
-  </div>
+  </article>
 
-  <div class="stat-card danger" style="animation-delay:140ms">
+  <article class="stat-card danger" style="animation-delay:140ms">
     <div class="stat-card-glow"></div>
     <div class="stat-card-header">
       <div class="stat-icon">
@@ -1162,9 +132,9 @@ el sistema de persistencia.
         tasa de bloqueo: <strong style="margin-left:3px" data-stat="block_rate">{{ block_rate|default:"0" }}</strong>%
       </span>
     </div>
-  </div>
+  </article>
 
-  <div class="stat-card success" style="animation-delay:180ms">
+  <article class="stat-card success" style="animation-delay:180ms">
     <div class="stat-card-glow"></div>
     <div class="stat-card-header">
       <div class="stat-icon">
@@ -1179,13 +149,13 @@ el sistema de persistencia.
       <div class="stat-value" data-stat="safe_count">{{ safe_count|default:"0" }}</div>
       <div class="stat-sub">verificados por sandbox</div>
     </div>
-  </div>
+  </article>
 
-</div>
+</section>
 
 <!-- ── AMENAZAS RECIENTES (solo aparece si hay) ── -->
 {% if recent_threats %}
-<div class="threats-row" id="threatsRow">
+<section class="threats-row" id="threatsRow" aria-label="Amenazas recientes">
   {% for t in recent_threats %}
     <a href="{% if t.analysis %}{% url 'sandbox_report' t.analysis.pk %}{% else %}{% url 'inbox' %}{% endif %}" class="threat-card">
       <div class="threat-head">
@@ -1208,216 +178,159 @@ el sistema de persistencia.
       </div>
     </a>
   {% endfor %}
-</div>
+</section>
 {% endif %}
 
 <!-- ── DOS COLUMNAS ── -->
 <div class="two-col">
 
   <!-- ACTIVIDAD RECIENTE -->
-  <div class="panel" style="animation-delay:220ms">
-    <div class="panel-header">
-      <div class="panel-title">
-        <div class="panel-title-dot" style="background:var(--pl);box-shadow:0 0 6px rgba(167,139,250,0.5)"></div>
+  <section class="panel" style="animation-delay:220ms" aria-labelledby="panel-activity-title">
+    <header class="panel-header">
+      <h2 class="panel-title" id="panel-activity-title">
+        <span class="panel-title-dot" style="background:var(--pl);box-shadow:0 0 6px rgba(167,139,250,0.5)"></span>
         Actividad reciente
-      </div>
+      </h2>
       <a href="{% url 'inbox' %}" class="panel-link">Ver bandeja →</a>
-    </div>
-    <table class="activity-table">
-      <thead>
-        <tr>
-          <th>Correo</th>
-          <th>Alias destino</th>
-          <th>Hora</th>
-          <th>Estado</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for email in recent_emails %}
-        <tr class="activity-row {% if email.risk_score >= 61 %}risk-danger{% elif email.risk_score >= 31 %}risk-warning{% else %}risk-safe{% endif %}"
-            onclick="window.location='{% url 'inbox' %}'"
-            tabindex="0"
-            title="Abrir bandeja">
-          <td>
-            <div class="sender-info">
-              <div class="sender-avatar {% if not email.read %}unread{% endif %}"
-                   style="background:{% cycle 'rgba(124,92,255,0.12)' 'rgba(34,197,94,0.1)' 'rgba(245,158,11,0.1)' 'rgba(59,130,246,0.1)' %};
-                          color:{% cycle 'var(--pl)' '#4ade80' '#fbbf24' '#60a5fa' %}">
-                {{ email.from_email|first|upper }}
-              </div>
-              <div>
-                <div class="sender-name">
-                  {{ email.subject|truncatechars:30|default:"(sin asunto)" }}
-                  {% if email.has_attachment %}
-                  <svg class="attach-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Tiene adjunto">
-                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                  </svg>
-                  {% endif %}
+    </header>
+    <div class="panel-body">
+      <table class="activity-table">
+        <thead>
+          <tr>
+            <th>Remitente</th>
+            <th>Alias destino</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for email in recent_emails %}
+          <tr>
+            <td>
+              <div class="sender-info">
+                <div class="sender-avatar"
+                     style="background:{% cycle 'rgba(124,92,255,0.12)' 'rgba(34,197,94,0.1)' 'rgba(245,158,11,0.1)' 'rgba(59,130,246,0.1)' %};
+                            color:{% cycle 'var(--pl)' '#4ade80' '#fbbf24' '#60a5fa' %}">
+                  {{ email.from_email|first|upper }}
                 </div>
-                <div class="sender-email">{{ email.from_email|truncatechars:32 }}</div>
+                <div>
+                  <div class="sender-name">{{ email.subject|truncatechars:30 }}</div>
+                  <div class="sender-email">{{ email.from_email }}</div>
+                </div>
               </div>
-            </div>
-          </td>
-          <td><span class="mono-tag">{{ email.alias.address|truncatechars:24 }}</span></td>
-          <td><span class="time-chip">{{ email.time_short }}</span></td>
-          <td>
-            {% if email.risk_score >= 61 %}
-              <span class="risk-badge danger">
-                <span class="badge-dot"></span>
-                Bloqueado
-              </span>
-            {% elif email.risk_score >= 31 %}
-              <span class="risk-badge warning">
-                <span class="badge-dot"></span>
-                Sospechoso
-              </span>
-            {% else %}
-              <span class="risk-badge success">
-                <span class="badge-dot"></span>
-                Seguro
-              </span>
-            {% endif %}
-          </td>
-          <td class="chev-cell">
-            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="5">
-            <div class="empty-table">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
-              </svg>
-              Aún no hay correos recibidos en tus alias.
-              <a href="{% url 'alias_create' %}" style="color:var(--pl);text-decoration:none;margin-left:4px;font-family:var(--mono);font-weight:600">Crear un alias →</a>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {% if recent_emails|length > 4 %}
-    <nav class="activity-pagination" id="activityPagination" aria-label="Paginación de actividad reciente">
-      <button type="button" id="activityPagePrev" class="page-btn" aria-label="Página anterior" disabled>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-      <span id="activityPageInfo" class="page-info">1 / 1</span>
-      <button type="button" id="activityPageNext" class="page-btn" aria-label="Página siguiente">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>
-      </button>
-    </nav>
-    {% endif %}
-  </div>
+            </td>
+            <td><span class="mono-tag">{{ email.alias.address|truncatechars:24 }}</span></td>
+            <td>
+              {% if email.risk_score >= 61 %}
+                <span class="risk-badge danger">
+                  <span class="badge-dot"></span>
+                  Bloqueado
+                </span>
+              {% elif email.risk_score >= 31 %}
+                <span class="risk-badge warning">
+                  <span class="badge-dot"></span>
+                  Sospechoso
+                </span>
+              {% else %}
+                <span class="risk-badge success">
+                  <span class="badge-dot"></span>
+                  Seguro
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3">
+              <div class="empty-table">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Aún no hay correos recibidos en tus alias
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <!-- COLUMNA DERECHA -->
-  <div style="display:flex;flex-direction:column;gap:18px">
+  <div class="panel-stack">
 
     <!-- MIS ALIAS -->
-    <div class="panel" style="animation-delay:260ms">
-      <div class="panel-header">
-        <div class="panel-title">
-          <div class="panel-title-dot" style="background:var(--p);box-shadow:0 0 6px rgba(124,92,255,0.5)"></div>
+    <section class="panel" style="animation-delay:260ms" aria-labelledby="panel-aliases-title">
+      <header class="panel-header">
+        <h2 class="panel-title" id="panel-aliases-title">
+          <span class="panel-title-dot" style="background:var(--p);box-shadow:0 0 6px rgba(124,92,255,0.5)"></span>
           Mis alias
-        </div>
+        </h2>
         <a href="{% url 'alias_list' %}" class="panel-link">Ver todos →</a>
-      </div>
-      {% for alias in aliases %}
-      <div class="alias-item" onclick="window.location='{% url 'alias_list' %}'" tabindex="0" style="cursor:pointer">
-        <div class="alias-leading-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="4"/>
-            <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>
-          </svg>
-        </div>
-        <div style="min-width:0;flex:1">
-          <div class="alias-addr">{{ alias.address }}</div>
-          <div class="alias-meta">
-            <span>{{ alias.label }}</span>
-            <span class="alias-count-chip">{{ alias.email_count }} correos</span>
+      </header>
+      <div class="panel-body">
+        {% for alias in aliases %}
+        <div class="alias-item">
+          <div style="min-width:0;flex:1">
+            <div class="alias-addr">{{ alias.address }}</div>
+            <div class="alias-meta">{{ alias.label }} · {{ alias.email_count }} correos</div>
           </div>
+          {% if alias.is_active %}
+            <span class="alias-status active">
+              <span class="status-dot"></span>
+              Activo
+            </span>
+          {% else %}
+            <span class="alias-status inactive">Destruido</span>
+          {% endif %}
         </div>
-        {% if alias.is_active %}
-          <span class="alias-status active">
-            <span class="status-dot"></span>
-            Activo
-          </span>
-        {% else %}
-          <span class="alias-status inactive">Destruido</span>
-        {% endif %}
+        {% empty %}
+        <div class="empty-table">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+            <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/>
+          </svg>
+          No tienes alias aún.
+          <a href="{% url 'alias_create' %}" style="color:var(--pl);text-decoration:none;margin-left:4px;font-family:var(--mono)">Crear uno →</a>
+        </div>
+        {% endfor %}
       </div>
-      {% empty %}
-      <div class="empty-table">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-          <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/>
-        </svg>
-        No tienes alias aún.
-        <a href="{% url 'alias_create' %}" style="color:var(--pl);text-decoration:none;margin-left:4px;font-family:var(--mono)">Crear uno →</a>
-      </div>
-      {% endfor %}
-    </div>
+    </section>
 
     <!-- SANDBOX -->
-    <div class="panel" style="animation-delay:300ms">
-      <div class="panel-header">
-        <div class="panel-title">
-          <div class="panel-title-dot" style="background:var(--success);box-shadow:0 0 6px rgba(34,197,94,0.5)"></div>
+    <section class="panel" style="animation-delay:300ms" aria-labelledby="panel-sandbox-title">
+      <header class="panel-header">
+        <h2 class="panel-title" id="panel-sandbox-title">
+          <span class="panel-title-dot" style="background:var(--success);box-shadow:0 0 6px rgba(34,197,94,0.5)"></span>
           Estado del sandbox
-        </div>
+        </h2>
         <a href="{% url 'sandbox_list' %}" class="panel-link">Ver análisis →</a>
-      </div>
+      </header>
 
       <div class="sandbox-status">
         <div class="sandbox-dot"></div>
         <span class="sandbox-label">Contenedor <strong>activo y listo</strong></span>
       </div>
 
-      {% for analysis in recent_analyses %}
-      <a class="sandbox-analysis" href="{% url 'sandbox_report' analysis.pk %}" title="Ver reporte del análisis">
-        <div class="sandbox-analysis-info">
-          {# Icono por extensión: clasifica visualmente el tipo de archivo. #}
-          {% with ext=analysis.extension|lower %}
-          <span class="file-icon
-            {% if ext == '.pdf' %}pdf
-            {% elif ext == '.doc' or ext == '.docx' or ext == '.rtf' %}doc
-            {% elif ext == '.xls' or ext == '.xlsx' or ext == '.csv' %}xls
-            {% elif ext == '.zip' or ext == '.rar' or ext == '.7z' or ext == '.tar' %}zip
-            {% elif ext == '.exe' or ext == '.msi' or ext == '.dll' or ext == '.scr' %}exe
-            {% elif ext == '.png' or ext == '.jpg' or ext == '.jpeg' or ext == '.gif' %}img
-            {% elif ext == '.txt' or ext == '.log' %}txt
-            {% else %}gen{% endif %}" aria-hidden="true">
-            {% if ext %}{{ ext|cut:"."|slice:":3" }}{% else %}?{% endif %}
+      <div class="panel-body">
+        {% for analysis in recent_analyses %}
+        <div class="sandbox-analysis">
+          <span class="sandbox-filename">{{ analysis.filename }}</span>
+          <div class="risk-bar-wrap">
+            <div class="risk-bar"
+                 style="width:{{ analysis.risk_score }}%;
+                        background:{% if analysis.risk_score >= 61 %}linear-gradient(90deg,#ef4444,#f87171){% elif analysis.risk_score >= 31 %}linear-gradient(90deg,#f59e0b,#fbbf24){% else %}linear-gradient(90deg,#22c55e,#4ade80){% endif %}">
+            </div>
+          </div>
+          <span class="risk-score-num"
+                style="color:{% if analysis.risk_score >= 61 %}#f87171{% elif analysis.risk_score >= 31 %}#fbbf24{% else %}#4ade80{% endif %}">
+            {{ analysis.risk_score }}
           </span>
-          {% endwith %}
-          <div class="sandbox-analysis-meta">
-            <span class="sandbox-filename">{{ analysis.filename }}</span>
-            <span class="sandbox-analysis-time">hace {{ analysis.time_short }}</span>
-          </div>
         </div>
-        <div class="risk-bar-wrap">
-          <div class="risk-bar"
-               style="width:{{ analysis.risk_score }}%;
-                      background:{% if analysis.risk_score >= 61 %}linear-gradient(90deg,#ef4444,#f87171){% elif analysis.risk_score >= 31 %}linear-gradient(90deg,#f59e0b,#fbbf24){% else %}linear-gradient(90deg,#22c55e,#4ade80){% endif %}">
-          </div>
-        </div>
-        <span class="risk-score-num"
-              style="color:{% if analysis.risk_score >= 61 %}#f87171{% elif analysis.risk_score >= 31 %}#fbbf24{% else %}#4ade80{% endif %}">
-          {{ analysis.risk_score }}
-        </span>
-      </a>
-      {% empty %}
-      <div class="empty-table" style="padding:24px 20px">Sin análisis recientes</div>
-      {% endfor %}
-    </div>
+        {% empty %}
+        <div class="empty-table" style="padding:24px 20px">Sin análisis recientes</div>
+        {% endfor %}
+      </div>
+    </section>
 
   </div>
 </div>
@@ -1471,62 +384,11 @@ el sistema de persistencia.
 </div>
 
 <script>
-  /* ── MODAL BIENVENIDA ── */
-  const welcomeKey = 'welcome_shown_{{ request.user.id }}';
-  if (!localStorage.getItem(welcomeKey)) {
-    document.getElementById('welcome-overlay').classList.add('visible');
-  }
-  function closeWelcome() {
-    localStorage.setItem(welcomeKey, 'true');
-    document.getElementById('welcome-overlay').classList.remove('visible');
-  }
-
+  window.__DASHBOARD_CTX__ = {
+    welcomeKey: 'welcome_shown_{{ request.user.id }}',
+    liveApiUrl: "{% url 'dashboard_live_api' %}"
+  };
 </script>
-
-<script>
-/* ════════════════════════════════════════════════════════════════════
-   PAGINADOR DE LA TABLA "ACTIVIDAD RECIENTE"
-   ════════════════════════════════════════════════════════════════════
-   Todas las filas viven en el DOM. JS solo cambia cuáles son visibles
-   (4 por página). Sin recargas. Si hay 4 o menos filas, el `<nav>` del
-   paginador no se renderiza desde Django y este script no hace nada. */
-(function () {
-  const PER_PAGE = 4;
-  const rows = document.querySelectorAll('.activity-table tbody tr.activity-row');
-  const nav  = document.getElementById('activityPagination');
-  if (!nav || rows.length === 0) return;
-
-  const btnPrev  = document.getElementById('activityPagePrev');
-  const btnNext  = document.getElementById('activityPageNext');
-  const pageInfo = document.getElementById('activityPageInfo');
-  const totalPages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
-  let page = 1;
-
-  function render() {
-    rows.forEach((row, i) => {
-      const rowPage = Math.floor(i / PER_PAGE) + 1;
-      row.style.display = (rowPage === page) ? '' : 'none';
-    });
-    pageInfo.textContent = page + ' / ' + totalPages;
-    btnPrev.disabled = (page === 1);
-    btnNext.disabled = (page === totalPages);
-  }
-
-  btnPrev.addEventListener('click', () => {
-    if (page > 1) { page--; render(); }
-  });
-  btnNext.addEventListener('click', () => {
-    if (page < totalPages) { page++; render(); }
-  });
-
-  /* Soporte de flechas izq/der cuando los botones están enfocados. */
-  nav.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft'  && !btnPrev.disabled) { page--; render(); btnPrev.focus(); }
-    if (e.key === 'ArrowRight' && !btnNext.disabled) { page++; render(); btnNext.focus(); }
-  });
-
-  render();
-})();
-</script>
+<script src="{% static 'js/dashboard.js' %}"></script>
 
 {% endblock %}

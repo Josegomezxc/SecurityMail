@@ -1,1445 +1,12 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Reporte sandbox — {{ analysis.filename }}{% endblock %}
 {% block nav_sandbox %}active{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-<style>
-/* ═══════════════════════════════════════════
-   VARIABLES
-═══════════════════════════════════════════ */
-:root {
-  --ai-purple:        #7c3aed;
-  --ai-purple-light:  #a78bfa;
-  --ai-purple-soft:   rgba(124,58,237,0.08);
-  --ai-purple-border: rgba(124,58,237,0.22);
-  --ai-glow:          0 0 40px rgba(124,58,237,0.12);
-  --mono: 'JetBrains Mono', monospace;
-  --display: 'Syne', sans-serif;
-}
-
-/* ═══════════════════════════════════════════
-   KEYFRAMES
-═══════════════════════════════════════════ */
-@keyframes spin         { to { transform: rotate(360deg); } }
-@keyframes fadeUp       { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-@keyframes fadeIn       { from { opacity:0; } to { opacity:1; } }
-@keyframes blink        { 0%,100%{opacity:1;} 50%{opacity:0;} }
-@keyframes shimmer      { 0%{background-position:-200% 0;} 100%{background-position:200% 0;} }
-@keyframes pulse-ring   { 0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,0);} 60%{box-shadow:0 0 0 8px rgba(124,58,237,0.15);} }
-@keyframes border-flow  {
-  0%   { border-color: rgba(232,64,64,0.8) rgba(232,64,64,0.15) rgba(232,64,64,0.15) rgba(232,64,64,0.15); }
-  25%  { border-color: rgba(232,64,64,0.15) rgba(232,64,64,0.8) rgba(232,64,64,0.15) rgba(232,64,64,0.15); }
-  50%  { border-color: rgba(232,64,64,0.15) rgba(232,64,64,0.15) rgba(232,64,64,0.8) rgba(232,64,64,0.15); }
-  75%  { border-color: rgba(232,64,64,0.15) rgba(232,64,64,0.15) rgba(232,64,64,0.15) rgba(232,64,64,0.8); }
-  100% { border-color: rgba(232,64,64,0.8) rgba(232,64,64,0.15) rgba(232,64,64,0.15) rgba(232,64,64,0.15); }
-}
-@keyframes scan {
-  0%   { transform: translateY(-100%); opacity:0; }
-  10%  { opacity:1; }
-  90%  { opacity:1; }
-  100% { transform: translateY(400%); opacity:0; }
-}
-@keyframes count-up { from{opacity:0;transform:scale(0.85);} to{opacity:1;transform:scale(1);} }
-@keyframes slide-in-left  { from{opacity:0;transform:translateX(-16px);} to{opacity:1;transform:translateX(0);} }
-
-/* ═══════════════════════════════════════════
-   BANNERS
-═══════════════════════════════════════════ */
-.status-banner {
-  border-radius: 14px;
-  padding: 18px 22px;
-  display: flex; align-items: center; gap: 16px;
-  margin-bottom: 22px;
-  position: relative; overflow: hidden;
-}
-.status-banner::before {
-  content:'';
-  position:absolute; inset:0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 4s infinite;
-}
-.status-banner.blocked {
-  background: linear-gradient(135deg, rgba(232,64,64,0.12), rgba(232,64,64,0.06));
-  border: 1px solid rgba(232,64,64,0.3);
-}
-.status-banner.safe {
-  background: linear-gradient(135deg, rgba(46,204,113,0.1), rgba(46,204,113,0.05));
-  border: 1px solid rgba(46,204,113,0.25);
-}
-.status-icon-wrap {
-  width: 44px; height: 44px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.status-banner.blocked .status-icon-wrap { background: rgba(232,64,64,0.15); }
-.status-banner.safe    .status-icon-wrap { background: rgba(46,204,113,0.12); }
-.status-title { font-family: var(--display); font-size: 15px; font-weight: 700; margin-bottom: 3px; }
-.status-sub   { font-size: 12.5px; color: var(--text-secondary); }
-
-/* ═══════════════════════════════════════════
-   SCORE CARD
-═══════════════════════════════════════════ */
-.score-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 18px;
-  display: flex; align-items: center; gap: 22px;
-  flex-wrap: wrap;
-  position: relative; overflow: hidden;
-}
-.score-card::after {
-  content:'';
-  position:absolute; top:0; left:0; right:0; height:1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-}
-
-.score-ring-wrap {
-  position: relative; flex-shrink: 0;
-  width: 88px; height: 88px;
-}
-.score-ring-wrap svg { position: absolute; top:0; left:0; }
-.score-ring-num {
-  position: absolute; inset:0;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--display); font-size: 28px; font-weight: 800;
-}
-.score-info { flex: 1; min-width: 180px; }
-.score-filename {
-  font-family: var(--display); font-size: 19px; font-weight: 700;
-  margin-bottom: 4px; word-break: break-all;
-}
-.score-meta   { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; font-family: var(--mono); }
-.score-bar    { height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
-.score-bar-fill { height:100%; border-radius:3px; transition: width 1s cubic-bezier(.4,0,.2,1); }
-.score-badges { display:flex; gap:6px; flex-wrap:wrap; }
-.score-badge  {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 10px; border-radius: 20px;
-  font-size: 11px; font-weight: 600; font-family: var(--mono);
-}
-.score-badge.danger  { background: rgba(232,64,64,0.12); color: var(--danger); border: 1px solid rgba(232,64,64,0.25); }
-.score-badge.warning { background: rgba(245,158,11,0.12); color: var(--warning); border: 1px solid rgba(245,158,11,0.25); }
-.score-badge.success { background: rgba(46,204,113,0.1);  color: var(--success); border: 1px solid rgba(46,204,113,0.2); }
-
-/* ═══════════════════════════════════════════
-   ANALYSIS SECTIONS
-═══════════════════════════════════════════ */
-.section-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  margin-bottom: 14px;
-  overflow: hidden;
-}
-.section-head {
-  display: flex; align-items: center; gap: 10px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-elevated);
-}
-.section-icon-box {
-  width: 32px; height: 32px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.section-head-title { font-size: 13px; font-weight: 600; font-family: var(--display); }
-.section-head-tag   { margin-left: auto; }
-
-.finding-row {
-  display: flex; align-items: flex-start; gap: 14px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border-soft);
-  transition: background 0.2s;
-}
-.finding-row:last-child { border-bottom: none; }
-.finding-row:hover { background: var(--bg-elevated); }
-
-.finding-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
-.finding-label { font-size: 12.5px; font-weight: 600; margin-bottom: 4px; font-family: var(--display); }
-.finding-val   { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
-.finding-val code {
-  font-family: var(--mono);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  padding: 2px 7px; border-radius: 5px;
-  font-size: 11.5px; color: var(--danger);
-  display: inline-block; margin: 2px 2px 2px 0;
-}
-.finding-val .ok { color: var(--success); font-size: 12px; }
-
-/* tag badges */
-.tag {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; border-radius: 6px;
-  font-size: 11px; font-weight: 600; font-family: var(--mono);
-}
-.tag-blue    { background: rgba(59,130,246,0.1);  color: #60a5fa;        border: 1px solid rgba(59,130,246,0.2); }
-.tag-yellow  { background: rgba(245,158,11,0.1);  color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
-.tag-red     { background: rgba(232,64,64,0.1);   color: var(--danger);  border: 1px solid rgba(232,64,64,0.2); }
-.tag-green   { background: rgba(46,204,113,0.1);  color: var(--success); border: 1px solid rgba(46,204,113,0.2); }
-.tag-purple  { background: var(--ai-purple-soft); color: var(--ai-purple-light); border: 1px solid var(--ai-purple-border); }
-
-/* ═══════════════════════════════════════════
-   AI SECTION
-═══════════════════════════════════════════ */
-.ai-section {
-  background: var(--bg-surface);
-  border: 1px solid var(--ai-purple-border);
-  border-radius: 16px;
-  margin-bottom: 14px;
-  overflow: hidden;
-  box-shadow: var(--ai-glow);
-  position: relative;
-}
-
-.ai-section-header {
-  display: flex; align-items: center; gap: 14px;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--ai-purple-border);
-  background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(124,58,237,0.03) 60%, var(--bg-elevated) 100%);
-  position: relative; overflow: hidden;
-}
-.ai-section-header::before {
-  content:'';
-  position:absolute; inset:0;
-  background: linear-gradient(90deg, transparent, rgba(124,58,237,0.06), transparent);
-  background-size:200% 100%;
-  animation: shimmer 4s infinite;
-}
-.ai-header-icon {
-  width: 40px; height: 40px;
-  background: linear-gradient(135deg, var(--ai-purple) 0%, #a78bfa 100%);
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 4px 16px rgba(124,58,237,0.4);
-  animation: pulse-ring 3s ease-in-out infinite;
-  position: relative; z-index: 1;
-}
-.ai-header-text { flex:1; position: relative; z-index: 1; }
-.ai-header-title {
-  font-family: var(--display); font-size: 15px; font-weight: 700;
-  background: linear-gradient(90deg, #fff, var(--ai-purple-light));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.ai-header-sub  { font-size: 11px; color: var(--ai-purple-light); margin-top: 2px; font-family: var(--mono); opacity: 0.7; }
-.ai-model-badge {
-  display: flex; align-items: center; gap: 7px;
-  background: var(--ai-purple-soft);
-  border: 1px solid var(--ai-purple-border);
-  border-radius: 20px; padding: 5px 12px;
-  font-size: 11px; font-weight: 600;
-  color: var(--ai-purple-light);
-  font-family: var(--mono);
-  position: relative; z-index: 1;
-}
-.ai-live-dot {
-  width: 7px; height: 7px; background: #4ade80; border-radius: 50%;
-  animation: blink 1.5s ease-in-out infinite;
-  box-shadow: 0 0 6px rgba(74,222,128,0.6);
-}
-
-/* Loading */
-.ai-loading-wrap {
-  padding: 36px 24px;
-  display: flex; flex-direction: column; align-items: center; gap: 24px;
-}
-.ai-spinner-ring { position: relative; width: 64px; height: 64px; }
-.ai-spinner-ring svg { animation: spin 1.4s linear infinite; }
-.ai-spinner-inner {
-  position: absolute; inset: 14px;
-  background: var(--ai-purple-soft);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-}
-.ai-steps { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 340px; }
-.ai-step {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 12px; color: var(--text-muted);
-  font-family: var(--mono); opacity: 0;
-  transition: opacity 0.4s ease, color 0.4s ease;
-}
-.ai-step.active { opacity: 1; color: var(--ai-purple-light); }
-.ai-step.done   { opacity: 0.4; color: var(--text-muted); text-decoration: line-through; }
-.ai-step-indicator {
-  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  border: 1.5px solid var(--border-soft); font-size: 9px;
-  transition: all 0.3s;
-}
-.ai-step.active .ai-step-indicator {
-  border-color: var(--ai-purple); background: var(--ai-purple-soft);
-  color: var(--ai-purple-light);
-}
-.ai-step.done .ai-step-indicator {
-  border-color: var(--success); background: rgba(46,204,113,0.1);
-  color: var(--success);
-}
-
-/* Result */
-.ai-result-body { padding: 20px; display: none; animation: fadeIn 0.5s ease; }
-
-.ai-top-grid    { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.ai-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media(max-width:560px){
-  .ai-top-grid, .ai-bottom-grid { grid-template-columns: 1fr; }
-}
-
-.ai-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 12px; padding: 16px;
-  position: relative; overflow: hidden;
-  transition: border-color 0.25s, transform 0.2s;
-  animation: fadeUp 0.5s ease both;
-}
-.ai-card:hover { border-color: var(--ai-purple-border); transform: translateY(-1px); }
-.ai-card::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:1.5px;
-  background: linear-gradient(90deg, transparent, var(--ai-purple), transparent);
-  opacity:0; transition: opacity 0.3s;
-}
-.ai-card:hover::before { opacity:1; }
-.ai-card:nth-child(1){ animation-delay:0.05s; }
-.ai-card:nth-child(2){ animation-delay:0.12s; }
-.ai-card:nth-child(3){ animation-delay:0.18s; }
-.ai-card:nth-child(4){ animation-delay:0.24s; }
-
-.ai-card-label {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.09em;
-  color: var(--text-muted); font-family: var(--mono);
-  margin-bottom: 12px;
-}
-.ai-card-label svg { flex-shrink: 0; opacity: 0.6; }
-
-.ai-verdict-badge {
-  display: inline-flex; align-items: center; gap: 9px;
-  padding: 9px 16px; border-radius: 10px;
-  font-family: var(--display); font-size: 16px; font-weight: 800;
-  letter-spacing: 0.05em;
-  animation: count-up 0.4s ease 0.3s both;
-}
-.verdict-malicioso {
-  background: rgba(232,64,64,0.12); color: var(--danger);
-  border: 1.5px solid rgba(232,64,64,0.4);
-  animation: count-up 0.4s ease 0.3s both, border-flow 3s linear infinite;
-}
-.verdict-sospechoso {
-  background: rgba(245,158,11,0.1); color: var(--warning);
-  border: 1.5px solid rgba(245,158,11,0.35);
-}
-.verdict-seguro {
-  background: rgba(46,204,113,0.1); color: var(--success);
-  border: 1.5px solid rgba(46,204,113,0.3);
-}
-
-.ai-confidence-row {
-  display: flex; align-items: center; gap: 10px; margin-top: 12px;
-}
-.ai-conf-label { font-size: 10px; color: var(--text-muted); font-family: var(--mono); white-space: nowrap; }
-.ai-conf-bar   { flex:1; height: 5px; background: var(--bg-surface); border-radius: 3px; overflow: hidden; }
-.ai-conf-fill  { height:100%; border-radius:3px; width:0; transition: width 1.2s cubic-bezier(.4,0,.2,1) 0.6s; }
-.ai-conf-pct   { font-size: 11px; font-weight: 700; font-family: var(--mono); color: var(--text-primary); }
-
-.ai-threat-chip {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 7px 12px; border-radius: 8px;
-  font-size: 12px; font-weight: 600; font-family: var(--mono);
-}
-.ai-threat-chip.bad  { background: rgba(232,64,64,0.08); color: var(--danger);  border: 1px solid rgba(232,64,64,0.2); }
-.ai-threat-chip.good { background: rgba(46,204,113,0.08); color: var(--success); border: 1px solid rgba(46,204,113,0.2); }
-
-.ai-timestamp { font-size: 10px; color: var(--text-muted); font-family: var(--mono); margin-top: 8px; }
-
-.ai-text {
-  font-size: 13px; color: var(--text-secondary); line-height: 1.7;
-  white-space: pre-wrap;        /* respeta los saltos de línea de la IA */
-  word-wrap: break-word;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   INSIGHT CARDS — Explicación + Recomendación (rediseño full-width)
-   ═══════════════════════════════════════════════════════════════════════ */
-.ai-insight-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.ai-insight {
-  display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 18px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 14px;
-  padding: 22px 24px 22px 18px;
-  position: relative;
-  overflow: hidden;
-  animation: fadeUp 0.5s ease both;
-  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
-}
-.ai-insight:hover { transform: translateY(-1px); }
-
-/* Barra lateral de color (a la izquierda) */
-.ai-insight::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 4px;
-  border-radius: 4px 0 0 4px;
-}
-/* Halo decorativo en la esquina */
-.ai-insight::after {
-  content: '';
-  position: absolute;
-  top: -60px; right: -60px;
-  width: 200px; height: 200px;
-  border-radius: 50%;
-  opacity: 0.15;
-  pointer-events: none;
-  filter: blur(40px);
-}
-
-/* Variante: Explicación (morado, neutral, "información") */
-.ai-insight--explain {
-  background: linear-gradient(135deg,
-    rgba(124,58,237,0.04) 0%,
-    var(--bg-elevated) 60%);
-  border-color: rgba(124,58,237,0.18);
-}
-.ai-insight--explain::before { background: linear-gradient(180deg, var(--ai-purple), var(--ai-purple-light)); }
-.ai-insight--explain::after  { background: var(--ai-purple); }
-.ai-insight--explain:hover {
-  border-color: rgba(124,58,237,0.35);
-  box-shadow: 0 8px 28px rgba(124,58,237,0.12);
-}
-
-/* Variante: Recomendación (verde, accionable, "consejo") */
-.ai-insight--advice {
-  background: linear-gradient(135deg,
-    rgba(46,204,113,0.04) 0%,
-    var(--bg-elevated) 60%);
-  border-color: rgba(46,204,113,0.18);
-}
-.ai-insight--advice::before { background: linear-gradient(180deg, #2ecc71, #4ade80); }
-.ai-insight--advice::after  { background: #2ecc71; }
-.ai-insight--advice:hover {
-  border-color: rgba(46,204,113,0.4);
-  box-shadow: 0 8px 28px rgba(46,204,113,0.12);
-}
-
-/* Side column — icono circular grande */
-.ai-insight-side {
-  display: flex;
-  justify-content: center;
-  padding-top: 4px;
-}
-.ai-insight-icon {
-  width: 42px; height: 42px;
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-  position: relative;
-}
-.ai-insight-icon svg { width: 20px; height: 20px; color: white; }
-.ai-insight--explain .ai-insight-icon {
-  background: linear-gradient(135deg, var(--ai-purple), var(--ai-purple-light));
-}
-.ai-insight--advice .ai-insight-icon {
-  background: linear-gradient(135deg, #22c55e, #4ade80);
-}
-/* Pulso sutil del icono al renderizarse */
-.ai-insight-icon::after {
-  content: '';
-  position: absolute; inset: -3px;
-  border-radius: 14px;
-  border: 2px solid currentColor;
-  opacity: 0;
-  animation: iconPulse 2s ease-in-out 0.6s 1;
-}
-.ai-insight--explain .ai-insight-icon::after { color: var(--ai-purple); }
-.ai-insight--advice  .ai-insight-icon::after { color: #2ecc71; }
-@keyframes iconPulse {
-  0%   { opacity: 0; transform: scale(1); }
-  50%  { opacity: 0.4; transform: scale(1.15); }
-  100% { opacity: 0; transform: scale(1.3); }
-}
-
-/* Body */
-.ai-insight-body { min-width: 0; position: relative; z-index: 1; }
-.ai-insight-eyebrow {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-family: var(--mono);
-  margin-bottom: 4px;
-}
-.ai-insight--explain .ai-insight-eyebrow { color: var(--ai-purple-light); }
-.ai-insight--advice  .ai-insight-eyebrow { color: #4ade80; }
-
-.ai-insight-title {
-  font-family: var(--display, 'Syne', sans-serif);
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 12px;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-}
-
-.ai-insight .ai-text {
-  font-size: 13.5px;
-  line-height: 1.75;
-  color: var(--text-secondary);
-}
-.ai-insight .ai-text strong { color: var(--text-primary); font-weight: 600; }
-
-/* Variante "quoted" para la recomendación: comilla decorativa al inicio */
-.ai-text--quoted {
-  position: relative;
-  padding-top: 6px;
-}
-.ai-text--quoted::before {
-  content: '\201C';                       /* unicode left double quotation mark */
-  position: absolute;
-  top: -22px; left: -8px;
-  font-family: Georgia, serif;
-  font-size: 60px;
-  line-height: 1;
-  color: rgba(46,204,113,0.18);
-  pointer-events: none;
-  user-select: none;
-}
-
-/* Responsive: en móvil colapsa el side icon */
-@media (max-width: 640px) {
-  .ai-insight {
-    grid-template-columns: 1fr;
-    padding: 20px;
-    gap: 12px;
-  }
-  .ai-insight-side {
-    justify-content: flex-start;
-  }
-}
-
-.ai-error-wrap {
-  display: none; align-items: center; gap: 10px;
-  padding: 20px 22px; font-size: 13px; color: var(--text-muted);
-}
-
-/* ═══════════════════════════════════════════
-   EMAIL INFO
-═══════════════════════════════════════════ */
-/* (legacy — ya no se usa, dejado por si algún reporte viejo lo referencia) */
-.email-info-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
-  gap: 14px; padding: 18px 20px;
-}
-.email-info-item .ei-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--text-muted);
-  font-family: var(--mono); margin-bottom: 5px;
-}
-.email-info-item .ei-value { font-size: 13px; color: var(--text-primary); font-weight: 500; }
-
-/* ═══════════════════════════════════════════════════════════════════════
-   ORIGIN FLOW — Atacante → Alias (escudo) → Tu correo (protegido)
-   Cuenta visualmente cómo DockerShield protegió al usuario.
-   ═══════════════════════════════════════════════════════════════════════ */
-.origin-flow {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  align-items: stretch;
-  padding: 22px 20px;
-}
-@media (max-width: 1100px) {
-  .origin-flow { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 560px) {
-  .origin-flow { grid-template-columns: 1fr; }
-}
-
-.flow-node {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 14px;
-  padding: 16px 16px 14px;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 10px;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
-  animation: fadeUp 0.5s ease both;
-}
-.flow-node:hover { transform: translateY(-2px); }
-.flow-node::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  border-radius: 14px 14px 0 0;
-}
-/* Halo decorativo */
-.flow-node::after {
-  content: '';
-  position: absolute;
-  top: -50px; right: -50px;
-  width: 140px; height: 140px;
-  border-radius: 50%;
-  opacity: 0.12;
-  pointer-events: none;
-  filter: blur(32px);
-}
-
-/* Variante: Atacante (rojo, peligro) */
-.flow-node--threat {
-  background: linear-gradient(135deg, rgba(232,64,64,0.05) 0%, var(--bg-elevated) 60%);
-  border-color: rgba(232,64,64,0.22);
-  animation-delay: 0.05s;
-}
-.flow-node--threat::before { background: linear-gradient(90deg, var(--danger), #f87171); }
-.flow-node--threat::after  { background: var(--danger); }
-.flow-node--threat:hover {
-  border-color: rgba(232,64,64,0.45);
-  box-shadow: 0 8px 24px rgba(232,64,64,0.15);
-}
-
-/* Variante: Asunto / anzuelo (ámbar, gancho psicológico) */
-.flow-node--bait {
-  background: linear-gradient(135deg, rgba(245,158,11,0.05) 0%, var(--bg-elevated) 60%);
-  border-color: rgba(245,158,11,0.22);
-  animation-delay: 0.10s;
-}
-.flow-node--bait::before { background: linear-gradient(90deg, var(--warning), #fbbf24); }
-.flow-node--bait::after  { background: var(--warning); }
-.flow-node--bait:hover {
-  border-color: rgba(245,158,11,0.45);
-  box-shadow: 0 8px 24px rgba(245,158,11,0.15);
-}
-
-/* Variante: Alias (morado, escudo activo) */
-.flow-node--shield {
-  background: linear-gradient(135deg, rgba(124,58,237,0.05) 0%, var(--bg-elevated) 60%);
-  border-color: rgba(124,58,237,0.25);
-  animation-delay: 0.15s;
-}
-.flow-node--shield::before { background: linear-gradient(90deg, var(--ai-purple), var(--ai-purple-light)); }
-.flow-node--shield::after  { background: var(--ai-purple); }
-.flow-node--shield:hover {
-  border-color: rgba(124,58,237,0.5);
-  box-shadow: 0 8px 24px rgba(124,58,237,0.18);
-}
-
-/* Variante: Correo real (verde, seguro) */
-.flow-node--safe {
-  background: linear-gradient(135deg, rgba(46,204,113,0.05) 0%, var(--bg-elevated) 60%);
-  border-color: rgba(46,204,113,0.22);
-  animation-delay: 0.20s;
-}
-.flow-node--safe::before { background: linear-gradient(90deg, #22c55e, #4ade80); }
-.flow-node--safe::after  { background: #22c55e; }
-.flow-node--safe:hover {
-  border-color: rgba(46,204,113,0.45);
-  box-shadow: 0 8px 24px rgba(46,204,113,0.15);
-}
-
-/* Lado: icono + pulso */
-.flow-node-side {
-  display: flex; justify-content: center; align-items: center;
-  position: relative;
-  height: 50px;
-}
-.flow-node-icon {
-  width: 44px; height: 44px;
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-  position: relative;
-  z-index: 2;
-}
-.flow-node-icon svg { width: 21px; height: 21px; color: white; }
-.flow-node--threat .flow-node-icon { background: linear-gradient(135deg, var(--danger), #f87171); }
-.flow-node--bait   .flow-node-icon { background: linear-gradient(135deg, var(--warning), #fbbf24); }
-.flow-node--shield .flow-node-icon { background: linear-gradient(135deg, var(--ai-purple), var(--ai-purple-light)); }
-.flow-node--safe   .flow-node-icon { background: linear-gradient(135deg, #22c55e, #4ade80); }
-
-/* Pulso animado detrás del icono */
-.flow-node-pulse {
-  position: absolute;
-  width: 44px; height: 44px;
-  border-radius: 12px;
-  z-index: 1;
-  animation: nodePulse 2.4s ease-in-out infinite;
-}
-.flow-node--threat .flow-node-pulse { background: var(--danger); }
-.flow-node--bait   .flow-node-pulse { background: var(--warning); }
-.flow-node--shield .flow-node-pulse { background: var(--ai-purple); }
-.flow-node--safe   .flow-node-pulse { background: #22c55e; }
-@keyframes nodePulse {
-  0%, 100% { opacity: 0; transform: scale(1); }
-  50%      { opacity: 0.25; transform: scale(1.4); }
-}
-
-/* Body del nodo */
-.flow-node-body {
-  text-align: center;
-  position: relative;
-  z-index: 1;
-  min-width: 0;
-}
-.flow-node-eyebrow {
-  font-size: 9.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.12em;
-  font-family: var(--mono);
-  margin-bottom: 4px;
-}
-.flow-node--threat .flow-node-eyebrow { color: #f87171; }
-.flow-node--bait   .flow-node-eyebrow { color: #fbbf24; }
-.flow-node--shield .flow-node-eyebrow { color: var(--ai-purple-light); }
-.flow-node--safe   .flow-node-eyebrow { color: #4ade80; }
-
-.flow-node-title {
-  font-family: var(--display, 'Syne', sans-serif);
-  font-size: 13px; font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-  margin-bottom: 8px;
-}
-.flow-node-value {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-primary);
-  word-break: break-all;
-  line-height: 1.45;
-  margin-bottom: 8px;
-}
-.flow-node-value--mono { font-family: var(--mono); font-size: 11.5px; }
-.flow-node-value--purple { color: var(--ai-purple-light); }
-.flow-node-value--green  { color: #4ade80; }
-/* Asunto: tipo cita, font display, con comilla discreta */
-.flow-node-value--bait {
-  font-family: var(--display, 'Syne', sans-serif);
-  font-style: italic;
-  color: #fbbf24;
-  font-weight: 600;
-  position: relative;
-  padding: 0 4px;
-}
-.flow-node-value--bait::before,
-.flow-node-value--bait::after {
-  content: '\201C';
-  font-family: Georgia, serif;
-  font-size: 18px;
-  line-height: 0;
-  vertical-align: -2px;
-  opacity: 0.55;
-  margin-right: 1px;
-}
-.flow-node-value--bait::after {
-  content: '\201D';
-  margin-left: 1px;
-  margin-right: 0;
-}
-.flow-node-foot {
-  font-size: 10.5px;
-  color: var(--text-muted);
-  font-style: italic;
-  line-height: 1.4;
-}
-
-/* (Legacy — clases que ya no se renderizan, se conservan por si algún
-   componente histórico las referencia.) */
-.origin-subject-card {
-  margin: 6px 20px 22px;
-  padding: 18px 22px;
-  background: linear-gradient(135deg,
-    rgba(245,158,11,0.05) 0%,
-    var(--bg-elevated) 60%);
-  border: 1px solid rgba(245,158,11,0.2);
-  border-radius: 14px;
-  display: grid;
-  grid-template-columns: 44px 1fr;
-  gap: 16px;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-  animation: fadeUp 0.5s ease 0.24s both;
-  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
-}
-.origin-subject-card:hover {
-  border-color: rgba(245,158,11,0.4);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(245,158,11,0.1);
-}
-.origin-subject-card::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, var(--warning), #fbbf24);
-}
-.origin-subject-card::after {
-  content: '';
-  position: absolute;
-  top: -40px; right: -40px;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  background: var(--warning);
-  opacity: 0.1;
-  filter: blur(28px);
-  pointer-events: none;
-}
-
-.osc-icon {
-  width: 44px; height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--warning), #fbbf24);
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 5px 14px rgba(245,158,11,0.35);
-  flex-shrink: 0;
-}
-.osc-icon svg { width: 20px; height: 20px; color: white; }
-
-.osc-body { min-width: 0; position: relative; z-index: 1; }
-.osc-eyebrow {
-  font-size: 9.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.12em;
-  color: #fbbf24; font-family: var(--mono);
-  margin-bottom: 5px;
-}
-.osc-quote {
-  font-family: var(--display, 'Syne', sans-serif);
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.4;
-  margin-bottom: 4px;
-  letter-spacing: -0.01em;
-  word-break: break-word;
-  position: relative;
-  padding-left: 22px;
-}
-.osc-quote::before {
-  content: '\201C';                /* comilla decorativa */
-  position: absolute;
-  left: 0; top: -8px;
-  font-family: Georgia, serif;
-  font-size: 38px;
-  line-height: 1;
-  color: rgba(245,158,11,0.45);
-  font-weight: 700;
-}
-.osc-foot {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-style: italic;
-  line-height: 1.4;
-  padding-left: 22px;
-}
-
-@media (max-width: 640px) {
-  .origin-subject-card {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  .osc-icon { width: 36px; height: 36px; }
-}
-
-/* Responsive: en móvil/tablet apila verticalmente con flechas hacia abajo */
-@media (max-width: 880px) {
-  .origin-flow {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  .flow-arrow {
-    flex-direction: row;
-    justify-content: center;
-    padding: 4px 0;
-    transform: rotate(90deg);
-  }
-  .flow-arrow-line { width: 32px; }
-  .origin-subject {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-}
-
-/* ═══════════════════════════════════════════
-   ACTIONS
-═══════════════════════════════════════════ */
-/* (legacy — quedan las clases por si algún componente externo las usa) */
-.actions-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-.btn-action { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; font-family: var(--display); text-decoration: none; cursor: pointer; border: none; transition: all 0.2s ease; }
-.btn-action:hover { transform: translateY(-1px); }
-.btn-ghost-action { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border); }
-.btn-destroy {
-  background: linear-gradient(135deg, #e84040 0%, #c92626 100%);
-  color: #fff; border: 1px solid rgba(255,255,255,0.18);
-  font-weight: 700;
-  box-shadow: 0 4px 14px rgba(232,64,64,0.4);
-}
-.btn-destroy:hover {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  box-shadow: 0 6px 20px rgba(232,64,64,0.6);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   PRÓXIMOS PASOS — tarjetas de acción al final del reporte
-   ═══════════════════════════════════════════════════════════════════════ */
-.next-actions { margin-top: 14px; }
-.next-actions-label {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.14em;
-  color: var(--text-muted); font-family: var(--mono);
-  margin-bottom: 12px; padding-left: 4px;
-  display: flex; align-items: center; gap: 8px;
-}
-.next-actions-label::before {
-  content: ''; width: 18px; height: 1.5px;
-  background: linear-gradient(90deg, var(--ai-purple), transparent);
-}
-
-.next-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 12px;
-}
-
-.action-tile {
-  display: grid;
-  grid-template-columns: 48px 1fr 24px;
-  gap: 16px;
-  align-items: center;
-  padding: 18px 18px 18px 16px;
-  background: linear-gradient(135deg, rgba(124,58,237,0.06) 0%, var(--bg-elevated) 60%);
-  border: 1px solid var(--ai-purple-border);
-  border-radius: 14px;
-  text-decoration: none;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 6px 18px rgba(124,58,237,0.1);
-  transition: transform 0.2s cubic-bezier(.22,1,.36,1), box-shadow 0.2s ease;
-}
-/* Barra lateral SIEMPRE visible */
-.action-tile::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, var(--ai-purple), var(--ai-purple-light));
-}
-/* Halo morado SIEMPRE visible (sutil) */
-.action-tile::after {
-  content: '';
-  position: absolute;
-  top: -50px; right: -50px;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  background: var(--ai-purple);
-  opacity: 0.12;
-  filter: blur(28px);
-  pointer-events: none;
-}
-/* Hover solo añade elevación extra */
-.action-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(124,58,237,0.22);
-}
-.action-tile:hover .action-tile-arrow { transform: translateX(4px); }
-
-/* Icono SIEMPRE en estado "encendido" (gradiente morado) */
-.action-tile-icon {
-  width: 48px; height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--ai-purple), var(--ai-purple-light));
-  border: 1px solid var(--ai-purple);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 6px 18px rgba(124,58,237,0.4);
-  position: relative; z-index: 1;
-}
-.action-tile-icon svg {
-  width: 22px; height: 22px;
-  color: white;
-}
-
-.action-tile-body { min-width: 0; position: relative; z-index: 1; }
-.action-tile-title {
-  font-family: var(--display, 'Syne', sans-serif);
-  font-size: 14px; font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-  margin-bottom: 3px;
-  line-height: 1.3;
-}
-.action-tile-sub {
-  font-size: 11.5px;
-  color: var(--text-muted);
-  line-height: 1.45;
-}
-.action-tile-arrow {
-  display: flex; align-items: center; justify-content: center;
-  color: var(--ai-purple-light);
-  transition: transform 0.2s ease;
-  position: relative; z-index: 1;
-}
-.action-tile-arrow svg { width: 16px; height: 16px; }
-
-/* Variante crítica: destruir alias — rojo encendido siempre */
-.action-tile--critical {
-  border-color: rgba(232,64,64,0.5);
-  background: linear-gradient(135deg, rgba(232,64,64,0.08) 0%, var(--bg-elevated) 60%);
-  box-shadow: 0 6px 18px rgba(232,64,64,0.15);
-  animation: criticalPulse 2.5s ease-in-out infinite;
-}
-.action-tile--critical::before { background: linear-gradient(180deg, var(--danger), #f87171); }
-.action-tile--critical::after  { background: var(--danger); opacity: 0.12; }
-.action-tile--critical .action-tile-icon {
-  background: linear-gradient(135deg, var(--danger), #f87171);
-  border-color: var(--danger);
-  box-shadow: 0 6px 18px rgba(232,64,64,0.4);
-}
-.action-tile--critical .action-tile-arrow { color: #f87171; }
-.action-tile--critical:hover {
-  box-shadow: 0 12px 32px rgba(232,64,64,0.28);
-}
-@keyframes criticalPulse {
-  0%, 100% { box-shadow: 0 6px 18px rgba(232,64,64,0.15), 0 0 0 0 rgba(232,64,64,0); }
-  50%      { box-shadow: 0 6px 18px rgba(232,64,64,0.18), 0 0 0 8px rgba(232,64,64,0.05); }
-}
-
-@media (max-width: 640px) {
-  .action-tile {
-    grid-template-columns: 40px 1fr 20px;
-    gap: 12px;
-    padding: 14px 14px 14px 12px;
-  }
-  .action-tile-icon { width: 40px; height: 40px; }
-  .action-tile-icon svg { width: 18px; height: 18px; }
-  .action-tile-title { font-size: 13px; }
-  .action-tile-sub { font-size: 11px; }
-}
-
-/* ═══════════════════════════════════════════
-   FILE FACTS GRID (identificación del archivo)
-═══════════════════════════════════════════ */
-.facts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 12px;
-  padding: 18px 20px;
-}
-.fact {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 10px;
-  padding: 12px 14px;
-  min-width: 0;
-}
-.fact-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  font-family: var(--mono);
-  margin-bottom: 6px;
-}
-.fact-value {
-  font-size: 12.5px;
-  color: var(--text-primary);
-  font-weight: 500;
-  font-family: var(--mono);
-  word-break: break-all;
-  line-height: 1.4;
-}
-.fact-value.danger { color: var(--danger); }
-.fact-value.success { color: var(--success); }
-.fact-value.warning { color: var(--warning); }
-.fact-flag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-  font-size: 10.5px;
-  padding: 2px 7px;
-  border-radius: 5px;
-  background: rgba(232,64,64,0.12);
-  color: var(--danger);
-  border: 1px solid rgba(232,64,64,0.25);
-  font-family: var(--mono);
-  font-weight: 600;
-}
-.fact-flag.ok {
-  background: rgba(46,204,113,0.1);
-  color: var(--success);
-  border-color: rgba(46,204,113,0.2);
-}
-
-/* ═══════════════════════════════════════════
-   EVIDENCE LIST
-═══════════════════════════════════════════ */
-.evidence-empty {
-  padding: 24px 20px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-.evidence-list {
-  padding: 8px 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.evidence-item {
-  display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 14px;
-  padding: 12px 14px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-left-width: 3px;
-  border-radius: 8px;
-  align-items: start;
-  animation: slide-in-left 0.3s ease both;
-}
-.evidence-item.sev-critical { border-left-color: var(--danger); }
-.evidence-item.sev-high     { border-left-color: #f97316; }
-.evidence-item.sev-medium   { border-left-color: var(--warning); }
-.evidence-item.sev-low      { border-left-color: #60a5fa; }
-.evidence-item.sev-info     { border-left-color: var(--text-muted); }
-
-.severity-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 0;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  font-family: var(--mono);
-  letter-spacing: 0.04em;
-  width: 56px;
-}
-.severity-pill.sev-critical { background: rgba(232,64,64,0.15);  color: var(--danger); }
-.severity-pill.sev-high     { background: rgba(249,115,22,0.15); color: #fb923c; }
-.severity-pill.sev-medium   { background: rgba(245,158,11,0.15); color: var(--warning); }
-.severity-pill.sev-low      { background: rgba(96,130,250,0.12); color: #60a5fa; }
-.severity-pill.sev-info     { background: var(--bg-hover);       color: var(--text-muted); }
-
-.evidence-body { min-width: 0; }
-.evidence-detail {
-  font-size: 12.5px;
-  color: var(--text-primary);
-  line-height: 1.5;
-  word-wrap: break-word;
-}
-.evidence-type {
-  display: inline-block;
-  margin-top: 4px;
-  font-size: 10px;
-  font-family: var(--mono);
-  color: var(--text-muted);
-  background: var(--bg-surface);
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border-soft);
-}
-
-/* ═══════════════════════════════════════════
-   IOCS
-═══════════════════════════════════════════ */
-.ioc-group {
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border-soft);
-}
-.ioc-group:last-child { border-bottom: none; }
-.ioc-group-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  font-family: var(--mono);
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.ioc-group-title svg { width: 12px; height: 12px; }
-.ioc-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.ioc-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-family: var(--mono);
-  color: var(--text-primary);
-  transition: border-color 0.15s;
-}
-.ioc-row:hover { border-color: var(--ai-purple-border); }
-.ioc-row .ioc-text { flex: 1; word-break: break-all; min-width: 0; }
-.ioc-copy-btn {
-  background: transparent;
-  border: 1px solid var(--border-soft);
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px 7px;
-  border-radius: 5px;
-  font-family: var(--mono);
-  font-size: 10px;
-  transition: all 0.15s;
-  flex-shrink: 0;
-}
-.ioc-copy-btn:hover { color: var(--ai-purple-light); border-color: var(--ai-purple-border); }
-.ioc-copy-btn.copied { background: rgba(46,204,113,0.12); color: var(--success); border-color: rgba(46,204,113,0.25); }
-
-/* ═══════════════════════════════════════════
-   YARA MATCHES
-═══════════════════════════════════════════ */
-.yara-list {
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   COLAPSABLE — Listas largas con "Ver más / Ver menos"
-   Aplicado a: .evidence-list, .yara-list, .ioc-list cuando tengan
-   data-show="N". El JS al final del archivo activa el comportamiento.
-   ═══════════════════════════════════════════════════════════════════════ */
-.collapsible-list {
-  position: relative;
-}
-.collapsible-list .collapsible-hidden {
-  display: none;
-}
-.collapsible-list.expanded .collapsible-hidden {
-  display: flex;
-  animation: collapseSlide 0.25s ease both;
-}
-.collapsible-list .evidence-item.collapsible-hidden,
-.collapsible-list .yara-rule.collapsible-hidden,
-.collapsible-list .ioc-row.collapsible-hidden { display: none; }
-.collapsible-list.expanded .evidence-item.collapsible-hidden { display: flex; }
-.collapsible-list.expanded .yara-rule.collapsible-hidden     { display: block; }
-.collapsible-list.expanded .ioc-row.collapsible-hidden       { display: flex; }
-@keyframes collapseSlide {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Fade en la parte inferior cuando hay items ocultos (efecto de "hay más") */
-.collapsible-list:not(.expanded).has-hidden::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 50px;
-  background: linear-gradient(to bottom, transparent, var(--bg-surface) 90%);
-  pointer-events: none;
-  border-radius: 0 0 12px 12px;
-}
-
-/* Botón "Ver más" (insertado por JS justo después de cada lista) */
-.collapsible-toggle {
-  margin: 12px 16px 14px;
-  padding: 9px 16px;
-  width: calc(100% - 32px);
-  background: var(--bg-elevated);
-  border: 1px dashed var(--border);
-  border-radius: 10px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--mono);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.18s cubic-bezier(.22,1,.36,1);
-  letter-spacing: 0.02em;
-}
-.collapsible-toggle:hover {
-  background: var(--ai-purple-soft, rgba(124,58,237,0.08));
-  border-color: var(--ai-purple-light);
-  border-style: solid;
-  color: var(--ai-purple-light);
-  transform: translateY(-1px);
-}
-.collapsible-toggle:active { transform: translateY(0); }
-.collapsible-toggle .toggle-chevron {
-  width: 12px; height: 12px;
-  transition: transform 0.25s cubic-bezier(.22,1,.36,1);
-}
-.collapsible-toggle.is-expanded .toggle-chevron {
-  transform: rotate(180deg);
-}
-.collapsible-toggle .toggle-count {
-  font-weight: 700;
-  color: var(--ai-purple-light);
-}
-.yara-rule {
-  background: var(--bg-elevated);
-  border: 1px solid rgba(232,64,64,0.2);
-  border-radius: 8px;
-  padding: 11px 14px;
-}
-.yara-rule-name {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--danger);
-  margin-bottom: 3px;
-}
-.yara-rule-cat {
-  font-size: 10.5px;
-  color: var(--text-muted);
-  font-family: var(--mono);
-}
-
-/* ═══════════════════════════════════════════
-   ANALYZER CHIPS
-═══════════════════════════════════════════ */
-.analyzer-chips {
-  padding: 12px 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-.analyzer-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
-  border-radius: 6px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  font-size: 11px;
-  font-family: var(--mono);
-  color: var(--text-secondary);
-}
-.analyzer-chip svg { width: 10px; height: 10px; color: var(--success); }
-
-/* ═══════════════════════════════════════════
-   BODY-OF-EMAIL ANALYSIS CARD
-═══════════════════════════════════════════ */
-.body-card-head {
-  background: linear-gradient(135deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02));
-}
-.body-summary {
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border-bottom: 1px solid var(--border-soft);
-}
-.body-score-num {
-  font-family: var(--display);
-  font-size: 28px;
-  font-weight: 800;
-  flex-shrink: 0;
-  width: 56px;
-  text-align: center;
-}
-.body-summary-text { flex: 1; min-width: 0; }
-.body-summary-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-.body-summary-sub   { font-size: 11.5px; color: var(--text-muted); font-family: var(--mono); }
-
-/* ═══════════════════════════════════════════
-   MULTI-ATTACHMENTS LIST (si el correo trae varios)
-═══════════════════════════════════════════ */
-.att-list { padding: 10px 16px; display: flex; flex-direction: column; gap: 8px; }
-.att-item {
-  display: grid;
-  grid-template-columns: 42px 1fr auto;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 14px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  border-radius: 10px;
-  transition: border-color 0.15s;
-}
-.att-item:hover { border-color: var(--ai-purple-border); }
-
-.att-score-wrap {
-  position: relative;
-  width: 42px; height: 42px;
-  flex-shrink: 0;
-}
-.att-score-wrap svg { position: absolute; top:0; left:0; }
-.att-score-num {
-  position: absolute; inset:0;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--display); font-size: 12px; font-weight: 800;
-}
-
-.att-body { min-width: 0; }
-.att-name {
-  font-family: var(--mono);
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.att-meta {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-family: var(--mono);
-  margin-top: 3px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.att-meta span { display: inline-flex; align-items: center; gap: 4px; }
-.att-meta .att-spoof {
-  background: rgba(232,64,64,0.12);
-  color: var(--danger);
-  border: 1px solid rgba(232,64,64,0.25);
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-weight: 700;
-  font-size: 9.5px;
-}
-
-.att-pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 10.5px;
-  font-weight: 700;
-  font-family: var(--mono);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.att-pill.danger  { background: rgba(232,64,64,0.12);  color: var(--danger);  border: 1px solid rgba(232,64,64,0.25); }
-.att-pill.warning { background: rgba(245,158,11,0.12);  color: var(--warning); border: 1px solid rgba(245,158,11,0.25); }
-.att-pill.success { background: rgba(46,204,113,0.1);   color: var(--success); border: 1px solid rgba(46,204,113,0.22); }
-</style>
+<link rel="stylesheet" href="{% static 'styles/sandbox_report.css' %}">
 {% endblock %}
 
 {% block page_title %}
@@ -1455,43 +22,43 @@
 
 <!-- ── STATUS BANNER ── -->
 {% if analysis.risk_score >= 61 %}
-<div class="status-banner blocked" style="animation:fadeUp 0.4s ease">
+<header class="status-banner blocked" style="animation:fadeUp 0.4s ease" role="alert">
   <div class="status-icon-wrap">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round">
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
       <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>
   </div>
-  <div>
+  <div class="status-text">
     <div class="status-title" style="color:var(--danger)">Archivo bloqueado — amenaza detectada</div>
     <div class="status-sub">Tu correo <strong style="color:var(--text-primary)">{{ user.email }}</strong> y tu PC nunca recibieron este archivo.</div>
   </div>
-  <div style="margin-left:auto">
+  <div class="status-tag">
     <span class="tag tag-red">BLOQUEADO</span>
   </div>
-</div>
+</header>
 {% else %}
-<div class="status-banner safe" style="animation:fadeUp 0.4s ease">
+<header class="status-banner safe" style="animation:fadeUp 0.4s ease" role="status">
   <div class="status-icon-wrap">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
     </svg>
   </div>
-  <div>
+  <div class="status-text">
     <div class="status-title" style="color:var(--success)">Archivo analizado — sin amenazas detectadas</div>
     <div class="status-sub">El análisis no encontró comportamiento malicioso.</div>
   </div>
-  <div style="margin-left:auto">
+  <div class="status-tag">
     {% if analysis.risk_score >= 81 %}<span class="tag tag-red">MALWARE</span>
     {% elif analysis.risk_score >= 61 %}<span class="tag tag-red">ALTO RIESGO</span>
     {% elif analysis.risk_score >= 31 %}<span class="tag tag-yellow">SOSPECHOSO</span>
     {% else %}<span class="tag tag-green">SEGURO</span>{% endif %}
   </div>
-</div>
+</header>
 {% endif %}
 
 <!-- ── SCORE CARD ── -->
-<div class="score-card" style="animation:fadeUp 0.4s ease 0.05s both">
+<section class="score-card" style="animation:fadeUp 0.4s ease 0.05s both" aria-label="Resumen del análisis">
   <div class="score-ring-wrap">
     <svg width="88" height="88" viewBox="0 0 88 88">
       <circle cx="44" cy="44" r="38" fill="none"
@@ -1536,23 +103,23 @@
       {% endif %}
     </div>
   </div>
-</div>
+</section>
 
 <!-- ── IDENTIFICACIÓN DEL ARCHIVO ── -->
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.1s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.1s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(59,130,246,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
       </svg>
     </div>
-    <span class="section-head-title">Identificación del archivo</span>
+    <h2 class="section-head-title">Identificación del archivo</h2>
     <div class="section-head-tag">
       {% if analysis.category and analysis.category != 'unknown' %}
         <span class="tag tag-blue">{{ analysis.get_category_display }}</span>
       {% endif %}
     </div>
-  </div>
+  </header>
 
   <div class="facts-grid">
     <div class="fact">
@@ -1596,20 +163,20 @@
     </div>
     {% endif %}
   </div>
-</div>
+</section>
 
 <!-- ── TODOS LOS ADJUNTOS (si el correo traía varios) ── -->
 {% if analysis.attachments_reports and analysis.attachments_reports|length > 1 %}
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.11s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.11s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(245,158,11,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round">
         <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
       </svg>
     </div>
-    <span class="section-head-title">Adjuntos del correo</span>
+    <h2 class="section-head-title">Adjuntos del correo</h2>
     <div class="section-head-tag"><span class="tag tag-yellow">{{ analysis.attachments_reports|length }} archivos analizados</span></div>
-  </div>
+  </header>
 
   <div class="att-list">
     {% for att in analysis.attachments_reports %}
@@ -1654,18 +221,18 @@
       {% endwith %}
     {% endfor %}
   </div>
-</div>
+</section>
 {% endif %}
 
 <!-- ── EVIDENCIA (CORE: cada indicador detectado) ── -->
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.13s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.13s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(232,64,64,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
       </svg>
     </div>
-    <span class="section-head-title">Evidencia detectada</span>
+    <h2 class="section-head-title">Evidencia detectada</h2>
     <div class="section-head-tag">
       {% if analysis.evidence %}
         <span class="tag tag-red">{{ analysis.evidence|length }} indicador{{ analysis.evidence|length|pluralize:"es" }}</span>
@@ -1673,7 +240,7 @@
         <span class="tag tag-green">Sin hallazgos</span>
       {% endif %}
     </div>
-  </div>
+  </header>
 
   {% if analysis.evidence %}
     <div class="evidence-list collapsible-list" data-show="5" data-label="indicadores">
@@ -1739,22 +306,22 @@
       <div>El análisis no encontró indicadores sospechosos en este archivo.</div>
     </div>
   {% endif %}
-</div>
+</section>
 
 <!-- ── YARA MATCHES (si hay) ── -->
 {% if analysis.yara_matches %}
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.16s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.16s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(124,58,237,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2" stroke-linecap="round">
         <path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/>
       </svg>
     </div>
-    <span class="section-head-title">Reglas YARA coincidentes</span>
+    <h2 class="section-head-title">Reglas YARA coincidentes</h2>
     <div class="section-head-tag">
       <span class="tag tag-purple">{{ analysis.yara_matches|length }} match{{ analysis.yara_matches|length|pluralize:"es" }}</span>
     </div>
-  </div>
+  </header>
   <div class="yara-list collapsible-list" data-show="3" data-label="reglas">
     {% for match in analysis.yara_matches %}
       <div class="yara-rule">
@@ -1767,21 +334,21 @@
       </div>
     {% endfor %}
   </div>
-</div>
+</section>
 {% endif %}
 
 <!-- ── IOCs (URLs, IPs, dominios) ── -->
 {% if analysis.iocs.urls or analysis.iocs.ips or analysis.iocs.domains %}
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.18s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.18s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(59,130,246,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round">
         <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
       </svg>
     </div>
-    <span class="section-head-title">Indicadores de compromiso (IOCs)</span>
+    <h2 class="section-head-title">Indicadores de compromiso (IOCs)</h2>
     <div class="section-head-tag"><span class="tag tag-blue">extraídos del análisis</span></div>
-  </div>
+  </header>
 
   {% if analysis.iocs.urls %}
   <div class="ioc-group">
@@ -1833,19 +400,19 @@
     </div>
   </div>
   {% endif %}
-</div>
+</section>
 {% endif %}
 
 <!-- ── ANÁLISIS DEL CUERPO DEL CORREO ── -->
 {% if analysis.body_score > 0 or analysis.body_evidence %}
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.2s both">
-  <div class="section-head body-card-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.2s both">
+  <header class="section-head body-card-head">
     <div class="section-icon-box" style="background:rgba(245,158,11,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round">
         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
       </svg>
     </div>
-    <span class="section-head-title">Análisis del cuerpo del correo</span>
+    <h2 class="section-head-title">Análisis del cuerpo del correo</h2>
     <div class="section-head-tag">
       {% if analysis.body_score >= 61 %}
         <span class="tag tag-red">Score {{ analysis.body_score }}</span>
@@ -1855,7 +422,7 @@
         <span class="tag tag-blue">Score {{ analysis.body_score }}</span>
       {% endif %}
     </div>
-  </div>
+  </header>
 
   <div class="body-summary">
     <div class="body-score-num"
@@ -1915,25 +482,25 @@
       {% endfor %}
     </div>
   {% endif %}
-</div>
+</section>
 {% endif %}
 
 <!-- ── ANALIZADORES EJECUTADOS ── -->
 {% if analysis.analyzers_run %}
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.22s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.22s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:rgba(46,204,113,0.1)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round">
         <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
       </svg>
     </div>
-    <span class="section-head-title">Analizadores ejecutados</span>
+    <h2 class="section-head-title">Analizadores ejecutados</h2>
     <div class="section-head-tag">
       <span class="tag tag-green" title="Cada adjunto se ejecuta o inspecciona en un contenedor Docker sin acceso a internet, sin disco persistente y con límite de memoria/CPU. Esto previene que el malware se propague, se conecte a un C&C o exfiltre datos durante el análisis.">
         contenedor aislado · sin red · sin disco · sin privilegios
       </span>
     </div>
-  </div>
+  </header>
   <div class="analyzer-chips">
     {% for a in analysis.analyzers_run %}
       <span class="analyzer-chip">
@@ -1942,13 +509,13 @@
       </span>
     {% endfor %}
   </div>
-</div>
+</section>
 {% endif %}
 
 <!-- ══════════════════════════════════════
      AI SECTION
 ══════════════════════════════════════ -->
-<div class="ai-section" style="animation:fadeUp 0.4s ease 0.2s both">
+<section class="ai-section" style="animation:fadeUp 0.4s ease 0.2s both" aria-label="Análisis de IA">
 
   <div class="ai-section-header">
     <div class="ai-header-icon">
@@ -2061,20 +628,20 @@
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <span id="ai-error-msg">Análisis IA no disponible.</span>
   </div>
-</div>
+</section>
 
 <!-- ── CORREO ORIGEN — Flow visual del ataque y la protección ── -->
-<div class="section-card" style="animation:fadeUp 0.4s ease 0.25s both">
-  <div class="section-head">
+<section class="section-card" style="animation:fadeUp 0.4s ease 0.25s both">
+  <header class="section-head">
     <div class="section-icon-box" style="background:var(--bg-hover)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round">
         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
         <polyline points="22,6 12,13 2,6"/>
       </svg>
     </div>
-    <span class="section-head-title">Trayectoria del correo</span>
+    <h2 class="section-head-title">Trayectoria del correo</h2>
     <div class="section-head-tag"><span class="tag tag-blue">cómo te protegimos</span></div>
-  </div>
+  </header>
 
   <div class="origin-flow">
 
@@ -2155,10 +722,10 @@
     </div>
 
   </div>
-</div>
+</section>
 
 <!-- ── PRÓXIMOS PASOS — tarjetas de acción ── -->
-<div class="next-actions" style="animation:fadeUp 0.4s ease 0.3s both">
+<section class="next-actions" style="animation:fadeUp 0.4s ease 0.3s both" aria-label="Próximos pasos sugeridos">
   <div class="next-actions-label">¿Y AHORA QUÉ?</div>
   <div class="next-actions-grid">
 
@@ -2221,274 +788,26 @@
     </a>
 
   </div>
-</div>
+</section>
 
 <!-- ── AI SCRIPT ── -->
 <script>
-// ── Botones "copiar" en la lista de IOCs ─────────────────────────────
-document.querySelectorAll('.ioc-copy-btn').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(btn.dataset.copy);
-      const original = btn.textContent;
-      btn.textContent = 'copiado';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
-    } catch (e) { console.warn('clipboard failed', e); }
-  });
-});
-
-// ── Listas colapsables: "Ver más / Ver menos" automatic ───────────────
-// Cualquier .collapsible-list con data-show="N" y más de N hijos
-// recibe un botón de toggle.
-document.querySelectorAll('.collapsible-list').forEach(wrap => {
-  const show  = parseInt(wrap.dataset.show, 10) || 5;
-  const label = wrap.dataset.label || 'elementos';
-  const items = Array.from(wrap.children);
-  if (items.length <= show) return;
-
-  // Marca los items que sobran como ocultos
-  const hidden = items.length - show;
-  for (let i = show; i < items.length; i++) {
-    items[i].classList.add('collapsible-hidden');
-  }
-  wrap.classList.add('has-hidden');
-
-  // Crea el botón con chevron + contador
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'collapsible-toggle';
-  const chev = '<svg class="toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>';
-  btn.innerHTML = `Ver <span class="toggle-count">${hidden}</span> ${label} más ${chev}`;
-
-  btn.addEventListener('click', () => {
-    const expanded = wrap.classList.toggle('expanded');
-    btn.classList.toggle('is-expanded', expanded);
-    wrap.classList.toggle('has-hidden', !expanded);
-    btn.innerHTML = expanded
-      ? `Ver menos ${chev}`
-      : `Ver <span class="toggle-count">${hidden}</span> ${label} más ${chev}`;
-  });
-
-  // Inserta el botón justo después de la lista
-  wrap.parentNode.insertBefore(btn, wrap.nextSibling);
-});
-
-(async function() {
-  const filename     = "{{ analysis.filename|escapejs }}";
-  const mimeType     = "{{ analysis.real_mime_type|escapejs }}";
-  const extension    = "{{ analysis.extension|escapejs }}";
-  const extSpoof     = {% if analysis.extension_spoof %}true{% else %}false{% endif %};
-  const category     = "{{ analysis.category|escapejs }}";
-  const riskScore    = {{ analysis.risk_score }};
-  const threatName   = "{{ analysis.threat_name|escapejs }}";
-  const evidence     = {{ analysis.evidence|safe }};
-  const iocs         = {{ analysis.iocs|safe }};
-  const yaraMatches  = {{ analysis.yara_matches|safe }};
-  const bodyScore    = {{ analysis.body_score|default:0 }};
-  const bodyThreat   = "{{ analysis.body_threat|escapejs }}";
-  const analyzersRun = {{ analysis.analyzers_run|safe }};
-
-  // Top 6 evidencias por severidad para no inflar el prompt
-  const topEvidence = (evidence || [])
-    .slice()
-    .sort((a, b) => (b.severity || 0) - (a.severity || 0))
-    .slice(0, 6)
-    .map(e => `• [${e.severity}/100] ${e.detail}`)
-    .join("\n");
-
-  const iocSummary = [];
-  if (iocs?.urls?.length)    iocSummary.push(`URLs: ${iocs.urls.slice(0, 5).join(", ")}`);
-  if (iocs?.ips?.length)     iocSummary.push(`IPs: ${iocs.ips.slice(0, 5).join(", ")}`);
-  if (iocs?.domains?.length) iocSummary.push(`Dominios: ${iocs.domains.slice(0, 5).join(", ")}`);
-
-  const yaraSummary = (yaraMatches || [])
-    .map(m => typeof m === "string" ? m : (m.rule || ""))
-    .filter(Boolean)
-    .join(", ");
-
-  // Animate steps
-  const stepIds = ['step-1','step-2','step-3','step-4'];
-  let si = 0;
-  const stepInt = setInterval(() => {
-    if (si > 0) {
-      const prev = document.getElementById(stepIds[si-1]);
-      if (prev) { prev.classList.remove('active'); prev.classList.add('done');
-        prev.querySelector('.ai-step-indicator').textContent = '✓';
-      }
-    }
-    if (si < stepIds.length) {
-      document.getElementById(stepIds[si])?.classList.add('active');
-      si++;
-    }
-  }, 700);
-
-  const prompt = `Eres un analista senior de ciberseguridad escribiendo para un USUARIO FINAL sin conocimientos técnicos. Estás revisando el reporte de un sandbox que analizó un archivo o correo recibido en DockerShield (sistema de alias desechables anti-phishing).
-
-Tu objetivo es que el usuario entienda QUÉ pasó, POR QUÉ es importante, QUÉ pudo pasarle, y QUÉ debe hacer ahora. Escribe en español claro, sin jerga técnica sin explicar.
-
-═══ DATOS DEL ANÁLISIS ═══
-Archivo:           ${filename}
-Tipo MIME real:    ${mimeType || "desconocido"}
-Extensión:         ${extension || "—"}${extSpoof ? "  ← ¡no coincide con MIME real!" : ""}
-Categoría:         ${category}
-Score de riesgo:   ${riskScore}/100
-Amenaza detectada: ${threatName || "ninguna"}
-Analizadores que corrieron: ${(analyzersRun || []).join(", ") || "ninguno"}
-
-═══ EVIDENCIA TOP (por severidad) ═══
-${topEvidence || "Sin indicadores específicos"}
-
-═══ IOCs EXTRAÍDOS ═══
-${iocSummary.join("\n") || "Sin IOCs"}
-
-═══ COINCIDENCIAS YARA ═══
-${yaraSummary || "Ninguna"}
-
-═══ CUERPO DEL CORREO ═══
-Score body: ${bodyScore}/100${bodyThreat ? "  ·  " + bodyThreat : ""}
-
-═══ REGLAS OBLIGATORIAS ═══
-
-1. VEREDICTO atado al score técnico (no reinterpretes):
-   · Score 81-100 → MALICIOSO
-   · Score 31-80  → SOSPECHOSO
-   · Score 0-30   → SEGURO
-
-2. Si hay match YARA o analizador que detectó amenaza, RESPETA esa detección aunque el
-   archivo sea inerte por sí solo. Ejemplo: EICAR es un archivo de prueba estándar de
-   antivirus — su detección ES la respuesta correcta del sandbox (VEREDICTO MALICIOSO,
-   explicar que el sistema lo bloqueó como debía).
-
-3. SIEMPRE define los términos técnicos la primera vez que los uses, entre paréntesis y
-   en lenguaje sencillo. Ejemplos:
-   · "YARA (un sistema que busca patrones conocidos de código malicioso)"
-   · "macro VBA (mini-programa dentro de un documento Office que se ejecuta al abrirlo)"
-   · "PowerShell encoded command (comando oculto en base64 para evadir antivirus)"
-   · "loader (programa pequeño cuyo único trabajo es descargar más malware)"
-   · "exfiltración (envío secreto de tus datos a un servidor del atacante)"
-   · "C2 / command-and-control (servidor desde donde el atacante controla el malware)"
-   · "persistencia (técnica para que el malware sobreviva reinicios)"
-   · "MIME (tipo real del archivo, distinto de su extensión)"
-   · "IOC (indicador de compromiso: URL, IP o hash que delata al atacante)"
-
-4. EXPLICACION debe tener 4-6 frases COMPLETAS organizadas así:
-   (a) Qué es el archivo en términos simples.
-   (b) Qué patrones específicos detectó el sandbox y QUÉ SIGNIFICAN para el usuario.
-   (c) Qué pasaría si el usuario hubiera abierto el archivo (impacto real, sin dramatizar).
-   (d) Por qué el sistema lo bloqueó (o por qué se considera seguro).
-
-5. RECOMENDACION debe sonar como un amigo que te asesora — conversacional, en 2-3 párrafos
-   cortos, sin headers en mayúsculas, sin viñetas, sin estructura formal. Cubre estas ideas
-   pero entrelazadas en lenguaje natural:
-   - Qué deberías hacer con este correo/alias ahora mismo.
-   - Algo práctico para que reconozcas correos parecidos la próxima vez.
-   - Cuándo vale la pena reportarlo a alguien (si aplica).
-   Usa "tú", evita el imperativo seco ("destruye el alias" → mejor "yo destruiría el alias",
-   "te recomendaría", "lo mejor sería", "si fuera tú..."). Cero sermón, cero alarma.
-   Ejemplo de tono: "Lo más sensato es que destruyas este alias en cuanto puedas, porque
-   ya quedó en alguna lista de spam. Para la próxima, fíjate en si el remitente termina
-   en un dominio raro tipo .xyz o .top — son red flag clásicas..."
-
-6. Tono general: directo, sin alarmismo, sin jerga, didáctico. Como si le explicaras a un amigo.
-
-═══ FORMATO DE RESPUESTA ═══
-
-Responde EXACTAMENTE con estas 4 etiquetas en este orden, sin Markdown, sin asteriscos:
-
-VEREDICTO: [MALICIOSO / SOSPECHOSO / SEGURO]
-TIPO DE AMENAZA: [Phishing / Malware / Ransomware / Backdoor / Loader / Spyware / Robo de credenciales / Test de seguridad / No aplica]
-EXPLICACION: [4-6 oraciones siguiendo la estructura del punto 4. Puede ocupar varios párrafos.]
-RECOMENDACION: [2-3 párrafos cortos en tono conversacional, como un amigo que te asesora. SIN headers en mayúsculas, SIN viñetas, SIN estructura formal. Que cubra qué hacer ahora, cómo reconocer similares, y cuándo reportar — pero todo entrelazado naturalmente.]`;
-
-  /* Parser multi-línea: captura todo el contenido desde KEY: hasta la siguiente KEY:
-     Permite que EXPLICACION y RECOMENDACION ocupen varios párrafos. */
-  const KEYS = ["VEREDICTO", "TIPO DE AMENAZA", "EXPLICACION", "RECOMENDACION"];
-  const get = (text, key) => {
-    const lines = text.split("\n");
-    const startIdx = lines.findIndex(l => l.trim().startsWith(key + ":"));
-    if (startIdx === -1) return "";
-    let endIdx = lines.length;
-    for (let i = startIdx + 1; i < lines.length; i++) {
-      const t = lines[i].trim();
-      if (KEYS.some(k => k !== key && t.startsWith(k + ":"))) {
-        endIdx = i;
-        break;
-      }
-    }
-    const block = lines.slice(startIdx, endIdx).join("\n");
-    // Quita "KEY:" del inicio
-    return block.replace(new RegExp("^\\s*" + key.replace(/ /g, "\\s+") + "\\s*:\\s*"), "").trim();
-  };
-
-  const csrfToken = document.cookie.split(';')
-    .find(c => c.trim().startsWith('csrftoken='))?.split('=')[1] || '';
-
-  try {
-    const res  = await fetch("/ai-analysis/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
-      body: JSON.stringify({ prompt }),
-    });
-    const data = await res.json();
-    const text = data.result;
-    if (!text) throw new Error("Sin respuesta");
-
-    clearInterval(stepInt);
-
-    const v  = get(text, "VEREDICTO").toUpperCase();
-    const t  = get(text, "TIPO DE AMENAZA");
-    const ex = get(text, "EXPLICACION");
-    const rc = get(text, "RECOMENDACION");
-
-    // Veredicto
-    const vClass = v === "MALICIOSO" ? "verdict-malicioso" : v === "SOSPECHOSO" ? "verdict-sospechoso" : "verdict-seguro";
-    const vIcon  = v === "MALICIOSO"
-      ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
-      : v === "SOSPECHOSO"
-      ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
-      : `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
-
-    document.getElementById("ai-verdict-el").innerHTML =
-      `<span class="ai-verdict-badge ${vClass}">${vIcon} ${v}</span>`;
-
-    // Confidence
-    const conf = v === "MALICIOSO" ? 94 : v === "SOSPECHOSO" ? 71 : 97;
-    const confColor = v === "MALICIOSO" ? "var(--danger)" : v === "SOSPECHOSO" ? "var(--warning)" : "var(--success)";
-    document.getElementById("ai-conf-pct").textContent = conf + "%";
-    document.getElementById("ai-conf-pct").style.color = confColor;
-    const fill = document.getElementById("ai-conf-fill");
-    fill.style.background = confColor;
-    setTimeout(() => { fill.style.width = conf + "%"; }, 150);
-
-    // Threat chip
-    const isSafe = !t || t.toLowerCase().includes("no aplica");
-    const tIcon = isSafe
-      ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`
-      : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>`;
-    document.getElementById("ai-threat-el").innerHTML =
-      `<span class="ai-threat-chip ${isSafe ? 'good' : 'bad'}">${tIcon} ${t || "No aplica"}</span>`;
-
-    // Timestamp
-    document.getElementById("ai-time-el").textContent =
-      `analizado · ${new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})}`;
-
-    // Texts
-    document.getElementById("ai-expl-el").textContent = ex || "Sin información.";
-    document.getElementById("ai-rec-el").textContent  = rc || "Sin recomendación.";
-
-    // Show
-    document.getElementById("ai-loading").style.display = "none";
-    document.getElementById("ai-content").style.display = "block";
-
-  } catch(e) {
-    clearInterval(stepInt);
-    document.getElementById("ai-loading").style.display = "none";
-    const errWrap = document.getElementById("ai-error");
-    errWrap.style.display = "flex";
-    document.getElementById("ai-error-msg").textContent = "Análisis IA no disponible: " + e.message;
-  }
-})();
+window.__SANDBOX_CTX__ = {
+  filename:     "{{ analysis.filename|escapejs }}",
+  mimeType:     "{{ analysis.real_mime_type|escapejs }}",
+  extension:    "{{ analysis.extension|escapejs }}",
+  extSpoof:     {% if analysis.extension_spoof %}true{% else %}false{% endif %},
+  category:     "{{ analysis.category|escapejs }}",
+  riskScore:    {{ analysis.risk_score }},
+  threatName:   "{{ analysis.threat_name|escapejs }}",
+  evidence:     {{ analysis.evidence|safe }},
+  iocs:         {{ analysis.iocs|safe }},
+  yaraMatches:  {{ analysis.yara_matches|safe }},
+  bodyScore:    {{ analysis.body_score|default:0 }},
+  bodyThreat:   "{{ analysis.body_threat|escapejs }}",
+  analyzersRun: {{ analysis.analyzers_run|safe }}
+};
 </script>
+<script src="{% static 'js/sandbox_report.js' %}"></script>
 
 {% endblock %}

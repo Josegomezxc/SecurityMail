@@ -1,0 +1,11 @@
+/* ════════════════════════════════════════════════════════════════════
+   PROPERTIES — sent.css
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  --ai-purple:        #7c3aed;
+  --ai-purple-light:  #a78bfa;
+  --ai-purple-soft:   rgba(124,58,237,0.08);
+  --ai-purple-border: rgba(124,58,237,0.22);
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+}

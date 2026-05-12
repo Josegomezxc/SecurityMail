@@ -1,0 +1,308 @@
+@import url('./properties/admin_users.css');
+@keyframes fadeUp  { from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);} }
+
+/* Mobile-first defaults — desktop overrides al final del archivo */
+.adm-header {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 20px;
+  padding: 14px;                           /* mobile */
+  animation: fadeUp 0.4s ease both;
+}
+.adm-header h1 {
+  font-family: var(--display); font-size: 18px; font-weight: 800;   /* mobile */
+  margin-bottom: 3px;
+  word-break: break-word;
+}
+.adm-header p { font-size: 12px; color: var(--text-secondary); font-family: var(--mono); }
+
+.search-bar {
+  flex: 1; max-width: 320px;
+  display: flex; align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  overflow: hidden;
+  margin-left: auto;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-bar:focus-within {
+  border-color: rgba(245,158,11,0.35);
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.12);
+}
+.search-bar svg { margin: 0 10px; color: var(--text-muted); flex-shrink: 0; }
+.search-bar input {
+  flex: 1; background: transparent; border: none; outline: none;
+  padding: 9px 12px 9px 0; color: var(--text-primary);
+  font-family: var(--mono); font-size: 12.5px;
+}
+.search-bar input::placeholder { color: var(--text-muted); }
+
+/* TABLA — Mobile First.
+   Mobile (default): cada fila se renderiza como una card apilada
+   (display:block en table/tr/td, thead oculto). Desktop ≥992px restaura
+   el display:table nativo via @media al final. */
+.users-table-wrap {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: visible;                       /* mobile */
+  padding: 0;
+  animation: fadeUp 0.45s ease 0.05s both;
+}
+.users-table,
+.users-table thead,
+.users-table tbody,
+.users-table tr,
+.users-table th,
+.users-table td {
+  display: block;                          /* mobile */
+  width: 100%;
+}
+.users-table thead { display: none; }      /* mobile: el header se oculta */
+.users-table {
+  border-collapse: collapse;
+}
+.users-table tr {
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 12px 14px;                      /* mobile: card padding */
+  background: var(--bg-surface);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+.users-table th {
+  text-align: left;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--text-muted); font-family: var(--mono);
+  letter-spacing: 0.09em;
+  background: rgba(255,255,255,0.02);
+  white-space: nowrap;
+}
+.users-table td {
+  padding: 4px 0;                          /* mobile: card cell padding */
+  font-size: 12.5px;
+  border: none;
+  vertical-align: middle;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.users-table tr:last-child td { border-bottom: none; }
+.users-table tbody tr { transition: background 0.12s; }
+.users-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+
+.user-cell { display: flex; align-items: center; gap: 11px; }
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-size: 12px; font-weight: 800;
+  background: var(--ai-purple-soft, rgba(124,58,237,0.1));
+  color: var(--ai-purple-light, #a78bfa);
+  border: 1px solid var(--ai-purple-border, rgba(124,58,237,0.22));
+  flex-shrink: 0;
+}
+.user-name-col { min-width: 0; }
+.user-email {
+  font-family: var(--mono); font-size: 12.5px; font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 220px;
+  display: block;
+}
+.user-joined {
+  font-size: 10.5px; color: var(--text-muted); font-family: var(--mono);
+  margin-top: 2px;
+}
+
+.role-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 10.5px; font-weight: 700;
+  font-family: var(--mono); letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.role-badge.admin {
+  background: rgba(245,158,11,0.12); color: #fbbf24;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.role-badge.user  {
+  background: rgba(124,92,255,0.1); color: var(--ai-purple-light, #a78bfa);
+  border: 1px solid var(--ai-purple-border, rgba(124,58,237,0.22));
+}
+.role-badge .dot {
+  width: 5px; height: 5px; border-radius: 50%; background: currentColor;
+}
+
+.num-cell {
+  font-family: var(--mono); font-weight: 600;
+  text-align: center;
+}
+.num-cell.threat { color: var(--danger); }
+.num-cell.muted  { color: var(--text-muted); }
+
+.row-actions { display: flex; gap: 7px; justify-content: flex-end; align-items: center; }
+.btn-mini {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 7px;
+  font-size: 10.5px; font-weight: 600;
+  font-family: var(--mono);
+  text-decoration: none;
+  cursor: pointer; border: 1px solid;
+  transition: all 0.15s;
+  background: transparent;
+  white-space: nowrap;
+}
+.btn-mini.primary {
+  background: var(--ai-purple-soft, rgba(124,58,237,0.08));
+  color: var(--ai-purple-light, #a78bfa);
+  border-color: var(--ai-purple-border, rgba(124,58,237,0.22));
+}
+.btn-mini.primary:hover { background: rgba(124,58,237,0.15); }
+.btn-mini.promote {
+  background: rgba(245,158,11,0.08); color: #fbbf24;
+  border-color: rgba(245,158,11,0.22);
+}
+.btn-mini.promote:hover { background: rgba(245,158,11,0.18); }
+.btn-mini.demote {
+  background: var(--bg-elevated); color: var(--text-secondary);
+  border-color: var(--border);
+}
+.btn-mini.demote:hover { color: var(--text-primary); border-color: var(--border); background: var(--bg-hover); }
+
+.self-note {
+  font-size: 10px; color: var(--text-muted);
+  font-family: var(--mono); font-style: italic;
+}
+
+.adm-alert {
+  background: rgba(46,204,113,0.08);
+  border: 1px solid rgba(46,204,113,0.2);
+  border-radius: 10px; padding: 10px 14px;
+  font-size: 12.5px; color: var(--success);
+  font-family: var(--mono);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+  animation: fadeUp 0.3s ease;
+}
+.adm-alert.err { background: rgba(232,64,64,0.08); border-color: rgba(232,64,64,0.25); color: var(--danger); }
+
+#users-empty {
+  display: none;
+  padding: 40px 20px; text-align: center;
+  color: var(--text-muted); font-family: var(--mono); font-size: 12px;
+}
+
+/* ── Filtros por rol ── */
+.users-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 5px;
+  width: fit-content;
+}
+.users-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;                       /* mobile */
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11.5px;                       /* mobile */
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.users-filter-btn:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+}
+.users-filter-btn.active {
+  background: var(--ai-purple-soft);
+  color: var(--ai-purple-light);
+  box-shadow: 0 0 0 1px var(--ai-purple-border) inset;
+}
+.users-filter-btn.admin.active {
+  background: rgba(245,158,11,0.12);
+  color: #fbbf24;
+  box-shadow: 0 0 0 1px rgba(245,158,11,0.3) inset;
+}
+.users-filter-btn.warn.active {
+  background: rgba(232,64,64,0.12);
+  color: #f87171;
+  box-shadow: 0 0 0 1px rgba(232,64,64,0.3) inset;
+}
+.users-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  line-height: 1;
+}
+.users-filter-btn.active .users-filter-count {
+  background: rgba(255,255,255,0.14);
+  color: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE-FIX (< 992px) — admin_users.css
+   Tabla de usuarios → cards apiladas
+   ═══════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   DESKTOP ≥992px — restaura el layout original:
+   • .adm-header sin padding ni word-break, h1 a 22px
+   • .users-filter-btn con padding/font-size más generosos
+   • .users-table-wrap con overflow:hidden (clipea el border-radius)
+   • Toda la tabla vuelve a display:table nativo
+   • Las cells recuperan padding generoso, font-size y borde inferior
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+  .adm-header   { padding: 0; }
+  .adm-header h1 { font-size: 22px; word-break: normal; }
+  .users-filter-btn { padding: 8px 13px; font-size: 12.5px; }
+
+  .users-table-wrap { overflow: hidden; }
+
+  .users-table       { display: table; width: 100%; }
+  .users-table thead { display: table-header-group; }
+  .users-table tbody { display: table-row-group; }
+  .users-table tr    {
+    display: table-row;
+    width: auto;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    margin-bottom: 0;
+  }
+  .users-table th {
+    display: table-cell;
+    width: auto;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .users-table td {
+    display: table-cell;
+    width: auto;
+    padding: 14px 18px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border-soft);
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  .users-table tr:last-child td { border-bottom: none; }
+}

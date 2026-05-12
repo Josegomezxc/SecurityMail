@@ -1,0 +1,14 @@
+/* ════════════════════════════════════════════════════════════════════
+   PROPERTIES — perfil.css
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  --p:    #7c5cff;
+  --pl:   #a78bfa;
+  --ps:   rgba(124,92,255,0.12);
+  --pb:   rgba(124,92,255,0.28);
+  --danger:  #ef4444;
+  --warning: #f59e0b;
+  --success: #22c55e;
+  --display: 'Syne', sans-serif;
+  --mono:    'JetBrains Mono', monospace;
+}
