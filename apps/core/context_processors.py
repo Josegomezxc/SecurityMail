@@ -22,15 +22,19 @@ def sidebar_counts(request):
             'notif_unread_pending_count':  0,
             'drafts_count':        0,
             'trash_count':         0,
+            'active_aliases':      [],
             'avatar_initials':     '',
             'avatar_color':        '#7c5cff',
         }
 
     user = request.user
 
-    alias_count = Alias.objects.filter(
-        user=user, is_active=True
-    ).count()
+    # Alias activos: los usamos para el badge del sidebar (count) y para el
+    # selector "Nuevo correo" del sidebar (lista completa).
+    active_aliases = list(
+        Alias.objects.filter(user=user, is_active=True).order_by('-created_at')
+    )
+    alias_count = len(active_aliases)
 
     # No contamos los correos en papelera como "no leídos" — están borrados
     # desde el punto de vista del usuario.
@@ -65,6 +69,7 @@ def sidebar_counts(request):
 
     return {
         'alias_count':         alias_count,
+        'active_aliases':      active_aliases,
         'unread_count':        unread_count,
         'threats_count':       threats_count,
         'notif_pending_count':         notif_pending_count,

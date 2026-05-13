@@ -5,8 +5,11 @@
   var overlay     = document.getElementById('composeOverlay');
   var win         = document.getElementById('composeWindow');
   var fromAddr    = document.getElementById('composeFromAddr');
-  var inputTo     = document.getElementById('composeTo');
-  var inputSubj   = document.getElementById('composeSubject');
+  var inputTo       = document.getElementById('composeTo');         // hidden, valor real (chips coma-joined)
+  var inputToTyping = document.getElementById('composeToTyping');    // visible, donde el usuario teclea
+  var chipsBox     = document.getElementById('composeChips');
+  var suggestBox   = document.getElementById('composeSuggestions');
+  var inputSubj    = document.getElementById('composeSubject');
   var editor      = document.getElementById('composeMessage');
   var errTo       = document.getElementById('composeErrTo');
   var errSubj     = document.getElementById('composeErrSubject');
@@ -29,6 +32,9 @@
   var currentAliasAddr = '';
   var currentAliasLabel = '';
   var currentDraftId   = null;               // id del borrador asociado (si lo hay)
+  var recipients       = [];                 // chips committed [{email, label}]
+  var suggestActive    = -1;                 // índice resaltado en el dropdown
+  var suggestItems     = [];                 // resultados actuales del dropdown
   var attachedFiles    = [];                 // File[] (no se persiste)
   var attachedTotalBytes = 0;
   var MAX_TOTAL_BYTES  = 25 * 1024 * 1024;
@@ -135,7 +141,8 @@
       document.execCommand('insertText', false, text);
     });
   }
-  inputTo.addEventListener('input', saveState);
+  // El input de "Para" (visible) tiene su propio listener más abajo en el
+  // bloque de CHIPS, que llama a saveState() después de sincronizar.
   inputSubj.addEventListener('input', saveState);
 
   // ── Adjuntos ──
@@ -499,14 +506,272 @@
     });
   }
 
+  // ══════════════════════════════════════════════════════════════════
+  //  CHIPS DE DESTINATARIOS + AUTOCOMPLETADO
+  // ══════════════════════════════════════════════════════════════════
+  var EMAIL_RX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+
+  function escText(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // El hidden input `inputTo` refleja siempre: chips + lo que el usuario
+  // está tecleando ahora. Así el código existente que lee `inputTo.value`
+  // (saveState, saveDraftRemote, form submit) sigue funcionando.
+  function syncHiddenTo() {
+    var typed = (inputToTyping.value || '').trim().replace(/[,;]+$/, '');
+    var emails = recipients.map(function (r) { return r.email; });
+    if (typed) emails.push(typed);
+    inputTo.value = emails.join(', ');
+  }
+
+  function renderChips() {
+    if (!chipsBox) return;
+    var old = chipsBox.querySelectorAll('.compose-chip');
+    for (var i = 0; i < old.length; i++) old[i].remove();
+    recipients.forEach(function (r, idx) {
+      var valid = EMAIL_RX.test(r.email);
+      var chip = document.createElement('span');
+      chip.className = 'compose-chip' + (valid ? '' : ' invalid');
+      chip.title = (r.label ? (r.label + ' <' + r.email + '>') : r.email)
+                 + (valid ? '' : ' — formato inválido');
+      chip.innerHTML =
+        '<span class="compose-chip-text">' + escText(r.label || r.email) + '</span>'
+        + '<button type="button" class="compose-chip-x" aria-label="Quitar destinatario">×</button>';
+      chip.querySelector('.compose-chip-x').addEventListener('click', function (e) {
+        e.stopPropagation();
+        recipients.splice(idx, 1);
+        renderChips();
+        syncHiddenTo();
+        saveState();
+        inputToTyping.focus();
+      });
+      chipsBox.insertBefore(chip, inputToTyping);
+    });
+  }
+
+  function addRecipient(email, label) {
+    email = (email || '').trim().toLowerCase();
+    if (!email) return false;
+    if (recipients.some(function (r) { return r.email === email; })) return false;
+    recipients.push({ email: email, label: label || '' });
+    renderChips();
+    return true;
+  }
+
+  function commitTyped() {
+    var typed = (inputToTyping.value || '').trim().replace(/[,;]+$/, '');
+    inputToTyping.value = '';
+    if (!typed) { syncHiddenTo(); return false; }
+    var ok = addRecipient(typed, '');
+    syncHiddenTo();
+    saveState();
+    return ok;
+  }
+
+  // Llamado desde openCompose / openDraft / restoreState para reconstruir
+  // los chips a partir de un string coma-separado.
+  function setToValue(str) {
+    recipients = [];
+    if (inputToTyping) inputToTyping.value = '';
+    if (str) {
+      String(str).split(/[,;\s]+/).forEach(function (p) {
+        p = p.trim();
+        if (p) recipients.push({ email: p.toLowerCase(), label: '' });
+      });
+    }
+    renderChips();
+    syncHiddenTo();
+  }
+
+  // Expuesto para flujos externos (botón "Responder" del inbox, openSent):
+  // recibe un string con uno o varios correos y los pinta como chips.
+  window.composeSetRecipients = setToValue;
+
+  // ── Dropdown de sugerencias (autocompletado) ──
+  var suggestTimer = null;
+  var suggestCache = {};   // query → results (cache simple)
+
+  function fetchSuggestions(q) {
+    clearTimeout(suggestTimer);
+    suggestTimer = setTimeout(function () {
+      var key = q.toLowerCase();
+      if (suggestCache[key]) { applySuggestions(suggestCache[key]); return; }
+      fetch('/contactos/?q=' + encodeURIComponent(q), {
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var results = (data && data.results) || [];
+        suggestCache[key] = results;
+        applySuggestions(results);
+      })
+      .catch(function () { hideSuggestions(); });
+    }, 120);
+  }
+
+  function applySuggestions(results) {
+    var taken = recipients.map(function (r) { return r.email; });
+    suggestItems = results.filter(function (c) {
+      return taken.indexOf(c.email) === -1;
+    });
+    suggestActive = suggestItems.length ? 0 : -1;
+    renderSuggestions();
+  }
+
+  function renderSuggestions() {
+    if (!suggestBox) return;
+    if (!suggestItems.length) {
+      suggestBox.hidden = true;
+      suggestBox.innerHTML = '';
+      return;
+    }
+    suggestBox.innerHTML = suggestItems.map(function (it, i) {
+      var disp = it.label || it.email;
+      var letter = (disp || '?').charAt(0).toUpperCase();
+      var nameRow = it.label
+        ? ('<span class="compose-suggestion-name">' + escText(it.label) + '</span>'
+           + '<span class="compose-suggestion-email">' + escText(it.email) + '</span>')
+        : ('<span class="compose-suggestion-name">' + escText(it.email) + '</span>');
+      return '<div class="compose-suggestion'
+           + (i === suggestActive ? ' active' : '')
+           + '" data-i="' + i + '">'
+           + '<span class="compose-suggestion-avatar">' + escText(letter) + '</span>'
+           + '<span class="compose-suggestion-text">' + nameRow + '</span>'
+           + '</div>';
+    }).join('');
+    suggestBox.hidden = false;
+    Array.prototype.forEach.call(
+      suggestBox.querySelectorAll('.compose-suggestion'),
+      function (el) {
+        el.addEventListener('mousedown', function (e) {
+          e.preventDefault();   // evita que el blur del input cierre el dropdown
+          pickSuggestion(parseInt(el.dataset.i, 10));
+        });
+        el.addEventListener('mouseenter', function () {
+          suggestActive = parseInt(el.dataset.i, 10);
+          var nodes = suggestBox.querySelectorAll('.compose-suggestion');
+          for (var j = 0; j < nodes.length; j++) {
+            nodes[j].classList.toggle('active', j === suggestActive);
+          }
+        });
+      }
+    );
+  }
+
+  function pickSuggestion(i) {
+    var it = suggestItems[i];
+    if (!it) return;
+    inputToTyping.value = '';
+    addRecipient(it.email, it.label);
+    syncHiddenTo();
+    saveState();
+    hideSuggestions();
+    inputToTyping.focus();
+  }
+
+  function hideSuggestions() {
+    if (!suggestBox) return;
+    suggestBox.hidden = true;
+    suggestItems = []; suggestActive = -1;
+  }
+
+  // ── Eventos del input de tipeo ──
+  if (inputToTyping) {
+    inputToTyping.addEventListener('input', function () {
+      syncHiddenTo();
+      saveState();
+      var v = (inputToTyping.value || '').trim();
+      if (!v) { hideSuggestions(); return; }
+      fetchSuggestions(v);
+    });
+
+    inputToTyping.addEventListener('keydown', function (e) {
+      // Navegación del dropdown
+      if (suggestBox && !suggestBox.hidden && suggestItems.length) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          suggestActive = (suggestActive + 1) % suggestItems.length;
+          renderSuggestions();
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          suggestActive = (suggestActive - 1 + suggestItems.length) % suggestItems.length;
+          renderSuggestions();
+          return;
+        }
+        if (e.key === 'Enter' && suggestActive >= 0) {
+          e.preventDefault();
+          pickSuggestion(suggestActive);
+          return;
+        }
+        if (e.key === 'Escape') { e.preventDefault(); hideSuggestions(); return; }
+      }
+      // Confirmar chip con Enter / Tab / coma / punto y coma / espacio
+      // (espacio solo si hay '@' — evita convertir palabras en chip)
+      var isSpace = e.key === ' ' || e.key === 'Spacebar';
+      var typedNow = (inputToTyping.value || '').trim();
+      if (e.key === 'Enter' || e.key === 'Tab' || e.key === ',' || e.key === ';'
+          || (isSpace && typedNow.indexOf('@') >= 0)) {
+        if (typedNow) {
+          e.preventDefault();
+          commitTyped();
+          hideSuggestions();
+        }
+        return;
+      }
+      // Backspace en input vacío → quita el último chip
+      if (e.key === 'Backspace' && !inputToTyping.value && recipients.length) {
+        recipients.pop();
+        renderChips();
+        syncHiddenTo();
+        saveState();
+        return;
+      }
+    });
+
+    inputToTyping.addEventListener('blur', function () {
+      // Pequeño delay para que el mousedown del dropdown registre primero
+      setTimeout(function () {
+        if ((inputToTyping.value || '').trim()) commitTyped();
+        hideSuggestions();
+      }, 150);
+    });
+
+    inputToTyping.addEventListener('paste', function (e) {
+      var text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
+      if (/[,;\s\n]/.test(text)) {
+        e.preventDefault();
+        text.split(/[,;\s\n]+/).forEach(function (p) {
+          p = p.trim();
+          if (p) addRecipient(p, '');
+        });
+        inputToTyping.value = '';
+        syncHiddenTo();
+        saveState();
+        hideSuggestions();
+      }
+    });
+  }
+
+  // Click en el contenedor de chips (no en un chip) enfoca el input tipeo
+  if (chipsBox) {
+    chipsBox.addEventListener('click', function (e) {
+      if (e.target === chipsBox) inputToTyping.focus();
+    });
+  }
+
   // ── Helpers de borrador ────────────────────────────────────────
-  // Considera el contenido "no vacío" si hay destinatario, asunto, o
-  // texto plano real en el editor (excluyendo el <p><br></p> default).
+  // Un borrador se guarda SOLO si hay al menos un destinatario válido en
+  // "Para" Y texto real en el cuerpo. Asunto solo o cuerpo solo NO bastan
+  // — evita borradores fantasma al abrir y cerrar el compose sin escribir.
   function hasDraftContent() {
     var to   = (inputTo.value   || '').trim();
-    var subj = (inputSubj.value || '').trim();
     var text = (editor.innerText || '').trim();
-    return !!(to || subj || text);
+    return !!(to && text);
   }
 
   // Guarda (o actualiza) el borrador de forma síncrona. Usa
@@ -572,7 +837,7 @@
     var readonly     = !!(opts && opts.readonly);
     fromAddr.textContent = address;
     fromAddr.title       = label ? (label + ' · ' + address) : address;
-    inputTo.value = ''; inputSubj.value = '';
+    setToValue(''); inputSubj.value = '';
     editor.innerHTML = defaultBody();
     attachedFiles = []; attachedTotalBytes = 0;
     renderAttachments();
@@ -580,6 +845,7 @@
     setSchedulePopover(false);
     setMinimized(false);
     clearErrors();
+    hideSuggestions();
     btnSend.classList.remove('loading');
     btnSend.disabled = false;
 
@@ -590,7 +856,7 @@
        editar ni reenviar — solo verlo. */
     if (readonly) {
       win.classList.add('readonly');
-      inputTo.readOnly       = true;
+      if (inputToTyping) inputToTyping.readOnly = true;
       inputSubj.readOnly     = true;
       editor.contentEditable = 'false';
       editor.setAttribute('aria-readonly', 'true');
@@ -598,7 +864,7 @@
       if (titleEl) titleEl.textContent = 'Correo enviado';
     } else {
       win.classList.remove('readonly');
-      inputTo.readOnly       = false;
+      if (inputToTyping) inputToTyping.readOnly = false;
       inputSubj.readOnly     = false;
       editor.contentEditable = 'true';
       editor.removeAttribute('aria-readonly');
@@ -609,7 +875,7 @@
     overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false');
     win.classList.add('open'); win.setAttribute('aria-hidden','false');
     if (!readonly) {
-      setTimeout(function () { inputTo.focus(); }, 200);
+      setTimeout(function () { (inputToTyping || inputTo).focus(); }, 200);
     }
     saveState();
   };
@@ -654,7 +920,7 @@
       }
       window.openCompose(d.alias_id, d.alias_address, d.alias_label, { draftId: d.id });
       /* Rellena los campos después de abrir (openCompose los reseteó). */
-      inputTo.value   = d.to || '';
+      setToValue(d.to || '');
       inputSubj.value = d.subject || '';
       if (d.body_html) editor.innerHTML = d.body_html;
       currentDraftId = d.id;
@@ -669,7 +935,7 @@
     var wasReadonly = win.classList.contains('readonly');
     if (wasReadonly) {
       win.classList.remove('readonly');
-      inputTo.readOnly       = false;
+      if (inputToTyping) inputToTyping.readOnly = false;
       inputSubj.readOnly     = false;
       editor.contentEditable = 'true';
       editor.removeAttribute('aria-readonly');
@@ -705,6 +971,7 @@
             type:     'warning',
             title:    'Guardado en Borradores',
             message:  'Tu correo no se envió — podrás continuarlo cuando quieras desde la sección Borradores.',
+            href:     '/borradores/',
             duration: 4500,
           });
         }
@@ -865,7 +1132,7 @@
            Vaciamos los campos antes de cerrar para que closeCompose
            NO crea otro borrador "fantasma" al detectar contenido. */
         deleteDraftRemote();
-        inputTo.value = '';
+        setToValue('');
         inputSubj.value = '';
         editor.innerHTML = '';
         closeCompose();
@@ -899,7 +1166,7 @@
     currentAliasLabel = s.aliasLabel || '';
     fromAddr.textContent = currentAliasAddr || '—';
     fromAddr.title       = currentAliasLabel ? (currentAliasLabel + ' · ' + currentAliasAddr) : currentAliasAddr;
-    inputTo.value     = s.to || '';
+    setToValue(s.to || '');
     inputSubj.value   = s.subject || '';
     editor.innerHTML  = s.bodyHtml || defaultBody();
     if (s.scheduledAt) {

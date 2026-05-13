@@ -48,6 +48,7 @@ function deleteDraft(id) {
           type:    'danger',
           title:   'Borrador movido a Papelera',
           message: 'Lo quitamos de tus borradores — se borrará para siempre en 30 días.',
+          href:    '/papelera/',
           duration: 4500,
         });
       }

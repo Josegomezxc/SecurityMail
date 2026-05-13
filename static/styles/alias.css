@@ -1011,3 +1011,23 @@
   .btn-send:hover,
   .btn-destroy:hover { transform: translateY(-1px); }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   OVERRIDES DE TEMA CLARO — Card "EJEMPLO"
+   ───────────────────────────────────────────────────────────────────
+   La card de preview del alias usa fondo negro transparente y textos
+   en violeta claro / verde pastel, todo invisible sobre fondo blanco.
+   ═══════════════════════════════════════════════════════════════════ */
+html[data-theme="light"] .ccv2-preview-card {
+  background: rgba(124,58,237,0.05);
+  border-color: rgba(124,58,237,0.32);
+}
+/* El violeta claro (#a78bfa) se pierde — bajamos al violeta saturado. */
+html[data-theme="light"] .ccv2-preview-text { color: var(--ai-purple); }
+/* El verde pastel #4ade80 se desvanece sobre blanco — verde oscuro. */
+html[data-theme="light"] .ccv2-preview-tag.ok {
+  background: rgba(34,197,94,0.1);
+  color: #15803d;
+  border-color: rgba(34,197,94,0.32);
+}

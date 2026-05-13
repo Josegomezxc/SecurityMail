@@ -664,12 +664,24 @@ def trash_view(request):
     retention_delta = timedelta(days=TRASH_RETENTION_DAYS)
     for em in inbound:
         em.expires_at = em.deleted_at + retention_delta
+        em.kind = 'inbound'
     for em in outbound:
         em.expires_at = em.deleted_at + retention_delta
+        em.kind = 'outbound'
     for d in drafts:
         d.expires_at = d.deleted_at + retention_delta
+        d.kind = 'draft'
+
+    # Lista mixta para el filtro "Todos": recibidos + enviados + borradores
+    # juntos, ordenados por deleted_at descendente (recién eliminados arriba).
+    all_trash = sorted(
+        inbound + outbound + drafts,
+        key=lambda it: it.deleted_at,
+        reverse=True,
+    )
 
     return render(request, 'trash.html', {
+        'all_trash':        all_trash,
         'inbound_trash':    inbound,
         'outbound_trash':   outbound,
         'drafts_trash':     drafts,
@@ -682,11 +694,13 @@ def trash_view(request):
 #  BORRADORES
 # ═════════════════════════════════════════════════════════════════════
 
-def _draft_has_content(body_html):
-    """Un borrador es 'no vacío' SOLO si el cuerpo tiene texto real escrito
-    por el usuario. Destinatario o asunto solos no cuentan: cuando el
-    compose se abre prerrellenado (responder, plantillas) o el usuario
-    solo lo abrió y lo cerró, no debe crearse un borrador."""
+def _draft_has_content(to, body_html):
+    """Un borrador se guarda SOLO si el usuario llenó AMBOS campos:
+    destinatario (`to`) Y cuerpo con texto real. Si abre el compose y lo
+    cierra sin escribir nada, o solo pone el asunto, no se guarda nada
+    en borradores. Evita los "borradores fantasma" del refactor anterior."""
+    if not (to or '').strip():
+        return False
     plain = re.sub(r'<[^>]+>', '', body_html or '').strip()
     return bool(plain)
 
@@ -713,8 +727,9 @@ def draft_save_api(request):
     message_html  = (request.POST.get('message_html', '') or '').strip()
     scheduled_raw = (request.POST.get('scheduled_at', '') or '').strip()
 
-    # Si no hay nada que valga la pena guardar, no creamos el borrador.
-    if not _draft_has_content(message_html):
+    # Si no hay nada que valga la pena guardar (requiere destinatario +
+    # cuerpo con texto real), no creamos el borrador.
+    if not _draft_has_content(to, message_html):
         return JsonResponse({'ok': True, 'draft_id': None, 'empty': True})
 
     # Resolver alias (debe pertenecer al usuario)

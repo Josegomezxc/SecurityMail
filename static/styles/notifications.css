@@ -311,13 +311,6 @@
     font-family: var(--font-mono);
   }
 
-  /* Indicador "actualizando en vivo" — fixed, no choca con compose */
-  .notif-live-indicator {
-    bottom: 12px;                       /* mobile */
-    right: 12px;                        /* mobile */
-    font-size: 10px;                    /* mobile */
-  }
-
 /* ═══════════════════════════════════════════════════════════════════
    DESKTOP — ≥ 992px
    Restaura el layout original: filas en 3 columnas, header en fila,

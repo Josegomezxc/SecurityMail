@@ -413,8 +413,22 @@ document.addEventListener('keydown', function (e) {
     };
 
     let openPanel = false;
-    let lastUnread = 0;
-    let seenNotifIds = null;   // null = primera carga (no disparar toasts)
+    // Último id de notificación que el usuario ya vio. Se guarda en
+    // localStorage para sobrevivir recargas (F5) y comparar contra los
+    // ids que devuelve el endpoint en cada carga de página. Si después
+    // de F5 hay ids mayores, disparamos un toast por cada uno.
+    // Si es la PRIMERA vez del usuario (clave inexistente), no toasteamos
+    // las viejas — solo guardamos el máximo actual para futuras visitas.
+    const SEEN_KEY = 'sms_notif_last_seen_id';
+    function getLastSeenId() {
+        try {
+            const v = localStorage.getItem(SEEN_KEY);
+            return v === null ? null : (parseInt(v, 10) || 0);
+        } catch (e) { return null; }
+    }
+    function setLastSeenId(id) {
+        try { localStorage.setItem(SEEN_KEY, String(id)); } catch (e) {}
+    }
 
     function setOpen(state) {
         openPanel = state;
@@ -482,13 +496,6 @@ document.addEventListener('keydown', function (e) {
                     badge.style.display = 'none';
                     bell.classList.remove('has-unread');
                 }
-                // Animación de campana solo cuando AUMENTA el contador
-                if (n > lastUnread && lastUnread > 0) {
-                    bell.classList.remove('has-unread');
-                    void bell.offsetWidth;        // reflow para reiniciar animación
-                    bell.classList.add('has-unread');
-                }
-                lastUnread = n;
 
                 // Lista
                 if (!data.recent || data.recent.length === 0) {
@@ -497,45 +504,57 @@ document.addEventListener('keydown', function (e) {
                     list.innerHTML = data.recent.map(renderItem).join('');
                 }
 
-                // ── Toasts: dispara solo para NOTIFICACIONES NUEVAS ──
-                // En la primera carga no disparamos nada (seenNotifIds=null) para
-                // no spamear con notificaciones viejas al abrir la página.
-                if (seenNotifIds !== null && data.recent && data.recent.length > 0) {
-                    const newOnes = data.recent.filter(item => !seenNotifIds.has(item.id));
-                    newOnes.reverse().forEach(item => {   // mostramos en orden cronológico
-                        // Color del toast por nivel de riesgo del correo:
-                        //   amenaza (≥61)    → rojo
-                        //   sospechoso (31-60) → amarillo
-                        //   seguro (≤30)      → verde
-                        // Si la notificación no tiene email asociado (raro),
-                        // caemos al criterio por tipo.
-                        let toastType;
-                        const r = (typeof item.risk_score === 'number') ? item.risk_score : null;
-                        if (item.type === 'threat_alert' || (r !== null && r >= 61)) {
-                            toastType = 'danger';
-                        } else if (r !== null && r >= 31) {
-                            toastType = 'warning';
-                        } else if (r !== null && r >= 0) {
-                            toastType = 'success';
-                        } else {
-                            // Sin score → usamos el criterio antiguo por tipo
-                            toastType =
-                                item.type === 'forward_request' ? 'warning' :
-                                item.type === 'forwarded'       ? 'success' :
-                                                                  'info';
-                        }
-                        window.showToast({
-                            type:    toastType,
-                            title:   item.title,
-                            message: item.message,
-                            href:    item.url,
-                            duration: 9500,
+                // ── Toasts en cada recarga: dispara solo para notificaciones
+                // que el usuario NO ha visto antes (id > último visto, guardado
+                // en localStorage). Primera visita del usuario (sin clave):
+                // no toasteamos nada — solo guardamos el máximo para la próxima.
+                if (data.recent && data.recent.length > 0) {
+                    const lastSeen = getLastSeenId();
+                    const maxId = data.recent.reduce(
+                        (m, it) => (it.id > m ? it.id : m), 0
+                    );
+
+                    if (lastSeen !== null && maxId > lastSeen) {
+                        const newOnes = data.recent.filter(it => it.id > lastSeen);
+                        // Orden cronológico (más antigua primero) para que la
+                        // más reciente quede arriba del stack de toasts.
+                        newOnes.sort((a, b) => a.id - b.id).forEach(item => {
+                            // Color del toast por nivel de riesgo del correo:
+                            //   amenaza (≥61)    → rojo
+                            //   sospechoso (31-60) → amarillo
+                            //   seguro (≤30)      → verde
+                            // Sin score → criterio por tipo.
+                            let toastType;
+                            const r = (typeof item.risk_score === 'number') ? item.risk_score : null;
+                            if (item.type === 'threat_alert' || (r !== null && r >= 61)) {
+                                toastType = 'danger';
+                            } else if (r !== null && r >= 31) {
+                                toastType = 'warning';
+                            } else if (r !== null && r >= 0) {
+                                toastType = 'success';
+                            } else {
+                                toastType =
+                                    item.type === 'forward_request' ? 'warning' :
+                                    item.type === 'forwarded'       ? 'success' :
+                                                                      'info';
+                            }
+                            window.showToast({
+                                type:    toastType,
+                                title:   item.title,
+                                message: item.message,
+                                href:    item.url,
+                                duration: 9500,
+                            });
                         });
-                    });
+                    }
+
+                    // Persistimos el máximo para que la próxima recarga sepa
+                    // qué es "nuevo". Incluso en la primera visita (sin spam):
+                    // el usuario solo verá toasts a partir del siguiente F5.
+                    setLastSeenId(maxId);
                 }
-                seenNotifIds = new Set((data.recent || []).map(i => i.id));
             })
-            .catch(err => console.debug('[notif] poll error:', err));
+            .catch(err => console.debug('[notif] refresh error:', err));
     }
 
     if (markAll) {
@@ -547,12 +566,8 @@ document.addEventListener('keydown', function (e) {
         });
     }
 
-    // Carga inicial + polling cada 6s (rápido pero sin sobrecargar)
+    // Carga inicial — pinta el badge y el contenido del dropdown con los
+    // datos del servidor al cargar la página. Sin auto-refresh: el usuario
+    // tiene que recargar manualmente (F5) para ver el contador actualizado.
     refresh();
-    setInterval(refresh, 6000);
-
-    // También refrescamos cuando la pestaña vuelve a estar visible
-    document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') refresh();
-    });
 })();

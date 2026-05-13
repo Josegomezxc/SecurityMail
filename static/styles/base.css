@@ -16,6 +16,14 @@
         html[data-theme="light"] .sidebar-footer::before {
             background: linear-gradient(90deg, transparent, rgba(109,74,255,0.22), transparent);
         }
+        /* El PNG del logo está diseñado con texto claro sobre fondo oscuro
+           (sirve perfecto en oscuro y carbon). En modo claro invertimos los
+           tonos: el blanco se vuelve casi-negro y mantenemos el matiz del
+           escudo violeta con un hue-rotate compensatorio. Truco estándar
+           para reusar un PNG sin necesidad de un asset alternativo. */
+        html[data-theme="light"] .sidebar-logo .logo-icon img {
+            filter: invert(1) hue-rotate(180deg);
+        }
         html[data-theme="light"] .sidebar-link:hover { background: rgba(109,74,255,0.07); }
         html[data-theme="light"] .sidebar-link.active {
             background: linear-gradient(90deg, rgba(109,74,255,0.12), rgba(109,74,255,0.02));
@@ -1703,4 +1711,247 @@
             .sidebar-toggle { display: none; }
             .sidebar-backdrop { display: none !important; }
             .main-area { overflow: hidden; }
+        }
+
+        /* ════════════════════════════════════════════════════════════════
+           SIDEBAR — Botón "Nuevo correo" + picker de alias
+           Vive entre el logo y la sección "Principal". Comparte estética
+           con el botón del módulo Enviados pero ajustado al ancho del
+           sidebar y con el picker desplegándose hacia abajo dentro del
+           propio sidebar (no flotando sobre el contenido).
+           ════════════════════════════════════════════════════════════════ */
+        .sidebar-compose {
+            position: relative;
+            padding: 12px 14px 14px;
+            flex-shrink: 0;
+        }
+        .sidebar-compose-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 12px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6 100%);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #fff;
+            font-family: var(--font-sans, inherit);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.005em;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(124,58,237,0.25);
+            transition: background 0.18s, transform 0.18s cubic-bezier(.22,1,.36,1), box-shadow 0.18s;
+        }
+        .sidebar-compose-btn:hover {
+            background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(124,58,237,0.4);
+        }
+        .sidebar-compose-btn:active { transform: translateY(0); }
+        .sidebar-compose-btn[disabled],
+        .sidebar-compose-btn[disabled]:hover {
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.45);
+            border-color: rgba(255,255,255,0.08);
+            box-shadow: none;
+            transform: none;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .sidebar-compose-btn .compose-icon {
+            width: 15px; height: 15px;
+            flex-shrink: 0;
+            opacity: 0.95;
+        }
+        .sidebar-compose-btn .compose-chev {
+            width: 11px; height: 11px;
+            opacity: 0.7;
+            transition: transform 0.22s cubic-bezier(.22,1,.36,1);
+        }
+        .sidebar-compose-btn.open .compose-chev {
+            transform: rotate(180deg);
+            opacity: 1;
+        }
+        .sidebar-compose-btn.open {
+            background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%);
+        }
+
+        /* Picker que cae justo debajo del botón. Usa las mismas subclases
+           (.alias-picker-header, .alias-picker-item, etc.) del módulo
+           Enviados — solo el contenedor cambia. */
+        .sidebar-alias-picker {
+            --alias-row-h: 54px;
+            --alias-rows:  5;
+            --alias-head-h: 56px;
+            display: none;
+            position: absolute;
+            top: calc(100% - 4px);
+            left: 12px;
+            right: 12px;
+            background: var(--bg-surface, #1a1a22);
+            border: 1px solid rgba(124,58,237,0.35);
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            max-height: calc(var(--alias-head-h) + var(--alias-row-h) * var(--alias-rows));
+            z-index: 1000;
+            animation: fadeUp 0.18s ease both;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(124,58,237,0.45) transparent;
+        }
+        .sidebar-alias-picker::-webkit-scrollbar { width: 5px; }
+        .sidebar-alias-picker::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-alias-picker::-webkit-scrollbar-thumb {
+            background: rgba(124,58,237,0.4);
+            border-radius: 3px;
+        }
+        .sidebar-alias-picker::-webkit-scrollbar-thumb:hover {
+            background: rgba(124,58,237,0.6);
+        }
+        .sidebar-alias-picker.open { display: block; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(-4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Subclases del picker (header + items) — mismos estilos que el
+           picker del módulo Enviados, pero declarados aquí en base.css
+           para que funcionen en cualquier página, no solo en /enviados/. */
+        .alias-picker-header {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 14px;
+            background:
+                linear-gradient(135deg, rgba(124,58,237,0.08), transparent),
+                var(--bg-surface, #1a1a22);
+            border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.06));
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .alias-picker-header-icon {
+            width: 32px; height: 32px; flex-shrink: 0;
+            border-radius: 9px;
+            background: linear-gradient(135deg, var(--accent, #7c5cff), #9b6dff);
+            display: inline-flex; align-items: center; justify-content: center;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(124,58,237,0.4);
+        }
+        .alias-picker-header-icon svg { width: 14px; height: 14px; }
+        .alias-picker-header-title {
+            font-family: var(--display, inherit);
+            font-size: 12.5px; font-weight: 800;
+            color: var(--text-primary, #fff); letter-spacing: -0.01em;
+            line-height: 1;
+        }
+        .alias-picker-header-sub {
+            font-family: var(--mono, monospace);
+            font-size: 10px; font-weight: 600;
+            color: var(--text-muted, rgba(255,255,255,0.55));
+            margin-top: 3px;
+            letter-spacing: 0.04em;
+        }
+        .alias-picker-header-badge {
+            margin-left: auto;
+            background: rgba(124,58,237,0.12);
+            border: 1px solid rgba(124,58,237,0.3);
+            color: #c4b5fd;
+            font-family: var(--mono, monospace);
+            font-size: 10px; font-weight: 700;
+            padding: 3px 9px; border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .alias-picker-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 14px;
+            cursor: pointer;
+            font-family: var(--mono, monospace);
+            font-size: 12.5px;
+            color: var(--text-primary, #fff);
+            border-bottom: 1px solid var(--border-soft, rgba(255,255,255,0.06));
+            transition: background 0.15s, transform 0.12s, padding-left 0.15s;
+            position: relative;
+        }
+        .alias-picker-item::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 8px; bottom: 8px;
+            width: 3px;
+            background: linear-gradient(180deg, var(--accent, #7c5cff), #a78bfa);
+            border-radius: 0 3px 3px 0;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .alias-picker-item:hover::before { opacity: 1; }
+        .alias-picker-item:hover { padding-left: 18px; background: rgba(124,58,237,0.10); }
+        .alias-picker-item:last-child { border-bottom: none; }
+        .alias-picker-arrow {
+            width: 12px; height: 12px;
+            color: var(--text-muted, rgba(255,255,255,0.55));
+            opacity: 0;
+            transition: opacity 0.15s, transform 0.15s;
+            flex-shrink: 0;
+        }
+        .alias-picker-item:hover .alias-picker-arrow {
+            opacity: 1;
+            color: #c4b5fd;
+            transform: translateX(2px);
+        }
+        .alias-picker-icon {
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, var(--accent, #7c5cff), #9b6dff);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #fff;
+        }
+        .alias-picker-icon svg { width: 12px; height: 12px; }
+        .alias-picker-meta { flex: 1; min-width: 0; }
+        .alias-picker-addr {
+            color: #c4b5fd;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 600;
+        }
+        .alias-picker-label {
+            font-size: 10.5px;
+            color: var(--text-muted, rgba(255,255,255,0.55));
+            margin-top: 2px;
+        }
+        .alias-picker-empty {
+            padding: 22px 14px 18px;
+            font-size: 12.5px;
+            color: var(--text-muted, rgba(255,255,255,0.55));
+            font-family: var(--mono, monospace);
+            text-align: center;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .alias-picker-empty-cta {
+            margin-top: 10px;
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 7px 12px;
+            background: rgba(124,58,237,0.12);
+            border: 1px solid rgba(124,58,237,0.3);
+            color: #c4b5fd;
+            border-radius: 8px;
+            font-family: var(--mono, monospace);
+            font-size: 11px; font-weight: 600;
+            text-decoration: none;
+            transition: background 0.15s, border-color 0.15s, transform 0.15s;
+        }
+        .alias-picker-empty-cta:hover {
+            background: rgba(124,58,237,0.18);
+            border-color: var(--accent, #7c5cff);
+            color: #fff;
+            transform: translateY(-1px);
         }

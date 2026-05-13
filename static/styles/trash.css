@@ -230,11 +230,10 @@
 .retention-banner svg { width: 14px; height: 14px; flex-shrink: 0; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   LISTA DE PAPELERA — frame card único que envuelve los 3 tabs
-   (#tab-inbound, #tab-outbound, #tab-draft).  Aunque el filtro JS
-   muestra/oculta cada tab, todos viven dentro de la misma card.
-   Las dos variables --trash-row-h y --trash-rows controlan el
-   tamaño de la card antes del scroll.
+   LISTA DE PAPELERA — card único con todas las filas (recibidos,
+   enviados y borradores) ordenadas por deleted_at desc. El filtro JS
+   muestra/oculta filas según data-kind. Las dos variables --trash-row-h
+   y --trash-rows controlan el tamaño de la card antes del scroll.
    ═══════════════════════════════════════════════════════════════════ */
 #trash-list {
   --trash-row-h: 175px;                /* mobile: fila alta (wrap + actions con divisor abajo) */
@@ -260,24 +259,9 @@
 #trash-list::-webkit-scrollbar-thumb:hover {
   background: rgba(232,64,64,0.6);
 }
-/* Los 3 tab panels viven dentro del card como contenedores
-   transparentes: sin caja propia, sin padding extra. */
-#trash-list > #tab-inbound,
-#trash-list > #tab-outbound,
-#trash-list > #tab-draft {
-  background: transparent;
-  border: none;
-  padding: 0;
-  margin: 0;
-}
-
-/* Cuando viven dentro de la card, las filas se comportan como una
-   lista continua: se quita el border-radius/border/margin de cada
-   fila y aparece una línea sutil debajo que las separa visualmente.
-   TODAS las filas mantienen su border-bottom — la última de la card
-   simplemente se cierra contra el padding inferior. Si quitábamos
-   `:last-child` de cada tab, la fila única del primer tab perdía la
-   línea aunque tuviera vecinos abajo. */
+/* Las filas viven directamente en la card como lista continua:
+   se quita el border-radius/border/margin individual y aparece una
+   línea sutil debajo que las separa visualmente. */
 #trash-list .trash-row {
   border-radius: 0;
   border: none;

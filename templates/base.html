@@ -55,6 +55,68 @@
             </div>
         </a>
 
+        <!-- Botón "Nuevo correo" siempre visible debajo del logo.
+             Misma mecánica que el botón del módulo Enviados: abre un picker
+             con los alias activos y al elegir uno arranca el compose modal
+             global. IDs distintos del de sent.html para que no choquen. -->
+        {% if user.is_authenticated %}
+        <div class="sidebar-compose" id="sidebarCompose">
+            <button type="button" class="sidebar-compose-btn" id="sidebarComposeBtn"
+                    {% if not active_aliases %}disabled title="Crea un alias activo primero"{% endif %}
+                    onclick="toggleSidebarAliasPicker(event)">
+                <svg class="compose-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                </svg>
+                <span>Nuevo correo</span>
+                <svg class="compose-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </button>
+
+            <div class="sidebar-alias-picker" id="sidebarAliasPicker">
+                <div class="alias-picker-header">
+                    <div class="alias-picker-header-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="alias-picker-header-title">Elige un alias</div>
+                        <div class="alias-picker-header-sub">desde el que quieres enviar</div>
+                    </div>
+                    <span class="alias-picker-header-badge">{{ active_aliases|length }}</span>
+                </div>
+                {% for a in active_aliases %}
+                <div class="alias-picker-item" data-alias-id="{{ a.id }}" data-alias-address="{{ a.address }}"
+                     data-alias-label="{{ a.label }}" onclick="composeFromSidebarAlias(this)">
+                    <div class="alias-picker-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                    </div>
+                    <div class="alias-picker-meta">
+                        <div class="alias-picker-addr">{{ a.address }}</div>
+                        <div class="alias-picker-label">{{ a.label }}</div>
+                    </div>
+                    <svg class="alias-picker-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </div>
+                {% empty %}
+                <div class="alias-picker-empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;opacity:0.4;margin-bottom:8px">
+                        <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+                    </svg>
+                    <div>Sin alias activos</div>
+                    <a href="{% url 'alias_list' %}" class="alias-picker-empty-cta">Crear uno en Mis Alias →</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Wrapper con scroll interno: si el contenido es más alto que el
              espacio disponible, solo este bloque scrollea. El logo arriba y
              el footer abajo siempre quedan visibles. -->

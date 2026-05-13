@@ -35,11 +35,12 @@
     window.openCompose(aliasId, aliasAddr, aliasLabel, { readonly: true });
 
     /* 2) Pre-llenar PARA y ASUNTO */
-    var toInput   = document.getElementById('composeTo');
     var subjInput = document.getElementById('composeSubject');
     var editor    = document.getElementById('composeMessage');
 
-    if (toInput)   toInput.value   = to;
+    if (typeof window.composeSetRecipients === 'function') {
+      window.composeSetRecipients(to);
+    }
     if (subjInput) subjInput.value = subject;
 
     /* 3) Pre-llenar el editor con el cuerpo original.
@@ -455,6 +456,7 @@
               type: 'danger',
               title: 'Enviado movido a Papelera',
               message: 'Lo quitamos de tus enviados — se borrará para siempre en 30 días.',
+              href: '/papelera/',
               duration: 4500,
             });
           }

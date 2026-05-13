@@ -7,23 +7,29 @@ function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(function (b) {
     b.classList.toggle('active', b.dataset.tab === name);
   });
-  /* "all" muestra los tres grupos juntos; las otras opciones solo el
-     grupo correspondiente. */
-  var showInbound  = (name === 'all' || name === 'inbound');
-  var showOutbound = (name === 'all' || name === 'outbound');
-  var showDraft    = (name === 'all' || name === 'draft');
-  document.getElementById('tab-inbound').style.display  = showInbound  ? '' : 'none';
-  document.getElementById('tab-outbound').style.display = showOutbound ? '' : 'none';
-  var draftEl = document.getElementById('tab-draft');
-  if (draftEl) draftEl.style.display = showDraft ? '' : 'none';
 
-  /* Los empty-states individuales solo en su propia pestaña, no en "all". */
-  var emIn    = document.getElementById('empty-inbound');
-  var emOut   = document.getElementById('empty-outbound');
-  var emDraft = document.getElementById('empty-draft');
-  if (emIn)    emIn.style.display    = (name === 'inbound')  ? '' : 'none';
-  if (emOut)   emOut.style.display   = (name === 'outbound') ? '' : 'none';
-  if (emDraft) emDraft.style.display = (name === 'draft')    ? '' : 'none';
+  /* La lista es una sola, ordenada por deleted_at desc en el backend.
+     Filtramos por data-kind: "all" muestra todas las filas, las demás
+     pestañas solo las filas de su tipo. */
+  var rows    = document.querySelectorAll('#trash-list .trash-row');
+  var visible = 0;
+  rows.forEach(function (r) {
+    var show = (name === 'all') || (r.dataset.kind === name);
+    r.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+
+  /* Empty-state: mostramos uno solo según el filtro, y solo si esa
+     pestaña no tiene filas visibles. */
+  ['empty-all', 'empty-inbound', 'empty-outbound', 'empty-draft'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  if (visible === 0) {
+    var targetId = 'empty-' + (name === 'all' ? 'all' : name);
+    var target   = document.getElementById(targetId);
+    if (target) target.style.display = '';
+  }
 }
 
 /* Activa "Todos" por defecto al cargar la papelera. */
@@ -52,12 +58,23 @@ function restoreEmail(kind, pk) {
         setTimeout(function () { row.remove(); }, 280);
       }
       if (window.showToast) {
+        // El destino del toast clicable depende de dónde volvió el ítem:
+        // - inbound → /bandeja/
+        // - outbound → /enviados/
+        // - draft → /borradores/
+        var restoreHref =
+          kind === 'outbound' ? '/enviados/' :
+          kind === 'draft'    ? '/borradores/' :
+                                '/bandeja/';
+        var restoreMsg =
+          kind === 'outbound' ? 'Lo recuperamos de la papelera — ya está de vuelta en Enviados.' :
+          kind === 'draft'    ? 'Lo recuperamos de la papelera — ya está de vuelta en Borradores.' :
+                                'Lo recuperamos de la papelera — ya está de vuelta en tu Bandeja.';
         window.showToast({
           type: 'success',
           title: 'Correo restaurado',
-          message: kind === 'inbound'
-            ? 'Lo recuperamos de la papelera — ya está de vuelta en tu Bandeja.'
-            : 'Lo recuperamos de la papelera — ya está de vuelta en Enviados.',
+          message: restoreMsg,
+          href: restoreHref,
           duration: 4500,
         });
       }
