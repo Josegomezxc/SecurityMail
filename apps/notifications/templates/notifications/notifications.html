@@ -1,0 +1,140 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Notificaciones — DockerShield{% endblock %}
+{% block page_title %}Notificaciones{% endblock %}
+{% block nav_notifications %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'notifications/styles/notifications.css' %}">
+{% endblock %}
+
+{% block body %}
+<div class="notif-page">
+  <header class="notif-page-header">
+    <div>
+      <h1 class="notif-page-title">Tus notificaciones</h1>
+      <p class="notif-page-sub">Eventos y correos que necesitan tu atención.</p>
+    </div>
+    <div class="notif-stats">
+      {% if pending_count %}
+        <span class="notif-stat-pill warning">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+          {{ pending_count }} pendiente{{ pending_count|pluralize }}
+        </span>
+      {% endif %}
+      <span class="notif-stat-pill">{{ notifications.count }} total</span>
+    </div>
+  </header>
+
+  <!-- ── Toolbar: filtros + acciones ── -->
+  <section class="notif-toolbar" aria-label="Filtros y acciones de notificaciones">
+    <nav class="notif-filters" id="notif-filters" aria-label="Filtros por estado">
+      <button type="button" class="notif-filter-btn active" data-filter="all">
+        Todas
+        <span class="notif-filter-count" data-count="all">{{ counts.all }}</span>
+      </button>
+      <button type="button" class="notif-filter-btn" data-filter="unread">
+        Sin leer
+        <span class="notif-filter-count" data-count="unread">{{ counts.unread }}</span>
+      </button>
+      <button type="button" class="notif-filter-btn warn" data-filter="pending">
+        Pendientes
+        <span class="notif-filter-count" data-count="pending">{{ counts.pending }}</span>
+      </button>
+      <button type="button" class="notif-filter-btn ok" data-filter="forwarded">
+        Reenviadas
+        <span class="notif-filter-count" data-count="forwarded">{{ counts.forwarded }}</span>
+      </button>
+      <button type="button" class="notif-filter-btn muted" data-filter="discarded">
+        Descartadas
+        <span class="notif-filter-count" data-count="discarded">{{ counts.discarded }}</span>
+      </button>
+    </nav>
+
+    <div class="notif-actions">
+      <div class="notif-clear-wrap" id="notif-clear-wrap">
+        <button type="button" class="notif-clear-btn" id="notif-clear-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+          Vaciar
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-left:1px"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="notif-clear-menu" id="notif-clear-menu">
+          <button type="button" class="ncm-item" data-scope="read">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <div>
+              <div class="ncm-title">Solo las leídas</div>
+              <div class="ncm-sub">Borra las que ya viste</div>
+            </div>
+          </button>
+          <button type="button" class="ncm-item" data-scope="discarded">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <div>
+              <div class="ncm-title">Solo las descartadas</div>
+              <div class="ncm-sub">Borra las que ya no aplican</div>
+            </div>
+          </button>
+          <div class="ncm-sep"></div>
+          <button type="button" class="ncm-item ncm-item-danger" data-scope="all">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+            <div>
+              <div class="ncm-title">Vaciar todas</div>
+              <div class="ncm-sub">Conserva las pendientes de aprobación</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="notif-list-card" id="notif-list-container" aria-label="Lista de notificaciones">
+    {% for n in notifications %}
+      <a href="{% url 'notification_detail' n.id %}"
+         class="notif-row {% if not n.read %}unread{% endif %}"
+         data-id="{{ n.id }}" data-type="{{ n.type }}" data-status="{{ n.status }}"
+         data-read="{{ n.read|yesno:'1,0' }}"
+         {% if n.related_email %}data-risk="{{ n.related_email.risk_score|default:0 }}"{% endif %}>
+        {# Icono: si hay correo asociado el color va por risk_score, sino por tipo #}
+        <div class="notif-row-icon {% if n.related_email %}{% if n.related_email.risk_score >= 61 %}r-danger{% elif n.related_email.risk_score >= 31 %}r-warn{% else %}r-safe{% endif %}{% else %}t-{{ n.type }}{% endif %}">
+          {% if n.type == 'forward_request' %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {% elif n.type == 'forwarded' %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          {% elif n.type == 'threat_alert' %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+          {% else %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+          {% endif %}
+        </div>
+        <div class="notif-row-body">
+          <div class="notif-row-title">{{ n.title }}</div>
+          {% if n.message %}<div class="notif-row-msg">{{ n.message }}</div>{% endif %}
+        </div>
+        <div class="notif-row-meta">
+          <span class="notif-status-pill ns-{{ n.status }}">{{ n.get_status_display }}</span>
+          <span>{{ n.created_at|date:"d M, H:i" }}</span>
+        </div>
+      </a>
+    {% empty %}
+      <div class="notif-empty" id="notif-empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <div class="notif-empty-msg">No tienes notificaciones todavía</div>
+        <div class="notif-empty-hint">Cuando llegue un correo a tus alias, aparecerá aquí.</div>
+      </div>
+    {% endfor %}
+  </section>
+
+</div>
+
+<script>
+window.__NOTIFICATIONS_CTX__ = {
+  clearUrl: "{% url 'notification_clear' %}"
+};
+</script>
+<script src="{% static 'notifications/js/notifications.js' %}"></script>
+{% endblock %}

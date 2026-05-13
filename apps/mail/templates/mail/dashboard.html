@@ -1,0 +1,375 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Dashboard — DockerShield{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'mail/styles/dashboard.css' %}">
+{% endblock %}
+
+{% block body %}
+{% comment %}
+Los `messages` de Django se procesan AHORA en base.html (toasts globales).
+Antes vivía aquí — eso causaba que toasts de acciones en otras páginas no
+aparecieran hasta llegar al dashboard.
+{% endcomment %}
+
+<!-- Banner manual eliminado: los stats del dashboard se actualizan solos con polling -->
+
+<!-- ── WELCOME BANNER ── -->
+<section class="welcome-banner" style="animation-delay:0ms" aria-labelledby="welcome-greeting">
+  <div class="welcome-inner">
+    <div class="welcome-eyebrow">Panel de control</div>
+    <h2 id="welcome-greeting"><span>Hola, {{ user.get_full_name|default:user.email }}</span></h2>
+    <p>Sesión activa · correo real <strong>{{ user.email }}</strong> nunca expuesto</p>
+  </div>
+  <div class="welcome-actions">
+    <a href="{% url 'alias_create' %}" class="btn-new-alias">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nuevo alias
+    </a>
+  </div>
+</section>
+
+<!-- ── STAT CARDS ── -->
+<section class="stat-grid" aria-label="Estadísticas de la cuenta">
+
+  <article class="stat-card accent" style="animation-delay:60ms">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-header">
+      <div class="stat-icon">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="1.8" stroke-linecap="round">
+          <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+        </svg>
+      </div>
+      <div class="stat-label">Alias activos</div>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value" data-stat="alias_count">{{ alias_count|default:"0" }}</div>
+      <div class="stat-sub">correos reales protegidos</div>
+    </div>
+  </article>
+
+  <article class="stat-card neutral" style="animation-delay:100ms">
+    <div class="stat-card-header">
+      <div class="stat-icon">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.8" stroke-linecap="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+      </div>
+      <div class="stat-label">Correos recibidos</div>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value" data-stat="total_emails">{{ total_emails|default:"0" }}</div>
+      <div class="stat-sub" data-sub="total_emails">
+        {% if today_emails %}
+          +{{ today_emails }} en las últimas 24 h
+        {% else %}
+          histórico total
+        {% endif %}
+      </div>
+      {% if today_emails > yday_emails %}
+        <span class="stat-trend up" data-trend="total_emails">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          +{{ today_emails|add:"-"|add:yday_emails }} vs ayer
+        </span>
+      {% elif today_emails == yday_emails %}
+        <span class="stat-trend flat" data-trend="total_emails">sin cambios vs ayer</span>
+      {% else %}
+        <span class="stat-trend down" data-trend="total_emails">menos que ayer</span>
+      {% endif %}
+    </div>
+  </article>
+
+  <article class="stat-card danger" style="animation-delay:140ms">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-header">
+      <div class="stat-icon">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.8" stroke-linecap="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div class="stat-label">Amenazas bloqueadas</div>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value" data-stat="threats_count">{{ threats_count|default:"0" }}</div>
+      <div class="stat-sub" data-sub="threats_count">
+        {% if today_threats %}
+          {{ today_threats }} en las últimas 24 h
+        {% else %}
+          tu PC nunca las vio
+        {% endif %}
+      </div>
+      <span class="stat-trend {% if block_rate >= 50 %}up{% elif block_rate > 0 %}flat{% else %}down{% endif %}" data-trend="block_rate">
+        tasa de bloqueo: <strong style="margin-left:3px" data-stat="block_rate">{{ block_rate|default:"0" }}</strong>%
+      </span>
+    </div>
+  </article>
+
+  <article class="stat-card success" style="animation-delay:180ms">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-header">
+      <div class="stat-icon">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.8" stroke-linecap="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div class="stat-label">Correos seguros</div>
+    </div>
+    <div class="stat-body">
+      <div class="stat-value" data-stat="safe_count">{{ safe_count|default:"0" }}</div>
+      <div class="stat-sub">verificados por sandbox</div>
+    </div>
+  </article>
+
+</section>
+
+<!-- ── AMENAZAS RECIENTES (solo aparece si hay) ── -->
+{% if recent_threats %}
+<section class="threats-row" id="threatsRow" aria-label="Amenazas recientes">
+  {% for t in recent_threats %}
+    <a href="{% if t.analysis %}{% url 'sandbox_report' t.analysis.pk %}{% else %}{% url 'inbox' %}{% endif %}" class="threat-card">
+      <div class="threat-head">
+        <span class="dot"></span>
+        Amenaza bloqueada
+        <span style="margin-left:auto">{{ t.received_at|timesince }} atrás</span>
+      </div>
+      <div class="threat-subject">{{ t.subject|truncatechars:60 }}</div>
+      <div class="threat-meta">
+        <span>{{ t.from_email|truncatechars:28 }}</span>
+        <span>→ {{ t.alias.address|truncatechars:22 }}</span>
+      </div>
+      <div class="threat-score-row">
+        <span class="threat-score">{{ t.risk_score }}<small>/100</small></span>
+        {% if t.risk_score >= 81 %}
+          <span class="risk-badge danger"><span class="badge-dot"></span>Malware</span>
+        {% else %}
+          <span class="risk-badge danger"><span class="badge-dot"></span>Alto riesgo</span>
+        {% endif %}
+      </div>
+    </a>
+  {% endfor %}
+</section>
+{% endif %}
+
+<!-- ── DOS COLUMNAS ── -->
+<div class="two-col">
+
+  <!-- ACTIVIDAD RECIENTE -->
+  <section class="panel" style="animation-delay:220ms" aria-labelledby="panel-activity-title">
+    <header class="panel-header">
+      <h2 class="panel-title" id="panel-activity-title">
+        <span class="panel-title-dot" style="background:var(--pl);box-shadow:0 0 6px rgba(167,139,250,0.5)"></span>
+        Actividad reciente
+      </h2>
+      <a href="{% url 'inbox' %}" class="panel-link">Ver bandeja →</a>
+    </header>
+    <div class="panel-body">
+      <table class="activity-table">
+        <thead>
+          <tr>
+            <th>Remitente</th>
+            <th>Alias destino</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for email in recent_emails %}
+          <tr>
+            <td>
+              <div class="sender-info">
+                <div class="sender-avatar"
+                     style="background:{% cycle 'rgba(124,92,255,0.12)' 'rgba(34,197,94,0.1)' 'rgba(245,158,11,0.1)' 'rgba(59,130,246,0.1)' %};
+                            color:{% cycle 'var(--pl)' '#4ade80' '#fbbf24' '#60a5fa' %}">
+                  {{ email.from_email|first|upper }}
+                </div>
+                <div>
+                  <div class="sender-name">{{ email.subject|truncatechars:30 }}</div>
+                  <div class="sender-email">{{ email.from_email }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="mono-tag">{{ email.alias.address|truncatechars:24 }}</span></td>
+            <td>
+              {% if email.risk_score >= 61 %}
+                <span class="risk-badge danger">
+                  <span class="badge-dot"></span>
+                  Bloqueado
+                </span>
+              {% elif email.risk_score >= 31 %}
+                <span class="risk-badge warning">
+                  <span class="badge-dot"></span>
+                  Sospechoso
+                </span>
+              {% else %}
+                <span class="risk-badge success">
+                  <span class="badge-dot"></span>
+                  Seguro
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3">
+              <div class="empty-table">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Aún no hay correos recibidos en tus alias
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- COLUMNA DERECHA -->
+  <div class="panel-stack">
+
+    <!-- MIS ALIAS -->
+    <section class="panel" style="animation-delay:260ms" aria-labelledby="panel-aliases-title">
+      <header class="panel-header">
+        <h2 class="panel-title" id="panel-aliases-title">
+          <span class="panel-title-dot" style="background:var(--p);box-shadow:0 0 6px rgba(124,92,255,0.5)"></span>
+          Mis alias
+        </h2>
+        <a href="{% url 'alias_list' %}" class="panel-link">Ver todos →</a>
+      </header>
+      <div class="panel-body">
+        {% for alias in aliases %}
+        <div class="alias-item">
+          <div style="min-width:0;flex:1">
+            <div class="alias-addr">{{ alias.address }}</div>
+            <div class="alias-meta">{{ alias.label }} · {{ alias.email_count }} correos</div>
+          </div>
+          {% if alias.is_active %}
+            <span class="alias-status active">
+              <span class="status-dot"></span>
+              Activo
+            </span>
+          {% else %}
+            <span class="alias-status inactive">Destruido</span>
+          {% endif %}
+        </div>
+        {% empty %}
+        <div class="empty-table">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+            <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/>
+          </svg>
+          No tienes alias aún.
+          <a href="{% url 'alias_create' %}" style="color:var(--pl);text-decoration:none;margin-left:4px;font-family:var(--mono)">Crear uno →</a>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- SANDBOX -->
+    <section class="panel" style="animation-delay:300ms" aria-labelledby="panel-sandbox-title">
+      <header class="panel-header">
+        <h2 class="panel-title" id="panel-sandbox-title">
+          <span class="panel-title-dot" style="background:var(--success);box-shadow:0 0 6px rgba(34,197,94,0.5)"></span>
+          Estado del sandbox
+        </h2>
+        <a href="{% url 'sandbox_list' %}" class="panel-link">Ver análisis →</a>
+      </header>
+
+      <div class="sandbox-status">
+        <div class="sandbox-dot"></div>
+        <span class="sandbox-label">Contenedor <strong>activo y listo</strong></span>
+      </div>
+
+      <div class="panel-body">
+        {% for analysis in recent_analyses %}
+        <div class="sandbox-analysis">
+          <span class="sandbox-filename">{{ analysis.filename }}</span>
+          <div class="risk-bar-wrap">
+            <div class="risk-bar"
+                 style="width:{{ analysis.risk_score }}%;
+                        background:{% if analysis.risk_score >= 61 %}linear-gradient(90deg,#ef4444,#f87171){% elif analysis.risk_score >= 31 %}linear-gradient(90deg,#f59e0b,#fbbf24){% else %}linear-gradient(90deg,#22c55e,#4ade80){% endif %}">
+            </div>
+          </div>
+          <span class="risk-score-num"
+                style="color:{% if analysis.risk_score >= 61 %}#f87171{% elif analysis.risk_score >= 31 %}#fbbf24{% else %}#4ade80{% endif %}">
+            {{ analysis.risk_score }}
+          </span>
+        </div>
+        {% empty %}
+        <div class="empty-table" style="padding:24px 20px">Sin análisis recientes</div>
+        {% endfor %}
+      </div>
+    </section>
+
+  </div>
+</div>
+
+
+<!-- ── MODAL BIENVENIDA ── -->
+<div id="welcome-overlay">
+  <div id="welcome-modal">
+    <div class="wm-logo">
+      <span class="wm-logo-text">Docker<span>Shield</span></span>
+    </div>
+    <div class="wm-title">¡Bienvenido!</div>
+    <div class="wm-sub">Donde la privacidad es por defecto.</div>
+    <div class="wm-features">
+      <div class="wm-feature">
+        <div class="wm-feature-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div>
+          <strong>Alias desechables</strong>
+          Nunca expones tu correo real en sitios externos.
+        </div>
+      </div>
+      <div class="wm-feature">
+        <div class="wm-feature-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div>
+          <strong>Sandbox de adjuntos</strong>
+          Los archivos se analizan en contenedores aislados.
+        </div>
+      </div>
+      <div class="wm-feature">
+        <div class="wm-feature-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+          </svg>
+        </div>
+        <div>
+          <strong>Análisis en tiempo real</strong>
+          Detección de malware antes de que llegue a tu PC.
+        </div>
+      </div>
+    </div>
+    <button class="btn-welcome" onclick="closeWelcome()">¡Comencemos! →</button>
+  </div>
+</div>
+
+<script>
+  window.__DASHBOARD_CTX__ = {
+    welcomeKey: 'welcome_shown_{{ request.user.id }}',
+    liveApiUrl: "{% url 'dashboard_live_api' %}"
+  };
+</script>
+<script src="{% static 'mail/js/dashboard.js' %}"></script>
+
+{% endblock %}

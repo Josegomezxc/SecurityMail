@@ -46,7 +46,7 @@ def admin_dashboard_view(request):
             .order_by('-received_at')[:6]
     )
 
-    return render(request, 'admin_dashboard.html', {
+    return render(request, 'core/admin_dashboard.html', {
         **stats,
         'top_users':      top_users,
         'recent_threats': recent_threats,
@@ -69,7 +69,7 @@ def admin_users_view(request):
             )
             .order_by('-date_joined')
     )
-    return render(request, 'admin_users.html', {'users': users})
+    return render(request, 'core/admin_users.html', {'users': users})
 
 
 @admin_required
@@ -159,7 +159,7 @@ def admin_threats_view(request):
         received_at__gte=timezone.now() - timedelta(days=1),
     ).count()
 
-    return render(request, 'admin_threats.html', {
+    return render(request, 'core/admin_threats.html', {
         'threats':         qs[:200],   # tope de 200 para no reventar el render
         'total_threats':   total_threats,
         'critical_count':  critical_count,
@@ -210,7 +210,7 @@ def admin_aliases_view(request):
     ).filter(threats_total__gt=0)
     with_threats_count = with_threats_qs.count()
 
-    return render(request, 'admin_aliases.html', {
+    return render(request, 'core/admin_aliases.html', {
         'aliases':            qs[:300],
         'total_count':        total_count,
         'active_count':       active_count,
@@ -253,7 +253,7 @@ def admin_user_detail_view(request, pk):
         getattr(target.profile, 'alias_unlimited', False)
     ) if hasattr(target, 'profile') else False
 
-    return render(request, 'admin_user_detail.html', {
+    return render(request, 'core/admin_user_detail.html', {
         'target':              target,
         'aliases':             aliases,
         'recent_emails':       recent_emails,
@@ -373,29 +373,25 @@ def admin_toggle_alias_unlimited(request, pk):
 
 
 # ─────────────────────────────────────────────────────────────────────
-#  Handlers de error — devolvemos al usuario a la página de la que venía
-#  (HTTP_REFERER). Nunca mostramos pantalla de error ni filtramos rutas.
-#  Si no hay referer (escribieron la URL a mano en una pestaña nueva),
-#  caemos al dashboard si están logueados o al login si no lo están.
+#  Handlers de error — renderizan páginas custom con la estética del
+#  proyecto. Los templates viven en `templates/` raíz (ver base_error.html).
+#  Django los invoca automáticamente cuando DEBUG=False; en DEBUG=True
+#  Django muestra su pantalla técnica, así que añadimos un catch-all en
+#  config/urls.py para igual capturar las URLs inválidas.
+#
+#  Solo 404 y 500 — el proyecto no renderiza 400 ni 403 como páginas
+#  (todos los errores de validación devuelven JSON desde endpoints AJAX,
+#  y el acceso denegado se maneja con redirects, no con pantallas).
 # ─────────────────────────────────────────────────────────────────────
 
-def _safe_back(request):
-    referer = request.META.get('HTTP_REFERER', '')
-    # Solo aceptamos refs del mismo host — evita que un atacante con un
-    # link externo logre que terceros vuelvan a su sitio (open redirect).
-    host = request.get_host()
-    if referer and (host in referer):
-        return redirect(referer)
-    fallback = 'dashboard' if request.user.is_authenticated else 'login'
-    return redirect(fallback)
-
-
 def page_not_found_view(request, _exception=None):
-    return _safe_back(request)
+    """404 — URL no encontrada (o catch-all del urls.py raíz)."""
+    return render(request, '404.html', status=404)
 
 
 def server_error_view(request):
-    return _safe_back(request)
+    """500 — excepción no manejada del servidor. Django captura y llama acá."""
+    return render(request, '500.html', status=500)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -435,7 +431,7 @@ def admin_alias_requests_view(request):
         'rejected': AliasQuotaRequest.objects.filter(status='rejected').count(),
     }
 
-    return render(request, 'admin_alias_requests.html', {
+    return render(request, 'core/admin_alias_requests.html', {
         'requests':      requests_list,
         'counts':        counts,
         'status_filter': status_filter,

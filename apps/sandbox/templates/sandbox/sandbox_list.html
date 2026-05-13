@@ -1,0 +1,313 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Sandbox — DockerShield{% endblock %}
+
+{% block nav_sandbox %}active{% endblock %}
+{% block page_title %}Sandbox{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_list.css' %}">
+{% endblock %}
+
+{% block body %}
+
+<!-- ── HERO ── -->
+<header class="sb-hero">
+  <div class="sb-hero-inner">
+    <div class="sb-hero-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    </div>
+    <div class="sb-hero-text">
+      <h1>Análisis Sandbox</h1>
+      <p>cada adjunto se ejecuta en un contenedor Docker aislado · tu PC nunca lo toca</p>
+    </div>
+    <div class="sb-live-badge">
+      <span class="sb-live-dot"></span>
+      Contenedor activo
+    </div>
+  </div>
+</header>
+
+<!-- ── HOW IT WORKS ── -->
+<section class="how-section" aria-labelledby="how-title">
+  <h2 class="how-title" id="how-title">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Cómo funciona
+  </h2>
+  <ol class="how-steps">
+    <li class="how-step-card">
+      <div class="how-num">01</div>
+      <div class="how-step-body">
+        <strong>Recepción</strong>
+        <span>El adjunto llega al alias. Django lo intercepta antes de que llegue a ti.</span>
+      </div>
+    </li>
+    <li class="how-step-card">
+      <div class="how-num">02</div>
+      <div class="how-step-body">
+        <strong>Análisis estático</strong>
+        <span>MIME real, hash SHA-256, firmas YARA, imports sospechosos y macros.</span>
+      </div>
+    </li>
+    <li class="how-step-card">
+      <div class="how-num">03</div>
+      <div class="how-step-body">
+        <strong>Análisis en sandbox</strong>
+        <span>Docker aislado — sin red, sin disco, sin privilegios. Se monitorea el comportamiento.</span>
+      </div>
+    </li>
+    <li class="how-step-card">
+      <div class="how-num">04</div>
+      <div class="how-step-body">
+        <strong>Reporte + IA</strong>
+        <span>Score 0-100, evidencia por severidad, IOCs, y veredicto IA con Groq.</span>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- ── STATS ── -->
+<section class="stats-grid" aria-label="Estadísticas de análisis">
+  <article class="stat-card total">
+    <svg class="stat-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <div class="stat-val" style="color:var(--ai-purple-light)">{{ analyses.count }}</div>
+    <div class="stat-lbl">Total analizados</div>
+  </article>
+  <article class="stat-card blocked">
+    <svg class="stat-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    <div class="stat-val" style="color:var(--danger)">{{ blocked_count|default:0 }}</div>
+    <div class="stat-lbl">Bloqueados</div>
+  </article>
+  <article class="stat-card safe">
+    <svg class="stat-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    <div class="stat-val" style="color:var(--success)">{{ safe_count|default:0 }}</div>
+    <div class="stat-lbl">Seguros</div>
+  </article>
+  <article class="stat-card suspect">
+    <svg class="stat-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div class="stat-val" style="color:var(--warning)">{{ warning_count|default:0 }}</div>
+    <div class="stat-lbl">Sospechosos</div>
+  </article>
+</section>
+
+<!-- ── TOOLBAR: búsqueda + filtros ── -->
+<section class="toolbar" role="search" aria-label="Buscar y filtrar análisis">
+  <div class="search-wrap">
+    <div class="search-icon-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    </div>
+    <input type="text" class="search-input" id="search-input"
+           placeholder="Buscar por archivo, remitente, asunto o amenaza..."
+           oninput="onSearchInput(this.value)">
+    <button class="search-clear" id="search-clear" onclick="clearSearch()" title="Limpiar búsqueda">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+
+    <div class="search-divider"></div>
+    <button class="qfilter-btn active" data-filter="all">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+      Todos
+      <span class="qbadge" id="qb-all">0</span>
+    </button>
+
+    <div class="search-divider"></div>
+    <button class="qfilter-btn" data-filter="malware">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      Malware
+      <span class="qbadge" id="qb-malware">0</span>
+    </button>
+
+    <div class="search-divider"></div>
+    <button class="qfilter-btn" data-filter="danger">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+      Alto riesgo
+      <span class="qbadge" id="qb-danger">0</span>
+    </button>
+
+    <div class="search-divider"></div>
+    <button class="qfilter-btn" data-filter="warning">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Sospechoso
+      <span class="qbadge" id="qb-warning">0</span>
+    </button>
+
+    <div class="search-divider"></div>
+    <button class="qfilter-btn" data-filter="safe">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Seguro
+      <span class="qbadge" id="qb-safe">0</span>
+    </button>
+  </div>
+</section>
+
+<!-- ── LIST ── -->
+<header class="list-header">
+  <h2 class="list-header-title">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    Análisis recientes
+  </h2>
+  <span class="list-count">{{ analyses.count }} total</span>
+</header>
+
+<section id="analysis-list" aria-label="Lista de análisis recientes">
+{% for analysis in analyses %}
+{% with score=analysis.risk_score %}
+<a href="{% url 'sandbox_report' analysis.pk %}"
+   class="analysis-card {% if score >= 61 %}card-danger{% elif score >= 31 %}card-warning{% else %}card-success{% endif %}"
+   data-score="{{ score }}"
+   data-category="{{ analysis.category|default:'unknown' }}"
+   data-filename="{{ analysis.filename|lower }}"
+   data-subject="{{ analysis.email.subject|lower }}"
+   data-sender="{{ analysis.email.from_email|lower }}"
+   data-threat="{{ analysis.threat_name|lower }}"
+   style="animation-delay: {{ forloop.counter0 }}00ms">
+
+  <!-- Score ring -->
+  <div class="score-ring-sm">
+    <svg width="52" height="52" viewBox="0 0 52 52">
+      <circle cx="26" cy="26" r="22" fill="none"
+        stroke="{% if score >= 61 %}rgba(232,64,64,0.12){% elif score >= 31 %}rgba(245,158,11,0.12){% else %}rgba(46,204,113,0.1){% endif %}"
+        stroke-width="4"/>
+      <circle cx="26" cy="26" r="22" fill="none"
+        stroke="{% if score >= 61 %}var(--danger){% elif score >= 31 %}var(--warning){% else %}var(--success){% endif %}"
+        stroke-width="4" stroke-linecap="round"
+        stroke-dasharray="calc({{ score }} * 1.382) 138.2"
+        transform="rotate(-90 26 26)"/>
+    </svg>
+    <div class="score-num" style="color:{% if score >= 61 %}var(--danger){% elif score >= 31 %}var(--warning){% else %}var(--success){% endif %}">
+      {{ score }}
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="card-info">
+    <div class="card-row-top">
+      <div class="card-filename">{{ analysis.filename }}</div>
+      {% if analysis.category and analysis.category != 'unknown' %}
+        <span class="card-category {{ analysis.category }}">
+          {{ analysis.get_category_display }}
+        </span>
+      {% endif %}
+      {% if analysis.extension_spoof %}
+        <span class="card-spoof-flag">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          SPOOF
+        </span>
+      {% endif %}
+    </div>
+
+    <div class="card-meta">
+      <span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        {{ analysis.email.subject|truncatechars:26 }}
+      </span>
+      <span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        {{ analysis.email.from_email }}
+      </span>
+      <span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        {{ analysis.analyzed_at|timesince }} atrás
+      </span>
+    </div>
+
+    <!-- Métricas del reporte (nuevas) -->
+    {% if analysis.evidence or analysis.iocs.urls or analysis.yara_matches %}
+    <div class="card-metrics">
+      {% if analysis.evidence %}
+        <span class="card-metric {% if score >= 61 %}danger{% elif score >= 31 %}warning{% endif %}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          {{ analysis.evidence|length }} indicador{{ analysis.evidence|length|pluralize:"es" }}
+        </span>
+      {% endif %}
+      {% if analysis.yara_matches %}
+        <span class="card-metric purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3h18v18H3z"/></svg>
+          {{ analysis.yara_matches|length }} YARA
+        </span>
+      {% endif %}
+      {% if analysis.iocs.urls %}
+        <span class="card-metric">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/></svg>
+          {{ analysis.iocs.urls|length }} URL{{ analysis.iocs.urls|length|pluralize }}
+        </span>
+      {% endif %}
+      {% if analysis.threat_name %}
+        <span class="card-metric {% if score >= 61 %}danger{% elif score >= 31 %}warning{% endif %}" style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">
+          {{ analysis.threat_name|truncatechars:48 }}
+        </span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="card-bar">
+      <div class="card-bar-fill" style="
+        --w: {{ score }}%;
+        width: {{ score }}%;
+        background: {% if score >= 61 %}linear-gradient(90deg,#c0392b,var(--danger)){% elif score >= 31 %}linear-gradient(90deg,#d97706,var(--warning)){% else %}linear-gradient(90deg,#16a34a,var(--success)){% endif %}">
+      </div>
+    </div>
+  </div>
+
+  <!-- Status pill -->
+  <div>
+    {% if score >= 81 %}
+      <span class="status-pill pill-danger">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+        Malware
+      </span>
+    {% elif score >= 61 %}
+      <span class="status-pill pill-danger">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+        Alto riesgo
+      </span>
+    {% elif score >= 31 %}
+      <span class="status-pill pill-warning">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+        Sospechoso
+      </span>
+    {% else %}
+      <span class="status-pill pill-success">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Seguro
+      </span>
+    {% endif %}
+  </div>
+
+</a>
+{% endwith %}
+{% empty %}
+<div class="empty-state">
+  <div class="empty-icon-wrap">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  </div>
+  <div class="empty-title">Sin análisis aún</div>
+  <div class="empty-sub">Cuando recibas correos con adjuntos en tus alias, aparecerán aquí.</div>
+</div>
+{% endfor %}
+
+  <div id="no-results" class="empty-state">
+    <div class="empty-icon-wrap">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    </div>
+    <div id="no-results-msg" class="empty-title">Sin resultados</div>
+    <div id="no-results-hint" class="empty-sub"></div>
+  </div>
+
+</section>{# /#analysis-list #}
+
+<script src="{% static 'sandbox/js/sandbox_list.js' %}"></script>
+
+{% endblock %}

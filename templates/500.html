@@ -1,0 +1,52 @@
+{% extends 'base_error.html' %}
+
+{% block title %}500 — Error del servidor{% endblock %}
+
+{% block error_status %}500 Server Error{% endblock %}
+
+{% block error_icon %}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="3"  width="20" height="7" rx="1.5"/>
+    <rect x="2" y="14" width="20" height="7" rx="1.5"/>
+    <line x1="6" y1="6.5"  x2="6.01" y2="6.5"/>
+    <line x1="6" y1="17.5" x2="6.01" y2="17.5"/>
+    <line x1="11" y1="6.5"  x2="14" y2="6.5"/>
+    <line x1="11" y1="17.5" x2="14" y2="17.5"/>
+  </svg>
+{% endblock %}
+
+{% block error_code %}500{% endblock %}
+{% block error_code_data %}500{% endblock %}
+
+{% block error_title %}Algo se rompió de nuestro lado{% endblock %}
+
+{% block error_message %}
+  El servidor encontró un error procesando tu pedido. Ya quedó registrado
+  en los logs y el equipo lo revisará. Mientras tanto, intentá recargar
+  la página o volvé al inicio — la mayoría de los errores se resuelven
+  reintentando.
+{% endblock %}
+
+{% block error_actions %}
+  <a href="/dashboard/" class="err-btn err-btn-primary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="9"/>
+      <rect x="14" y="3" width="7" height="5"/>
+      <rect x="14" y="12" width="7" height="9"/>
+      <rect x="3" y="16" width="7" height="5"/>
+    </svg>
+    Ir al panel
+  </a>
+  <a href="javascript:location.reload()" class="err-btn err-btn-secondary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"/>
+      <polyline points="1 20 1 14 7 14"/>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+    </svg>
+    Reintentar
+  </a>
+{% endblock %}
+
+{% block error_footer_status %}500{% endblock %}
+{% block error_footer_extra_label %}Logged{% endblock %}
+{% block error_footer_extra %}<script>document.write(new Date().toISOString().slice(11,19)+'Z');</script>{% endblock %}

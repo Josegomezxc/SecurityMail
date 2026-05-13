@@ -1,0 +1,147 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Amenazas globales — Panel admin{% endblock %}
+{% block page_title %}Amenazas globales{% endblock %}
+{% block nav_admin_threats %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/styles/admin_threats.css' %}">
+{% endblock %}
+
+{% block body %}
+
+<!-- HERO -->
+<header class="adm-hero-th">
+  <div class="adm-hero-th-icon">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  </div>
+  <div class="adm-hero-th-text">
+    <h1>Amenazas globales</h1>
+    <p>todas las detecciones del sistema · score ≥ 61</p>
+  </div>
+  <div class="adm-hero-th-stats">
+    <div class="adm-hero-th-stat">
+      <div class="adm-hero-th-stat-val">{{ total_threats }}</div>
+      <div class="adm-hero-th-stat-lbl">Total</div>
+    </div>
+    <div class="adm-hero-th-stat">
+      <div class="adm-hero-th-stat-val crit">{{ critical_count }}</div>
+      <div class="adm-hero-th-stat-lbl">Críticas</div>
+    </div>
+    <div class="adm-hero-th-stat">
+      <div class="adm-hero-th-stat-val high">{{ high_count }}</div>
+      <div class="adm-hero-th-stat-lbl">Altas</div>
+    </div>
+    <div class="adm-hero-th-stat">
+      <div class="adm-hero-th-stat-val today">{{ today_count }}</div>
+      <div class="adm-hero-th-stat-lbl">24 h</div>
+    </div>
+  </div>
+</header>
+
+<!-- Toolbar — búsqueda client-side (real-time). Los pills siguen siendo
+     links GET porque cambian el dataset que llega del backend.
+     onsubmit="return false" evita que Enter recargue la página. -->
+<form method="get" class="th-toolbar" role="search" onsubmit="return false">
+  <div class="th-search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="threatsSearchInput" name="q" value="{{ current_q }}"
+           placeholder="Buscar por remitente, asunto, alias o usuario..."
+           autocomplete="off" oninput="threatsTableSearch(this.value)">
+    {% if current_level != 'all' %}<input type="hidden" name="level" value="{{ current_level }}">{% endif %}
+  </div>
+  <div class="th-filters">
+    <a href="?{% if current_q %}q={{ current_q }}{% endif %}" class="th-filter all {% if current_level == 'all' %}active{% endif %}">
+      Todas
+    </a>
+    <a href="?level=critical{% if current_q %}&q={{ current_q }}{% endif %}" class="th-filter crit {% if current_level == 'critical' %}active{% endif %}">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      Críticas (81+)
+    </a>
+    <a href="?level=high{% if current_q %}&q={{ current_q }}{% endif %}" class="th-filter high {% if current_level == 'high' %}active{% endif %}">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      Altas (61-80)
+    </a>
+  </div>
+</form>
+
+<!-- Tabla -->
+<div class="th-table-wrap">
+  <div class="th-row head">
+    <div>Score</div>
+    <div>Asunto / Remitente</div>
+    <div>Usuario afectado</div>
+    <div>Alias</div>
+    <div style="text-align:right">Recibido</div>
+  </div>
+  {% for t in threats %}
+    {% if t.analysis %}
+      <a href="{% url 'sandbox_report' pk=t.analysis.pk %}" class="th-row">
+    {% else %}
+      <a href="{% url 'admin_user_detail' pk=t.alias.user.pk %}" class="th-row">
+    {% endif %}
+      <div class="th-score {% if t.risk_score >= 81 %}crit{% else %}high{% endif %}">
+        {{ t.risk_score }}
+      </div>
+      <div class="th-info">
+        <div class="th-info-subj">{{ t.subject|default:"(sin asunto)"|truncatechars:60 }}</div>
+        <div class="th-info-meta">
+          <span><strong>De:</strong> {{ t.from_email|truncatechars:40 }}</span>
+          {% if t.has_attachment %}<span>📎 {{ t.attachment_name|truncatechars:24 }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="th-user">
+        <span class="th-user-avatar">{{ t.alias.user.email|first|upper }}{{ t.alias.user.email|slice:"1:2"|upper }}</span>
+        {{ t.alias.user.email|truncatechars:22 }}
+      </div>
+      <div class="th-alias">{{ t.alias.address|truncatechars:24 }}</div>
+      <div class="th-time">{{ t.received_at|timesince }} atrás</div>
+    </a>
+  {% empty %}
+    <div class="th-empty">
+      {% if current_q or current_level != 'all' %}
+        Ninguna amenaza coincide con los filtros actuales.
+      {% else %}
+        🎉 Sin amenazas registradas en el sistema.
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Mensaje cuando la búsqueda client-side no encuentra nada -->
+<div class="th-empty" id="th-empty-search" style="display:none">
+  Ninguna amenaza coincide con tu búsqueda.
+</div>
+
+{% if shown_count >= 200 %}
+  <div class="th-tip">Mostrando las 200 amenazas más recientes — afina la búsqueda para ver más antiguas.</div>
+{% endif %}
+
+<script>
+/* Búsqueda client-side en tiempo real para la tabla de amenazas.
+   Filtra .th-row por contenido. Pills siguen siendo server-side. */
+(function () {
+  var wrap = document.querySelector('.th-table-wrap');
+  if (!wrap) return;
+  var rows = Array.prototype.slice.call(
+    wrap.querySelectorAll('.th-row:not(.head)')
+  ).filter(function (r) { return !r.classList.contains('th-empty'); });
+  var emptyEl = document.getElementById('th-empty-search');
+
+  window.threatsTableSearch = function (q) {
+    var query = (q || '').trim().toLowerCase();
+    var visible = 0;
+    rows.forEach(function (r) {
+      var match = !query || (r.textContent || '').toLowerCase().indexOf(query) !== -1;
+      r.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    if (emptyEl) emptyEl.style.display = (query && visible === 0) ? '' : 'none';
+  };
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,227 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Papelera — DockerShield{% endblock %}
+{% block page_title %}Papelera{% endblock %}
+{% block nav_trash %}active{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'mail/styles/trash.css' %}">
+{% endblock %}
+
+{% block body %}
+
+<!-- ── HERO ── -->
+<header class="trash-hero">
+  <div class="trash-hero-inner">
+    <div class="trash-hero-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        <line x1="10" y1="11" x2="10" y2="17"/>
+        <line x1="14" y1="11" x2="14" y2="17"/>
+      </svg>
+    </div>
+    <div class="trash-hero-text">
+      <h1>Papelera</h1>
+      <p>los correos eliminados se guardan <strong>{{ retention_days }} días</strong> antes de borrarse para siempre</p>
+    </div>
+    <div class="trash-stats">
+      <div class="trash-stat">
+        <span class="trash-stat-val">{{ inbound_trash|length }}</span>
+        <span class="trash-stat-lbl">Recibidos</span>
+      </div>
+      <div class="trash-stat">
+        <span class="trash-stat-val">{{ outbound_trash|length }}</span>
+        <span class="trash-stat-lbl">Enviados</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ── BANNER ── -->
+{% if total_trash %}
+<aside class="retention-banner" role="note">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  Los correos en papelera se eliminan automáticamente tras {{ retention_days }} días. Restáuralos antes si los necesitas.
+</aside>
+{% endif %}
+
+<!-- ── TABS + VACIAR ── -->
+<section class="toolbar" aria-label="Filtros y acciones de papelera">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="all" onclick="switchTab('all')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Todos
+      <span class="qbadge">{{ total_trash }}</span>
+    </button>
+    <button class="tab-btn" data-tab="inbound" onclick="switchTab('inbound')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Recibidos
+      <span class="qbadge">{{ inbound_trash|length }}</span>
+    </button>
+    <button class="tab-btn" data-tab="outbound" onclick="switchTab('outbound')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Enviados
+      <span class="qbadge">{{ outbound_trash|length }}</span>
+    </button>
+  </div>
+
+  <button class="empty-trash-btn" onclick="emptyTrash()" {% if not total_trash %}disabled{% endif %}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"/>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+    </svg>
+    Vaciar papelera
+  </button>
+</section>
+
+<!-- ── LISTA UNIFICADA: una sola lista ordenada por deleted_at desc.
+     Cada fila lleva data-kind (inbound|outbound|draft) y el JS filtra
+     por ese atributo cuando se cambia de pestaña. ── -->
+<section id="trash-list" aria-label="Lista de correos en papelera">
+  {% for it in all_trash %}
+    {% if it.kind == 'inbound' %}
+      <article class="trash-row" data-kind="inbound" id="trash-row-inbound-{{ it.id }}">
+        <div class="trash-avatar">{{ it.from_email|first|upper }}</div>
+        <div class="trash-content">
+          <div class="trash-top">
+            <span class="trash-addr"><span class="label">De:</span>{{ it.from_email|truncatechars:42 }}</span>
+          </div>
+          <div class="trash-subject">{{ it.subject|default:'(Sin asunto)' }}</div>
+          <div class="trash-meta">
+            <span class="trash-kind-pill inbound">RECIBIDO</span>
+            <span>→ {{ it.alias.address }}</span>
+            <span class="trash-expiry">se borra en {{ it.expires_at|timeuntil }}</span>
+          </div>
+        </div>
+        <div class="trash-actions">
+          <span class="trash-deleted-at">eliminado {{ it.deleted_at|timesince }} atrás</span>
+          <div class="trash-actions-buttons">
+            <button class="btn-restore" onclick="restoreEmail('inbound', {{ it.id }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              Restaurar
+            </button>
+            <button class="btn-purge" onclick="purgeEmail('inbound', {{ it.id }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Borrar ahora
+            </button>
+          </div>
+        </div>
+      </article>
+    {% elif it.kind == 'outbound' %}
+      <article class="trash-row" data-kind="outbound" id="trash-row-outbound-{{ it.id }}">
+        <div class="trash-avatar">{{ it.to_email|first|upper }}</div>
+        <div class="trash-content">
+          <div class="trash-top">
+            <span class="trash-addr"><span class="label">Para:</span>{{ it.to_email|truncatechars:42 }}</span>
+          </div>
+          <div class="trash-subject">{{ it.subject|default:'(Sin asunto)' }}</div>
+          <div class="trash-meta">
+            <span class="trash-kind-pill outbound">ENVIADO</span>
+            <span>desde {{ it.alias.address }}</span>
+            <span class="trash-expiry">se borra en {{ it.expires_at|timeuntil }}</span>
+          </div>
+        </div>
+        <div class="trash-actions">
+          <span class="trash-deleted-at">eliminado {{ it.deleted_at|timesince }} atrás</span>
+          <div class="trash-actions-buttons">
+            <button class="btn-restore" onclick="restoreEmail('outbound', {{ it.id }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              Restaurar
+            </button>
+            <button class="btn-purge" onclick="purgeEmail('outbound', {{ it.id }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Borrar ahora
+            </button>
+          </div>
+        </div>
+      </article>
+    {% else %}
+      <article class="trash-row" data-kind="draft" id="trash-row-draft-{{ it.id }}">
+        <div class="trash-avatar">{% if it.to_email %}{{ it.to_email|first|upper }}{% else %}—{% endif %}</div>
+        <div class="trash-content">
+          <div class="trash-top">
+            <span class="trash-addr">
+              <span class="label">Para:</span>
+              {% if it.to_email %}{{ it.to_email|truncatechars:42 }}{% else %}<em style="color:var(--text-muted)">(sin destinatario)</em>{% endif %}
+            </span>
+          </div>
+          <div class="trash-subject">
+            {% if it.subject %}{{ it.subject }}{% else %}<em style="color:var(--text-muted);font-style:italic">(Sin asunto)</em>{% endif %}
+          </div>
+          <div class="trash-meta">
+            <span class="trash-kind-pill draft">BORRADOR</span>
+            {% if it.alias %}<span>desde {{ it.alias.address }}</span>{% endif %}
+            <span class="trash-expiry">se borra en {{ it.expires_at|timeuntil }}</span>
+          </div>
+        </div>
+        <div class="trash-actions">
+          <span class="trash-deleted-at">eliminado {{ it.deleted_at|timesince }} atrás</span>
+          <div class="trash-actions-buttons">
+            <button class="btn-restore" onclick="restoreEmail('draft', {{ it.id }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              Restaurar
+            </button>
+            <button class="btn-purge" onclick="purgeEmail('draft', {{ it.id }})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Borrar ahora
+            </button>
+          </div>
+        </div>
+      </article>
+    {% endif %}
+  {% endfor %}
+
+  {# Empty-states: uno por pestaña, el JS muestra el que corresponde. #}
+  <div class="empty-state" id="empty-all" {% if total_trash %}style="display:none"{% endif %}>
+    <div class="empty-icon-wrap">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(232,64,64,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      </svg>
+    </div>
+    <div class="empty-title">La papelera está vacía</div>
+    <div class="empty-sub">Los correos y borradores que elimines aparecerán aquí.</div>
+  </div>
+  <div class="empty-state" id="empty-inbound" style="display:none">
+    <div class="empty-icon-wrap">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(232,64,64,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      </svg>
+    </div>
+    <div class="empty-title">Sin correos recibidos en papelera</div>
+    <div class="empty-sub">Los correos que elimines de la bandeja aparecerán aquí.</div>
+  </div>
+  <div class="empty-state" id="empty-outbound" style="display:none">
+    <div class="empty-icon-wrap">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(232,64,64,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      </svg>
+    </div>
+    <div class="empty-title">Sin correos enviados en papelera</div>
+    <div class="empty-sub">Los correos enviados que elimines aparecerán aquí.</div>
+  </div>
+  <div class="empty-state" id="empty-draft" style="display:none">
+    <div class="empty-icon-wrap">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(245,158,11,0.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+    </div>
+    <div class="empty-title">Sin borradores en papelera</div>
+    <div class="empty-sub">Los borradores que descartes aparecerán aquí.</div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+window.__TRASH_CTX__ = {
+  restoreUrl: "{% url 'trash_restore' %}",
+  deleteUrl:  "{% url 'trash_delete' %}",
+  emptyUrl:   "{% url 'trash_empty' %}"
+};
+</script>
+<script src="{% static 'mail/js/trash.js' %}"></script>
+{% endblock %}

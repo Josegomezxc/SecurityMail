@@ -1,0 +1,361 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Términos de Servicio — DockerShield{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'core/styles/terminos.css' %}">
+{% endblock %}
+
+{% block body_outer %}
+
+<div class="read-progress"><div class="bar" id="readBar"></div></div>
+
+<!-- ── TOPBAR ── -->
+<header class="legal-topbar">
+  <a href="javascript:history.back()" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Volver
+  </a>
+  <a href="/" class="topbar-logo">
+    <div class="topbar-logo-icon">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <span class="topbar-logo-text">Secure<span>Mail</span></span>
+  </a>
+</header>
+
+<!-- ── HERO ── -->
+<header class="legal-hero">
+  <div class="legal-hero-icon">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+  </div>
+  <h1>Términos de Servicio</h1>
+  <p class="subtitle">Estos son los términos que regulan el uso de DockerShield. Léelos con calma — el resumen está al inicio.</p>
+  <div class="meta-chips">
+    <span class="meta-chip accent">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      8 min de lectura
+    </span>
+    <span class="meta-chip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/></svg>
+      Última actualización: Abril 2026
+    </span>
+    <span class="meta-chip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      v2.0
+    </span>
+  </div>
+</header>
+
+<div class="legal-layout">
+
+  <!-- ── TOC ── -->
+  <aside class="toc">
+    <div class="toc-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+      Índice
+    </div>
+    <a class="toc-link" data-target="sec-1"><span class="toc-num">1</span> Descripción</a>
+    <a class="toc-link" data-target="sec-2"><span class="toc-num">2</span> Análisis automatizado</a>
+    <a class="toc-link" data-target="sec-3"><span class="toc-num">3</span> Reenvío y notificaciones</a>
+    <a class="toc-link" data-target="sec-4"><span class="toc-num">4</span> Análisis con IA</a>
+    <a class="toc-link" data-target="sec-5"><span class="toc-num">5</span> Uso aceptable</a>
+    <a class="toc-link" data-target="sec-6"><span class="toc-num">6</span> Cuenta y eliminación</a>
+    <a class="toc-link" data-target="sec-7"><span class="toc-num">7</span> Responsabilidad</a>
+    <a class="toc-link" data-target="sec-8"><span class="toc-num">8</span> Contacto</a>
+  </aside>
+
+  <!-- ── CONTENIDO ── -->
+  <main class="legal-content">
+
+    <!-- TL;DR -->
+    <div class="tldr-box">
+      <div class="tldr-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        En resumen
+        <span class="badge">TL;DR</span>
+      </div>
+      <div class="tldr-list">
+        <div class="tldr-item">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <span>Generamos <strong>alias de correo desechables</strong> en el dominio <code>@dockershield.lat</code> para que tu correo real nunca quede expuesto.</span>
+        </div>
+        <div class="tldr-item">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <span>Cada correo recibe un <strong>score de riesgo de 0 a 100</strong>. Las amenazas (≥61) se bloquean; los sospechosos (31-60) y seguros (0-30) los puedes reenviar tú.</span>
+        </div>
+        <div class="tldr-item">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <span>Los adjuntos se analizan en <strong>sandbox Docker aislado</strong> con YARA y análisis de comportamiento. Sin intervención humana.</span>
+        </div>
+        <div class="tldr-item">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <span>Puedes pedir un <strong>análisis adicional con IA</strong> (Groq · Llama 3.3) para correos sospechosos. Es opcional.</span>
+        </div>
+        <div class="tldr-item">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <span>Solo debes usarlo para <strong>proteger tu propia privacidad</strong>, no para actividades ilegales, spam o suplantación.</span>
+        </div>
+        <div class="tldr-item">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <span>Es una <strong>capa adicional de seguridad</strong>, no garantizamos detectar el 100% de las amenazas.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────── Sección 1: Descripción del servicio ─────── -->
+    <section class="legal-section" id="sec-1">
+      <h2>
+        <div class="section-icon c-service">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <span class="section-num">SECCIÓN 01</span>
+        Descripción del Servicio
+      </h2>
+      <p>DockerShield es un sistema de protección de correo electrónico que permite a los usuarios generar alias de correo desechables en el dominio <code>@dockershield.lat</code> para proteger su dirección real. Los correos recibidos en dichos alias son analizados automáticamente para detectar contenido malicioso antes de notificarte.</p>
+      <p>El servicio incluye, entre otras, las siguientes funcionalidades:</p>
+      <ul>
+        <li><strong>Gestión de alias</strong>: crea, lista y destruye alias desechables desde tu panel.</li>
+        <li><strong>Bandeja de entrada</strong>: visualiza los correos recibidos en todos tus alias agrupados por fecha.</li>
+        <li><strong>Análisis sandbox</strong>: cada adjunto se evalúa automáticamente en un contenedor Docker aislado.</li>
+        <li><strong>Sistema de notificaciones</strong>: recibes alertas en tiempo real (con sonido) cuando llega un correo nuevo.</li>
+        <li><strong>Reenvío opcional</strong>: tú decides si quieres recibir una copia de los correos seguros en tu correo real.</li>
+        <li><strong>Análisis con IA</strong> (opcional): para correos sospechosos puedes pedir un análisis adicional con un modelo de lenguaje.</li>
+        <li><strong>Perfil personalizable</strong>: avatar, foto de perfil, cambio de contraseña y recuperación.</li>
+      </ul>
+      <div class="callout info">
+        <div class="callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <div class="callout-body">
+          <span class="callout-label">En pocas palabras</span>
+          Tú nos das un alias para usar en páginas web. Nosotros recibimos esos correos, los analizamos para ver si son peligrosos, y te avisamos. <strong>Tu correo real nunca se expone.</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────── Sección 2: Análisis automatizado ─────── -->
+    <section class="legal-section" id="sec-2">
+      <h2>
+        <div class="section-icon c-analysis">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <span class="section-num">SECCIÓN 02</span>
+        Análisis Automatizado de Correos y Adjuntos
+      </h2>
+      <p>Al usar este servicio, el usuario <strong>acepta expresamente</strong> que cada correo recibido en sus alias será analizado de forma totalmente automatizada. El análisis combina:</p>
+      <ul>
+        <li><strong>Análisis del cuerpo del mensaje</strong>: enlaces sospechosos, suplantación de marca, urgencia, indicadores de phishing.</li>
+        <li><strong>Análisis sandbox de adjuntos</strong>: se ejecutan en contenedores Docker aislados, <strong>sin acceso a internet ni al disco del servidor</strong>.</li>
+        <li><strong>Reglas YARA</strong> y firmas conocidas para detectar familias de malware.</li>
+        <li><strong>Hash SHA-256</strong> de cada adjunto para reputación e indicadores de compromiso (IOCs).</li>
+      </ul>
+      <p>El resultado se traduce en un <strong>score de riesgo de 0 a 100</strong> que clasifica el correo en una de tres categorías:</p>
+      <ul>
+        <li><strong>0–30 (Seguro)</strong>: el correo se entrega normalmente. Si tienes el reenvío automático activado, llegará a tu Gmail.</li>
+        <li><strong>31–60 (Sospechoso)</strong>: el correo queda en tu bandeja con aviso. Puedes reenviarlo manualmente asumiendo el riesgo, o descartarlo.</li>
+        <li><strong>61–100 (Amenaza bloqueada)</strong>: el correo nunca se reenvía. Solo recibes una alerta indicando el tipo de amenaza.</li>
+      </ul>
+      <div class="callout warning">
+        <div class="callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+        </div>
+        <div class="callout-body">
+          <span class="callout-label">Fundamento legal</span>
+          El análisis automatizado para fines de seguridad está amparado bajo el <strong>consentimiento explícito</strong> del usuario al registrarse, y es práctica estándar en la industria de ciberseguridad (equivalente a Gmail, Outlook, ProtonMail).
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────── Sección 3: Reenvío y notificaciones ─────── -->
+    <section class="legal-section" id="sec-3">
+      <h2>
+        <div class="section-icon c-service">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/><path d="M16 11l3-3-3-3"/><path d="M19 8h-7"/></svg>
+        </div>
+        <span class="section-num">SECCIÓN 03</span>
+        Reenvío de Correos y Sistema de Notificaciones
+      </h2>
+      <p>Por defecto, los correos <strong>permanecen únicamente</strong> en tu bandeja de DockerShield y no llegan a tu correo real. Puedes cambiar este comportamiento desde tu perfil:</p>
+      <ul>
+        <li><strong>Reenvío automático (opt-in)</strong>: si activas <em>"Recibir copia en mi correo real"</em>, los correos con score 0–30 se reenviarán automáticamente a tu Gmail con un sello de "verificado por DockerShield".</li>
+        <li><strong>Reenvío manual</strong>: para cada correo seguro o sospechoso recibirás una notificación con dos botones: <em>Reenviar</em> o <em>Descartar</em>.</li>
+        <li><strong>Amenazas bloqueadas</strong>: nunca se reenvían. Solo aparecerá un aviso informativo en tu panel.</li>
+      </ul>
+      <p>El sistema de notificaciones incluye:</p>
+      <ul>
+        <li>Una <strong>campana en el topbar</strong> con badge de pendientes que se actualiza cada 6 segundos.</li>
+        <li>Un <strong>toast lateral con sonido</strong> que aparece automáticamente al llegar un correo nuevo.</li>
+        <li>Una <strong>página de notificaciones</strong> con filtros (pendientes, reenviadas, descartadas) y opción de vaciar.</li>
+      </ul>
+      <div class="callout info">
+        <div class="callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <div class="callout-body">
+          <span class="callout-label">Tu decisión, siempre</span>
+          Tú controlas qué correos llegan a tu Gmail. Puedes activar/desactivar el reenvío automático cuando quieras desde el apartado <strong>Notificaciones</strong> de tu perfil.
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────── Sección 4: Análisis con IA ─────── -->
+    <section class="legal-section" id="sec-4">
+      <h2>
+        <div class="section-icon c-analysis">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+        </div>
+        <span class="section-num">SECCIÓN 04</span>
+        Análisis con Inteligencia Artificial (opcional)
+      </h2>
+      <p>Para correos sospechosos puedes solicitar un <strong>análisis adicional con un modelo de lenguaje (Llama 3.3 vía Groq)</strong>. Esta funcionalidad es <strong>opt-in</strong>: solo se ejecuta cuando tú haces clic en el botón "Analizar con IA".</p>
+      <p>Al activar el análisis con IA, el usuario acepta que:</p>
+      <ul>
+        <li>El <strong>asunto, remitente y cuerpo del correo</strong> se envían a la API de Groq para su evaluación.</li>
+        <li>Groq es un proveedor externo. Su uso está regido por <a href="https://groq.com/privacy-policy/" target="_blank" rel="noopener" style="color:var(--accent-hover)">su política de privacidad</a>.</li>
+        <li>Los <strong>adjuntos NO se envían</strong> a la IA — solo el texto del correo.</li>
+        <li>El resultado del análisis se guarda en tu cuenta para que puedas consultarlo posteriormente.</li>
+      </ul>
+      <div class="callout warning">
+        <div class="callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+        </div>
+        <div class="callout-body">
+          <span class="callout-label">Tercero involucrado</span>
+          Si no quieres que un proveedor externo (Groq) procese el contenido de un correo, <strong>simplemente no uses el botón "Analizar con IA"</strong>. El resto del análisis (sandbox, YARA, body) ocurre 100% dentro de nuestra infraestructura.
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────── Sección 5: Uso aceptable ─────── -->
+    <section class="legal-section" id="sec-5">
+      <h2>
+        <div class="section-icon c-usage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="section-num">SECCIÓN 05</span>
+        Uso Aceptable
+      </h2>
+      <p>El usuario se compromete a:</p>
+      <ul>
+        <li>Usar el servicio únicamente para proteger su <strong>propia privacidad</strong>.</li>
+        <li>No usar los alias para actividades ilegales, fraude, spam, acoso, suplantación de identidad o difusión de malware.</li>
+        <li>No intentar evadir, manipular o sobrecargar los sistemas de seguridad y de análisis del servicio.</li>
+        <li>No usar bots, scripts u otros métodos automatizados para crear cantidades masivas de alias.</li>
+        <li>Mantener la <strong>confidencialidad de sus credenciales</strong> de acceso (correo y contraseña).</li>
+        <li>Respetar los derechos de terceros y no compartir contenido ilegal a través del servicio.</li>
+      </ul>
+      <div class="callout success">
+        <div class="callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="callout-body">
+          <span class="callout-label">Uso legítimo</span>
+          Crear alias para registrarte en sitios, foros, promociones, suscripciones, pruebas o como capa intermedia anti-phishing es <strong>completamente legítimo</strong> y es exactamente el propósito del servicio.
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────── Sección 6: Cuenta y eliminación ─────── -->
+    <section class="legal-section" id="sec-6">
+      <h2>
+        <div class="section-icon c-usage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <span class="section-num">SECCIÓN 06</span>
+        Cuenta, Recuperación y Eliminación
+      </h2>
+      <p>Para usar DockerShield necesitas crear una cuenta. Esta cuenta:</p>
+      <ul>
+        <li>Es <strong>gratuita</strong> y se vincula a tu correo real para envío de alertas y recuperación de contraseña.</li>
+        <li>Puede tener un <strong>avatar/foto de perfil</strong> opcional (subes tú la imagen).</li>
+        <li>Si olvidas tu contraseña, puedes solicitar un <strong>enlace de recuperación</strong> que se envía a tu correo real (válido durante 24 horas).</li>
+      </ul>
+      <p>Tienes derecho a:</p>
+      <ul>
+        <li><strong>Destruir cualquier alias</strong> con un click — la dirección queda inactiva y no recibe más correos.</li>
+        <li><strong>Vaciar tu bandeja</strong> según filtro (leídos, amenazas, seguros, todos).</li>
+        <li><strong>Vaciar tus notificaciones</strong> en cualquier momento.</li>
+        <li><strong>Eliminar tu cuenta completa</strong> desde la <em>"Zona de peligro"</em> de tu perfil. Esta acción borra tus alias, correos, análisis y notificaciones.</li>
+      </ul>
+      <div class="callout info">
+        <div class="callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <div class="callout-body">
+          <span class="callout-label">Sin ataduras</span>
+          Eliminar tu cuenta es <strong>irreversible y no requiere justificación</strong>. Una vez confirmada, todos tus datos se borran de la base de datos.
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────── Sección 7: Limitación de responsabilidad ─────── -->
+    <section class="legal-section" id="sec-7">
+      <h2>
+        <div class="section-icon c-liability">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <span class="section-num">SECCIÓN 07</span>
+        Limitación de Responsabilidad
+      </h2>
+      <p>DockerShield <strong>no garantiza la detección del 100% de amenazas</strong>. El servicio se proporciona como una capa adicional de seguridad y no debe ser el único mecanismo de protección del usuario.</p>
+      <p>Específicamente, no nos responsabilizamos por:</p>
+      <ul>
+        <li>Correos maliciosos que pasen el filtro y lleguen a tu correo real tras un reenvío.</li>
+        <li>Daños derivados de abrir enlaces o adjuntos de correos sospechosos que tú decidas reenviar.</li>
+        <li>Indisponibilidad temporal del servicio por mantenimiento o causas técnicas.</li>
+        <li>Pérdida de correos por fallos del proveedor de correo (SendGrid).</li>
+      </ul>
+      <p>Recomendamos complementar el uso de DockerShield con buenas prácticas generales: mantener el sistema operativo actualizado, usar un antivirus reconocido, no abrir adjuntos de remitentes desconocidos y tener copias de respaldo.</p>
+      <p>El servicio se proporciona <strong>"tal cual"</strong> sin garantías expresas o implícitas. Nos reservamos el derecho de modificar, suspender o terminar el servicio (o partes de él) en cualquier momento, notificando previamente a los usuarios cuando sea posible.</p>
+    </section>
+
+    <!-- ─────── Sección 8: Contacto ─────── -->
+    <section class="legal-section" id="sec-8">
+      <h2>
+        <div class="section-icon c-contact">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <span class="section-num">SECCIÓN 08</span>
+        Contacto y Cambios en los Términos
+      </h2>
+      <p>Estos términos pueden actualizarse cuando agreguemos nuevas funcionalidades o cambien requisitos legales. Si los cambios son relevantes te avisaremos en tu correo real con razonable antelación.</p>
+      <p>Para cualquier consulta sobre estos términos puedes contactarnos en:</p>
+      <div class="callout info" style="margin-top:4px">
+        <div class="callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div class="callout-body">
+          <strong>jgomezm10@unemi.edu.ec</strong><br>
+          Te respondemos en menos de 48 horas hábiles.
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────── CTA ─────── -->
+    <div class="cta-section">
+      <h3>¿Listo para proteger tu correo?</h3>
+      <p>Crea tu cuenta gratis y empieza a generar alias en menos de un minuto.</p>
+      <div class="cta-actions">
+        <a href="/registro/" class="btn-cta-primary">
+          Crear cuenta gratis
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+        <a href="javascript:history.back()" class="btn-cta-ghost">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Volver
+        </a>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="{% static 'core/js/terminos.js' %}"></script>
+{% endblock %}

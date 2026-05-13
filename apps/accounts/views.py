@@ -70,7 +70,7 @@ def login_view(request):
                 f'Demasiados intentos fallidos. Espera {minutes_left} minuto(s) '
                 f'antes de volver a intentarlo.',
             )
-            return render(request, 'login.html', {'form_values': form_values})
+            return render(request, 'accounts/login.html', {'form_values': form_values})
 
         # ── Validación de forma ─────────────────────────────────────
         identifier, ident_err = clean_login_identifier(identifier_raw)
@@ -80,7 +80,7 @@ def login_view(request):
         if form_errors:
             for e in form_errors:
                 messages.error(request, e)
-            return render(request, 'login.html', {'form_values': form_values})
+            return render(request, 'accounts/login.html', {'form_values': form_values})
 
         # ── Autenticación ──────────────────────────────────────────
         user = authenticate_flexible(request, identifier, password)
@@ -103,7 +103,7 @@ def login_view(request):
                        'Este nombre de usuario no existe. Intenta con otro o '
                        'usa tu correo registrado.')
                 messages.error(request, msg)
-                return render(request, 'login.html', {'form_values': form_values})
+                return render(request, 'accounts/login.html', {'form_values': form_values})
 
             # ── Caso 2: existe pero NO está verificada → mandar al flow de verificación ──
             if (not candidate.is_active
@@ -140,7 +140,7 @@ def login_view(request):
                     f'Cierra sesión allí o espera {mins} minuto(s) de inactividad '
                     f'para volver a entrar.',
                 )
-                return render(request, 'login.html', {'form_values': form_values})
+                return render(request, 'accounts/login.html', {'form_values': form_values})
 
             login_clear_failures(ip)
             login_single_session(request, user)
@@ -165,7 +165,7 @@ def login_view(request):
                 f'Contraseña incorrecta. Te quedan {remaining} intentos.',
             )
 
-    return render(request, 'login.html', {'form_values': form_values})
+    return render(request, 'accounts/login.html', {'form_values': form_values})
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -271,7 +271,7 @@ def registro_view(request):
                     'Has solicitado demasiados códigos en la última hora. '
                     'Espera unos minutos antes de intentarlo de nuevo.',
                 )
-                return render(request, 'register.html', {
+                return render(request, 'accounts/register.html', {
                     'form_values':  form_values,
                     'field_errors': field_errors,
                 })
@@ -293,7 +293,7 @@ def registro_view(request):
             )
             return redirect('verificar_correo', token=ev.token)
 
-    return render(request, 'register.html', {
+    return render(request, 'accounts/register.html', {
         'form_values':  form_values,
         'field_errors': field_errors,
     })
@@ -379,7 +379,7 @@ def verificar_correo_view(request, token):
         else:
             messages.error(request, 'No se pudo verificar el código.')
 
-    return render(request, 'verificar_correo.html', {
+    return render(request, 'accounts/verificar_correo.html', {
         'token':       token,
         'email':       ev.user.email,
         'expires_at':  ev.expires_at,
@@ -464,7 +464,7 @@ def recuperar_view(request):
 
         if email_err:
             messages.error(request, email_err)
-            return render(request, 'recuperar.html', {'form_values': form_values})
+            return render(request, 'accounts/recuperar.html', {'form_values': form_values})
 
         # Buscar el usuario. Si no existe, igual respondemos "OK" para no
         # filtrar qué correos están registrados.
@@ -478,13 +478,13 @@ def recuperar_view(request):
         except User.DoesNotExist:
             pass
 
-        return render(request, 'recuperar.html', {
+        return render(request, 'accounts/recuperar.html', {
             'form_values': {'email': ''},
             'submitted':   True,
             'sent_to':     email_clean,
         })
 
-    return render(request, 'recuperar.html', {'form_values': form_values})
+    return render(request, 'accounts/recuperar.html', {'form_values': form_values})
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -537,7 +537,7 @@ def reset_password_view(request, token):
             )
             return redirect('login')
 
-    return render(request, 'reset_password.html', {
+    return render(request, 'accounts/reset_password.html', {
         'token':        token,
         'email':        t.user.email,
         'field_errors': field_errors,
@@ -566,7 +566,7 @@ def cambiar_password(request):
         else:
             messages.error(request, "Revisa los errores del formulario.")
 
-    return render(request, "cambiar_password.html", {"form": form})
+    return render(request, "accounts/cambiar_password.html", {"form": form})
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -664,7 +664,7 @@ def perfil_view(request):
     # Datos para el avatar por defecto (cuando el usuario no sube foto)
     ctx['avatar_initials'] = get_user_initials(request.user)
     ctx['avatar_color']    = get_user_color(request.user)
-    return render(request, 'perfil.html', ctx)
+    return render(request, 'accounts/perfil.html', ctx)
 
 
 # ═════════════════════════════════════════════════════════════════════

@@ -38,7 +38,7 @@ def notification_list_view(request):
         'forwarded': notifs.filter(Q(type='forwarded') | Q(status='approved')).count(),
         'discarded': notifs.filter(status='discarded').count(),
     }
-    return render(request, 'notifications.html', {
+    return render(request, 'notifications/notifications.html', {
         'notifications': notifs,
         'pending_count': counts['pending'],
         'counts':        counts,
@@ -60,7 +60,7 @@ def notification_detail_view(request, pk):
     if not notif.read:
         notif.read = True
         notif.save(update_fields=['read'])
-    return render(request, 'notification_detail.html', {
+    return render(request, 'notifications/notification_detail.html', {
         'notif': notif,
         'email': notif.related_email,
     })

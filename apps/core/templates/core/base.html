@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <title>{% block title %}DockerShield{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% static 'core/img/logo.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'core/img/logo.png' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="{% static 'core/js/base.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'core/styles/base.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- Container global para toasts (alerts deslizantes) -->
+{% if user.is_authenticated %}<div class="toast-container" id="toast-container"></div>{% endif %}
+
+<!-- Modal global de confirmación (reemplaza window.confirm) -->
+<div class="cd-overlay" id="cd-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="cd-modal" id="cd-modal">
+        <div class="cd-head">
+            <div class="cd-icon" id="cd-icon"></div>
+            <div class="cd-text">
+                <div class="cd-title" id="cd-title"></div>
+                <div class="cd-message" id="cd-message"></div>
+            </div>
+        </div>
+        <div class="cd-actions">
+            <button type="button" class="cd-btn cd-btn-cancel" id="cd-cancel">Cancelar</button>
+            <button type="button" class="cd-btn cd-btn-confirm" id="cd-confirm">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+{% block body_outer %}
+<!-- Backdrop del drawer móvil (solo visible cuando el sidebar está abierto) -->
+<div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+
+<div class="app-layout">
+
+    <!-- ═══════════════════════════════════════════
+         SIDEBAR
+    ════════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+
+        <!-- Logo → recarga la página al hacer clic.
+             El PNG ya tiene "DockerShield" incluido, sin texto duplicado. -->
+        <a href="{% url 'dashboard' %}" class="sidebar-logo">
+            <div class="logo-icon">
+                <img src="{% static 'core/img/logo_2.png' %}" alt="DockerShield">
+            </div>
+        </a>
+
+        <!-- Botón "Nuevo correo" siempre visible debajo del logo.
+             Misma mecánica que el botón del módulo Enviados: abre un picker
+             con los alias activos y al elegir uno arranca el compose modal
+             global. IDs distintos del de sent.html para que no choquen. -->
+        {% if user.is_authenticated %}
+        <div class="sidebar-compose" id="sidebarCompose">
+            <button type="button" class="sidebar-compose-btn" id="sidebarComposeBtn"
+                    {% if not active_aliases %}disabled title="Crea un alias activo primero"{% endif %}
+                    onclick="toggleSidebarAliasPicker(event)">
+                <svg class="compose-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                </svg>
+                <span>Nuevo correo</span>
+                <svg class="compose-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </button>
+
+            <div class="sidebar-alias-picker" id="sidebarAliasPicker">
+                <div class="alias-picker-header">
+                    <div class="alias-picker-header-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="alias-picker-header-title">Elige un alias</div>
+                        <div class="alias-picker-header-sub">desde el que quieres enviar</div>
+                    </div>
+                    <span class="alias-picker-header-badge">{{ active_aliases|length }}</span>
+                </div>
+                {% for a in active_aliases %}
+                <div class="alias-picker-item" data-alias-id="{{ a.id }}" data-alias-address="{{ a.address }}"
+                     data-alias-label="{{ a.label }}" onclick="composeFromSidebarAlias(this)">
+                    <div class="alias-picker-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                    </div>
+                    <div class="alias-picker-meta">
+                        <div class="alias-picker-addr">{{ a.address }}</div>
+                        <div class="alias-picker-label">{{ a.label }}</div>
+                    </div>
+                    <svg class="alias-picker-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </div>
+                {% empty %}
+                <div class="alias-picker-empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;opacity:0.4;margin-bottom:8px">
+                        <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+                    </svg>
+                    <div>Sin alias activos</div>
+                    <a href="{% url 'alias_list' %}" class="alias-picker-empty-cta">Crear uno en Mis Alias →</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Wrapper con scroll interno: si el contenido es más alto que el
+             espacio disponible, solo este bloque scrollea. El logo arriba y
+             el footer abajo siempre quedan visibles. -->
+        <div class="sidebar-nav" id="sidebarNav">
+
+        <!-- Navegación principal -->
+        <nav class="sidebar-section" aria-label="Navegación principal">
+            <div class="sidebar-label">Principal</div>
+
+            <a href="{% url 'dashboard' %}" class="sidebar-link {% block nav_dashboard %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="9" rx="1"/>
+                    <rect x="14" y="3" width="7" height="5" rx="1"/>
+                    <rect x="14" y="12" width="7" height="9" rx="1"/>
+                    <rect x="3" y="16" width="7" height="5" rx="1"/>
+                </svg>
+                Dashboard
+            </a>
+
+            <a href="{% url 'inbox' %}" class="sidebar-link {% block nav_inbox %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+                    <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+                </svg>
+                Bandeja
+                {% if unread_count %}
+                    <span class="badge-count">{{ unread_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'sent_list' %}" class="sidebar-link {% block nav_sent %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                Enviados
+            </a>
+
+            <a href="{% url 'drafts_list' %}" class="sidebar-link {% block nav_drafts %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Borradores
+                {% if drafts_count %}
+                    <span class="badge-warning-pill">{{ drafts_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'trash_list' %}" class="sidebar-link {% block nav_trash %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    <line x1="10" y1="11" x2="10" y2="17"/>
+                    <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+                Papelera
+                {% if trash_count %}
+                    <span class="badge-danger-pill">{{ trash_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'alias_list' %}" class="sidebar-link {% block nav_aliases %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4"/>
+                    <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>
+                </svg>
+                Mis Alias
+                {% if alias_count %}
+                    <span class="badge-accent-pill">{{ alias_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'sandbox_list' %}" class="sidebar-link {% block nav_sandbox %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+                    <path d="m9 12 2 2 4-4"/>
+                </svg>
+                Sandbox
+                {% if threats_count %}
+                    <span class="badge-danger-pill">{{ threats_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'notification_list' %}" class="sidebar-link {% block nav_notifications %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                Notificaciones
+                <span id="navNotifBadge"
+                      class="{% if notif_unread_pending_count %}badge-warning-pill{% else %}badge-accent-pill{% endif %}"
+                      {% if not notif_unread_count %}hidden{% endif %}>{{ notif_unread_count }}</span>
+            </a>
+        </nav>
+
+        <!-- Sección solo visible para administradores -->
+        {% if user.is_authenticated and user.is_staff %}
+        <nav class="sidebar-section" aria-label="Navegación de administración">
+            <div class="sidebar-label" style="color:#f59e0b">Administración</div>
+
+            <a href="{% url 'admin_dashboard' %}" class="sidebar-link {% block nav_admin_dash %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                </svg>
+                Panel global
+            </a>
+
+            <a href="{% url 'admin_users' %}" class="sidebar-link {% block nav_admin_users %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Usuarios
+            </a>
+
+            <a href="{% url 'admin_threats' %}" class="sidebar-link {% block nav_admin_threats %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Amenazas
+            </a>
+
+            <a href="{% url 'admin_aliases' %}" class="sidebar-link {% block nav_admin_aliases %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 5 6.3 6.3a2.4 2.4 0 0 1 0 3.4L17 19"/>
+                    <path d="M9.586 5.586A2 2 0 0 0 8.172 5H3a1 1 0 0 0-1 1v5.172a2 2 0 0 0 .586 1.414L8.29 18.29a2.426 2.426 0 0 0 3.42 0l3.58-3.58a2.426 2.426 0 0 0 0-3.42z"/>
+                    <circle cx="6.5" cy="9.5" r=".5" fill="currentColor"/>
+                </svg>
+                Alias globales
+            </a>
+
+            <a href="{% url 'admin_alias_requests' %}" class="sidebar-link {% block nav_admin_alias_requests %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                </svg>
+                Solicitudes
+                {% if alias_requests_pending_count %}
+                    <span class="badge-warning-pill">{{ alias_requests_pending_count }}</span>
+                {% endif %}
+            </a>
+        </nav>
+        {% endif %}
+
+        </div><!-- /.sidebar-nav -->
+
+        <!-- Footer: avatar + dropdown de cuenta -->
+        <footer class="sidebar-footer">
+
+            <!-- Menú desplegable (sale hacia arriba) -->
+            <div class="user-dropdown" id="userDropdown">
+                <a href="{% url 'perfil' %}" class="dd-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Mi perfil
+                </a>
+                <button type="button" class="dd-item" onclick="openThemeModal()" style="width:100%;background:transparent;border:none;font-family:inherit;text-align:left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 3v18"/>
+                        <path d="M3 12c5 0 9 4 9 9"/>
+                        <path d="M3 12c5 0 9-4 9-9"/>
+                    </svg>
+                    Apariencia
+                </button>
+                <hr class="dd-sep">
+                <a href="{% url 'logout' %}" class="dd-item danger">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Cerrar sesión
+                </a>
+            </div>
+
+            <!-- Fila del avatar -->
+            <div class="user-row" id="userBtn">
+                <div class="avatar-circle"
+                     {% if not user.profile.has_avatar %}style="background:linear-gradient(135deg, {{ avatar_color }} 0%, #9b6dff 100%)"{% endif %}>
+                    {% if user.profile.has_avatar %}
+                        <img src="{{ user.profile.avatar_url }}?v={{ user.profile.updated_at|date:'U' }}" alt="Foto">
+                    {% else %}
+                        {{ avatar_initials }}
+                    {% endif %}
+                </div>
+                <div class="user-info">
+                    <div class="user-name">
+                        {{ user.get_full_name|default:user.username }}
+                        {% if user.is_staff %}
+                            <span title="Administrador" style="display:inline-block;margin-left:4px;padding:0 6px;border-radius:5px;font-size:9px;font-weight:700;font-family:monospace;letter-spacing:0.06em;background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);vertical-align:middle">ADMIN</span>
+                        {% endif %}
+                    </div>
+                    <div class="user-email">{{ user.email }}</div>
+                </div>
+                <svg class="chevron-icon" id="chevronIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <polyline points="18 15 12 9 6 15"/>
+                </svg>
+            </div>
+
+        </footer>
+    </aside>
+
+    <!-- ═══════════════════════════════════════════
+         MAIN
+    ════════════════════════════════════════════ -->
+    <main class="main-area">
+
+        <!-- Top bar -->
+        <header class="topbar">
+            <!-- Hamburguesa (solo visible en mobile/tablet vía CSS) -->
+            <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menú">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+
+            <span class="topbar-title">{% block page_title %}{% endblock %}</span>
+
+            {% if user.is_authenticated %}
+            <span class="topbar-status">
+                Sistema activo · sandbox listo
+            </span>
+            {% endif %}
+
+            <div class="topbar-right">
+                {% if threats_count %}
+                <a href="{% url 'sandbox_list' %}" class="threat-pill" title="Ver detalles en sandbox">
+                    <span class="tp-count">{{ threats_count }}</span>
+                    <span class="tp-label">amenaza{{ threats_count|pluralize }}</span>
+                </a>
+                <span class="topbar-right-divider"></span>
+                {% endif %}
+
+                {% if user.is_authenticated %}
+                <!-- ── Bell de notificaciones ── -->
+                <div class="notif-wrap" id="notif-wrap">
+                    <button type="button" class="notif-bell" id="notif-bell" aria-label="Notificaciones">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+                    </button>
+
+                    <!-- Dropdown panel -->
+                    <div class="notif-panel" id="notif-panel">
+                        <div class="notif-panel-head">
+                            <div class="notif-panel-title">Notificaciones</div>
+                            <button type="button" class="notif-mark-all" id="notif-mark-all">Marcar todas leídas</button>
+                        </div>
+                        <div class="notif-panel-list" id="notif-panel-list">
+                            <div class="notif-panel-empty">Cargando…</div>
+                        </div>
+                        <a href="{% url 'notification_list' %}" class="notif-panel-foot">
+                            Ver todas
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Contenido de página -->
+        <div class="content-area">
+            {% block body %}{% endblock %}
+        </div>
+
+    </main>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL DE TEMAS
+════════════════════════════════════════════ -->
+<div id="themeOverlay" onclick="closeThemeModal()">
+    <div class="theme-modal" onclick="event.stopPropagation()">
+        <button type="button" class="theme-modal-close" onclick="closeThemeModal()" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+
+        <div class="theme-modal-title">Personaliza la apariencia</div>
+        <div class="theme-modal-sub">Elige el tema que más te guste.</div>
+
+        <div class="theme-grid">
+            <div class="theme-card" data-theme="dark" onclick="selectThemeCard('dark')">
+                <div class="theme-preview tp-dark">
+                    <div class="tp-sidebar"><i></i><i></i><i></i><i></i></div>
+                    <div class="tp-content"><i></i><i></i><i></i><i></i></div>
+                </div>
+                <div class="theme-name">Oscuro</div>
+            </div>
+
+            <div class="theme-card" data-theme="light" onclick="selectThemeCard('light')">
+                <div class="theme-preview tp-light">
+                    <div class="tp-sidebar"><i></i><i></i><i></i><i></i></div>
+                    <div class="tp-content"><i></i><i></i><i></i><i></i></div>
+                </div>
+                <div class="theme-name">Claro</div>
+            </div>
+
+            <div class="theme-card" data-theme="carbon" onclick="selectThemeCard('carbon')">
+                <div class="theme-preview tp-carbon">
+                    <div class="tp-sidebar"><i></i><i></i><i></i><i></i></div>
+                    <div class="tp-content"><i></i><i></i><i></i><i></i></div>
+                </div>
+                <div class="theme-name">Carbon</div>
+            </div>
+        </div>
+
+        <div class="theme-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+            Los cambios se aplican al instante.
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     JS — dropdown de usuario + gestor de temas
+════════════════════════════════════════════ -->
+<script src="{% static 'core/js/base_2.js' %}"></script>
+
+<script src="{% static 'core/js/base_3.js' %}"></script>
+
+{% comment %}
+MENSAJES DJANGO → TOASTS — global para TODAS las páginas.
+Antes solo el dashboard renderizaba el `messages` framework, así que
+cualquier `messages.success("…")` quedaba guardado en sesión hasta llegar
+al dashboard, donde reventaban 4 toasts juntos. Ahora cada página los
+procesa al instante.
+
+Excepción `block_django_messages`: páginas que NO quieren mostrar toasts
+(ej. /borradores/) pueden sobreescribir el bloque vacío para suprimirlos.
+{% endcomment %}
+{% if messages and user.is_authenticated %}
+  {% block block_django_messages %}
+  <script>
+    window.__DJANGO_MESSAGES__ = [
+      {% for message in messages %}
+      { tags: "{{ message.tags|escapejs }}", text: "{{ message|escapejs }}" }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+  </script>
+  <script src="{% static 'core/js/django_messages_toasts.js' %}"></script>
+  {% endblock %}
+{% endif %}
+
+{% block extra_js %}{% endblock %}
+
+{% comment %}
+Compose modal global: vive en base.html para que persista entre páginas
+(al estilo Gmail/Proton). Solo se renderiza si el usuario está logueado
+— invitados no necesitan poder enviar correos desde alias.
+{% endcomment %}
+{% if user.is_authenticated %}
+  {% include 'mail/_compose_modal.html' %}
+{% endif %}
+y
+{% endblock %}
+</body>
+</html>

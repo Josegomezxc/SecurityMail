@@ -17,4 +17,9 @@ urlpatterns = [
     # Solicitudes de cupo de alias (usuario → admin)
     path('admin-panel/solicitudes/',                   views.admin_alias_requests_view,  name='admin_alias_requests'),
     path('admin-panel/solicitudes/<sid:pk>/resolver/', views.admin_alias_request_resolve, name='admin_alias_request_resolve'),
+
+    # Previews de las páginas de error — útiles en DEBUG=True donde
+    # Django no muestra los handlers reales. Solo para desarrollo.
+    path('error/404/', views.page_not_found_view,     name='preview_404'),
+    path('error/500/', views.server_error_view,       name='preview_500'),
 ]

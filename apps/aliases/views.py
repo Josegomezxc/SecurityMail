@@ -94,7 +94,7 @@ def alias_list_view(request):
             user=request.user, status='pending',
         ).order_by('-created_at').first()
 
-    return render(request, 'alias.html', {
+    return render(request, 'aliases/alias.html', {
         'aliases':         aliases,
         'active_count':    active_count,
         'destroyed_count': destroyed_count,

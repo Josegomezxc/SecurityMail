@@ -41,7 +41,7 @@ def sandbox_list_view(request):
 
     analyses = qs.order_by('-analyzed_at')
 
-    return render(request, 'sandbox_list.html', {
+    return render(request, 'sandbox/sandbox_list.html', {
         'analyses':      analyses,
         'total_count':   total_count,
         'blocked_count': blocked_count,
@@ -76,7 +76,7 @@ def sandbox_report_view(request, pk):
     analysis = get_object_or_404(
         SandboxAnalysis, pk=pk, email__alias__user=request.user,
     )
-    return render(request, 'sandbox_report.html', {
+    return render(request, 'sandbox/sandbox_report.html', {
         'analysis': analysis,
     })
 

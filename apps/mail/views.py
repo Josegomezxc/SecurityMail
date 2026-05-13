@@ -69,7 +69,7 @@ def dashboard_view(request):
                           deleted_at__isnull=True,
                       ).order_by('-received_at')[:3]
 
-    return render(request, 'dashboard.html', {
+    return render(request, 'mail/dashboard.html', {
         'aliases':         aliases,
         'recent_emails':   recent_emails,
         'recent_analyses': recent_analyses,
@@ -178,7 +178,7 @@ def inbox_view(request):
 
     groups = [g for g in groups if g["emails"]]   # quita vacíos
 
-    return render(request, 'inbox.html', {
+    return render(request, 'mail/inbox.html', {
         'emails':       emails,          # compat para iteración flat
         'email_groups': groups,
     })
@@ -384,7 +384,7 @@ def sent_view(request):
     for em in sent_emails:
         em.attachments_meta_json = _json.dumps(em.attachments_meta or [])
 
-    return render(request, 'sent.html', {
+    return render(request, 'mail/sent.html', {
         'sent_emails':       sent_emails,
         'sent_groups':       groups,
         'total_sent':        len(sent_emails),
@@ -680,7 +680,7 @@ def trash_view(request):
         reverse=True,
     )
 
-    return render(request, 'trash.html', {
+    return render(request, 'mail/trash.html', {
         'all_trash':        all_trash,
         'inbound_trash':    inbound,
         'outbound_trash':   outbound,
@@ -860,7 +860,7 @@ def drafts_view(request):
     # Contadores para los filtros
     no_recipient = sum(1 for d in drafts if not d.to_email.strip())
     scheduled    = sum(1 for d in drafts if d.scheduled_at is not None)
-    return render(request, 'drafts.html', {
+    return render(request, 'mail/drafts.html', {
         'drafts':              drafts,
         'total_drafts':        len(drafts),
         'no_recipient_count':  no_recipient,
