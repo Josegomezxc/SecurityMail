@@ -4,6 +4,15 @@
 {% block page_title %}Borradores{% endblock %}
 {% block nav_drafts %}active{% endblock %}
 
+{% comment %}
+Excepción: en el módulo borradores NO mostramos los toasts del messages
+framework de Django. Si el usuario está acá editando/guardando un
+borrador, los mensajes ("Borrador guardado", etc.) son ruido — el
+feedback visual del autosave ya basta. Otros módulos sí procesan messages
+globalmente desde base.html.
+{% endcomment %}
+{% block block_django_messages %}{% endblock %}
+
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'styles/drafts.css' %}">

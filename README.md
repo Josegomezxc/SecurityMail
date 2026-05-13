@@ -22,6 +22,17 @@ Resumen de **todo lo que se añadió o mejoró** en el proyecto, contado de mane
 14. [📁 Archivos creados y modificados](#14--archivos-creados-y-modificados)
 15. [🚀 Cómo poner todo en marcha](#15--cómo-poner-todo-en-marcha)
 
+### ✨ Novedades 2026 (secciones nuevas)
+
+16. [✉️ Botón "Nuevo correo" siempre a mano](#16-️-botón-nuevo-correo-siempre-a-mano)
+17. [🎫 Sistema de cupo de alias + solicitudes](#17--sistema-de-cupo-de-alias--solicitudes)
+18. [🤖 Generación de alias con IA en español](#18--generación-de-alias-con-ia-en-español)
+19. [👑 Panel del admin para gestionar usuarios](#19--panel-del-admin-para-gestionar-usuarios)
+20. [🔔 Notificaciones globales y toasts](#20--notificaciones-globales-y-toasts)
+21. [🔍 Búsqueda en tiempo real + paginación](#21--búsqueda-en-tiempo-real--paginación)
+22. [🧭 Detalles de UX que cambiaron](#22--detalles-de-ux-que-cambiaron)
+23. [🔧 Manual de configuración (cambiá tus valores)](#23--manual-de-configuración-cambiá-tus-valores)
+
 ---
 
 ## 1. 🎨 Mejoras visuales de pantallas
@@ -552,6 +563,362 @@ O desde el panel admin una vez que tengas un admin, puedes promover a otros con 
 
 ---
 
+## 16. ✉️ Botón "Nuevo correo" siempre a mano
+
+Antes tenías que ir al módulo **Enviados** para crear un correo. Ahora hay un botón "Nuevo correo" en el sidebar, **justo debajo del logo de DockerShield**, visible en todas las páginas.
+
+### Cómo funciona
+1. Click en **Nuevo correo** → se abre un menú con todos tus alias activos.
+2. Elegís de cuál alias mandar → se abre el modal de redacción.
+3. Escribís el correo y enviás.
+
+### Detalles
+- Si todavía no tenés alias activos, el botón aparece **deshabilitado**.
+- En mobile, al elegir un alias el sidebar se cierra solo (sino tapaba el modal).
+- Funciona igual desde dashboard, bandeja, perfil, donde sea.
+
+### Archivos relevantes
+- `templates/base.html` → marcado del botón.
+- `static/js/base_2.js` → lógica del picker de alias + cierre del drawer en mobile.
+- `static/styles/base.css` → estilos del botón con halo morado.
+
+---
+
+## 17. 🎫 Sistema de cupo de alias + solicitudes
+
+Los usuarios tienen un **cupo limitado** de alias (5 por defecto). Si quieren más, pueden **pedírselo al admin** desde la propia interfaz — sin abrir tickets ni mandar emails.
+
+### Para el usuario común
+
+En el módulo **Mis Alias**, debajo de la barra de progreso del cupo, hay una mini-card:
+
+> **¿Te quedaste sin alias?**
+> Solicita más alias.
+> Tu petición será revisada por el administrador.
+
+Al hacer click se abre un modal con:
+- **Preview en vivo**: muestra "Ahora: 5 → Si te aprueban: 8" — el número de la derecha se actualiza al instante mientras movés el slider o tocás los quick-picks (+3, +5, +10).
+- **Slider** de cantidad (1-10).
+- **Chips de razón predefinidas** (con iconos SVG, no emojis): Suscripciones, Compras online, Foros, Redes sociales, Temporales, Trabajo, Trials gratis, Newsletters, Gaming, Educación. Al clickear un chip, rellena el textarea con un texto sugerido.
+- **Textarea libre** (500 caracteres) por si querés escribir tu propio motivo.
+- Al enviar: se crea la solicitud y mientras tanto **no podés mandar otra** — aparece un pill ámbar pulsante diciendo "Solicitud pendiente · pediste +N".
+
+### Para el admin
+
+En el sidebar de administración aparece **Solicitudes** con un **badge ámbar** indicando cuántas están pendientes. Click → panel `/admin-panel/solicitudes/` que muestra:
+
+**Las pendientes** se ven como cards grandes con todo expandido:
+- Usuario que pidió + justificación del usuario.
+- **Stepper visual** `[−] 3 [+]` para elegir cuánto conceder (1-50). El input solo acepta dígitos.
+- **Preview en vivo**: "Le concederás +3 alias adicionales" se actualiza al instante.
+- **5 chips de nota predefinida** (con iconos SVG): Aprobado, Te doy menos, Probemos primero, Más info, No esta vez.
+- Textarea libre para tu mensaje al usuario.
+- Botones **RECHAZAR** (rojo, abre confirmDialog) y **APROBAR +N** (verde con gradient y flecha).
+
+**Las resueltas** (aprobadas / rechazadas) se ven como **filas compactas** alineadas en columnas:
+```
+[Avatar]  Usuario        PIDIÓ  DIO    [ESTADO]    Tiempo   ›
+          email                 +3 → +3 [APROBADA]  31m
+```
+Click en cualquier fila resuelta → se abre un **modal de detalle** con:
+- Strip de color superior (verde para aprobada, rojo para rechazada).
+- Avatar grande + badge de estado prominente.
+- Card de comparación: "PIDIÓ +3 → LE DISTE +3" con iconos (check/x).
+- Justificación del usuario estilo cita.
+- Tu nota con estilo morado diferenciado ("esto lo escribiste tú").
+- **Timeline horizontal** con dos dots conectados por línea gradient: "Solicitada 17m atrás ━━━━► Resuelta 4m atrás · por Andres".
+
+### Búsqueda en tiempo real
+
+Arriba de las solicitudes hay un **buscador a la izquierda** y **filtros (Todas/Pendientes/Aprobadas/Rechazadas)** a la derecha. La búsqueda funciona **mientras tipeás** (sin Enter) y busca tanto en la fila como en el contenido completo del modal de detalle (justificación, nota admin).
+
+### El cupo se consume permanentemente
+
+Cuando creás un alias, **consume un slot del cupo aunque después lo destruyas**. Si tu cupo es 5 y creás 5 + destruís 2, la barra muestra **5/5** y no podés crear más. Esto evita que un usuario "recicle" el cupo infinitamente — para conseguir más debe pedirle al admin.
+
+### Archivos relevantes
+- `apps/aliases/models.py` → modelo `AliasQuotaRequest`.
+- `apps/accounts/models.py` → campo `alias_quota_extra` (admin lo ajusta, puede ser negativo).
+- `apps/aliases/views.py` → `alias_quota_request_create` + lógica de cupo.
+- `apps/core/views.py` → `admin_alias_requests_view`, `admin_alias_request_resolve`, `admin_set_alias_quota`, `admin_toggle_alias_unlimited`.
+- `templates/admin_alias_requests.html` + `static/styles/admin_alias_requests.css`.
+- `templates/alias.html` → modal de solicitud con quick-picks y chips.
+- `static/js/alias.js` → handlers del modal del usuario.
+
+---
+
+## 18. 🤖 Generación de alias con IA en español
+
+Antes los alias se armaban con un banco fijo de adjetivos+sustantivos en inglés (`silver-tiger`, `cosmic-falcon`). Ahora los genera **Groq (modelo Llama)** con un prompt en español, y el resultado viene en **PascalCase pegado**:
+
+```
+TigrePlateado_dul3ff@dockershield.lat
+LoboCosmico_v7crj9@dockershield.lat
+SombraMarina_tjhc5w@dockershield.lat
+```
+
+### Cómo funciona
+1. Cuando alguien crea un alias, llamamos a Groq con un prompt que pide "adjetivo-sustantivo en español, sin tildes ni ñ, lowercase, separado por guión".
+2. Validamos la respuesta con regex (`^[a-z]{2,15}-[a-z]{2,15}$`).
+3. Convertimos a PascalCase (`tigre-plateado` → `TigrePlateado`).
+4. Le pegamos un sufijo random de 6 caracteres + el dominio.
+
+### Fallback automático
+Si Groq falla por cualquier motivo (sin API key, timeout, error de red, respuesta inválida), cae a un **banco local en inglés** y devuelve algo tipo `RubySpecter_x7k2m@dockershield.lat`. **La creación de alias NUNCA falla por culpa de la API** — es resiliente.
+
+### Para cambiar / desactivar la IA
+- Editá `apps/aliases/services/alias_service.py`:
+  - `_GROQ_MODEL` → cambia el modelo (default `llama-3.1-8b-instant`).
+  - `_GROQ_TIMEOUT_S` → timeout en segundos (default 4.0).
+  - El **prompt** está dentro de `_generate_label_via_groq()` — modificalo en español si querés otro estilo.
+- En `.env`, **borrá la variable `GROQ_API_KEY`** o dejala vacía → el sistema usa SIEMPRE el banco local en inglés (es como "apagar la IA").
+
+### Archivos relevantes
+- `apps/aliases/services/alias_service.py` → toda la lógica.
+
+---
+
+## 19. 👑 Panel del admin para gestionar usuarios
+
+En el panel global del admin, al entrar a **un usuario específico** (`/admin-panel/usuario/<id>/`), ahora ves un **card de Cupo de alias** que te deja:
+
+### Subir / bajar el cupo
+- Editor con stepper `[−] 10 [+]` (1 a 999).
+- **Input solo acepta dígitos** — no podés meter letras ni símbolos.
+- Stats del usuario en vivo: usados / cupo total / base global / ajuste admin (`+5` o `-2`).
+- Barra de progreso del consumo de cupo.
+
+### Conceder alias ilimitados
+Debajo del editor, una mini-card con un botón **"ACTIVAR ILIMITADO →"**. Al darle:
+1. Aparece un modal de **advertencia roja** (el global `confirmDialog`): *"Estás a punto de darle a USUARIO acceso ILIMITADO. Podrá crear todos los alias que quiera sin tope alguno..."*
+2. Si confirmás, el usuario queda marcado como **ilimitado** — el cupo numérico queda pausado.
+3. En el card aparece un **hero morado** con icono ∞ + botón "Retirar acceso ilimitado" (rojo, con su propia confirmación más suave).
+
+### Notificación automática al usuario
+Cada vez que cambiás el cupo o activás/desactivás ilimitado, el usuario recibe una **notificación en su campana**. No hace falta avisarle manualmente.
+
+### Archivos relevantes
+- `templates/admin_user_detail.html` → card de cupo + acceso ilimitado.
+- `static/styles/admin_user_detail.css` → estilos del editor + banner ilimitado.
+- `static/js/admin_user_detail.js` → stepper, validación numérica, modal de confirmación.
+
+---
+
+## 20. 🔔 Notificaciones globales y toasts
+
+Antes los toasts de Django (`messages.success(...)`, etc.) **solo aparecían en el dashboard**. Si un admin hacía una acción en `/admin-panel/solicitudes/`, el mensaje quedaba guardado en la sesión y reventaban 4 toasts juntos cuando finalmente iba al dashboard.
+
+### Ahora
+Los `messages` se procesan en **todas las páginas** (movido a `base.html`). Apenas hacés una acción, el toast aparece en la página actual.
+
+### Excepción: módulo Borradores
+En `/borradores/` los toasts de Django están **silenciados** — si guardás un borrador, no querés un toast "Borrador guardado" cada autosave (sería ruido). Otros módulos sí muestran toasts normalmente.
+
+### Notificaciones del bell (campana)
+- Cuando un usuario pide más cupo de alias → **todos los admins** reciben una notificación en su campana ("🔔 Nueva solicitud de cupo · USUARIO pide +N alias").
+- Aparece como **toast** en la próxima recarga de cualquier página del admin.
+- Permanece en el panel de la campana hasta que se marca como leída.
+
+### Cómo crear toasts manualmente desde el código JS
+```js
+window.showToast({
+  type:     'success',   // 'success' | 'danger' | 'warning' | 'info'
+  title:    '¡Listo!',
+  message:  'Operación completada',
+  href:     '/url/opcional/',    // si pasás href, el toast es clicable
+  duration: 5000,
+});
+```
+
+### Archivos relevantes
+- `static/js/django_messages_toasts.js` → conversión de messages a toasts.
+- `static/js/base_3.js` → sistema de toasts global (`showToast`) + bell.
+- `templates/base.html` → carga del JS global.
+- `templates/drafts.html` → override del bloque para silenciar toasts.
+
+---
+
+## 21. 🔍 Búsqueda en tiempo real + paginación
+
+Las **tablas del admin** ahora tienen búsqueda que filtra **mientras tipeás** (sin Enter):
+
+| Tabla | Búsqueda en tiempo real | Paginación |
+|---|---|---|
+| `/admin-panel/alias-globales/` | ✅ | ✅ 5 por página |
+| `/admin-panel/amenazas/` | ✅ | — |
+| `/admin-panel/solicitudes/` | ✅ | — |
+| `/admin-panel/usuarios/` | ✅ (ya estaba) | — |
+
+### Filtro `timeshort` para tiempos abreviados
+Las tablas usan un filtro custom que abrevia las duraciones:
+```
+9 horas, 56 minutos atrás   →   9h atrás
+2 días                       →   2d
+5 minutos                    →   5m
+6 meses                      →   5mes
+2 años                       →   2a
+```
+
+Para usarlo en cualquier template:
+```django
+{% load timeshort %}
+{{ algun_datetime|timeshort }} atrás
+```
+
+### Archivos relevantes
+- `apps/core/templatetags/timeshort.py` → el filtro.
+- `static/js/admin_aliases.js` → paginación + búsqueda real-time.
+- `templates/admin_aliases.html`, `templates/admin_threats.html`, `templates/admin_alias_requests.html` → buscadores integrados.
+
+---
+
+## 22. 🧭 Detalles de UX que cambiaron
+
+Cosas chicas pero que mejoran mucho el día a día:
+
+### Sidebar no se sube al cambiar de página
+Antes: bajabas en el sidebar hasta "Notificaciones", le dabas click → la próxima página cargaba con el sidebar en el tope, había que volver a bajar.
+Ahora: el **scroll del sidebar se mantiene** entre navegaciones. Usa `sessionStorage` (por-tab, se borra al cerrar la pestaña). Implementado en `static/js/base_2.js`.
+
+### Reporte sandbox visible para TODOS los correos
+Antes solo aparecía el link "Ver reporte completo" en correos maliciosos. Ahora **cualquier correo** (seguro, sospechoso o malicioso) muestra el botón — porque el webhook crea un `SandboxAnalysis` para todos, incluso los inofensivos. Útil para auditoría.
+
+### Botón ✕ del modal siempre rojo
+Antes el botón de cerrar el modal era gris y se ponía rojo solo al hover → confuso. Ahora **siempre se ve rojo** así el admin sabe de un vistazo que sirve para cerrar.
+
+### Papelera ordenada por fecha
+En el filtro "Todos" de la papelera, los correos recibidos + enviados + borradores se mezclan y ordenan por **fecha de eliminación descendente** (los más recién eliminados primero). Antes se agrupaban por tipo, ahora es una sola lista cronológica.
+
+### Mensajes de error genéricos en login (anti-enumeración)
+Antes el login decía "Este correo no existe" vs "Contraseña incorrecta" — un atacante podía enumerar emails. Ahora siempre dice **"Correo/usuario o contraseña incorrectos"** sin pista de cuál fue el error.
+
+### Bloque ámbar pulsante de solicitud pendiente
+Cuando un usuario tiene una solicitud de cupo pendiente, el botón "Pedir al admin" se reemplaza por un **pill ámbar con punto pulsante** mostrando cuánto pidió. No puede mandar otra solicitud hasta que el admin resuelva.
+
+---
+
+## 23. 🔧 Manual de configuración (cambiá tus valores)
+
+Si querés ajustar cómo se comporta el proyecto, acá están los valores principales y dónde están. **Después de modificar, reiniciá el servidor** (`Ctrl+C` y `python manage.py runserver` de nuevo).
+
+### Cupo de alias por usuario
+
+**Archivo**: [`apps/aliases/views.py`](apps/aliases/views.py)
+
+```python
+# Cuántos alias puede crear un usuario nuevo por defecto.
+# Los admins pueden subirle/bajarle el cupo individualmente desde
+# el panel admin > detalle de usuario.
+ALIAS_LIMIT_PER_USER = 5         # ← cámbialo acá
+
+# Cuántos alias EXTRA puede pedir un usuario en una solicitud.
+# Es solo el tope del slider — el admin igual decide cuánto dar.
+ALIAS_REQUEST_MAX_AMOUNT = 10    # ← y acá
+```
+
+### Tiempo de bloqueo del login (anti fuerza bruta)
+
+**Archivo**: [`apps/accounts/services/auth_service.py`](apps/accounts/services/auth_service.py)
+
+```python
+LOGIN_MAX_FAILS = 3              # intentos fallidos antes de bloquear
+LOGIN_LOCK_SECS = 60             # segundos de bloqueo (60 = 1 minuto)
+```
+
+Ejemplos de `LOGIN_LOCK_SECS`:
+- `60` → 1 minuto
+- `300` → 5 minutos
+- `600` → 10 minutos
+- `1800` → 30 minutos
+- `3600` → 1 hora
+
+### Sesión inactiva (single-session)
+
+**Archivo**: [`apps/accounts/services/auth_service.py`](apps/accounts/services/auth_service.py)
+
+```python
+# Tras este tiempo sin actividad, una sesión se considera "abandonada"
+# y otra persona puede loguearse con la misma cuenta.
+SESSION_IDLE_TIMEOUT_SECONDS = 420   # 7 minutos (default)
+```
+
+### Retención de la papelera
+
+**Archivo**: [`apps/mail/views.py`](apps/mail/views.py)
+
+```python
+# Días que un correo permanece en papelera antes de borrarse para siempre.
+TRASH_RETENTION_DAYS = 30        # ← cámbialo acá
+```
+
+### IA para generación de alias (Groq)
+
+**Archivo**: `.env` en la raíz del proyecto.
+
+```env
+# Si tenés clave, los alias se generan en español con Llama.
+# Si la borrás o queda vacía, se usa el banco local en inglés
+# automáticamente (sin errores).
+GROQ_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Para tunear el modelo, prompt o timeout, editá [`apps/aliases/services/alias_service.py`](apps/aliases/services/alias_service.py):
+```python
+_GROQ_MODEL = 'llama-3.1-8b-instant'   # otro modelo de Groq
+_GROQ_TIMEOUT_S = 4.0                  # timeout antes de fallback
+```
+
+### Dominio de los correos
+
+**Archivo**: `.env`
+
+```env
+MAIL_DOMAIN=dockershield.lat
+```
+
+Cuando cambies esto, los nuevos alias se crean como `nombre@TU_NUEVO_DOMINIO`. Los alias antiguos mantienen el dominio viejo.
+
+### URL pública (ngrok / producción)
+
+**Archivo**: `.env`
+
+```env
+SITE_URL=https://twilight-baking-viewing.ngrok-free.dev
+```
+
+Acordate de actualizar esto cuando ngrok te dé una URL nueva, y también configurar la nueva URL en **SendGrid → Inbound Parse** para que los correos entrantes lleguen.
+
+### Apariencia / estilos
+
+Cada módulo tiene su propio CSS:
+
+| Módulo | Estilo |
+|---|---|
+| Base + sidebar | `static/styles/base.css` |
+| Login / registro | `static/styles/login.css` |
+| Bandeja | `static/styles/inbox.css` |
+| Enviados | `static/styles/sent.css` |
+| Borradores | `static/styles/drafts.css` |
+| Papelera | `static/styles/trash.css` |
+| Mis alias | `static/styles/alias.css` |
+| Sandbox | `static/styles/sandbox_list.css` |
+| Panel admin | `static/styles/admin_*.css` |
+| Modal de redacción | `static/styles/compose_modal.css` |
+
+Los colores principales están en `static/styles/base.css` como variables CSS:
+```css
+--ai-purple:        #7c3aed       /* morado principal */
+--ai-purple-light:  #a78bfa       /* morado claro (acentos) */
+--accent:           #6d4aff       /* alternativo */
+--danger:           #e84040       /* rojo */
+--success:          #2ecc71       /* verde */
+--warning:          #f59e0b       /* ámbar */
+```
+
+Cambiá `--ai-purple` y todo el branding del proyecto sigue ese color.
+
+---
+
 ## 🎯 Resumen ejecutivo
 
 En esta sesión de trabajo:
@@ -563,8 +930,15 @@ En esta sesión de trabajo:
 - 👥 **Sistema de roles** con panel de administración completo.
 - 🛡️ **Validaciones profesionales** con rate limiting anti fuerza bruta.
 - 🧪 **Kit de 14 tests** automáticos.
-- 🐛 **7 bugs** corregidos.
+- 🐛 **Bugs** corregidos varios.
 - 💬 **Mensajes de error pro** en todos los formularios.
+- 🎫 **Sistema de cupo de alias** completo (usuario pide / admin aprueba).
+- 🤖 **IA para generar alias** en español (Groq + Llama).
+- 👑 **Admin puede subir/bajar cupo** y conceder ilimitado a usuarios.
+- 🔔 **Toasts globales** + notificaciones para admin cuando alguien pide cupo.
+- 🔍 **Búsqueda en tiempo real + paginación** en tablas admin.
+- ✉️ **Botón "Nuevo correo" global** en el sidebar.
+- 🧭 **Sidebar mantiene su scroll** entre páginas.
 
 El proyecto está listo para presentarse como trabajo de titulación con:
 - Diseño visual moderno
@@ -572,7 +946,8 @@ El proyecto está listo para presentarse como trabajo de titulación con:
 - Seguridad real (sandbox aislado + validaciones + rate limiting)
 - Arquitectura limpia y modular
 - Panel de administración funcional
+- Sistema de moderación admin↔usuario operativo
 
 ---
 
-*Última actualización: Abril 2026*
+*Última actualización: Mayo 2026*

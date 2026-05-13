@@ -270,3 +270,407 @@
   .ud-card,
   .user-detail-card { padding: 14px; }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   QUOTA CARD — Editor de cupo de alias del usuario (admin)
+   Layout en 2 columnas: izquierda info actual, derecha form para setear
+   nuevo cupo con stepper (+/-) y botón guardar. Respeta paleta morada.
+   ════════════════════════════════════════════════════════════════════ */
+.quota-card { border-color: rgba(124,58,237,0.25); }
+
+.quota-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin-top: 6px;
+}
+
+/* ── Izquierda: stats actuales ── */
+.quota-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: rgba(124,58,237,0.05);
+  border: 1px solid rgba(124,58,237,0.18);
+  border-radius: 12px;
+}
+.quota-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--border-soft, rgba(255,255,255,0.06));
+}
+.quota-info-row:last-of-type { border-bottom: none; }
+.quota-info-lbl {
+  font-family: var(--mono, monospace);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #8a8aa0);
+}
+.quota-info-val {
+  font-family: var(--display, inherit);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-primary, #fff);
+  letter-spacing: -0.005em;
+}
+.quota-info-val.accent   { color: var(--ai-purple-light, #a78bfa); }
+.quota-info-val.muted    { color: var(--text-muted, #8a8aa0); font-weight: 700; font-size: 15px; }
+.quota-info-val.positive { color: #4ade80; }
+.quota-info-val.negative { color: #f87171; }
+
+.quota-bar-wrap {
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.quota-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ai-purple, #7c3aed), var(--ai-purple-light, #a78bfa));
+  border-radius: 4px;
+  transition: width 0.4s cubic-bezier(.22,1,.36,1);
+  box-shadow: 0 0 12px rgba(124,58,237,0.4);
+}
+
+/* ── Derecha: form para nuevo cupo ── */
+.quota-form { display: flex; flex-direction: column; gap: 10px; }
+.quota-form-lbl {
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #b8b8cc);
+}
+
+.quota-form-row {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.03);
+  transition: border-color 0.15s, background 0.15s;
+}
+.quota-form-row:focus-within {
+  border-color: var(--ai-purple, #7c3aed);
+  background: rgba(124,58,237,0.06);
+}
+.quota-step-btn {
+  width: 40px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #b8b8cc);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.quota-step-btn:hover {
+  background: rgba(124,58,237,0.15);
+  color: #fff;
+}
+.quota-step-btn:active { background: rgba(124,58,237,0.25); }
+.quota-form-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  text-align: center;
+  font-family: var(--display, inherit);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary, #fff);
+  outline: none;
+  padding: 8px 4px;
+  min-width: 0;
+}
+.quota-form-input::-webkit-outer-spin-button,
+.quota-form-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.quota-form-input[type=number] { -moz-appearance: textfield; }
+
+.quota-form-hint {
+  font-family: var(--mono, monospace);
+  font-size: 10.5px;
+  color: var(--text-muted, #8a8aa0);
+  line-height: 1.5;
+}
+
+.quota-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 16px;
+  margin-top: 4px;
+  background: linear-gradient(135deg, var(--ai-purple, #7c3aed), #8b5cf6);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: #fff;
+  font-family: var(--mono, monospace);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(124,58,237,0.35);
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.quota-save-btn:hover {
+  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(124,58,237,0.5);
+}
+.quota-save-btn:active { transform: translateY(0); }
+
+/* Light mode */
+html[data-theme="light"] .quota-info { background: rgba(124,58,237,0.04); }
+html[data-theme="light"] .quota-form-row { background: rgba(124,58,237,0.04); }
+
+/* Mobile: una sola columna */
+@media (max-width: 720px) {
+  .quota-grid { grid-template-columns: 1fr; gap: 14px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   QUOTA — Modo ilimitado: hero card (activo) + grant card (oferta).
+   Ambos diseñados para tener MUCHA más jerarquía visual que la versión
+   anterior (botoncito dashed olvidado al fondo). Usan halo morado
+   animado, icono grande, CTA prominente con gradient + glow.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Chip "∞ ilimitado" en el header del card */
+.count-chip.unlimited {
+  background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(167,139,250,0.10));
+  color: var(--ai-purple-light, #a78bfa);
+  border-color: rgba(124,58,237,0.4);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+/* Card en modo ilimitado: borde morado intenso + tinte de fondo */
+.quota-card.is-unlimited {
+  border-color: rgba(124,58,237,0.45);
+  background: linear-gradient(180deg, rgba(124,58,237,0.05), transparent 50%);
+}
+
+/* ── HERO (modo ilimitado activo) ─────────────────────────────────── */
+/* Card grande con halo morado, icono, copy, y botón Retirar integrado.
+   Reemplaza al banner+revoke separados que se veían descolgados. */
+.quota-unlim-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 22px;
+  background:
+    radial-gradient(ellipse 60% 100% at 0% 0%, rgba(124,58,237,0.18), transparent 60%),
+    linear-gradient(135deg, rgba(124,58,237,0.10), rgba(167,139,250,0.04));
+  border: 1px solid rgba(124,58,237,0.35);
+  border-radius: 14px;
+  overflow: hidden;
+}
+/* Halo decorativo que pulsa suave en la esquina */
+.quota-unlim-hero-glow {
+  position: absolute;
+  top: -40%; right: -10%;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(167,139,250,0.18), transparent 65%);
+  filter: blur(20px);
+  pointer-events: none;
+  animation: quotaGlowPulse 4s ease-in-out infinite;
+}
+@keyframes quotaGlowPulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 0.85; transform: scale(1.08); }
+}
+.quota-unlim-hero-icon {
+  position: relative;
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--ai-purple, #7c3aed), #9b6dff);
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow:
+    0 10px 28px rgba(124,58,237,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.20);
+}
+.quota-unlim-hero-icon svg { width: 26px; height: 26px; }
+.quota-unlim-hero-body { position: relative; min-width: 0; }
+.quota-unlim-hero-title {
+  font-family: var(--display, inherit);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary, #fff);
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+.quota-unlim-hero-sub {
+  font-family: var(--mono, monospace);
+  font-size: 11.5px;
+  color: var(--text-secondary, #b8b8cc);
+  line-height: 1.55;
+}
+.quota-unlim-hero-sub strong {
+  color: var(--ai-purple-light, #a78bfa);
+  font-weight: 700;
+}
+.quota-unlim-hero-form { position: relative; }
+.quota-unlim-hero-revoke {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: rgba(239,68,68,0.10);
+  color: #f87171;
+  border: 1px solid rgba(239,68,68,0.32);
+  border-radius: 9px;
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.quota-unlim-hero-revoke:hover {
+  background: rgba(239,68,68,0.18);
+  border-color: rgba(239,68,68,0.6);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.quota-unlim-hero-revoke svg { flex-shrink: 0; }
+
+/* ── GRANT CARD (oferta de conceder ilimitado en modo normal) ────── */
+/* Card promocional separada visualmente, con icono grande, copy y CTA. */
+.quota-grant-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 18px 22px;
+  background:
+    radial-gradient(ellipse 70% 100% at 100% 0%, rgba(124,58,237,0.14), transparent 60%),
+    linear-gradient(135deg, rgba(124,58,237,0.06), rgba(155,109,255,0.02));
+  border: 1px solid rgba(124,58,237,0.28);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.quota-grant-card:hover {
+  border-color: rgba(124,58,237,0.5);
+  transform: translateY(-1px);
+}
+.quota-grant-glow {
+  position: absolute;
+  top: -50%; left: -15%;
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(167,139,250,0.14), transparent 65%);
+  filter: blur(24px);
+  pointer-events: none;
+  animation: quotaGlowPulse 5s ease-in-out infinite;
+}
+.quota-grant-icon {
+  position: relative;
+  width: 48px; height: 48px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--ai-purple, #7c3aed), #9b6dff);
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow:
+    0 8px 22px rgba(124,58,237,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.quota-grant-icon svg { width: 24px; height: 24px; }
+.quota-grant-body { position: relative; min-width: 0; }
+.quota-grant-title {
+  font-family: var(--display, inherit);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary, #fff);
+  margin-bottom: 4px;
+  letter-spacing: -0.005em;
+}
+.quota-grant-desc {
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  color: var(--text-muted, #8a8aa0);
+  line-height: 1.55;
+}
+.quota-grant-form { position: relative; }
+.quota-grant-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 17px;
+  background: linear-gradient(135deg, var(--ai-purple, #7c3aed), #8b5cf6);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+  font-family: var(--mono, monospace);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow:
+    0 6px 18px rgba(124,58,237,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.16);
+  transition: background 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+.quota-grant-cta:hover {
+  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 26px rgba(124,58,237,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.22);
+}
+.quota-grant-cta:active { transform: translateY(0); }
+.quota-grant-cta svg { flex-shrink: 0; }
+.quota-grant-cta svg:last-child {
+  opacity: 0.85;
+  transition: transform 0.2s;
+}
+.quota-grant-cta:hover svg:last-child { transform: translateX(2px); opacity: 1; }
+
+/* Light mode */
+html[data-theme="light"] .quota-unlim-hero,
+html[data-theme="light"] .quota-grant-card {
+  background:
+    radial-gradient(ellipse 60% 100% at 0% 0%, rgba(124,58,237,0.12), transparent 60%),
+    linear-gradient(135deg, rgba(124,58,237,0.06), rgba(167,139,250,0.02));
+}
+
+/* Mobile: stack vertical para que no se aplasten */
+@media (max-width: 720px) {
+  .quota-unlim-hero,
+  .quota-grant-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 14px;
+  }
+  .quota-unlim-hero-icon,
+  .quota-grant-icon { margin: 0 auto; }
+  .quota-unlim-hero-form,
+  .quota-grant-form { width: 100%; }
+  .quota-unlim-hero-revoke,
+  .quota-grant-cta { width: 100%; justify-content: center; }
+}

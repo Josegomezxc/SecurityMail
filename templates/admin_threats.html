@@ -42,11 +42,15 @@
   </div>
 </header>
 
-<!-- Toolbar -->
-<form method="get" class="th-toolbar" role="search">
+<!-- Toolbar — búsqueda client-side (real-time). Los pills siguen siendo
+     links GET porque cambian el dataset que llega del backend.
+     onsubmit="return false" evita que Enter recargue la página. -->
+<form method="get" class="th-toolbar" role="search" onsubmit="return false">
   <div class="th-search">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" name="q" value="{{ current_q }}" placeholder="Buscar por remitente, asunto, alias o usuario..." autocomplete="off">
+    <input type="text" id="threatsSearchInput" name="q" value="{{ current_q }}"
+           placeholder="Buscar por remitente, asunto, alias o usuario..."
+           autocomplete="off" oninput="threatsTableSearch(this.value)">
     {% if current_level != 'all' %}<input type="hidden" name="level" value="{{ current_level }}">{% endif %}
   </div>
   <div class="th-filters">
@@ -107,8 +111,37 @@
   {% endfor %}
 </div>
 
+<!-- Mensaje cuando la búsqueda client-side no encuentra nada -->
+<div class="th-empty" id="th-empty-search" style="display:none">
+  Ninguna amenaza coincide con tu búsqueda.
+</div>
+
 {% if shown_count >= 200 %}
   <div class="th-tip">Mostrando las 200 amenazas más recientes — afina la búsqueda para ver más antiguas.</div>
 {% endif %}
+
+<script>
+/* Búsqueda client-side en tiempo real para la tabla de amenazas.
+   Filtra .th-row por contenido. Pills siguen siendo server-side. */
+(function () {
+  var wrap = document.querySelector('.th-table-wrap');
+  if (!wrap) return;
+  var rows = Array.prototype.slice.call(
+    wrap.querySelectorAll('.th-row:not(.head)')
+  ).filter(function (r) { return !r.classList.contains('th-empty'); });
+  var emptyEl = document.getElementById('th-empty-search');
+
+  window.threatsTableSearch = function (q) {
+    var query = (q || '').trim().toLowerCase();
+    var visible = 0;
+    rows.forEach(function (r) {
+      var match = !query || (r.textContent || '').toLowerCase().indexOf(query) !== -1;
+      r.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    if (emptyEl) emptyEl.style.display = (query && visible === 0) ? '' : 'none';
+  };
+})();
+</script>
 
 {% endblock %}

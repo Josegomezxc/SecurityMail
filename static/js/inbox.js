@@ -303,14 +303,16 @@ function openEmail(id) {
   /* Por defecto siempre intentamos HTML (más bonito); fallback a texto plano */
   if (hasHtml) showHtml(); else showPlain();
 
-  /* Riesgo */
+  /* Riesgo — siempre mostramos la sección si el correo tiene análisis,
+     sin importar si es malicioso, sospechoso o seguro. El template guarda
+     la URL ya firmada (sandbox usa <sid:pk>) en data-analysis-url; no
+     reconstruimos la URL en JS porque el id va firmado y no lo conocemos. */
   var risk = parseInt(data.dataset.risk) || 0;
-  var analysisId = data.dataset.analysisId;
+  var analysisUrl = data.dataset.analysisUrl || '';
   var riskSection = document.getElementById('panel-risk-section');
   var reportLink = document.getElementById('panel-report-link');
 
-  /* Mostrar la sección si hay score O si hay análisis (aunque score=0) */
-  if (risk > 0 || analysisId) {
+  if (risk > 0 || analysisUrl) {
     riskSection.style.display = 'block';
     var color = risk >= 61 ? 'var(--danger)' : risk >= 31 ? 'var(--warning)' : 'var(--success)';
     var bar   = document.getElementById('panel-risk-bar');
@@ -328,9 +330,11 @@ function openEmail(id) {
     else
       badge.innerHTML = '<span class="risk-pill success"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Seguro — sin amenazas</span>';
 
-    /* Botón "Ver reporte" — siempre que exista un análisis */
-    if (analysisId) {
-      reportLink.href = '/sandbox/reporte/' + analysisId + '/';
+    /* Botón "Ver reporte completo" — visible para CUALQUIER correo con
+       análisis (malicioso, sospechoso o seguro). Usamos la URL firmada
+       que ya viene en el data attribute. */
+    if (analysisUrl) {
+      reportLink.href = analysisUrl;
       reportLink.style.display = 'inline-flex';
     } else {
       reportLink.style.display = 'none';
@@ -346,8 +350,8 @@ function openEmail(id) {
     attSection.style.display = 'block';
     document.getElementById('panel-att-name-text').textContent = attName;
     var link = document.getElementById('panel-sandbox-link');
-    if (analysisId) {
-      link.href = '/sandbox/reporte/' + analysisId + '/';
+    if (analysisUrl) {
+      link.href = analysisUrl;
       link.style.display = 'inline-flex';
     } else {
       link.style.display = 'none';

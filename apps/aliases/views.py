@@ -4,6 +4,7 @@ Vistas CRUD de alias desechables:
   - Crear nuevo alias.
   - Destruir (marcar inactivo).
   - Componer y enviar correo desde un alias.
+  - Solicitar más cupo de alias al administrador.
 """
 import re
 
@@ -15,7 +16,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import Alias
+from .models import Alias, AliasQuotaRequest
 from .services.alias_service import generate_alias_address, generate_creative_label
 
 
@@ -25,6 +26,36 @@ from .services.alias_service import generate_alias_address, generate_creative_la
 # pero el usuario puede crear otros nuevos en su lugar.
 # Los administradores (is_staff) NO tienen límite.
 ALIAS_LIMIT_PER_USER = 5
+
+
+def _user_is_unlimited(user) -> bool:
+    """
+    ¿El usuario puede crear alias sin tope? Es True si:
+      - es admin (is_staff), o
+      - el admin le concedió acceso ilimitado vía profile.alias_unlimited.
+    """
+    if user.is_staff:
+        return True
+    try:
+        return bool(user.profile.alias_unlimited)
+    except Exception:
+        return False
+
+
+def _user_alias_limit(user) -> int:
+    """
+    Cupo total de alias para `user` = base + ajuste del admin (puede ser
+    negativo). Clamp a 0 mínimo para que un ajuste muy negativo no produzca
+    valores negativos. Los usuarios ilimitados no tienen límite — se maneja
+    antes de llamar a esto.
+    """
+    extra = 0
+    try:
+        extra = int(user.profile.alias_quota_extra or 0)
+    except Exception:
+        # Si por alguna razón el perfil no existe (raro), usamos el base.
+        pass
+    return max(0, ALIAS_LIMIT_PER_USER + extra)
 
 
 @login_required(login_url='login')
@@ -45,20 +76,35 @@ def alias_list_view(request):
     total_emails    = sum(a.emails_total for a in aliases)
     total_threats   = sum(a.threats_total for a in aliases)
 
-    # Para la UI: cuántos alias puede crear todavía + límite total
-    is_unlimited     = request.user.is_staff
-    alias_limit      = None if is_unlimited else ALIAS_LIMIT_PER_USER
-    alias_remaining  = None if is_unlimited else max(0, ALIAS_LIMIT_PER_USER - active_count)
+    # El cupo se CONSUME al crear un alias y NO se libera al destruirlo.
+    # Esto evita que un usuario "recicle" el cupo infinitamente destruyendo
+    # alias para crear otros (lo que rompería el propósito de la moderación
+    # del admin). Si llegó al límite y elimina uno, el contador NO baja.
+    # Para conseguir más cupo debe pedirle al admin que se lo aumente.
+    quota_used       = active_count + destroyed_count       # = len(aliases)
+    is_unlimited     = _user_is_unlimited(request.user)
+    alias_limit      = None if is_unlimited else _user_alias_limit(request.user)
+    alias_remaining  = None if is_unlimited else max(0, alias_limit - quota_used)
+
+    # ¿Tiene una solicitud `pending` ahora mismo? Si sí, mostramos su estado
+    # en la UI y deshabilitamos el botón de "Pedir más" (evitamos spam).
+    pending_request = None
+    if not is_unlimited:
+        pending_request = AliasQuotaRequest.objects.filter(
+            user=request.user, status='pending',
+        ).order_by('-created_at').first()
 
     return render(request, 'alias.html', {
         'aliases':         aliases,
         'active_count':    active_count,
         'destroyed_count': destroyed_count,
+        'quota_used':      quota_used,
         'total_emails':    total_emails,
         'total_threats':   total_threats,
         'alias_limit':     alias_limit,
         'alias_remaining': alias_remaining,
         'is_unlimited':    is_unlimited,
+        'pending_request': pending_request,
     })
 
 
@@ -77,15 +123,17 @@ def alias_create_view(request):
     if request.method == 'POST':
         # Defensa anti doble-submit + anti abuso: chequea el límite SIEMPRE
         # en el backend (el JS del front solo es UX, no se debe confiar).
-        if not request.user.is_staff:
-            active_count = Alias.objects.filter(
-                user=request.user, is_active=True,
-            ).count()
-            if active_count >= ALIAS_LIMIT_PER_USER:
+        # El cupo se cuenta sobre TODOS los alias creados (activos +
+        # destruidos), no solo los activos — los slots se consumen al
+        # crear y no se reciclan al destruir.
+        if not _user_is_unlimited(request.user):
+            quota_used = Alias.objects.filter(user=request.user).count()
+            user_limit = _user_alias_limit(request.user)
+            if quota_used >= user_limit:
                 messages.error(
                     request,
-                    f'Has alcanzado el límite de {ALIAS_LIMIT_PER_USER} alias '
-                    f'activos. Destruye alguno antes de crear uno nuevo.',
+                    f'Has consumido tu cupo de {user_limit} alias. '
+                    f'Solicítale más al administrador para seguir creando.',
                 )
                 return redirect('alias_list')
 
@@ -362,4 +410,91 @@ def alias_compose_view(request, pk):
         'scheduled':        bool(send_at_ts),
         'scheduled_ts':     send_at_ts,
         'sent':             sent_payload,
+    })
+
+
+# ════════════════════════════════════════════════════════════════════════
+#  SOLICITUD DE MÁS CUPO DE ALIAS (usuario → admin)
+# ════════════════════════════════════════════════════════════════════════
+
+# Cuántos alias EXTRA puede pedir un usuario en una solicitud. Limitamos
+# para que no pidan algo absurdo (ej. +1000); el admin igual modera.
+ALIAS_REQUEST_MAX_AMOUNT = 10
+
+
+@login_required(login_url='login')
+@require_POST
+def alias_quota_request_create(request):
+    """
+    POST endpoint donde el usuario crea una solicitud de más cupo de alias.
+    Acepta:
+        amount  (1 a 10) — cuántos alias extra pide
+        reason  (texto, opcional)
+    Devuelve JSON: { ok, message, request_id }
+    Si ya hay una solicitud `pending` para este usuario, devuelve ok=false.
+    """
+    # Los admins no piden (no tienen límite). Defensa por si igual lo intentan.
+    if request.user.is_staff:
+        return JsonResponse({'ok': False, 'error': 'admin_no_quota'}, status=400)
+
+    # Bloquear duplicados: si ya tiene una pending, no aceptamos otra.
+    if AliasQuotaRequest.objects.filter(user=request.user, status='pending').exists():
+        return JsonResponse({
+            'ok': False,
+            'error': 'already_pending',
+            'message': 'Ya tienes una solicitud pendiente. Espera la respuesta del admin.',
+        }, status=400)
+
+    # Parsear amount con tope.
+    try:
+        amount = int(request.POST.get('amount', '1'))
+    except (TypeError, ValueError):
+        amount = 0
+    if amount < 1 or amount > ALIAS_REQUEST_MAX_AMOUNT:
+        return JsonResponse({
+            'ok': False,
+            'error': 'invalid_amount',
+            'message': f'Pide entre 1 y {ALIAS_REQUEST_MAX_AMOUNT} alias adicionales.',
+        }, status=400)
+
+    reason = (request.POST.get('reason') or '').strip()[:2000]
+
+    req = AliasQuotaRequest.objects.create(
+        user=request.user,
+        requested_amount=amount,
+        reason=reason,
+    )
+
+    # Notificar a TODOS los admins (is_staff=True) — antes solo se subía
+    # el badge del sidebar y el admin no veía toast hasta entrar al
+    # módulo de solicitudes. Ahora le aparece la notificación en cualquier
+    # página del admin via el sistema de toasts persistentes.
+    try:
+        from apps.notifications.models import Notification
+        from django.contrib.auth.models import User
+        admins = User.objects.filter(is_staff=True, is_active=True)
+        user_name = (request.user.get_full_name() or request.user.email
+                     or request.user.username)
+        notif_objs = [
+            Notification(
+                user=admin,
+                type='system',
+                title=f'🔔 Nueva solicitud de cupo',
+                message=f'{user_name} pide +{amount} alias adicionales. Revisa en el panel de solicitudes.',
+                status='pending',
+                read=False,
+            )
+            for admin in admins
+        ]
+        if notif_objs:
+            Notification.objects.bulk_create(notif_objs)
+    except Exception as e:
+        # No bloqueamos la creación de la solicitud si la notificación falla.
+        print(f"[alias_quota_request] No se pudo notificar al admin: {e}")
+
+    return JsonResponse({
+        'ok':         True,
+        'message':    'Solicitud enviada. El administrador la revisará en breve.',
+        'request_id': req.id,
+        'amount':     amount,
     })

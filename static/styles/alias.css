@@ -1031,3 +1031,588 @@ html[data-theme="light"] .ccv2-preview-tag.ok {
   color: #15803d;
   border-color: rgba(34,197,94,0.32);
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   PEDIR MÁS CUPO DE ALIAS — CTA enriquecido en la card de creación.
+   Antes era un botón punteado discreto; ahora es una mini-card con
+   icono morado, copy en dos líneas y flecha que se desliza al hover.
+   ════════════════════════════════════════════════════════════════════ */
+.ccv2-request-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.ccv2-request-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 10px;
+  background: linear-gradient(135deg, rgba(124,58,237,0.10), rgba(167,139,250,0.04));
+  border: 1px solid rgba(124,58,237,0.32);
+  border-radius: 11px;
+  color: var(--text-primary, #fff);
+  font-family: var(--mono, monospace);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+.ccv2-request-btn::before {
+  /* Halo decorativo en la esquina derecha que pulsa suave */
+  content: '';
+  position: absolute;
+  top: -20px; right: -20px;
+  width: 80px; height: 80px;
+  background: radial-gradient(circle, rgba(167,139,250,0.16), transparent 65%);
+  pointer-events: none;
+  filter: blur(8px);
+}
+.ccv2-request-btn:hover {
+  background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(167,139,250,0.08));
+  border-color: var(--ai-purple, #7c3aed);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(124,58,237,0.28);
+}
+
+/* Icono: sobre con un + flotando arriba a la derecha */
+.ccv2-request-btn-icon {
+  position: relative;
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--ai-purple, #7c3aed), #9b6dff);
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(124,58,237,0.4);
+}
+.ccv2-request-btn-icon svg { width: 18px; height: 18px; }
+.ccv2-request-plus {
+  position: absolute;
+  top: -4px; right: -4px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ai-purple, #7c3aed);
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  font-family: var(--display, inherit);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Copy: título + subtítulo */
+.ccv2-request-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ccv2-request-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  letter-spacing: -0.005em;
+}
+.ccv2-request-sub {
+  font-size: 10.5px;
+  color: var(--text-secondary, #b8b8cc);
+  letter-spacing: 0.01em;
+  line-height: 1.5;          /* respiración entre las dos líneas */
+}
+
+/* Flecha al final que se desliza al hover */
+.ccv2-request-arrow {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  color: var(--ai-purple-light, #a78bfa);
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: transform 0.2s, color 0.2s;
+}
+.ccv2-request-arrow svg { width: 16px; height: 16px; }
+.ccv2-request-btn:hover .ccv2-request-arrow {
+  transform: translateX(4px);
+  color: #fff;
+}
+
+/* Pill que reemplaza al botón cuando hay una solicitud pendiente. */
+.quota-pending-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: rgba(245,158,11,0.10);
+  border: 1px solid rgba(245,158,11,0.35);
+  border-radius: 9px;
+  color: #fbbf24;
+  font-family: var(--mono, monospace);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.quota-pending-pill strong { color: #fff; font-weight: 700; }
+.quota-pending-pill .qpp-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 0 rgba(245,158,11,0.7);
+  animation: qpp-pulse 1.8s ease-in-out infinite;
+}
+@keyframes qpp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.6); }
+  50%      { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
+}
+
+/* Light mode tweaks. */
+html[data-theme="light"] .ccv2-request-btn {
+  border-color: rgba(124,58,237,0.5);
+  color: var(--ai-purple, #7c3aed);
+}
+html[data-theme="light"] .ccv2-request-btn:hover { color: #fff; }
+html[data-theme="light"] .ccv2-request-btn strong { color: var(--text-primary, #1c1b2a); }
+html[data-theme="light"] .ccv2-request-btn:hover strong { color: #fff; }
+
+/* ════════════════════════════════════════════════════════════════════
+   MODAL: Solicitar más cupo de alias
+   Overlay full-screen con backdrop blur + modal centrado.
+   Mobile: stack vertical, padding compacto. Desktop: max-width 460px.
+   ════════════════════════════════════════════════════════════════════ */
+.aliasreq-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 6, 18, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 18px;
+  overflow-y: auto;
+}
+.aliasreq-overlay.open {
+  display: flex;
+  animation: arOverlayIn 0.2s ease both;
+}
+@keyframes arOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.aliasreq-modal {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  background: var(--bg-surface, #1a1828);
+  border: 1px solid rgba(124,58,237,0.28);
+  border-radius: 16px;
+  padding: 24px 22px 20px;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(124,58,237,0.08) inset;
+  animation: arModalIn 0.25s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes arModalIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.aliasreq-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 28px; height: 28px;
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-soft, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  color: var(--text-muted, #8a8aa0);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.aliasreq-close:hover {
+  background: rgba(232,64,64,0.12);
+  border-color: rgba(232,64,64,0.35);
+  color: #ef4444;
+}
+.aliasreq-close svg { width: 14px; height: 14px; }
+
+/* Header: icono + título */
+.aliasreq-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.aliasreq-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--ai-purple, #7c3aed), #9b6dff);
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 6px 18px rgba(124,58,237,0.35);
+}
+.aliasreq-icon svg { width: 20px; height: 20px; }
+.aliasreq-titles { min-width: 0; flex: 1; }
+.aliasreq-title {
+  font-family: var(--display, inherit);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary, #fff);
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.aliasreq-sub {
+  font-family: var(--mono, monospace);
+  font-size: 11.5px;
+  color: var(--text-muted, #8a8aa0);
+  line-height: 1.5;
+}
+.aliasreq-sub strong { color: var(--ai-purple-light, #a78bfa); font-weight: 700; }
+
+/* Campos del formulario */
+.aliasreq-field { margin-bottom: 18px; }
+.aliasreq-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #b8b8cc);
+  margin-bottom: 10px;
+}
+/* Icono SVG pequeño a la izquierda del label (no emoji) */
+.aliasreq-label-icon {
+  width: 13px;
+  height: 13px;
+  color: var(--ai-purple-light, #a78bfa);
+  flex-shrink: 0;
+}
+.aliasreq-optional {
+  color: var(--text-muted, #8a8aa0);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10.5px;
+}
+
+/* ── Preview "Ahora N → Si te aprueban M" ──────────────────────────
+   Card horizontal con dos lados (actual vs futuro) y una flecha en
+   el medio. El número de "Si te aprueban" se actualiza en vivo
+   según el slider/quick-picks. */
+.aliasreq-preview {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding: 14px;
+  background: rgba(124,58,237,0.05);
+  border: 1px solid rgba(124,58,237,0.18);
+  border-radius: 12px;
+}
+.aliasreq-preview-side {
+  text-align: center;
+  padding: 8px 4px;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.02);
+}
+.aliasreq-preview-side.accent {
+  background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(167,139,250,0.06));
+  border: 1px solid rgba(124,58,237,0.32);
+}
+.aliasreq-preview-lbl {
+  font-family: var(--mono, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #8a8aa0);
+  margin-bottom: 6px;
+}
+.aliasreq-preview-num {
+  font-family: var(--display, inherit);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary, #fff);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.aliasreq-preview-side.accent .aliasreq-preview-num {
+  color: var(--ai-purple-light, #a78bfa);
+}
+.aliasreq-preview-arrow {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(124,58,237,0.18);
+  color: var(--ai-purple-light, #a78bfa);
+  flex-shrink: 0;
+}
+.aliasreq-preview-arrow svg { width: 16px; height: 16px; }
+
+/* ── Quick-picks (+1, +3, +5, +10) ─────────────────────────────────
+   Atajos de cantidad arriba del slider — click sincroniza ambos. */
+.aliasreq-quicks {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.aliasreq-quick {
+  flex: 1;
+  padding: 9px 0;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 9px;
+  color: var(--text-secondary, #b8b8cc);
+  font-family: var(--mono, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s;
+}
+.aliasreq-quick:hover {
+  background: rgba(124,58,237,0.08);
+  border-color: rgba(124,58,237,0.32);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.aliasreq-quick.active {
+  background: linear-gradient(135deg, var(--ai-purple, #7c3aed), #8b5cf6);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(124,58,237,0.35);
+}
+
+/* ── Chips de razón predefinida ────────────────────────────────────
+   Atajos para rellenar el textarea con un texto sugerido. Click
+   reemplaza lo que haya y enfoca el textarea para edición. */
+.aliasreq-reason-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.aliasreq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px 7px 11px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 999px;
+  color: var(--text-secondary, #b8b8cc);
+  font-family: var(--sans, inherit);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s;
+}
+.aliasreq-chip:hover {
+  background: rgba(124,58,237,0.10);
+  border-color: rgba(124,58,237,0.38);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.aliasreq-chip:hover .aliasreq-chip-icon {
+  color: var(--ai-purple-light, #a78bfa);
+}
+/* Icono SVG dentro de cada chip (reemplaza el emoji viejo) */
+.aliasreq-chip-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted, #8a8aa0);
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+/* Slider de cantidad + número grande a la derecha */
+.aliasreq-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.aliasreq-slider {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right,
+    var(--ai-purple, #7c3aed) 0%,
+    var(--ai-purple, #7c3aed) calc(var(--p, 22%)),
+    rgba(255,255,255,0.10) calc(var(--p, 22%)),
+    rgba(255,255,255,0.10) 100%
+  );
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+.aliasreq-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--ai-purple, #7c3aed);
+  box-shadow: 0 2px 8px rgba(124,58,237,0.4);
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.aliasreq-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.aliasreq-slider::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--ai-purple, #7c3aed);
+  box-shadow: 0 2px 8px rgba(124,58,237,0.4);
+  cursor: pointer;
+}
+
+.aliasreq-amount-num {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+  padding: 8px 12px;
+  background: rgba(124,58,237,0.12);
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 10px;
+}
+.aliasreq-amount-num #aliasReqAmountVal {
+  font-family: var(--display, inherit);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ai-purple-light, #a78bfa);
+  line-height: 1;
+}
+.aliasreq-amount-unit {
+  font-family: var(--mono, monospace);
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #8a8aa0);
+  margin-top: 3px;
+}
+.aliasreq-amount-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding: 0 2px;
+  font-family: var(--mono, monospace);
+  font-size: 9.5px;
+  color: var(--text-muted, #8a8aa0);
+  font-weight: 600;
+}
+
+/* Textarea para la razón */
+.aliasreq-textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  padding: 11px 13px;
+  color: var(--text-primary, #fff);
+  font-family: var(--sans, inherit);
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 70px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.aliasreq-textarea:focus {
+  outline: none;
+  border-color: var(--ai-purple, #7c3aed);
+  background: rgba(124,58,237,0.05);
+}
+.aliasreq-textarea::placeholder { color: var(--text-muted, #8a8aa0); opacity: 0.7; }
+.aliasreq-counter {
+  text-align: right;
+  margin-top: 4px;
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+  color: var(--text-muted, #8a8aa0);
+}
+
+/* Botones de acción */
+.aliasreq-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  justify-content: flex-end;
+}
+.aliasreq-btn-secondary,
+.aliasreq-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-family: var(--mono, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.aliasreq-btn-secondary {
+  background: transparent;
+  border-color: var(--border, rgba(255,255,255,0.10));
+  color: var(--text-secondary, #b8b8cc);
+}
+.aliasreq-btn-secondary:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: var(--border-soft, rgba(255,255,255,0.18));
+  color: var(--text-primary, #fff);
+}
+.aliasreq-btn-primary {
+  background: linear-gradient(135deg, var(--ai-purple, #7c3aed), #8b5cf6);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(124,58,237,0.35);
+}
+.aliasreq-btn-primary:hover {
+  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(124,58,237,0.45);
+}
+.aliasreq-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Light mode tweaks del modal */
+html[data-theme="light"] .aliasreq-overlay { background: rgba(20, 15, 35, 0.55); }
+html[data-theme="light"] .aliasreq-modal {
+  background: #ffffff;
+  border-color: rgba(124,58,237,0.25);
+}
+html[data-theme="light"] .aliasreq-textarea {
+  background: rgba(124,58,237,0.04);
+  color: var(--text-primary, #1c1b2a);
+}
+html[data-theme="light"] .aliasreq-close {
+  border-color: rgba(0,0,0,0.08);
+}
+
+/* Mobile: stack vertical el slider + número */
+@media (max-width: 480px) {
+  .aliasreq-amount-row { flex-direction: column; align-items: stretch; gap: 12px; }
+  .aliasreq-amount-num { flex-direction: row; gap: 8px; align-self: flex-start; min-width: 0; }
+  .aliasreq-amount-unit { margin-top: 0; }
+  .aliasreq-actions { flex-direction: column-reverse; }
+  .aliasreq-actions button { width: 100%; justify-content: center; }
+}

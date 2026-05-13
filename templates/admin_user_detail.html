@@ -79,6 +79,146 @@
   </article>
 </section>
 
+<!-- ── CUPO DE ALIAS (solo si NO es admin — los staff no tienen límite) ── -->
+{% if not target.is_staff %}
+<section class="section-card quota-card {% if target_alias_unlimited %}is-unlimited{% endif %}" aria-label="Cupo de alias del usuario">
+  <header class="section-head">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2" stroke-linecap="round">
+      <path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/>
+    </svg>
+    <span class="t">Cupo de alias</span>
+    {% if target_alias_unlimited %}
+      <span class="count-chip unlimited">∞ ilimitado</span>
+    {% else %}
+      <span class="count-chip">{{ target_quota_used }} / {{ target_quota_limit }}</span>
+    {% endif %}
+  </header>
+
+  {% if target_alias_unlimited %}
+    <!-- ── Modo ilimitado: hero card con halo morado + acción de revertir integrada ── -->
+    <div class="quota-unlim-hero">
+      <div class="quota-unlim-hero-glow" aria-hidden="true"></div>
+      <div class="quota-unlim-hero-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.739-8z"/>
+        </svg>
+      </div>
+      <div class="quota-unlim-hero-body">
+        <div class="quota-unlim-hero-title">Acceso ilimitado activo</div>
+        <div class="quota-unlim-hero-sub">
+          Puede crear alias sin tope, igual que un admin. Ha creado <strong>{{ target_quota_used }}</strong> hasta ahora.
+        </div>
+      </div>
+      <form method="post" action="{% url 'admin_toggle_alias_unlimited' pk=target.id %}"
+            class="quota-unlim-hero-form js-toggle-unlimited"
+            data-action="disable" data-user-email="{{ target.email }}">
+        {% csrf_token %}
+        <button type="submit" class="quota-unlim-hero-revoke">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          <span>Retirar acceso</span>
+        </button>
+      </form>
+    </div>
+  {% else %}
+    <div class="quota-grid">
+      <div class="quota-info">
+        <div class="quota-info-row">
+          <span class="quota-info-lbl">Usados</span>
+          <span class="quota-info-val">{{ target_quota_used }}</span>
+        </div>
+        <div class="quota-info-row">
+          <span class="quota-info-lbl">Cupo total</span>
+          <span class="quota-info-val accent">{{ target_quota_limit }}</span>
+        </div>
+        <div class="quota-info-row">
+          <span class="quota-info-lbl">Base global</span>
+          <span class="quota-info-val muted">{{ quota_base_limit }}</span>
+        </div>
+        <div class="quota-info-row">
+          <span class="quota-info-lbl">Ajuste admin</span>
+          <span class="quota-info-val {% if target_quota_extra > 0 %}positive{% elif target_quota_extra < 0 %}negative{% else %}muted{% endif %}">
+            {% if target_quota_extra > 0 %}+{% endif %}{{ target_quota_extra }}
+          </span>
+        </div>
+        <div class="quota-bar-wrap" title="{{ target_quota_used }} de {{ target_quota_limit }} usados">
+          <div class="quota-bar-fill"
+               style="width: {% widthratio target_quota_used target_quota_limit 100 %}%"></div>
+        </div>
+      </div>
+
+      <form method="post" action="{% url 'admin_set_alias_quota' pk=target.id %}" class="quota-form">
+        {% csrf_token %}
+        <label for="newLimitInput" class="quota-form-lbl">Nuevo cupo total</label>
+        <div class="quota-form-row">
+          <button type="button" class="quota-step-btn" onclick="adjQuota(-1)" aria-label="Restar 1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <input type="text" id="newLimitInput" name="new_limit"
+                 inputmode="numeric" pattern="[0-9]*" maxlength="3"
+                 autocomplete="off"
+                 data-min="{{ quota_min }}" data-max="{{ quota_max }}"
+                 min="{{ quota_min }}" max="{{ quota_max }}"
+                 value="{{ target_quota_limit }}"
+                 class="quota-form-input"
+                 onkeydown="return quotaOnlyDigits(event)"
+                 onpaste="quotaOnPaste(event)">
+          <button type="button" class="quota-step-btn" onclick="adjQuota(1)" aria-label="Sumar 1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="quota-form-hint">
+          Solo números, entre {{ quota_min }} y {{ quota_max }}. Si bajas el cupo por debajo del usado actual, el usuario no podrá crear más hasta volver a subirlo.
+        </div>
+        <button type="submit" class="quota-save-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Guardar cupo
+        </button>
+      </form>
+    </div>
+
+    <!-- ── Conceder alias ilimitados — card promocional con jerarquía clara ── -->
+    <div class="quota-grant-card">
+      <div class="quota-grant-glow" aria-hidden="true"></div>
+      <div class="quota-grant-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.739-8z"/>
+        </svg>
+      </div>
+      <div class="quota-grant-body">
+        <div class="quota-grant-title">
+          ¿Sin límites para este usuario?
+        </div>
+        <div class="quota-grant-desc">
+          Activá el modo ilimitado y podrá crear todos los alias que quiera, sin tope. El cupo numérico quedará pausado mientras esté activo — podés revertirlo en cualquier momento.
+        </div>
+      </div>
+      <form method="post" action="{% url 'admin_toggle_alias_unlimited' pk=target.id %}"
+            class="quota-grant-form js-toggle-unlimited"
+            data-action="enable" data-user-email="{{ target.email }}">
+        {% csrf_token %}
+        <button type="submit" class="quota-grant-cta">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.739-8z"/>
+          </svg>
+          <span>Activar ilimitado</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+  {% endif %}
+</section>
+{% endif %}
+
 <!-- ── ALIASES ── -->
 <section class="section-card" aria-label="Aliases del usuario">
   <header class="section-head">

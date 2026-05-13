@@ -53,6 +53,23 @@ class UserProfile(models.Model):
     # el código de 6 dígitos que enviamos a su buzón. Hasta que sea True,
     # la cuenta está deshabilitada (User.is_active = False).
     email_verified = models.BooleanField(default=False)
+    # Ajuste de cupo de alias respecto al límite global ALIAS_LIMIT_PER_USER
+    # (definido en apps/aliases/views.py). Puede ser POSITIVO (admin concedió
+    # más alias al aprobar una solicitud) o NEGATIVO (admin redujo el cupo
+    # manualmente desde el panel). El límite efectivo es:
+    #     max(0, ALIAS_LIMIT_PER_USER + alias_quota_extra)
+    alias_quota_extra = models.IntegerField(
+        default=0,
+        help_text="Ajuste de cupo de alias (positivo o negativo).",
+    )
+    # Si el admin marcó al usuario como "sin límite", puede crear alias sin
+    # tope (igual que un staff, pero sin promoverlo a admin). El cupo
+    # numérico (alias_quota_extra) deja de aplicar cuando este flag está
+    # en True. Default: False — el usuario está sujeto al cupo normal.
+    alias_unlimited = models.BooleanField(
+        default=False,
+        help_text="Concede al usuario alias ilimitados sin volverlo admin.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

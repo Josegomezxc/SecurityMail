@@ -64,6 +64,86 @@
 })();
 
 /* ════════════════════════════════════════════════════════════════════
+   SIDEBAR — Persistencia del scroll entre páginas
+   ─────────────────────────────────────────────────────────────────────
+   Si el usuario baja en el sidebar y le da click a "Notificaciones" (o
+   cualquier link de abajo), la siguiente página cargaba con el sidebar
+   en scrollTop=0 y tenía que volver a scrollear. Ahora guardamos el
+   scrollTop en sessionStorage antes de navegar y lo restauramos al
+   cargar la nueva página.
+
+   sessionStorage (no localStorage) → es por-tab, así múltiples tabs no
+   se pisan. Se borra solo al cerrar el tab.
+   ════════════════════════════════════════════════════════════════════ */
+(function () {
+    var nav = document.getElementById('sidebarNav');
+    if (!nav) return;
+
+    var SCROLL_KEY = 'sms_sidebar_scroll';
+
+    function restoreScroll() {
+        try {
+            var saved = sessionStorage.getItem(SCROLL_KEY);
+            if (saved === null) return;
+            var val = parseInt(saved, 10);
+            if (isNaN(val) || val <= 0) return;
+            // Si el contenido todavía no tiene su altura final
+            // (fuentes/imágenes cargando), scrollTop=val se clampea a 0.
+            // Por eso restoreScroll() se llama en VARIOS momentos abajo.
+            nav.scrollTop = val;
+        } catch (e) {}
+    }
+
+    // ── 1) RESTAURAR — múltiples momentos para cubrir todos los casos
+    // a) inmediato (DOM ya listo, base_2.js está al final del body)
+    restoreScroll();
+    // b) tras la primera pintura (layout calculado, fuentes web-safe ya
+    //    aplicadas)
+    if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(restoreScroll);
+    }
+    // c) cuando todo terminó de cargar (fuentes externas, imágenes —
+    //    podían estar inflando el alto del sidebar después del render
+    //    inicial y por eso el scrollTop se clampeaba a 0)
+    if (document.readyState === 'complete') {
+        // ya está cargado, no esperamos al evento
+    } else {
+        window.addEventListener('load', restoreScroll);
+    }
+    // d) último fallback: 100ms después del load por si alguna anim CSS
+    //    cambia la altura del nav post-carga
+    setTimeout(restoreScroll, 120);
+
+    // ── 2) GUARDAR antes de navegar a otra página ────────────────────
+    function saveScroll() {
+        try { sessionStorage.setItem(SCROLL_KEY, String(nav.scrollTop)); }
+        catch (e) {}
+    }
+    // pagehide → cubre back/forward + navegaciones normales (mejor que
+    // beforeunload, especialmente en mobile/iOS).
+    window.addEventListener('pagehide', saveScroll);
+    // beforeunload → backup para algunos browsers.
+    window.addEventListener('beforeunload', saveScroll);
+    // Backup explícito al click — el listener corre en capture phase
+    // para anticiparse al handler que cierra el drawer en mobile.
+    var sidebarEl = document.getElementById('sidebar');
+    if (sidebarEl) {
+        sidebarEl.addEventListener('click', function (e) {
+            var link = e.target.closest('a[href]');
+            if (link && sidebarEl.contains(link)) saveScroll();
+        }, true);
+    }
+    // También guardamos al scroll (debounced) — así si el usuario solo
+    // scrollea y no navega, igual queda persistido.
+    var scrollTimer = null;
+    nav.addEventListener('scroll', function () {
+        if (scrollTimer) clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(saveScroll, 200);
+    });
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════
    SIDEBAR — Botón "Nuevo correo" + picker de alias
    Handlers globales (live en base_2.js para estar disponibles en TODAS
    las páginas, no solo en /enviados/). Usan IDs propios del sidebar

@@ -19,8 +19,10 @@ from django.views.decorators.http import require_POST
 
 from django.utils import timezone
 
-from apps.aliases.models import Alias
+from apps.aliases.models import Alias, AliasQuotaRequest
+from apps.aliases.views import ALIAS_LIMIT_PER_USER, _user_alias_limit, _user_is_unlimited
 from apps.mail.models import EmailMessage
+from apps.notifications.models import Notification
 from apps.accounts.services.auth_service import admin_required
 from apps.core.services.stats_service import admin_global_stats
 
@@ -241,14 +243,133 @@ def admin_user_detail_view(request, pk):
             .order_by('-received_at')[:15]
     )
 
+    # Info para el editor de cupo de alias. quota_used cuenta TODOS los
+    # alias creados (activos + destruidos) porque el cupo no se recicla.
+    target_quota_used     = Alias.objects.filter(user=target).count()
+    target_quota_limit    = _user_alias_limit(target)
+    target_quota_extra    = target.profile.alias_quota_extra if hasattr(target, 'profile') else 0
+    target_is_unlimited   = _user_is_unlimited(target)
+    target_alias_unlimited = bool(
+        getattr(target.profile, 'alias_unlimited', False)
+    ) if hasattr(target, 'profile') else False
+
     return render(request, 'admin_user_detail.html', {
-        'target':        target,
-        'aliases':       aliases,
-        'recent_emails': recent_emails,
-        'emails_total':  EmailMessage.objects.filter(alias__user=target).count(),
-        'threats_total': EmailMessage.objects.filter(
-                              alias__user=target, risk_score__gte=61).count(),
+        'target':              target,
+        'aliases':             aliases,
+        'recent_emails':       recent_emails,
+        'emails_total':        EmailMessage.objects.filter(alias__user=target).count(),
+        'threats_total':       EmailMessage.objects.filter(
+                                    alias__user=target, risk_score__gte=61).count(),
+        'target_quota_used':   target_quota_used,
+        'target_quota_limit':  target_quota_limit,
+        'target_quota_extra':  target_quota_extra,
+        'target_is_unlimited': target_is_unlimited,
+        'target_alias_unlimited': target_alias_unlimited,
+        'quota_base_limit':    ALIAS_LIMIT_PER_USER,
+        'quota_min':           1,
+        'quota_max':           999,
     })
+
+
+@admin_required
+@require_POST
+def admin_set_alias_quota(request, pk):
+    """
+    Permite al admin ajustar el cupo TOTAL de alias de un usuario (puede
+    subirlo o bajarlo). Internamente guardamos la diferencia respecto al
+    base global (ALIAS_LIMIT_PER_USER) en UserProfile.alias_quota_extra,
+    así si más adelante se aprueba/rechaza una solicitud, todo sigue
+    consistente.
+
+    POST:
+        new_limit  → entero entre 1 y 50 (cupo TOTAL deseado)
+    """
+    target = get_object_or_404(User, pk=pk)
+
+    if target.is_staff:
+        messages.error(request, "Los administradores no tienen límite.")
+        return redirect('admin_user_detail', pk=pk)
+
+    try:
+        new_limit = int(request.POST.get('new_limit', '0'))
+    except (TypeError, ValueError):
+        new_limit = -1
+
+    if new_limit < 1 or new_limit > 999:
+        messages.error(request, "El cupo debe estar entre 1 y 999 alias.")
+        return redirect('admin_user_detail', pk=pk)
+
+    profile = target.profile
+    old_limit = _user_alias_limit(target)
+    profile.alias_quota_extra = new_limit - ALIAS_LIMIT_PER_USER
+    profile.save(update_fields=['alias_quota_extra'])
+
+    # Notifica al usuario del cambio (solo si efectivamente cambió).
+    if new_limit != old_limit:
+        delta = new_limit - old_limit
+        if delta > 0:
+            title = '✅ Cupo de alias actualizado'
+            msg   = f'El administrador subió tu cupo a {new_limit} alias (+{delta}).'
+        else:
+            title = 'Cupo de alias actualizado'
+            msg   = f'El administrador redujo tu cupo a {new_limit} alias ({delta}).'
+        Notification.objects.create(
+            user=target, type='system', title=title, message=msg, status='done',
+        )
+        messages.success(
+            request,
+            f"Cupo de {target.email} actualizado: {old_limit} → {new_limit} alias.",
+        )
+    else:
+        messages.success(request, "El cupo ya era el indicado, sin cambios.")
+
+    return redirect('admin_user_detail', pk=pk)
+
+
+@admin_required
+@require_POST
+def admin_toggle_alias_unlimited(request, pk):
+    """
+    Marca o desmarca al usuario como "alias sin límite". Cuando está
+    activado, el usuario puede crear alias sin tope (igual que un staff,
+    pero sin promoverlo a admin). El cupo numérico (alias_quota_extra)
+    queda pausado mientras esté activo — al desactivarlo vuelve a regir.
+    """
+    target = get_object_or_404(User, pk=pk)
+
+    if target.is_staff:
+        messages.error(request, "Los administradores ya tienen acceso ilimitado.")
+        return redirect('admin_user_detail', pk=pk)
+
+    profile = target.profile
+    was_unlimited = bool(profile.alias_unlimited)
+    profile.alias_unlimited = not was_unlimited
+    profile.save(update_fields=['alias_unlimited'])
+
+    if profile.alias_unlimited:
+        Notification.objects.create(
+            user=target, type='system',
+            title='✨ Cupo ilimitado activado',
+            message='El administrador te concedió alias ilimitados. Ya no tienes tope para crear nuevos.',
+            status='done',
+        )
+        messages.success(
+            request,
+            f"{target.email} ahora tiene alias ilimitados.",
+        )
+    else:
+        Notification.objects.create(
+            user=target, type='system',
+            title='Cupo ilimitado desactivado',
+            message='El administrador retiró tu acceso ilimitado. Ahora estás sujeto al cupo normal.',
+            status='done',
+        )
+        messages.success(
+            request,
+            f"Se retiró el acceso ilimitado a {target.email}.",
+        )
+
+    return redirect('admin_user_detail', pk=pk)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -275,3 +396,129 @@ def page_not_found_view(request, _exception=None):
 
 def server_error_view(request):
     return _safe_back(request)
+
+
+# ─────────────────────────────────────────────────────────────────────
+#  ADMIN — Solicitudes de cupo de alias
+# ─────────────────────────────────────────────────────────────────────
+
+@admin_required
+def admin_alias_requests_view(request):
+    """
+    Lista todas las solicitudes de cupo de alias. Por defecto muestra las
+    `pending` arriba; las `approved`/`rejected` se muestran más abajo como
+    histórico. Permite filtrar via `?status=`.
+    """
+    status_filter = request.GET.get('status', 'all')
+    qs = AliasQuotaRequest.objects.select_related('user', 'user__profile', 'resolved_by')
+
+    if status_filter in ('pending', 'approved', 'rejected'):
+        qs = qs.filter(status=status_filter)
+
+    requests_list = list(qs.order_by(
+        # Las pending arriba, luego histórico por fecha descendente.
+        '-status',  # pending > approved > rejected lexicograficamente NO sirve
+        '-created_at',
+    ))
+    # Reordenamos manualmente: pending primero, luego por created_at desc.
+    pending  = [r for r in requests_list if r.status == 'pending']
+    resolved = [r for r in requests_list if r.status != 'pending']
+    pending.sort(key=lambda r: r.created_at, reverse=True)
+    resolved.sort(key=lambda r: (r.resolved_at or r.created_at), reverse=True)
+    requests_list = pending + resolved
+
+    # Contadores para las pills de filtro
+    counts = {
+        'all':      AliasQuotaRequest.objects.count(),
+        'pending':  AliasQuotaRequest.objects.filter(status='pending').count(),
+        'approved': AliasQuotaRequest.objects.filter(status='approved').count(),
+        'rejected': AliasQuotaRequest.objects.filter(status='rejected').count(),
+    }
+
+    return render(request, 'admin_alias_requests.html', {
+        'requests':      requests_list,
+        'counts':        counts,
+        'status_filter': status_filter,
+    })
+
+
+@admin_required
+@require_POST
+def admin_alias_request_resolve(request, pk):
+    """
+    Aprueba o rechaza una solicitud de cupo. El admin manda:
+        action       = 'approve' | 'reject'
+        granted      = entero (solo si approve; default = requested_amount)
+        admin_note   = texto opcional
+    Al aprobar: bumpea UserProfile.alias_quota_extra y notifica al usuario.
+    Al rechazar: marca rejected y notifica al usuario con la nota del admin.
+    """
+    req = get_object_or_404(AliasQuotaRequest, pk=pk)
+
+    if req.status != 'pending':
+        messages.error(request, 'Esta solicitud ya fue resuelta.')
+        return redirect('admin_alias_requests')
+
+    action     = request.POST.get('action', '').strip()
+    admin_note = (request.POST.get('admin_note') or '').strip()[:2000]
+
+    if action == 'approve':
+        # Cuánto le concedemos. Por defecto, lo que pidió. El admin puede
+        # subir o bajar la cantidad en el formulario (1 a 10).
+        try:
+            granted = int(request.POST.get('granted') or req.requested_amount)
+        except (TypeError, ValueError):
+            granted = req.requested_amount
+        granted = max(1, min(granted, 10))
+
+        # Bumpea el cupo extra del perfil del usuario.
+        profile = req.user.profile
+        profile.alias_quota_extra = (profile.alias_quota_extra or 0) + granted
+        profile.save(update_fields=['alias_quota_extra'])
+
+        # Marca la solicitud como aprobada.
+        req.status         = 'approved'
+        req.granted_amount = granted
+        req.admin_note     = admin_note
+        req.resolved_by    = request.user
+        req.resolved_at    = timezone.now()
+        req.save()
+
+        # Notifica al usuario (campana global). status='done' porque no
+        # requiere acción del usuario — solo es informativo.
+        msg_user = f"Tu solicitud fue aprobada: +{granted} alias adicionales."
+        if admin_note:
+            msg_user += f"  Nota: {admin_note}"
+        Notification.objects.create(
+            user=req.user,
+            type='system',
+            title='✅ Solicitud aprobada',
+            message=msg_user,
+            status='done',
+        )
+        messages.success(request, f"Aprobada: {req.user.email} +{granted} alias.")
+
+    elif action == 'reject':
+        req.status      = 'rejected'
+        req.admin_note  = admin_note
+        req.resolved_by = request.user
+        req.resolved_at = timezone.now()
+        req.save()
+
+        # Notifica al usuario.
+        msg_user = "Tu solicitud de más alias fue rechazada."
+        if admin_note:
+            msg_user += f"  Motivo: {admin_note}"
+        Notification.objects.create(
+            user=req.user,
+            type='system',
+            title='Solicitud rechazada',
+            message=msg_user,
+            status='done',
+        )
+        messages.success(request, f"Rechazada la solicitud de {req.user.email}.")
+
+    else:
+        messages.error(request, 'Acción inválida.')
+
+    return redirect('admin_alias_requests')

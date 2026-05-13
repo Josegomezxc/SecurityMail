@@ -1,6 +1,6 @@
 # apps/core/context_processors.py
 
-from apps.aliases.models import Alias
+from apps.aliases.models import Alias, AliasQuotaRequest
 from apps.mail.models import EmailMessage, SentEmail, Draft
 from apps.notifications.models import Notification
 from apps.sandbox.models import SandboxAnalysis
@@ -23,6 +23,7 @@ def sidebar_counts(request):
             'drafts_count':        0,
             'trash_count':         0,
             'active_aliases':      [],
+            'alias_requests_pending_count': 0,
             'avatar_initials':     '',
             'avatar_color':        '#7c5cff',
         }
@@ -67,6 +68,14 @@ def sidebar_counts(request):
     )
     trash_count += Draft.objects.filter(user=user, deleted_at__isnull=False).count()
 
+    # Solicitudes de cupo de alias pendientes — solo le importa al admin
+    # (badge rojo en el sidebar de "Solicitudes"). Para no-admin lo dejamos
+    # en 0 (el item ni se renderiza).
+    alias_requests_pending_count = (
+        AliasQuotaRequest.objects.filter(status='pending').count()
+        if user.is_staff else 0
+    )
+
     return {
         'alias_count':         alias_count,
         'active_aliases':      active_aliases,
@@ -77,6 +86,7 @@ def sidebar_counts(request):
         'notif_unread_pending_count':  notif_unread_pending_count,
         'drafts_count':        drafts_count,
         'trash_count':         trash_count,
+        'alias_requests_pending_count': alias_requests_pending_count,
         # Iniciales y color del avatar — disponibles en TODAS las páginas
         # para que el sidebar y el perfil muestren lo mismo (ej. "JG" para
         # un usuario "Jose Gomez", siempre con el mismo color).

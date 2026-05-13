@@ -11,29 +11,10 @@
 
 {% block body %}
 {% comment %}
-Convierte cualquier `messages` pendiente (ej: el de verificación de
-correo, o un mensaje de bienvenida) en un toast usando el sistema
-global definido en base.html (`window.showToast`). Iterar `messages`
-los marca como consumidos por Django, así no aparecen en otra página
-(típicamente login.html después de un logout).
-
-Deduplicación: cada vez que llegamos al dashboard tras una verificación
-fresca, el script genera una huella (sha del contenido + tag) y la
-guarda en sessionStorage. Si la huella ya existe (por ejemplo, llega-
-mos al dashboard y luego le dimos refresh), NO disparamos el toast
-otra vez — eso evita que el toast se duplique con el restaurado por
-el sistema de persistencia.
+Los `messages` de Django se procesan AHORA en base.html (toasts globales).
+Antes vivía aquí — eso causaba que toasts de acciones en otras páginas no
+aparecieran hasta llegar al dashboard.
 {% endcomment %}
-{% if messages %}
-<script>
-  window.__DASHBOARD_MESSAGES__ = [
-    {% for message in messages %}
-    { tags: "{{ message.tags|escapejs }}", text: "{{ message|escapejs }}" }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-  ];
-</script>
-<script src="{% static 'js/dashboard_messages.js' %}"></script>
-{% endif %}
 
 <!-- Banner manual eliminado: los stats del dashboard se actualizan solos con polling -->
 

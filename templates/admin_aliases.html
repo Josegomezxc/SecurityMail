@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load timeshort %}
 {% block title %}Alias globales — Panel admin{% endblock %}
 {% block page_title %}Alias globales{% endblock %}
 {% block nav_admin_aliases %}active{% endblock %}
@@ -42,11 +43,15 @@
   </div>
 </header>
 
-<!-- Toolbar -->
-<form method="get" class="al-toolbar" role="search">
+<!-- Toolbar — la búsqueda es client-side (real-time). Los pills SI hacen
+     reload porque cambian el dataset que llega desde el backend.
+     onsubmit="return false" evita que Enter recargue la página. -->
+<form method="get" class="al-toolbar" role="search" onsubmit="return false">
   <div class="al-search">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" name="q" value="{{ current_q }}" placeholder="Buscar por dirección, etiqueta o usuario..." autocomplete="off">
+    <input type="text" id="aliasSearchInput" name="q" value="{{ current_q }}"
+           placeholder="Buscar por dirección, etiqueta o usuario..."
+           autocomplete="off" oninput="aliasTableSearch(this.value)">
     {% if current_state != 'all' %}<input type="hidden" name="state" value="{{ current_state }}">{% endif %}
   </div>
   <div class="al-filters">
@@ -73,10 +78,10 @@
   <div class="al-row head">
     <div>Alias / Etiqueta</div>
     <div>Usuario</div>
-    <div>Estado</div>
-    <div>Correos</div>
-    <div>Amenazas</div>
-    <div style="text-align:right">Creado</div>
+    <div class="col-center">Estado</div>
+    <div class="col-center">Correos</div>
+    <div class="col-center">Amenazas</div>
+    <div class="col-right">Creado</div>
   </div>
   {% for a in aliases %}
     <a href="{% url 'admin_user_detail' pk=a.user.pk %}" class="al-row">
@@ -86,18 +91,18 @@
       </div>
       <div class="al-user">
         <span class="al-user-avatar">{{ a.user.email|first|upper }}{{ a.user.email|slice:"1:2"|upper }}</span>
-        {{ a.user.email|truncatechars:22 }}
+        <span class="al-user-email">{{ a.user.email|truncatechars:22 }}</span>
       </div>
-      <div>
+      <div class="col-center">
         {% if a.is_active %}
           <span class="al-state active"><span class="al-state-dot"></span>Activo</span>
         {% else %}
           <span class="al-state dest"><span class="al-state-dot"></span>Destruido</span>
         {% endif %}
       </div>
-      <div class="al-num {% if a.emails_total == 0 %}zero{% endif %}">{{ a.emails_total }}</div>
-      <div class="al-num threats-col {% if a.threats_total > 0 %}threats{% else %}zero{% endif %}">{{ a.threats_total }}</div>
-      <div class="al-time">{{ a.created_at|timesince }} atrás</div>
+      <div class="al-num col-center {% if a.emails_total == 0 %}zero{% endif %}">{{ a.emails_total }}</div>
+      <div class="al-num col-center {% if a.threats_total > 0 %}threats{% else %}zero{% endif %}">{{ a.threats_total }}</div>
+      <div class="al-time">{{ a.created_at|timeshort }} atrás</div>
     </a>
   {% empty %}
     <div class="al-empty">
@@ -110,8 +115,20 @@
   {% endfor %}
 </div>
 
+<!-- Mensaje cuando la búsqueda client-side no encuentra nada (JS lo
+     muestra/oculta). Vive fuera del .al-table-wrap para no romper grid. -->
+<div class="al-empty al-empty-search" id="al-empty-search" style="display:none">
+  Ningún alias coincide con tu búsqueda.
+</div>
+
+<!-- Paginación client-side. La pinta el JS dinámicamente cuando hay > 10
+     filas tras filtrar. Si hay 10 o menos, se queda invisible. -->
+<nav class="al-pagination" id="al-pagination" aria-label="Paginación de alias"></nav>
+
 {% if shown_count >= 300 %}
   <div class="al-tip">Mostrando los 300 alias más recientes — afina la búsqueda para ver más antiguos.</div>
 {% endif %}
+
+<script src="{% static 'js/admin_aliases.js' %}"></script>
 
 {% endblock %}

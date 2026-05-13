@@ -99,8 +99,8 @@ def login_single_session(request, user):
 #  Rate limiting de login
 # ─────────────────────────────────────────────────────────────────────
 
-LOGIN_MAX_FAILS = 5
-LOGIN_LOCK_SECS = 600   # 10 minutos
+LOGIN_MAX_FAILS = 3
+LOGIN_LOCK_SECS = 60   # 10 minutos
 
 
 def login_is_locked(ip: str):

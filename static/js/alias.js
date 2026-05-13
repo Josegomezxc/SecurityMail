@@ -127,3 +127,204 @@ document.addEventListener('submit', function (e) {
   });
 });
 
+
+/* ════════════════════════════════════════════════════════════════════
+   MODAL: solicitar más cupo de alias al administrador
+   ════════════════════════════════════════════════════════════════════ */
+
+function openAliasRequestModal() {
+  var overlay = document.getElementById('aliasReqOverlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  _aliasReqUpdateSliderFill();
+  _aliasReqUpdateReasonCount();
+  setTimeout(function () {
+    var slider = document.getElementById('aliasReqAmount');
+    if (slider) slider.focus();
+  }, 80);
+}
+
+function closeAliasRequestModal() {
+  var overlay = document.getElementById('aliasReqOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+(function () {
+  var overlay = document.getElementById('aliasReqOverlay');
+  if (!overlay) return;
+  /* Click fuera del modal cierra. */
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) closeAliasRequestModal();
+  });
+  /* Escape cierra. */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && overlay.classList.contains('open')) {
+      closeAliasRequestModal();
+    }
+  });
+  /* Slider: fill visual via --p y número grande. */
+  var slider = document.getElementById('aliasReqAmount');
+  if (slider) {
+    slider.addEventListener('input', _aliasReqUpdateSliderFill);
+    _aliasReqUpdateSliderFill();
+  }
+  /* Textarea: contador en vivo. */
+  var ta = document.getElementById('aliasReqReason');
+  if (ta) ta.addEventListener('input', _aliasReqUpdateReasonCount);
+})();
+
+/* ── Quick-picks (+1, +3, +5, +10) ──────────────────────────────────
+   Sincronizan el slider, el número grande y el preview. También marcan
+   visualmente el chip seleccionado. */
+function aliasReqSetAmount(n) {
+  var slider = document.getElementById('aliasReqAmount');
+  if (!slider) return;
+  n = Math.max(parseInt(slider.min, 10), Math.min(parseInt(slider.max, 10), n));
+  slider.value = String(n);
+  /* Disparamos el handler nativo del oninput para que actualice todo. */
+  aliasReqOnSliderChange(n);
+}
+
+/* Handler central del slider: actualiza número, fill, preview, y
+   el highlight del quick-pick si coincide con un valor "redondo". */
+function aliasReqOnSliderChange(value) {
+  var n = parseInt(value, 10) || 1;
+  /* Número grande de la derecha */
+  var numEl = document.getElementById('aliasReqAmountVal');
+  if (numEl) numEl.textContent = n;
+  /* Fill del slider */
+  _aliasReqUpdateSliderFill();
+  /* Preview "Si te aprueban" */
+  _aliasReqUpdatePreview(n);
+  /* Quick-picks: activamos el que coincide */
+  var quicks = document.querySelectorAll('.aliasreq-quick');
+  quicks.forEach(function (b) {
+    var match = parseInt(b.dataset.amount, 10) === n;
+    b.classList.toggle('active', match);
+  });
+}
+
+function _aliasReqUpdatePreview(n) {
+  var overlay = document.getElementById('aliasReqOverlay');
+  var prevEl  = document.getElementById('aliasReqPreviewNext');
+  if (!overlay || !prevEl) return;
+  var current = parseInt(overlay.dataset.currentQuota || '0', 10) || 0;
+  prevEl.textContent = String(current + n);
+}
+
+/* ── Chips de razón predefinida ────────────────────────────────────
+   Click en un chip rellena (o reemplaza) el textarea con un texto
+   sugerido y enfoca para que el usuario pueda editarlo. Marca el chip
+   como "usado". */
+function aliasReqSetReason(text) {
+  var ta = document.getElementById('aliasReqReason');
+  if (!ta) return;
+  ta.value = text;
+  _aliasReqUpdateReasonCount();
+  ta.focus();
+  /* Saltar el cursor al final del texto, no al inicio. */
+  var len = ta.value.length;
+  try { ta.setSelectionRange(len, len); } catch (e) {}
+}
+
+function _aliasReqUpdateSliderFill() {
+  var slider = document.getElementById('aliasReqAmount');
+  if (!slider) return;
+  var min = parseFloat(slider.min || '1');
+  var max = parseFloat(slider.max || '10');
+  var val = parseFloat(slider.value || '1');
+  var pct = ((val - min) / (max - min)) * 100;
+  slider.style.setProperty('--p', pct + '%');
+}
+
+function _aliasReqUpdateReasonCount() {
+  var ta = document.getElementById('aliasReqReason');
+  var counter = document.getElementById('aliasReqReasonCount');
+  if (ta && counter) counter.textContent = ta.value.length;
+}
+
+function _aliasReqCsrfToken() {
+  var input = document.querySelector('#aliasReqForm input[name="csrfmiddlewaretoken"]');
+  if (input && input.value) return input.value;
+  var c = document.cookie.split(';').find(function (x) {
+    return x.trim().startsWith('csrftoken=');
+  });
+  return c ? c.split('=')[1] : '';
+}
+
+function submitAliasRequest(ev) {
+  ev.preventDefault();
+  var btn = document.getElementById('aliasReqSubmitBtn');
+  var url = window.__ALIAS_REQ_URL__;
+  if (!url) return;
+
+  if (btn) {
+    btn.disabled = true;
+    var span = btn.querySelector('span');
+    if (span) span.textContent = 'Enviando...';
+  }
+
+  var fd = new FormData(document.getElementById('aliasReqForm'));
+
+  fetch(url, {
+    method:      'POST',
+    credentials: 'same-origin',
+    headers: {
+      'X-CSRFToken':      _aliasReqCsrfToken(),
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: fd,
+  })
+  .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, body: d }; }); })
+  .then(function (res) {
+    var d = res.body || {};
+    if (res.ok && d.ok) {
+      closeAliasRequestModal();
+      if (window.showToast) {
+        window.showToast({
+          type:     'success',
+          title:    'Solicitud enviada',
+          message:  'El admin revisará tu pedido de +' + (d.amount || '?') + ' alias. Te avisaremos por notificaciones.',
+          duration: 5000,
+        });
+      }
+      /* Recargamos para mostrar el pill "Solicitud pendiente". */
+      setTimeout(function () { window.location.reload(); }, 800);
+    } else {
+      if (window.showToast) {
+        window.showToast({
+          type:     'danger',
+          title:    'No se pudo enviar',
+          message:  d.message || 'Intenta de nuevo en un momento.',
+          duration: 5000,
+        });
+      }
+      if (btn) {
+        btn.disabled = false;
+        var span2 = btn.querySelector('span');
+        if (span2) span2.textContent = 'Enviar solicitud';
+      }
+    }
+  })
+  .catch(function () {
+    if (window.showToast) {
+      window.showToast({
+        type:     'danger',
+        title:    'Error de red',
+        message:  'No pudimos contactar al servidor. Revisa tu conexión.',
+        duration: 5000,
+      });
+    }
+    if (btn) {
+      btn.disabled = false;
+      var span3 = btn.querySelector('span');
+      if (span3) span3.textContent = 'Enviar solicitud';
+    }
+  });
+}
+
