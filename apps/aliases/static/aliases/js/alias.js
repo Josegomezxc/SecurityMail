@@ -218,18 +218,36 @@ function _aliasReqUpdatePreview(n) {
 }
 
 /* ── Chips de razón predefinida ────────────────────────────────────
-   Click en un chip rellena (o reemplaza) el textarea con un texto
-   sugerido y enfoca para que el usuario pueda editarlo. Marca el chip
-   como "usado". */
-function aliasReqSetReason(text) {
+   El textarea es readonly: el usuario NO puede escribir libre. Sólo
+   puede elegir un chip. Click pone el texto del chip en el textarea y
+   marca al chip como activo (los demás se desmarcan). */
+function aliasReqSetReason(btn, text) {
+  /* Defensa: la firma cambió de (text) → (btn, text). Detectamos qué
+     vino y lo acomodamos. Nunca escribimos un HTMLElement en el textarea. */
+  if (typeof btn === 'string') {
+    /* Llamada legacy: aliasReqSetReason('texto') */
+    text = btn;
+    btn = null;
+  } else if (btn && btn.nodeType === 1 && typeof text !== 'string') {
+    /* Recibimos el botón pero NO texto. Intentamos sacar el texto del
+       label del propio botón como fallback decente (en lugar de imprimir
+       "[object HTMLButtonElement]" en el textarea). */
+    text = (btn.textContent || '').trim();
+  }
+  /* Si aun así no es string, abortamos para no contaminar el textarea. */
+  if (typeof text !== 'string') return;
+
   var ta = document.getElementById('aliasReqReason');
   if (!ta) return;
   ta.value = text;
   _aliasReqUpdateReasonCount();
-  ta.focus();
-  /* Saltar el cursor al final del texto, no al inicio. */
-  var len = ta.value.length;
-  try { ta.setSelectionRange(len, len); } catch (e) {}
+
+  /* Activo: el chip clickeado. Los demás vuelven a estado normal. */
+  if (btn && btn.classList) {
+    var all = document.querySelectorAll('.aliasreq-chip');
+    all.forEach(function (c) { c.classList.remove('active'); });
+    btn.classList.add('active');
+  }
 }
 
 function _aliasReqUpdateSliderFill() {
@@ -257,11 +275,26 @@ function _aliasReqCsrfToken() {
   return c ? c.split('=')[1] : '';
 }
 
+/* Flag a nivel módulo: garantiza UNA sola petición y UN solo reload.
+   Sin esto, en algunos casos el submit puede dispararse dos veces (cache
+   stale del JS, doble click rápido, evento submit duplicado) y la página
+   acaba recargándose dos veces. */
+var __aliasReqSending = false;
+var __aliasReqReloadScheduled = false;
+
 function submitAliasRequest(ev) {
-  ev.preventDefault();
+  if (ev) {
+    ev.preventDefault();
+    if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+  }
+  /* Lock: si ya hay un submit en vuelo, ignoramos cualquier intento
+     adicional (doble click, Enter encolado, etc.). */
+  if (__aliasReqSending) return false;
+  __aliasReqSending = true;
+
   var btn = document.getElementById('aliasReqSubmitBtn');
   var url = window.__ALIAS_REQ_URL__;
-  if (!url) return;
+  if (!url) { __aliasReqSending = false; return false; }
 
   if (btn) {
     btn.disabled = true;
@@ -270,6 +303,21 @@ function submitAliasRequest(ev) {
   }
 
   var fd = new FormData(document.getElementById('aliasReqForm'));
+
+  function _resetBtn() {
+    __aliasReqSending = false;
+    if (btn) {
+      btn.disabled = false;
+      var sp = btn.querySelector('span');
+      if (sp) sp.textContent = 'Enviar solicitud';
+    }
+  }
+
+  function _scheduleReload() {
+    if (__aliasReqReloadScheduled) return;
+    __aliasReqReloadScheduled = true;
+    setTimeout(function () { window.location.reload(); }, 800);
+  }
 
   fetch(url, {
     method:      'POST',
@@ -293,8 +341,8 @@ function submitAliasRequest(ev) {
           duration: 5000,
         });
       }
-      /* Recargamos para mostrar el pill "Solicitud pendiente". */
-      setTimeout(function () { window.location.reload(); }, 800);
+      /* Recargamos UNA sola vez para mostrar el pill "Solicitud pendiente". */
+      _scheduleReload();
     } else {
       if (window.showToast) {
         window.showToast({
@@ -304,11 +352,7 @@ function submitAliasRequest(ev) {
           duration: 5000,
         });
       }
-      if (btn) {
-        btn.disabled = false;
-        var span2 = btn.querySelector('span');
-        if (span2) span2.textContent = 'Enviar solicitud';
-      }
+      _resetBtn();
     }
   })
   .catch(function () {
@@ -320,11 +364,9 @@ function submitAliasRequest(ev) {
         duration: 5000,
       });
     }
-    if (btn) {
-      btn.disabled = false;
-      var span3 = btn.querySelector('span');
-      if (span3) span3.textContent = 'Enviar solicitud';
-    }
+    _resetBtn();
   });
+
+  return false;
 }
 

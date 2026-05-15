@@ -1,14 +1,84 @@
 /* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — perfil.css
+   PROPERTIES — perfil
+   Variables exclusivas de la vista. Las globales (colores de tema,
+   radios, fuentes) viven en core/styles/properties/base.css.
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --p:    #7c5cff;
-  --pl:   #a78bfa;
-  --ps:   rgba(124,92,255,0.12);
-  --pb:   rgba(124,92,255,0.28);
-  --danger:  #ef4444;
-  --warning: #f59e0b;
-  --success: #22c55e;
-  --display: 'Syne', sans-serif;
-  --mono:    'JetBrains Mono', monospace;
+    /* Aliases cortos de colores del proyecto (se usan en todo el archivo) */
+    --p:        #7c5cff;
+    --pl:       #a78bfa;
+    --ps:       rgba(124, 92, 255, 0.12);
+    --pb:       rgba(124, 92, 255, 0.28);
+    --danger:   #ef4444;
+    --warning:  #f59e0b;
+    --success:  #22c55e;
+    --display:  'Syne', sans-serif;
+    --mono:     'JetBrains Mono', monospace;
+
+    /* Layout del grid */
+    --pf-grid-gap-mobile:   0.875rem;
+    --pf-grid-gap-desk:     1.25rem;
+    --pf-grid-left-w-desk:  17.5rem;     /* ≈280px */
+
+    /* Avatar grande */
+    --pf-avatar-size:       6.25rem;     /* 100px */
+    --pf-avatar-font:       2.25rem;     /* 36px */
+    --pf-avatar-edit-size:  2rem;        /* 32px */
+    --pf-avatar-edit-svg:   0.875rem;
+
+    /* Card del avatar */
+    --pf-avatar-card-pad:   2rem 1.5rem;
+    --pf-avatar-card-radius:1.25rem;
+
+    /* Avatar preview modal */
+    --pf-preview-max:       25rem;
+    --pf-preview-img-size:  20rem;       /* 320px */
+    --pf-preview-radius:    1.5rem;
+
+    /* Stats row */
+    --pf-stat-num-font:     1.375rem;    /* 22px */
+
+    /* Security meter */
+    --pf-meter-h:           0.4375rem;   /* 7px */
+    --pf-meter-radius:      0.625rem;
+
+    /* Cards genéricas */
+    --pf-card-radius:       1rem;        /* 16px */
+    --pf-card-pad:          1.125rem 1.25rem;
+
+    /* Panel (forms) */
+    --pf-panel-radius:      1.125rem;    /* 18px */
+    --pf-panel-head-pad:    0.75rem 1rem 0.75rem 1.375rem;
+    --pf-panel-body-pad:    1.125rem 1.375rem 1.25rem;
+
+    /* Forms */
+    --pf-input-radius:      0.6875rem;
+    --pf-input-pad:         0.6875rem 0.875rem;
+    --pf-input-pad-right-eye: 2.75rem;
+
+    /* Botones */
+    --pf-btn-pad:           0.6875rem 1.375rem;
+    --pf-btn-radius:        0.6875rem;
+    --pf-btn-danger-pad:    0.625rem 1.125rem;
+
+    /* Forward toggle card */
+    --pf-ftc-radius:        0.875rem;
+    --pf-ftc-pad:           1rem 1.125rem;
+    --pf-ftc-icon-size:     2.375rem;
+
+    /* Toggle switch */
+    --pf-toggle-track-w:    2.25rem;
+    --pf-toggle-track-h:    1.25rem;
+    --pf-toggle-thumb-size: 1rem;
+
+    /* Danger zone */
+    --pf-danger-radius:     1.125rem;
+    --pf-danger-pad:        1.125rem 1.25rem;
+    --pf-danger-icon-size:  2.375rem;
+
+    /* Modal "Eliminar cuenta" */
+    --pf-da-max:            30rem;       /* 480px */
+    --pf-da-radius:         1.125rem;
+    --pf-da-pad-side:       1.375rem;
+    --pf-da-icon-size:      2.875rem;    /* 46px */
 }

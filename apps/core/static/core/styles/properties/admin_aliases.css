@@ -1,0 +1,28 @@
+/* ════════════════════════════════════════════════════════════════════
+   PROPERTIES — admin_aliases
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+    --aa-hero-radius:        1rem;
+    --aa-hero-pad-mobile:    1rem 0.875rem;
+    --aa-hero-pad-desk:      1.375rem 1.625rem;
+    --aa-hero-icon-size:     3rem;
+    --aa-h1-mobile:          1.125rem;
+    --aa-h1-desk:            1.375rem;
+
+    --aa-stat-min-w:         5rem;
+    --aa-stat-num-font:      1.25rem;
+
+    --aa-toolbar-radius:     0.6875rem;
+    --aa-search-min-w:       15rem;
+    --aa-filter-pad:         0.5rem 0.875rem;
+    --aa-filter-radius:      0.5rem;
+
+    --aa-table-radius:       0.875rem;
+    --aa-row-pad-mobile:     0.625rem 0.75rem;
+    --aa-row-pad-desk:       0.875rem 1.125rem;
+
+    --aa-avatar-size:        1.625rem;     /* 26px */
+
+    --aa-pg-btn-h:           2rem;
+    --aa-pg-btn-radius:      0.5rem;
+}

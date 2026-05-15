@@ -1,11 +1,36 @@
 /* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — trash.css
+   PROPERTIES — mail/trash
    ════════════════════════════════════════════════════════════════════ */
 :root {
   --ai-purple:        #7c3aed;
   --ai-purple-light:  #a78bfa;
   --ai-purple-soft:   rgba(124,58,237,0.08);
   --ai-purple-border: rgba(124,58,237,0.22);
-  --mono: 'JetBrains Mono', monospace;
+  --mono:    'JetBrains Mono', monospace;
   --display: 'Syne', sans-serif;
+
+  /* Hero */
+  --tr-hero-radius:   1rem;
+  --tr-hero-pad:      0.875rem;
+  --tr-hero-pad-lg:   1.25rem 1.5rem;
+  --tr-hero-icon:     2.875rem;     /* 46px */
+  --tr-hero-h1:       1.125rem;     /* 18px */
+  --tr-hero-h1-lg:    1.1875rem;    /* 19px */
+
+  /* Stats hero */
+  --tr-stat-val:      1.25rem;      /* 20px */
+  --tr-stat-val-lg:   1.375rem;     /* 22px */
+
+  /* Toolbar */
+  --tr-tool-radius:   0.75rem;
+
+  /* Banner retención */
+  --tr-banner-radius: 0.625rem;
+
+  /* Lista */
+  --tr-list-radius:   0.875rem;
+  --tr-row-radius:    0.875rem;
+  --tr-row-pad:       1rem 0.875rem;
+  --tr-row-pad-lg:    0.875rem 1.125rem;
+  --tr-avatar:        2.375rem;     /* 38px */
 }

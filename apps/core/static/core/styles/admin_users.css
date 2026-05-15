@@ -1,308 +1,428 @@
-@import url('./properties/admin_users.css');
-@keyframes fadeUp  { from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);} }
+@import url('properties/admin_users.css');
 
-/* Mobile-first defaults — desktop overrides al final del archivo */
+/* ════════════════════════════════════════════════════════════════════
+   ADMIN USERS — Mobile-First Strict
+   Base: cards apiladas en lugar de tabla, filtros pequeños.
+   ≥768px: padding más holgado, filtros más visibles.
+   ≥1024px: tabla nativa con thead visible.
+   ════════════════════════════════════════════════════════════════════ */
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(0.875rem); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   HEADER
+   ──────────────────────────────────────────────────────────────────── */
 .adm-header {
-  display: flex; align-items: center; gap: 14px;
-  margin-bottom: 20px;
-  padding: 14px;                           /* mobile */
-  animation: fadeUp 0.4s ease both;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    margin-bottom: 1.25rem;
+    padding: var(--au-header-pad-mobile);
+    animation: fadeUp 0.4s ease both;
+    flex-wrap: wrap;
 }
 .adm-header h1 {
-  font-family: var(--display); font-size: 18px; font-weight: 800;   /* mobile */
-  margin-bottom: 3px;
-  word-break: break-word;
+    font-family: var(--display);
+    font-size: var(--au-h1-font-mobile);
+    font-weight: 800;
+    margin-bottom: 0.1875rem;
+    word-break: break-word;
 }
-.adm-header p { font-size: 12px; color: var(--text-secondary); font-family: var(--mono); }
+.adm-header p {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+}
 
+/* ── Search bar ── */
 .search-bar {
-  flex: 1; max-width: 320px;
-  display: flex; align-items: center;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  overflow: hidden;
-  margin-left: auto;
-  transition: border-color 0.2s, box-shadow 0.2s;
+    flex: 1;
+    max-width: var(--au-search-max);
+    display: flex;
+    align-items: center;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--au-search-radius);
+    overflow: hidden;
+    margin-left: auto;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .search-bar:focus-within {
-  border-color: rgba(245,158,11,0.35);
-  box-shadow: 0 0 0 3px rgba(245,158,11,0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+    box-shadow: 0 0 0 0.1875rem rgba(245, 158, 11, 0.12);
 }
-.search-bar svg { margin: 0 10px; color: var(--text-muted); flex-shrink: 0; }
+.search-bar svg {
+    margin: 0 0.625rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
 .search-bar input {
-  flex: 1; background: transparent; border: none; outline: none;
-  padding: 9px 12px 9px 0; color: var(--text-primary);
-  font-family: var(--mono); font-size: 12.5px;
+    flex: 1;
+    background: transparent;
+    border: 0;
+    outline: none;
+    padding: 0.5625rem 0.75rem 0.5625rem 0;
+    color: var(--text-primary);
+    font-family: var(--mono);
+    font-size: 0.78125rem;
 }
 .search-bar input::placeholder { color: var(--text-muted); }
 
-/* TABLA — Mobile First.
-   Mobile (default): cada fila se renderiza como una card apilada
-   (display:block en table/tr/td, thead oculto). Desktop ≥992px restaura
-   el display:table nativo via @media al final. */
+/* ────────────────────────────────────────────────────────────────────
+   FILTROS POR ROL
+   ──────────────────────────────────────────────────────────────────── */
+.users-filters {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    /* Mobile: una sola línea horizontal con scroll por toque cuando los
+       4 botones no caben. Scrollbar oculta para look limpio. */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.3125rem;
+    width: 100%;
+}
+.users-filters::-webkit-scrollbar { display: none; }
+.users-filter-btn { flex-shrink: 0; }
+.users-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    padding: var(--au-filter-pad-mobile);
+    background: transparent;
+    border: 0;
+    border-radius: var(--au-filter-radius);
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: var(--au-filter-font-mobile);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    white-space: nowrap;
+}
+.users-filter-btn:hover,
+.users-filter-btn:focus-visible {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    outline: none;
+}
+.users-filter-btn.active {
+    background: var(--ai-purple-soft);
+    color: var(--ai-purple-light);
+    box-shadow: inset 0 0 0 1px var(--ai-purple-border);
+}
+.users-filter-btn.admin.active {
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+    box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+.users-filter-btn.warn.active {
+    background: rgba(232, 64, 64, 0.12);
+    color: #f87171;
+    box-shadow: inset 0 0 0 1px rgba(232, 64, 64, 0.3);
+}
+.users-filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.375rem;
+    height: 1.125rem;
+    padding: 0 0.375rem;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 0.5625rem;
+    font-size: 0.65625rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    line-height: 1;
+}
+.users-filter-btn.active .users-filter-count {
+    background: rgba(255, 255, 255, 0.14);
+    color: inherit;
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   ALERTAS
+   ──────────────────────────────────────────────────────────────────── */
+.adm-alert {
+    background: rgba(46, 204, 113, 0.08);
+    border: 1px solid rgba(46, 204, 113, 0.2);
+    border-radius: 0.625rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.78125rem;
+    color: var(--success);
+    font-family: var(--mono);
+    margin-bottom: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: fadeUp 0.3s ease;
+}
+.adm-alert.err {
+    background: rgba(232, 64, 64, 0.08);
+    border-color: rgba(232, 64, 64, 0.25);
+    color: var(--danger);
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   TABLA — Mobile-first con scroll horizontal interno.
+   En móvil la tabla mantiene su layout nativo (thead + filas en grid)
+   y el usuario desliza con el dedo para ver todas las columnas. En
+   desktop (≥1024px) el scroll desaparece porque la tabla ya cabe.
+   ──────────────────────────────────────────────────────────────────── */
 .users-table-wrap {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: visible;                       /* mobile */
-  padding: 0;
-  animation: fadeUp 0.45s ease 0.05s both;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--au-table-radius);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 0;
+    animation: fadeUp 0.45s ease 0.05s both;
 }
-.users-table,
-.users-table thead,
-.users-table tbody,
-.users-table tr,
-.users-table th,
-.users-table td {
-  display: block;                          /* mobile */
-  width: 100%;
+.users-table-wrap::-webkit-scrollbar { height: 0.375rem; }
+.users-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.users-table-wrap::-webkit-scrollbar-thumb {
+    background: rgba(155, 109, 255, 0.35);
+    border-radius: 0.1875rem;
 }
-.users-table thead { display: none; }      /* mobile: el header se oculta */
 .users-table {
-  border-collapse: collapse;
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    /* Mobile: ancho mínimo > viewport activa scroll horizontal del wrap */
+    min-width: 48rem;
 }
+.users-table thead { display: table-header-group; }
+.users-table tbody { display: table-row-group; }
 .users-table tr {
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  padding: 12px 14px;                      /* mobile: card padding */
-  background: var(--bg-surface);
-  border-radius: 12px;
-  margin-bottom: 8px;
+    display: table-row;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: transparent;
 }
 .users-table th {
-  text-align: left;
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.09em;
-  color: var(--text-muted); font-family: var(--mono);
-  letter-spacing: 0.09em;
-  background: rgba(255,255,255,0.02);
-  white-space: nowrap;
+    display: table-cell;
+    text-align: left;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    background: rgba(255, 255, 255, 0.02);
+    white-space: nowrap;
+    padding: 0.75rem 0.875rem;
+    border-bottom: 1px solid var(--border);
 }
 .users-table td {
-  padding: 4px 0;                          /* mobile: card cell padding */
-  font-size: 12.5px;
-  border: none;
-  vertical-align: middle;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+    display: table-cell;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.78125rem;
+    border: 0;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: middle;
+    word-break: normal;
+    overflow-wrap: normal;
+    white-space: nowrap;
 }
-.users-table tr:last-child td { border-bottom: none; }
-.users-table tbody tr { transition: background 0.12s; }
-.users-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+.users-table tr:last-child td { border-bottom: 0; }
+.users-table tbody tr { transition: background 0.12s ease; }
+.users-table tbody tr:hover td { background: rgba(255, 255, 255, 0.03); }
 
-.user-cell { display: flex; align-items: center; gap: 11px; }
+/* ── User cell ── */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.6875rem;
+}
 .user-avatar {
-  width: 32px; height: 32px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--display); font-size: 12px; font-weight: 800;
-  background: var(--ai-purple-soft, rgba(124,58,237,0.1));
-  color: var(--ai-purple-light, #a78bfa);
-  border: 1px solid var(--ai-purple-border, rgba(124,58,237,0.22));
-  flex-shrink: 0;
+    width: var(--au-avatar-size);
+    height: var(--au-avatar-size);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--display);
+    font-size: 0.75rem;
+    font-weight: 800;
+    background: var(--ai-purple-soft, rgba(124, 58, 237, 0.1));
+    color: var(--ai-purple-light, #a78bfa);
+    border: 1px solid var(--ai-purple-border, rgba(124, 58, 237, 0.22));
+    flex-shrink: 0;
 }
 .user-name-col { min-width: 0; }
 .user-email {
-  font-family: var(--mono); font-size: 12.5px; font-weight: 500;
-  color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 220px;
-  display: block;
+    font-family: var(--mono);
+    font-size: 0.78125rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 13.75rem;
+    display: block;
 }
 .user-joined {
-  font-size: 10.5px; color: var(--text-muted); font-family: var(--mono);
-  margin-top: 2px;
+    font-size: 0.65625rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 0.125rem;
 }
 
+/* ── Badges ── */
 .role-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 9px; border-radius: 20px;
-  font-size: 10.5px; font-weight: 700;
-  font-family: var(--mono); letter-spacing: 0.05em;
-  white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    padding: 0.1875rem 0.5625rem;
+    border-radius: var(--au-badge-radius);
+    font-size: 0.65625rem;
+    font-weight: 700;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 .role-badge.admin {
-  background: rgba(245,158,11,0.12); color: #fbbf24;
-  border: 1px solid rgba(245,158,11,0.3);
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
 }
-.role-badge.user  {
-  background: rgba(124,92,255,0.1); color: var(--ai-purple-light, #a78bfa);
-  border: 1px solid var(--ai-purple-border, rgba(124,58,237,0.22));
+.role-badge.user {
+    background: rgba(124, 92, 255, 0.1);
+    color: var(--ai-purple-light, #a78bfa);
+    border: 1px solid var(--ai-purple-border, rgba(124, 58, 237, 0.22));
 }
 .role-badge .dot {
-  width: 5px; height: 5px; border-radius: 50%; background: currentColor;
+    width: 0.3125rem;
+    height: 0.3125rem;
+    border-radius: 50%;
+    background: currentColor;
 }
 
+/* ── Numbers cell ── */
 .num-cell {
-  font-family: var(--mono); font-weight: 600;
-  text-align: center;
+    font-family: var(--mono);
+    font-weight: 600;
+    text-align: center;
 }
 .num-cell.threat { color: var(--danger); }
 .num-cell.muted  { color: var(--text-muted); }
 
-.row-actions { display: flex; gap: 7px; justify-content: flex-end; align-items: center; }
+/* ── Row actions ── */
+.row-actions {
+    display: flex;
+    gap: 0.4375rem;
+    justify-content: flex-end;
+    align-items: center;
+}
 .btn-mini {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 10px; border-radius: 7px;
-  font-size: 10.5px; font-weight: 600;
-  font-family: var(--mono);
-  text-decoration: none;
-  cursor: pointer; border: 1px solid;
-  transition: all 0.15s;
-  background: transparent;
-  white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    padding: 0.3125rem 0.625rem;
+    border-radius: var(--au-btn-mini-radius);
+    font-size: 0.65625rem;
+    font-weight: 600;
+    font-family: var(--mono);
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    background: transparent;
+    white-space: nowrap;
 }
 .btn-mini.primary {
-  background: var(--ai-purple-soft, rgba(124,58,237,0.08));
-  color: var(--ai-purple-light, #a78bfa);
-  border-color: var(--ai-purple-border, rgba(124,58,237,0.22));
+    background: var(--ai-purple-soft, rgba(124, 58, 237, 0.08));
+    color: var(--ai-purple-light, #a78bfa);
+    border-color: var(--ai-purple-border, rgba(124, 58, 237, 0.22));
 }
-.btn-mini.primary:hover { background: rgba(124,58,237,0.15); }
+.btn-mini.primary:hover,
+.btn-mini.primary:focus-visible {
+    background: rgba(124, 58, 237, 0.15);
+    outline: none;
+}
 .btn-mini.promote {
-  background: rgba(245,158,11,0.08); color: #fbbf24;
-  border-color: rgba(245,158,11,0.22);
+    background: rgba(245, 158, 11, 0.08);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.22);
 }
-.btn-mini.promote:hover { background: rgba(245,158,11,0.18); }
+.btn-mini.promote:hover,
+.btn-mini.promote:focus-visible {
+    background: rgba(245, 158, 11, 0.18);
+    outline: none;
+}
 .btn-mini.demote {
-  background: var(--bg-elevated); color: var(--text-secondary);
-  border-color: var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border-color: var(--border);
 }
-.btn-mini.demote:hover { color: var(--text-primary); border-color: var(--border); background: var(--bg-hover); }
-
+.btn-mini.demote:hover,
+.btn-mini.demote:focus-visible {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+    outline: none;
+}
 .self-note {
-  font-size: 10px; color: var(--text-muted);
-  font-family: var(--mono); font-style: italic;
+    font-size: 0.625rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-style: italic;
 }
-
-.adm-alert {
-  background: rgba(46,204,113,0.08);
-  border: 1px solid rgba(46,204,113,0.2);
-  border-radius: 10px; padding: 10px 14px;
-  font-size: 12.5px; color: var(--success);
-  font-family: var(--mono);
-  margin-bottom: 14px;
-  display: flex; align-items: center; gap: 8px;
-  animation: fadeUp 0.3s ease;
-}
-.adm-alert.err { background: rgba(232,64,64,0.08); border-color: rgba(232,64,64,0.25); color: var(--danger); }
 
 #users-empty {
-  display: none;
-  padding: 40px 20px; text-align: center;
-  color: var(--text-muted); font-family: var(--mono); font-size: 12px;
+    display: none;
+    padding: 2.5rem 1.25rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 0.75rem;
 }
 
-/* ── Filtros por rol ── */
-.users-filters {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 5px;
-  width: fit-content;
-}
-.users-filter-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 10px;                       /* mobile */
-  background: transparent;
-  border: none;
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: 11.5px;                       /* mobile */
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.users-filter-btn:hover {
-  background: rgba(255,255,255,0.04);
-  color: var(--text-primary);
-}
-.users-filter-btn.active {
-  background: var(--ai-purple-soft);
-  color: var(--ai-purple-light);
-  box-shadow: 0 0 0 1px var(--ai-purple-border) inset;
-}
-.users-filter-btn.admin.active {
-  background: rgba(245,158,11,0.12);
-  color: #fbbf24;
-  box-shadow: 0 0 0 1px rgba(245,158,11,0.3) inset;
-}
-.users-filter-btn.warn.active {
-  background: rgba(232,64,64,0.12);
-  color: #f87171;
-  box-shadow: 0 0 0 1px rgba(232,64,64,0.3) inset;
-}
-.users-filter-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 18px;
-  padding: 0 6px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 9px;
-  font-size: 10.5px;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  line-height: 1;
-}
-.users-filter-btn.active .users-filter-count {
-  background: rgba(255,255,255,0.14);
-  color: inherit;
+/* ════════════════════════════════════════════════════════════════════
+   TABLET (≥ 768px) — filtros más visibles
+   ════════════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+    .users-filter-btn {
+        padding: var(--au-filter-pad-desk);
+        font-size: var(--au-filter-font-desk);
+    }
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   MOBILE-FIX (< 992px) — admin_users.css
-   Tabla de usuarios → cards apiladas
-   ═══════════════════════════════════════════════════════════════════ */
-/* ═══════════════════════════════════════════════════════════════════
-   DESKTOP ≥992px — restaura el layout original:
-   • .adm-header sin padding ni word-break, h1 a 22px
-   • .users-filter-btn con padding/font-size más generosos
-   • .users-table-wrap con overflow:hidden (clipea el border-radius)
-   • Toda la tabla vuelve a display:table nativo
-   • Las cells recuperan padding generoso, font-size y borde inferior
-   ═══════════════════════════════════════════════════════════════════ */
-@media (min-width: 992px) {
-  .adm-header   { padding: 0; }
-  .adm-header h1 { font-size: 22px; word-break: normal; }
-  .users-filter-btn { padding: 8px 13px; font-size: 12.5px; }
-
-  .users-table-wrap { overflow: hidden; }
-
-  .users-table       { display: table; width: 100%; }
-  .users-table thead { display: table-header-group; }
-  .users-table tbody { display: table-row-group; }
-  .users-table tr    {
-    display: table-row;
-    width: auto;
-    padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    margin-bottom: 0;
-  }
-  .users-table th {
-    display: table-cell;
-    width: auto;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-  }
-  .users-table td {
-    display: table-cell;
-    width: auto;
-    padding: 14px 18px;
-    font-size: 13px;
-    border-bottom: 1px solid var(--border-soft);
-    word-break: normal;
-    overflow-wrap: normal;
-  }
-  .users-table tr:last-child td { border-bottom: none; }
+/* ════════════════════════════════════════════════════════════════════
+   DESKTOP (≥ 1024px) — tabla nativa con header visible
+   ════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+    .adm-header   { padding: 0; }
+    .adm-header h1 {
+        font-size: var(--au-h1-font-desk);
+        word-break: normal;
+    }
+    /* Desktop: filtros vuelven a flex normal sin scroll (caben los 4) */
+    .users-filters {
+        flex-wrap: wrap;
+        overflow-x: visible;
+        width: fit-content;
+    }
+    /* Desktop: la tabla ya cabe sin scroll horizontal, lo desactivamos */
+    .users-table-wrap {
+        overflow-x: hidden;
+        overflow-y: hidden;
+    }
+    .users-table { min-width: 0; }
+    .users-table th {
+        padding: 0.875rem 1.125rem;
+    }
+    .users-table td {
+        padding: 0.875rem 1.125rem;
+        font-size: 0.8125rem;
+    }
 }

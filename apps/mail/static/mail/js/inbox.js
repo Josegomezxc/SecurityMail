@@ -380,6 +380,77 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') closeDetail();
 });
 
+/* ══════════════════════════════════════════════════════════════════
+   SWIPE-TO-CLOSE (mobile) — el detail-panel se puede cerrar
+   deslizando con el dedo hacia la DERECHA. Track el touchstart X,
+   sigue el dedo con transform durante el touchmove, y al soltar:
+     - si recorrió ≥ 33% del ancho del panel → cerrar
+     - si no → vuelve a su posición con animación
+   ══════════════════════════════════════════════════════════════════ */
+(function setupDetailPanelSwipe() {
+  var panel = document.getElementById('detail-panel');
+  if (!panel) return;
+
+  var startX = 0;
+  var startY = 0;
+  var currentX = 0;
+  var dragging = false;
+  // umbral horizontal mínimo (px) antes de considerar el gesto un swipe
+  // — bajo este threshold se asume scroll vertical del contenido.
+  var HORIZONTAL_THRESHOLD = 8;
+  // umbral en px para confirmar "soltar = cerrar". 33% del viewport
+  // se decide en touchend según el ancho real del panel.
+
+  panel.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    currentX = startX;
+    dragging = false;
+    panel.style.transition = 'none';
+  }, { passive: true });
+
+  panel.addEventListener('touchmove', function (e) {
+    if (e.touches.length !== 1) return;
+    var t = e.touches[0];
+    var dx = t.clientX - startX;
+    var dy = t.clientY - startY;
+
+    // Si el movimiento es más vertical que horizontal, deja que el
+    // navegador haga scroll del contenido — no interceptamos.
+    if (!dragging && Math.abs(dy) > Math.abs(dx)) return;
+
+    // Confirmar gesto horizontal una vez supera el threshold
+    if (!dragging && Math.abs(dx) < HORIZONTAL_THRESHOLD) return;
+    dragging = true;
+
+    // Solo seguimos el dedo hacia la DERECHA (cerrar). Hacia la
+    // izquierda no hacemos nada (el panel ya está al borde derecho).
+    if (dx < 0) dx = 0;
+    currentX = startX + dx;
+    panel.style.transform = 'translateX(' + dx + 'px)';
+  }, { passive: true });
+
+  panel.addEventListener('touchend', function () {
+    if (!dragging) return;
+    panel.style.transition = '';
+    var dx = currentX - startX;
+    var threshold = panel.offsetWidth * 0.33;
+    if (dx >= threshold) {
+      // Cierra: animación suave hacia la derecha
+      panel.style.transform = 'translateX(100%)';
+      setTimeout(function () {
+        panel.style.transform = '';
+        closeDetail();
+      }, 180);
+    } else {
+      // No alcanzó el umbral — vuelve a posición original
+      panel.style.transform = '';
+    }
+    dragging = false;
+  });
+})();
+
 /* ══════════════════════════════════════════
    RESPONDER CORREO
    ══════════════════════════════════════════

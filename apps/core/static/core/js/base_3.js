@@ -526,12 +526,22 @@ document.addEventListener('keydown', function (e) {
                             // Sin score → criterio por tipo.
                             let toastType;
                             const r = (typeof item.risk_score === 'number') ? item.risk_score : null;
+                            const title = (item.title || '').toLowerCase();
                             if (item.type === 'threat_alert' || (r !== null && r >= 61)) {
                                 toastType = 'danger';
                             } else if (r !== null && r >= 31) {
                                 toastType = 'warning';
                             } else if (r !== null && r >= 0) {
                                 toastType = 'success';
+                            } else if (item.type === 'system' && title.indexOf('aprobada') !== -1) {
+                                // Solicitud aprobada → verde con check.
+                                toastType = 'success';
+                            } else if (item.type === 'system' && title.indexOf('rechazada') !== -1) {
+                                // Solicitud rechazada → rojo con X.
+                                toastType = 'danger';
+                            } else if (item.type === 'system' && title.indexOf('solicitud') !== -1) {
+                                // Notif al admin: "Nueva solicitud de cupo" → ámbar (acción).
+                                toastType = 'warning';
                             } else {
                                 toastType =
                                     item.type === 'forward_request' ? 'warning' :

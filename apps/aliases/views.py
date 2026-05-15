@@ -286,7 +286,13 @@ def alias_compose_view(request, pk):
             if dt.tzinfo is None:
                 dt = timezone.make_aware(dt, timezone.get_current_timezone())
             now = timezone.now()
-            if dt <= now + timedelta(seconds=60):
+            # El frontend envía la hora con segundos en cero (granularidad
+            # de minutos). Si compararamos contra now + 60s podríamos
+            # rechazar el minuto inmediatamente siguiente cuando solo faltan
+            # ~30 segundos para cambiar de minuto. Comparamos contra el
+            # INICIO DEL PRÓXIMO MINUTO: now.replace(second=0) + 1min.
+            next_minute = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
+            if dt < next_minute:
                 errors['scheduled_at'] = 'La hora ya pasó. Elige al menos 1 minuto en el futuro.'
             elif dt > now + timedelta(hours=72):
                 errors['scheduled_at'] = 'No se puede programar más de 72 horas en el futuro.'
@@ -475,14 +481,20 @@ def alias_quota_request_create(request):
         admins = User.objects.filter(is_staff=True, is_active=True)
         user_name = (request.user.get_full_name() or request.user.email
                      or request.user.username)
+        # target_url: que el click del toast/bell abra directo el panel de
+        # solicitudes con esta solicitud destacada (modal). Sin esto el toast
+        # apuntaba al detalle de la notif y para el admin eso no es útil — el
+        # admin quiere VER la solicitud, no leer el mensaje de notif.
+        admin_target = f'/admin-panel/solicitudes/?open={req.id}'
         notif_objs = [
             Notification(
                 user=admin,
                 type='system',
-                title=f'🔔 Nueva solicitud de cupo',
+                title='Nueva solicitud de cupo',
                 message=f'{user_name} pide +{amount} alias adicionales. Revisa en el panel de solicitudes.',
                 status='pending',
                 read=False,
+                target_url=admin_target,
             )
             for admin in admins
         ]

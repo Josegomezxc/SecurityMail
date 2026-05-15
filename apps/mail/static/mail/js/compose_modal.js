@@ -236,6 +236,7 @@
   var calNext         = document.getElementById('schedNext');
   var hourInput       = document.getElementById('schedHour');
   var minuteInput     = document.getElementById('schedMinute');
+  var ampmToggle      = document.getElementById('schedAmPm');
   var summaryWhen     = document.getElementById('schedSummaryWhen');
   var summaryRel      = document.getElementById('schedSummaryRel');
   var presets         = document.querySelectorAll('.sched-preset');
@@ -289,7 +290,10 @@
   function relativeText(target) {
     var diffMs = target.getTime() - Date.now();
     if (diffMs <= 0) return 'En el pasado';
-    var totalMin = Math.round(diffMs / 60000);
+    /* Round UP en lugar de round: si faltan 27 segundos a las 14:45 y
+       el usuario eligió 14:45, mostramos "En 1 min" en vez de "En 0
+       min" (que sonaba a que ya estaba pasando o ya pasó). */
+    var totalMin = Math.max(1, Math.ceil(diffMs / 60000));
     if (totalMin < 60) return 'En ' + totalMin + ' min';
     var hours = Math.floor(totalMin / 60);
     var mins  = totalMin % 60;
@@ -298,15 +302,41 @@
     var hrs = hours % 24;
     return hrs ? 'En '+days+' d '+hrs+' h' : 'En '+days+' d';
   }
+  /* ────────────────────────────────────────────────────────────────
+     Helpers de formato 12h: el estado interno (sched.selected) sigue
+     siendo 24h (es lo que JS Date expone), pero el INPUT y el resumen
+     muestran 12h + AM/PM.
+       to12h(h24) → 0→12, 1-11→1-11, 12→12, 13-23→1-11
+       to24h(h12, isPm) → reconstruye 0-23
+     ──────────────────────────────────────────────────────────────── */
+  function to12h(h24) {
+    var h = h24 % 12;
+    return h === 0 ? 12 : h;
+  }
+  function to24h(h12, isPm) {
+    var h = h12 % 12;        // 12 → 0
+    return isPm ? h + 12 : h; // AM keeps, PM +12
+  }
+  function fmt12(d) {
+    var h12 = to12h(d.getHours());
+    var mer = d.getHours() >= 12 ? 'PM' : 'AM';
+    return h12 + ':' + pad2x(d.getMinutes()) + ' ' + mer;
+  }
+
   function updateSummary() {
     if (!sched.selected || !summaryWhen) return;
     var d = sched.selected;
     var weekday = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][d.getDay()];
     var dayStr = d.getDate() + ' ' + MONTH_NAMES_FULL[d.getMonth()];
-    summaryWhen.textContent = weekday + ', ' + dayStr + ' · ' + pad2x(d.getHours()) + ':' + pad2x(d.getMinutes());
+    summaryWhen.textContent = weekday + ', ' + dayStr + ' · ' + fmt12(d);
     summaryRel.textContent  = relativeText(d);
     var now = Date.now();
-    var min = now + 60 * 1000;
+    /* El selector zeroea los segundos del momento elegido (14:45:00).
+       Si comparamos contra now+60s con now=14:44:33, min=14:45:33 y el
+       usuario quedaba inválido eligiendo 14:45 aunque fuera 1 minuto
+       en el futuro. Validamos contra el INICIO DEL PRÓXIMO MINUTO
+       redondeando now hacia arriba al minuto siguiente. */
+    var min = now - (now % 60000) + 60000;
     var max = now + 72 * 60 * 60 * 1000;
     var valid = d.getTime() >= min && d.getTime() <= max;
     btnCustomConfirm.disabled = !valid;
@@ -320,8 +350,16 @@
     sched.selected.setSeconds(0, 0);
     sched.viewYear = sched.selected.getFullYear();
     sched.viewMonth = sched.selected.getMonth();
-    hourInput.value = pad2x(sched.selected.getHours());
+    /* Input visible en 12h (1-12). El toggle AM/PM refleja el estado
+       interno (24h). Si la hora interna es ≥12 → PM. */
+    var h24 = sched.selected.getHours();
+    hourInput.value = pad2x(to12h(h24));
     minuteInput.value = pad2x(sched.selected.getMinutes());
+    if (ampmToggle) {
+      var isPm = h24 >= 12;
+      ampmToggle.textContent = isPm ? 'PM' : 'AM';
+      ampmToggle.classList.toggle('is-pm', isPm);
+    }
     renderCalendar();
     updateSummary();
   }
@@ -355,11 +393,30 @@
       var step = parseInt(btn.dataset.step, 10) || 0;
       var target = btn.dataset.target;
       var d = new Date(sched.selected);
-      if (target === 'hour') d.setHours(d.getHours() + step);
+      if (target === 'hour') {
+        /* Cicla 1-12 manteniendo AM/PM. Pasar de 12 a 1 (o 1 a 12)
+           NO cambia el meridiano — para eso está el toggle dedicado. */
+        var isPm = d.getHours() >= 12;
+        var h12  = to12h(d.getHours()) + step;
+        if (h12 > 12) h12 = 1;
+        else if (h12 < 1) h12 = 12;
+        d.setHours(to24h(h12, isPm));
+      }
       else if (target === 'minute') d.setMinutes(d.getMinutes() + step);
       setSelectedDate(d);
     });
   });
+
+  /* Toggle AM/PM: alterna el meridiano del estado interno. */
+  if (ampmToggle) {
+    ampmToggle.addEventListener('click', function () {
+      if (!sched.selected) return;
+      var d = new Date(sched.selected);
+      var h24 = d.getHours();
+      d.setHours(h24 >= 12 ? h24 - 12 : h24 + 12);
+      setSelectedDate(d);
+    });
+  }
   function bindNumInput(input, min, max, isHour) {
     if (!input) return;
     input.addEventListener('keydown', function (e) {
@@ -376,18 +433,26 @@
     });
     input.addEventListener('blur', function () {
       var v = parseInt(input.value, 10);
-      if (isNaN(v)) v = isHour ? new Date().getHours() : 0;
+      if (isNaN(v)) v = isHour ? to12h(new Date().getHours()) : 0;
       v = Math.max(min, Math.min(max, v));
       input.value = pad2x(v);
       if (sched.selected) {
         var d = new Date(sched.selected);
-        if (isHour) d.setHours(v); else d.setMinutes(v);
+        if (isHour) {
+          /* v viene en 12h (1-12). Reconstruye 24h con el meridiano
+             actual del estado interno (no del toggle por separado). */
+          var isPm = d.getHours() >= 12;
+          d.setHours(to24h(v, isPm));
+        } else {
+          d.setMinutes(v);
+        }
         setSelectedDate(d);
       }
     });
     input.addEventListener('focus', function () { input.select(); });
   }
-  bindNumInput(hourInput, 0, 23, true);
+  /* Hora ahora va 1-12 (formato AM/PM); minutos siguen 0-59. */
+  bindNumInput(hourInput, 1, 12, true);
   bindNumInput(minuteInput, 0, 59, false);
 
   presets.forEach(function (chip) {
@@ -493,7 +558,10 @@
       if (!sched.selected) return;
       var now = Date.now();
       var t = sched.selected.getTime();
-      if (t <= now + 60 * 1000) {
+      /* Mismo criterio que updateSummary: validamos contra el inicio
+         del próximo minuto (segundos zeroed) en vez de now+60s. */
+      var minAllowed = now - (now % 60000) + 60000;
+      if (t < minAllowed) {
         customError.textContent = 'La hora ya pasó. Elige al menos 1 minuto en el futuro.';
         customError.hidden = false; return;
       }

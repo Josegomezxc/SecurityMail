@@ -18,43 +18,43 @@
 </header>
 
 {% if messages %}
-  {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-  {% endfor %}
+  <div role="status" aria-live="polite">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
 {% endif %}
 
 <div class="profile-grid">
 
   <!-- ── COLUMNA IZQUIERDA ── -->
   <div>
-    <section class="profile-avatar-card" aria-label="Información del perfil">
+    <section class="profile-avatar-card" aria-labelledby="pf-avatar-name">
 
-      <div style="position:relative;display:inline-block;width:100px;height:100px;margin:0 auto 18px">
-        <div class="big-avatar" id="avatarBox"
+      <div style="position:relative;display:inline-block;width:6.25rem;height:6.25rem;margin:0 auto 1.125rem">
+        <button type="button" class="big-avatar" id="avatarBox"
              style="background:linear-gradient(135deg, {{ avatar_color|default:'#7c5cff' }} 0%, #9b6dff 100%);margin:0"
              data-has-avatar="{% if user.profile.has_avatar %}1{% else %}0{% endif %}"
              {% if user.profile.has_avatar %}data-avatar-url="{{ user.profile.avatar_url }}?v={{ user.profile.updated_at|date:'U' }}"{% endif %}
              onclick="onAvatarClick()"
-             title="{% if user.profile.has_avatar %}Ver foto completa{% else %}Subir una foto{% endif %}">
+             aria-label="{% if user.profile.has_avatar %}Ver foto de perfil completa{% else %}Subir una foto de perfil{% endif %}">
           {% if user.profile.has_avatar %}
-            <img src="{{ user.profile.avatar_url }}?v={{ user.profile.updated_at|date:'U' }}" alt="Foto de perfil">
+            <img src="{{ user.profile.avatar_url }}?v={{ user.profile.updated_at|date:'U' }}" alt="Foto de perfil de {{ user.first_name|default:user.username }}" width="100" height="100">
           {% else %}
-            <span>{{ avatar_initials|default:"??" }}</span>
+            <span aria-hidden="true">{{ avatar_initials|default:"??" }}</span>
           {% endif %}
-        </div>
+        </button>
 
-        <!-- Botón cámara fuera de .big-avatar para que overflow:hidden no lo recorte -->
-        <button type="button" class="avatar-edit-btn" onclick="event.stopPropagation();toggleAvatarMenu();" aria-label="Editar foto" title="Editar foto">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <button type="button" class="avatar-edit-btn" onclick="event.stopPropagation();toggleAvatarMenu();" aria-label="Editar foto de perfil" aria-haspopup="menu" aria-expanded="false" aria-controls="avatarMenu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
             <circle cx="12" cy="13" r="4"/>
           </svg>
         </button>
 
-        <!-- Menú de opciones -->
-        <div class="avatar-menu" id="avatarMenu">
-          <button type="button" class="avatar-menu-item" onclick="openAvatarFilePicker()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="avatar-menu" id="avatarMenu" role="menu">
+          <button type="button" class="avatar-menu-item" onclick="openAvatarFilePicker()" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="17 8 12 3 7 8"/>
               <line x1="12" y1="3" x2="12" y2="15"/>
@@ -62,12 +62,12 @@
             {% if user.profile.has_avatar %}Cambiar foto{% else %}Subir foto{% endif %}
           </button>
           {% if user.profile.has_avatar %}
-            <div class="avatar-menu-divider"></div>
+            <div class="avatar-menu-divider" aria-hidden="true"></div>
             <form method="post" style="margin:0">
               {% csrf_token %}
               <input type="hidden" name="form_type" value="avatar_remove">
-              <button type="submit" class="avatar-menu-item danger">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <button type="submit" class="avatar-menu-item danger" role="menuitem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="3 6 5 6 21 6"/>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
                 </svg>
@@ -78,53 +78,53 @@
         </div>
       </div>
 
-      <!-- Form oculto: se envía automáticamente al elegir archivo -->
       <form method="post" enctype="multipart/form-data" id="avatarUploadForm" style="display:none">
         {% csrf_token %}
         <input type="hidden" name="form_type" value="avatar">
+        <label class="sr-only" for="avatarFileInput">Seleccionar archivo de imagen para avatar</label>
         <input type="file" id="avatarFileInput" name="avatar"
                accept="image/jpeg,image/png,image/webp,image/gif"
                onchange="this.form.submit()">
       </form>
 
-      <div class="profile-name">{{ user.first_name|default:user.username }}</div>
-      <div class="profile-email">{{ user.email }}</div>
-      <div class="avatar-hint">JPG, PNG, WEBP o GIF · máx. 2 MB</div>
+      <h2 class="profile-name" id="pf-avatar-name">{{ user.first_name|default:user.username }}</h2>
+      <p class="profile-email">{{ user.email }}</p>
+      <p class="avatar-hint">JPG, PNG, WEBP o GIF · máx. 2 MB</p>
 
-      <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap">
-        <div class="profile-badge">
-          <span class="profile-badge-dot"></span>
+      <div style="display:flex;justify-content:center;gap:0.375rem;flex-wrap:wrap">
+        <span class="profile-badge">
+          <span class="profile-badge-dot" aria-hidden="true"></span>
           Cuenta activa
-        </div>
+        </span>
         {% if user.is_staff %}
-          <div class="profile-badge" style="background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.3);color:#fbbf24">
-            <span class="profile-badge-dot" style="background:#fbbf24"></span>
+          <span class="profile-badge" style="background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.3);color:#fbbf24">
+            <span class="profile-badge-dot" style="background:#fbbf24" aria-hidden="true"></span>
             Administrador
-          </div>
+          </span>
         {% else %}
-          <div class="profile-badge" style="background:rgba(124,92,255,0.1);border-color:rgba(124,92,255,0.28);color:var(--pl)">
-            <span class="profile-badge-dot" style="background:var(--pl)"></span>
+          <span class="profile-badge" style="background:rgba(124,92,255,0.1);border-color:rgba(124,92,255,0.28);color:var(--pl)">
+            <span class="profile-badge-dot" style="background:var(--pl)" aria-hidden="true"></span>
             Usuario
-          </div>
+          </span>
         {% endif %}
       </div>
 
-      <div class="profile-stats">
+      <dl class="profile-stats" aria-label="Estadísticas de la cuenta">
         <div class="ps-item">
-          <div class="ps-val" style="color:var(--pl)">{{ alias_count|default:0 }}</div>
-          <div class="ps-lbl">Alias</div>
+          <dt class="ps-lbl" style="order:2">Alias</dt>
+          <dd class="ps-val" style="color:var(--pl);order:1;margin:0">{{ alias_count|default:0 }}</dd>
         </div>
-        <div class="ps-divider"></div>
+        <div class="ps-divider" aria-hidden="true"></div>
         <div class="ps-item">
-          <div class="ps-val ps-val--emails">{{ total_emails|default:0 }}</div>
-          <div class="ps-lbl">Correos</div>
+          <dt class="ps-lbl" style="order:2">Correos</dt>
+          <dd class="ps-val ps-val--emails" style="order:1;margin:0">{{ total_emails|default:0 }}</dd>
         </div>
-        <div class="ps-divider"></div>
+        <div class="ps-divider" aria-hidden="true"></div>
         <div class="ps-item">
-          <div class="ps-val" style="color:#f87171">{{ threats_count|default:0 }}</div>
-          <div class="ps-lbl">Bloqueados</div>
+          <dt class="ps-lbl" style="order:2">Bloqueados</dt>
+          <dd class="ps-val" style="color:#f87171;order:1;margin:0">{{ threats_count|default:0 }}</dd>
         </div>
-      </div>
+      </dl>
 
       <div class="security-meter">
         <div class="sec-header">
@@ -137,23 +137,26 @@
             <span class="sec-level low">Bajo</span>
           {% endif %}
         </div>
-        <div class="sec-bar-wrap">
+        <div class="sec-bar-wrap" role="progressbar"
+             aria-valuemin="0" aria-valuemax="100"
+             aria-valuenow="{% if alias_count > 2 %}85{% elif alias_count > 0 %}50{% else %}15{% endif %}"
+             aria-label="Nivel de seguridad de la cuenta">
           <div class="sec-bar {% if alias_count > 2 %}high{% elif alias_count > 0 %}medium{% else %}low{% endif %}"
                style="width:{% if alias_count > 2 %}85{% elif alias_count > 0 %}50{% else %}15{% endif %}%"></div>
         </div>
-        <div class="sec-hint">
+        <p class="sec-hint">
           {% if alias_count == 0 %}
             Crea al menos un alias para proteger tu correo real.
           {% else %}
             Tu correo real está protegido por {{ alias_count }} alias activo{{ alias_count|pluralize:"s" }}.
           {% endif %}
-        </div>
+        </p>
       </div>
 
     </section>
 
     <aside class="member-card" aria-label="Antigüedad de la cuenta">
-      <div class="member-icon">
+      <div class="member-icon" aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round">
           <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
           <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -165,11 +168,9 @@
       </div>
     </aside>
 
-    <!-- Consejos de seguridad — rellena el hueco bajo la columna izquierda
-         en desktop. Puramente informativo, sin lógica de Django. -->
     <aside class="security-tips-card" aria-labelledby="tips-title">
       <header class="stc-header">
-        <div class="stc-icon">
+        <div class="stc-icon" aria-hidden="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
@@ -178,21 +179,21 @@
       </header>
       <ul class="stc-list">
         <li class="stc-tip">
-          <span class="stc-dot"></span>
+          <span class="stc-dot" aria-hidden="true"></span>
           <div class="stc-text">
             <strong>Un alias por sitio</strong>
             <p>Si filtran tus datos sabrás exactamente de dónde vino la fuga.</p>
           </div>
         </li>
         <li class="stc-tip">
-          <span class="stc-dot"></span>
+          <span class="stc-dot" aria-hidden="true"></span>
           <div class="stc-text">
             <strong>Revisa los sospechosos</strong>
             <p>Los correos con score 31-60 esperan tu decisión en notificaciones.</p>
           </div>
         </li>
         <li class="stc-tip">
-          <span class="stc-dot"></span>
+          <span class="stc-dot" aria-hidden="true"></span>
           <div class="stc-text">
             <strong>Destruye al primer indicio</strong>
             <p>Si un alias empieza a recibir spam, destrúyelo — tu correo real sigue invisible.</p>
@@ -205,10 +206,9 @@
   <!-- ── COLUMNA DERECHA ── -->
   <div>
 
-    <!-- Información de cuenta -->
     <section class="profile-panel" style="animation-delay:60ms" aria-labelledby="panel-info-title">
       <header class="panel-header">
-        <span class="panel-header-dot" style="background:var(--pl);box-shadow:0 0 6px rgba(167,139,250,0.5)"></span>
+        <span class="panel-header-dot" style="background:var(--pl);box-shadow:0 0 0.375rem rgba(167,139,250,0.5)" aria-hidden="true"></span>
         <h2 class="panel-header-title" id="panel-info-title">Información de la cuenta</h2>
       </header>
       <div class="panel-body">
@@ -216,31 +216,30 @@
           {% csrf_token %}
           <input type="hidden" name="form_type" value="info">
 
-          <!-- Nombre de usuario (editable) -->
           <div class="form-group">
             <label class="form-label" for="name-field">Nombre de usuario</label>
             <input type="text" id="name-field" name="name"
                    class="form-control" maxlength="30" minlength="2"
                    value="{{ user.first_name|default:user.username }}"
                    placeholder="Ej: adrian24"
-                   autocomplete="username" spellcheck="false" required>
-            <div id="name-field-err" style="display:none;margin-top:6px;padding:6px 10px;font-size:12px;color:#f87171;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);border-radius:8px"></div>
-            <div style="margin-top:4px;font-size:10.5px;color:var(--text-muted);font-family:var(--mono)">
+                   autocomplete="username" spellcheck="false" required
+                   aria-describedby="name-field-hint">
+            <div id="name-field-err" role="alert" style="display:none;margin-top:0.375rem;padding:0.375rem 0.625rem;font-size:0.75rem;color:#f87171;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);border-radius:0.5rem"></div>
+            <p id="name-field-hint" style="margin-top:0.25rem;font-size:0.65625rem;color:var(--text-muted);font-family:var(--mono)">
               2-30 caracteres · letras, números, _ y - · sin espacios
-            </div>
+            </p>
           </div>
 
-          <!-- Correo (NO editable) -->
           <div class="form-group">
-            <label class="form-label">Correo electrónico</label>
-            <div class="email-display-wrap">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.6)" stroke-width="2" stroke-linecap="round" class="email-icon">
+            <span class="form-label" id="email-label">Correo electrónico</span>
+            <div class="email-display-wrap" role="group" aria-labelledby="email-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.6)" stroke-width="2" stroke-linecap="round" class="email-icon" aria-hidden="true">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                 <polyline points="22,6 12,13 2,6"/>
               </svg>
               <span class="email-display-val">{{ user.email }}</span>
               <span class="email-display-lock">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
                   <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
                 No editable
@@ -248,13 +247,12 @@
             </div>
           </div>
 
-          <!-- Tipo de cuenta (informativo) -->
           <div class="form-group">
-            <label class="form-label">Tipo de cuenta</label>
-            <div class="email-display-wrap" style="border-color:{% if user.is_staff %}rgba(245,158,11,0.3){% else %}rgba(124,92,255,0.28){% endif %}">
+            <span class="form-label" id="role-label">Tipo de cuenta</span>
+            <div class="email-display-wrap" role="group" aria-labelledby="role-label" style="border-color:{% if user.is_staff %}rgba(245,158,11,0.3){% else %}rgba(124,92,255,0.28){% endif %}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                    stroke="{% if user.is_staff %}#fbbf24{% else %}var(--pl){% endif %}"
-                   stroke-width="2" stroke-linecap="round" class="email-icon">
+                   stroke-width="2" stroke-linecap="round" class="email-icon" aria-hidden="true">
                 {% if user.is_staff %}
                   <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
                 {% else %}
@@ -266,38 +264,37 @@
               </span>
               <span class="email-display-lock" style="background:{% if user.is_staff %}rgba(245,158,11,0.1){% else %}rgba(124,92,255,0.1){% endif %};border-color:{% if user.is_staff %}rgba(245,158,11,0.25){% else %}rgba(124,92,255,0.22){% endif %};color:{% if user.is_staff %}#fbbf24{% else %}var(--pl){% endif %}">
                 {% if user.is_staff %}
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
                   ACCESO TOTAL
                 {% else %}
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                   ESTÁNDAR
                 {% endif %}
               </span>
             </div>
           </div>
 
-          <button type="submit" class="btn-primary" style="margin-top:10px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <button type="submit" class="btn-primary" style="margin-top:0.625rem">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/>
               <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
             </svg>
             Guardar cambios
           </button>
 
-          <div class="info-box" style="margin-top:16px">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px;opacity:0.8">
+          <p class="info-box" style="margin-top:1rem">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:0.0625rem;opacity:0.8" aria-hidden="true">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
             <span>Tu correo real está <strong>cifrado y nunca es expuesto</strong> a terceros. Tus alias actúan como escudo entre tú y el mundo.</span>
-          </div>
+          </p>
         </form>
       </div>
     </section>
 
-    <!-- Cambiar contraseña -->
     <section class="profile-panel" style="animation-delay:100ms" aria-labelledby="panel-pwd-title">
       <header class="panel-header">
-        <span class="panel-header-dot" style="background:var(--p);box-shadow:0 0 6px rgba(124,92,255,0.5)"></span>
+        <span class="panel-header-dot" style="background:var(--p);box-shadow:0 0 0.375rem rgba(124,92,255,0.5)" aria-hidden="true"></span>
         <h2 class="panel-header-title" id="panel-pwd-title">Cambiar contraseña</h2>
       </header>
       <div class="panel-body">
@@ -305,27 +302,27 @@
           {% csrf_token %}
           <input type="hidden" name="form_type" value="password">
           <div class="form-group">
-            <label class="form-label">Nueva contraseña</label>
+            <label class="form-label" for="pwd1">Nueva contraseña</label>
             <div class="input-eye-wrap">
-              <input type="password" name="password" id="pwd1" class="form-control" placeholder="Mínimo 8 caracteres">
-              <button type="button" class="eye-btn" onclick="togglePwd('pwd1', this)" tabindex="-1">
-                <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              <input type="password" name="password" id="pwd1" class="form-control" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+              <button type="button" class="eye-btn" onclick="togglePwd('pwd1', this)" tabindex="-1" aria-label="Mostrar u ocultar contraseña">
+                <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
               </button>
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Confirmar nueva contraseña</label>
+            <label class="form-label" for="pwd2">Confirmar nueva contraseña</label>
             <div class="input-eye-wrap">
-              <input type="password" name="password2" id="pwd2" class="form-control" placeholder="Repite la nueva contraseña">
-              <button type="button" class="eye-btn" onclick="togglePwd('pwd2', this)" tabindex="-1">
-                <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              <input type="password" name="password2" id="pwd2" class="form-control" placeholder="Repite la nueva contraseña" autocomplete="new-password">
+              <button type="button" class="eye-btn" onclick="togglePwd('pwd2', this)" tabindex="-1" aria-label="Mostrar u ocultar confirmación">
+                <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
               </button>
             </div>
           </div>
           <button type="submit" class="btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/>
               <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
             </svg>
@@ -338,23 +335,22 @@
   </div>
 </div>
 
-<!-- ── Fila horizontal de ancho COMPLETO: Notificaciones + Zona de peligro ──
-     Va FUERA del .profile-grid para ocupar todo el ancho de la página y
-     aprovechar el espacio vacío que queda debajo del avatar a la izquierda. -->
+<!-- ══ Fila inferior: Notificaciones + Zona de peligro ══ -->
 <div class="profile-bottom-row">
 
-  <!-- Reenvío de correos seguros (opt-in) -->
   <section class="profile-panel" style="animation-delay:140ms" aria-labelledby="panel-notif-title">
     <header class="panel-header">
-      <span class="panel-header-dot" style="background:var(--success);box-shadow:0 0 6px rgba(46,204,113,0.5)"></span>
+      <span class="panel-header-dot" style="background:var(--success);box-shadow:0 0 0.375rem rgba(46,204,113,0.5)" aria-hidden="true"></span>
       <h2 class="panel-header-title" id="panel-notif-title">Notificaciones</h2>
-      <div class="panel-header-spacer"></div>
+      <div class="panel-header-spacer" aria-hidden="true"></div>
       <form method="post" class="ftc-form {% if user.profile.forward_safe_emails %}ftc-form-on{% endif %}">
         {% csrf_token %}
         <input type="hidden" name="form_type" value="forward_safe">
         <input type="hidden" name="enabled" value="{% if user.profile.forward_safe_emails %}0{% else %}1{% endif %}">
-        <button type="submit" class="ftc-toggle" aria-label="Alternar reenvío">
-          <span class="ftc-toggle-track">
+        <button type="submit" class="ftc-toggle"
+                aria-pressed="{% if user.profile.forward_safe_emails %}true{% else %}false{% endif %}"
+                aria-label="Alternar reenvío de correos seguros">
+          <span class="ftc-toggle-track" aria-hidden="true">
             <span class="ftc-toggle-thumb"></span>
           </span>
           <span class="ftc-toggle-label">
@@ -367,26 +363,26 @@
 
       <article class="forward-toggle-card {% if user.profile.forward_safe_emails %}is-on{% endif %}">
         <div class="ftc-icon-side">
-          <div class="ftc-icon">
+          <span class="ftc-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
               <polyline points="22,6 12,13 2,6"/>
               <path d="M16 11l3-3-3-3"/>
               <path d="M19 8h-7"/>
             </svg>
-          </div>
+          </span>
         </div>
         <div class="ftc-body">
-          <div class="ftc-title-row">
-            <h4 class="ftc-title">Recibir copia en mi correo real</h4>
+          <header class="ftc-title-row">
+            <h3 class="ftc-title">Recibir copia en mi correo real</h3>
             <span class="ftc-status">
               {% if user.profile.forward_safe_emails %}
-                <span class="ftc-pill on"><span class="ftc-dot"></span>Activo</span>
+                <span class="ftc-pill on"><span class="ftc-dot" aria-hidden="true"></span>Activo</span>
               {% else %}
                 <span class="ftc-pill off">Inactivo</span>
               {% endif %}
             </span>
-          </div>
+          </header>
           <p class="ftc-desc">
             Si lo activas, los correos <strong>seguros</strong> que lleguen a tus alias
             se reenvían automáticamente a <strong>{{ user.email }}</strong> con sello de
@@ -394,30 +390,29 @@
             preguntan primero (decides tú desde el panel de notificaciones). Las
             <strong>amenazas</strong> nunca se reenvían — solo te llega el aviso.
           </p>
-          <div class="ftc-rules">
-            <div class="ftc-rule ftc-rule--ok">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <ul class="ftc-rules" aria-label="Reglas de reenvío por nivel de riesgo" style="list-style:none">
+            <li class="ftc-rule ftc-rule--ok">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
               Score 0-30 (seguro) → reenvío automático a tu correo
-            </div>
-            <div class="ftc-rule ftc-rule--warn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </li>
+            <li class="ftc-rule ftc-rule--warn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               Score 31-60 (sospechoso) → te preguntan, tú decides reenviarlo o descartarlo
-            </div>
-            <div class="ftc-rule ftc-rule--no">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </li>
+            <li class="ftc-rule ftc-rule--no">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               Score 61+ (amenaza) → bloqueado, solo te llega el aviso
-            </div>
-          </div>
+            </li>
+          </ul>
         </div>
       </article>
 
     </div>
   </section>
 
-  <!-- Zona de peligro -->
   <section class="danger-zone" aria-labelledby="danger-title">
     <header class="danger-head">
-      <div class="danger-icon">
+      <div class="danger-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
           <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -428,8 +423,8 @@
       </div>
     </header>
     <p>Eliminar tu cuenta destruirá todos tus alias, correos analizados y notificaciones. Esta acción es permanente y no se puede deshacer.</p>
-    <button type="button" class="btn-danger" id="deleteAccountBtn">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <button type="button" class="btn-danger" id="deleteAccountBtn" aria-haspopup="dialog">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
         <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
         <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
       </svg>
@@ -437,45 +432,43 @@
     </button>
   </section>
 
-</div><!-- /.profile-bottom-row -->
+</div>
 
-
-
-<!-- ══ Modal "Eliminar cuenta" — destructivo, requiere password + reto ══ -->
+<!-- ══ Modal "Eliminar cuenta" ══ -->
 <div id="deleteAccountOverlay" class="da-overlay" aria-hidden="true">
   <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="da-title">
-    <div class="da-head">
-      <div class="da-icon">
+    <header class="da-head">
+      <div class="da-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
           <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
       </div>
       <div class="da-head-text">
-        <div id="da-title" class="da-title">Eliminar tu cuenta</div>
-        <div class="da-sub">Esta acción es <strong style="color:#fca5a5">permanente</strong> y no se puede deshacer. Todos tus datos serán borrados de forma inmediata.</div>
+        <h2 id="da-title" class="da-title">Eliminar tu cuenta</h2>
+        <p class="da-sub">Esta acción es <strong style="color:#fca5a5">permanente</strong> y no se puede deshacer. Todos tus datos serán borrados de forma inmediata.</p>
       </div>
-      <button type="button" class="da-close" id="deleteAccountClose" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <button type="button" class="da-close" id="deleteAccountClose" aria-label="Cerrar diálogo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
-    </div>
+    </header>
 
-    <div class="da-impact">
+    <dl class="da-impact" aria-label="Datos que se borrarán">
       <div class="da-impact-item">
-        <div class="da-impact-num">{{ alias_count|default:0 }}</div>
-        <div class="da-impact-lbl">Alias</div>
+        <dt class="da-impact-lbl" style="order:2">Alias</dt>
+        <dd class="da-impact-num" style="order:1;margin:0">{{ alias_count|default:0 }}</dd>
       </div>
       <div class="da-impact-item">
-        <div class="da-impact-num">{{ total_emails|default:0 }}</div>
-        <div class="da-impact-lbl">Correos</div>
+        <dt class="da-impact-lbl" style="order:2">Correos</dt>
+        <dd class="da-impact-num" style="order:1;margin:0">{{ total_emails|default:0 }}</dd>
       </div>
       <div class="da-impact-item">
-        <div class="da-impact-num">{{ threats_count|default:0 }}</div>
-        <div class="da-impact-lbl">Amenazas</div>
+        <dt class="da-impact-lbl" style="order:2">Amenazas</dt>
+        <dd class="da-impact-num" style="order:1;margin:0">{{ threats_count|default:0 }}</dd>
       </div>
-    </div>
+    </dl>
 
     <form id="deleteAccountForm" class="da-form" autocomplete="off">
       {% csrf_token %}
@@ -484,30 +477,30 @@
       <div class="da-input-wrap">
         <input id="deleteAccountPwd" name="password" type="password" class="da-input"
                placeholder="Introduce tu contraseña" autocomplete="current-password" required>
-        <button type="button" class="da-input-eye" id="deleteAccountPwdEye" aria-label="Mostrar contraseña" tabindex="-1">
-          <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button type="button" class="da-input-eye" id="deleteAccountPwdEye" aria-label="Mostrar u ocultar contraseña" tabindex="-1">
+          <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
           </svg>
-          <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+          <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none" aria-hidden="true">
             <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
           </svg>
         </button>
       </div>
 
-      <label for="deleteAccountConfirm" class="da-field-label">Confirma escribiendo <code style="background:rgba(232,64,64,0.14);color:#fca5a5;padding:1px 6px;border-radius:4px;font-weight:700;letter-spacing:0.08em">ELIMINAR</code></label>
+      <label for="deleteAccountConfirm" class="da-field-label">Confirma escribiendo <code style="background:rgba(232,64,64,0.14);color:#fca5a5;padding:0.0625rem 0.375rem;border-radius:0.25rem;font-weight:700;letter-spacing:0.08em">ELIMINAR</code></label>
       <div class="da-input-wrap">
         <input id="deleteAccountConfirm" name="confirm_text" type="text"
                class="da-input da-input-mono" placeholder="ELIMINAR"
                autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" required>
       </div>
-      <div class="da-field-hint">Esta palabra clave evita borrados accidentales.</div>
+      <p class="da-field-hint">Esta palabra clave evita borrados accidentales.</p>
 
-      <div id="deleteAccountError" class="da-error" role="alert"></div>
+      <div id="deleteAccountError" class="da-error" role="alert" aria-live="polite"></div>
 
       <div class="da-actions">
         <button type="button" class="da-btn da-btn-cancel" id="deleteAccountCancel">Cancelar</button>
         <button type="submit" class="da-btn da-btn-confirm" id="deleteAccountSubmit" disabled>
-          <span class="da-spinner"></span>
+          <span class="da-spinner" aria-hidden="true"></span>
           <span class="da-btn-text">Eliminar mi cuenta</span>
         </button>
       </div>
@@ -515,12 +508,12 @@
   </div>
 </div>
 
-<!-- ══ Modal de previsualización del avatar (al final del body para flotar sobre todo) ══ -->
+<!-- ══ Modal de previsualización del avatar ══ -->
 {% if user.profile.has_avatar %}
-<div id="avatarPreviewOverlay" onclick="closeAvatarPreview()">
+<div id="avatarPreviewOverlay" onclick="closeAvatarPreview()" role="dialog" aria-modal="true" aria-label="Vista previa de la foto de perfil">
   <div class="avatar-preview-modal" onclick="event.stopPropagation()">
-    <button type="button" class="avatar-preview-close" onclick="closeAvatarPreview()" aria-label="Cerrar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <button type="button" class="avatar-preview-close" onclick="closeAvatarPreview()" aria-label="Cerrar previsualización">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
       </svg>
     </button>

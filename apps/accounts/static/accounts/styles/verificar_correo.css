@@ -1,268 +1,349 @@
-  body { background: var(--bg-base); }
+@import url('properties/verificar_correo.css');
 
-  .verify-wrapper {
+/* ════════════════════════════════════════════════════════════════════
+   VERIFICAR CORREO — Mobile-First Strict
+   Cascada: base mobile → ≥768px tablet → ≥1024px desktop.
+   ════════════════════════════════════════════════════════════════════ */
+
+body { background: var(--bg-base); }
+
+/* ────────────────────────────────────────────────────────────────────
+   WRAPPER (full-bleed centrado)
+   ──────────────────────────────────────────────────────────────────── */
+.verify-wrapper {
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px 16px;
+    padding: 1.5rem 1rem;
     background:
-      radial-gradient(ellipse at top left, rgba(109,74,255,0.18), transparent 55%),
-      radial-gradient(ellipse at bottom right, rgba(155,109,255,0.12), transparent 55%),
-      var(--bg-base);
-  }
+        radial-gradient(ellipse at top left, rgba(109, 74, 255, 0.18), transparent 55%),
+        radial-gradient(ellipse at bottom right, rgba(155, 109, 255, 0.12), transparent 55%),
+        var(--bg-base);
+}
 
-  .verify-card {
+/* ────────────────────────────────────────────────────────────────────
+   CARD PRINCIPAL
+   ──────────────────────────────────────────────────────────────────── */
+.verify-card {
     width: 100%;
-    max-width: 480px;
+    max-width: var(--vc-card-max);
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 28px 22px 24px;             /* mobile */
-    box-shadow: 0 24px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    border-radius: var(--vc-card-radius);
+    padding: var(--vc-card-pad-mobile);
+    box-shadow:
+        0 1.5rem 3.75rem rgba(0, 0, 0, 0.45),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04);
     position: relative;
     overflow: hidden;
-    animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both;
-  }
-  @media (min-width: 481px) {
-    .verify-card { padding: 36px 36px 32px; }
-  }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(14px); }
+    animation: fadeUp 0.45s cubic-bezier(.22, 1, .36, 1) both;
+}
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(0.875rem); }
     to   { opacity: 1; transform: translateY(0); }
-  }
-  .verify-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    opacity: 0.7;
-  }
-  .verify-card::after {
+}
+.verify-card::before {
     content: '';
     position: absolute;
-    top: -90px; right: -90px;
-    width: 220px; height: 220px;
+    top: 0; left: 0; right: 0;
+    height: 0.125rem;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.7;
+}
+.verify-card::after {
+    content: '';
+    position: absolute;
+    top: -5.625rem;
+    right: -5.625rem;
+    width: 13.75rem;
+    height: 13.75rem;
     border-radius: 50%;
     background: var(--accent);
-    opacity: 0.10;
-    filter: blur(40px);
+    opacity: 0.1;
+    filter: blur(2.5rem);
     pointer-events: none;
-  }
+}
 
-  .verify-logo {
+/* ────────────────────────────────────────────────────────────────────
+   LOGO
+   ──────────────────────────────────────────────────────────────────── */
+.verify-logo {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 0.625rem;
+    margin-bottom: 1.25rem;
     text-decoration: none;
     position: relative;
     z-index: 1;
-  }
-  .verify-logo-icon {
-    width: 36px; height: 36px;
-    border-radius: 10px;
+}
+.verify-logo-icon {
+    width: var(--vc-logo-size);
+    height: var(--vc-logo-size);
+    border-radius: var(--vc-logo-radius);
     background: linear-gradient(135deg, var(--accent), #9b6dff);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 14px rgba(109,74,255,0.4);
-  }
-  .verify-logo-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0.25rem 0.875rem rgba(109, 74, 255, 0.4);
+}
+.verify-logo-text {
     font-family: 'Syne', sans-serif;
-    font-size: 17px;
+    font-size: 1.0625rem;
     font-weight: 800;
     color: var(--text-primary);
     letter-spacing: -0.015em;
-  }
-  .verify-logo-text span { color: var(--accent-hover); }
+}
+.verify-logo-text span { color: var(--accent-hover); }
 
-  .verify-icon {
-    width: 64px; height: 64px;
-    border-radius: 16px;
+/* ────────────────────────────────────────────────────────────────────
+   ICONO HERO
+   ──────────────────────────────────────────────────────────────────── */
+.verify-icon {
+    width: var(--vc-icon-size);
+    height: var(--vc-icon-size);
+    border-radius: var(--vc-icon-radius);
     background: linear-gradient(135deg, var(--accent), #9b6dff);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 24px rgba(109,74,255,0.35);
-    margin-bottom: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0.5rem 1.5rem rgba(109, 74, 255, 0.35);
+    margin-bottom: 1.125rem;
     position: relative;
     z-index: 1;
-  }
-  .verify-icon svg { width: 30px; height: 30px; color: white; }
+}
+.verify-icon svg {
+    width: var(--vc-icon-svg-size);
+    height: var(--vc-icon-svg-size);
+    color: #fff;
+}
 
-  .verify-title {
+/* ────────────────────────────────────────────────────────────────────
+   TÍTULO + SUBTÍTULO
+   ──────────────────────────────────────────────────────────────────── */
+.verify-title {
     font-family: 'Syne', sans-serif;
-    font-size: 22px;
+    font-size: 1.375rem;
     font-weight: 800;
     color: var(--text-primary);
     letter-spacing: -0.02em;
     line-height: 1.2;
-    margin-bottom: 8px;
-    position: relative; z-index: 1;
-  }
-  .verify-subtitle {
-    font-size: 13.5px;
+    margin-bottom: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+.verify-subtitle {
+    font-size: 0.84375rem;
     color: var(--text-secondary);
     line-height: 1.55;
-    margin-bottom: 4px;
-    position: relative; z-index: 1;
-  }
-  .verify-subtitle strong {
+    margin-bottom: 0.25rem;
+    position: relative;
+    z-index: 1;
+}
+.verify-subtitle strong {
     color: var(--accent-hover);
     font-weight: 600;
     word-break: break-all;
-  }
+}
 
-  .verify-form {
-    margin-top: 22px;
-    position: relative; z-index: 1;
-  }
-  .verify-label {
+/* ────────────────────────────────────────────────────────────────────
+   FORM + CÓDIGO DE 6 DÍGITOS
+   ──────────────────────────────────────────────────────────────────── */
+.verify-form {
+    margin-top: 1.375rem;
+    position: relative;
+    z-index: 1;
+}
+.verify-label {
     display: block;
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--text-muted);
-    margin-bottom: 12px;
+    margin-bottom: 0.75rem;
     font-family: var(--font-mono);
-  }
-
-  .code-input-wrap {
+}
+.code-input-wrap {
     display: flex;
     justify-content: center;
-    gap: 6px;                             /* mobile */
-    margin-bottom: 22px;
-  }
-  @media (min-width: 481px) {
-    .code-input-wrap { gap: 9px; }
-  }
-  .code-digit {
-    width: 42px;                          /* mobile */
-    height: 52px;                         /* mobile */
-    border-radius: 12px;
+    gap: var(--vc-digit-gap-mobile);
+    margin-bottom: 1.375rem;
+}
+.code-digit {
+    width: var(--vc-digit-w-mobile);
+    height: var(--vc-digit-h-mobile);
+    border-radius: var(--vc-digit-radius);
     background: var(--bg-elevated);
-    border: 1.5px solid var(--border);
+    border: 0.09375rem solid var(--border);
     color: var(--text-primary);
     font-family: 'JetBrains Mono', 'Courier New', monospace;
-    font-size: 22px;                      /* mobile */
+    font-size: var(--vc-digit-font-mobile);
     font-weight: 700;
     text-align: center;
     outline: none;
-    transition: border-color 0.18s, background 0.18s, transform 0.12s;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.12s ease;
     -webkit-appearance: none;
     -moz-appearance: textfield;
-  }
-  @media (min-width: 481px) {
-    .code-digit { width: 50px; height: 60px; font-size: 26px; }
-  }
-  .code-digit::-webkit-outer-spin-button,
-  .code-digit::-webkit-inner-spin-button {
+}
+.code-digit::-webkit-outer-spin-button,
+.code-digit::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
-  }
-  .code-digit:focus {
+}
+.code-digit:focus {
     border-color: var(--accent);
-    background: rgba(109,74,255,0.08);
-    box-shadow: 0 0 0 3px rgba(109,74,255,0.18);
-    transform: translateY(-1px);
-  }
-  .code-digit.filled {
-    border-color: rgba(109,74,255,0.35);
+    background: rgba(109, 74, 255, 0.08);
+    box-shadow: 0 0 0 0.1875rem rgba(109, 74, 255, 0.18);
+    transform: translateY(-0.0625rem);
+}
+.code-digit.filled {
+    border-color: rgba(109, 74, 255, 0.35);
     color: var(--accent-hover);
-  }
+}
 
-  /* Bloque max-width removido: los valores mobile ya viven como defaults
-     y los overrides desktop están dentro de @media (min-width: 481px)
-     junto a cada regla. */
-
-  .verify-btn {
+/* ────────────────────────────────────────────────────────────────────
+   BOTÓN
+   ──────────────────────────────────────────────────────────────────── */
+.verify-btn {
     width: 100%;
-    padding: 13px 20px;
-    border-radius: 11px;
+    padding: var(--vc-btn-pad);
+    border-radius: var(--vc-btn-radius);
     background: linear-gradient(135deg, var(--accent), #9b6dff);
-    color: white;
+    color: #fff;
     font-family: 'Syne', sans-serif;
-    font-size: 14px;
+    font-size: var(--vc-btn-font);
     font-weight: 700;
-    border: none;
+    border: 0;
     cursor: pointer;
-    transition: filter 0.18s, transform 0.12s;
+    transition: filter 0.18s ease, transform 0.12s ease;
     letter-spacing: 0.01em;
-    box-shadow: 0 6px 18px rgba(109,74,255,0.35);
-  }
-  .verify-btn:hover { filter: brightness(1.08); }
-  .verify-btn:active { transform: translateY(1px); }
-  .verify-btn:disabled { opacity: 0.55; cursor: not-allowed; filter: none; transform: none; }
+    box-shadow: 0 0.375rem 1.125rem rgba(109, 74, 255, 0.35);
+}
+.verify-btn:hover { filter: brightness(1.08); }
+.verify-btn:active { transform: translateY(0.0625rem); }
+.verify-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: none;
+    transform: none;
+}
 
-  .verify-meta {
-    margin-top: 18px;
+/* ────────────────────────────────────────────────────────────────────
+   META (countdown + reenviar)
+   ──────────────────────────────────────────────────────────────────── */
+.verify-meta {
+    margin-top: 1.125rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-muted);
     font-family: var(--font-mono);
     flex-wrap: wrap;
-    gap: 6px;
-    position: relative; z-index: 1;
-  }
-  .verify-meta .countdown { color: var(--text-secondary); }
-  .verify-meta .countdown.expired { color: var(--danger); font-weight: 600; }
+    gap: 0.375rem;
+    position: relative;
+    z-index: 1;
+}
+.verify-meta .countdown { color: var(--text-secondary); }
+.verify-meta .countdown.expired { color: var(--danger); font-weight: 600; }
 
-  .resend-form { margin: 0; display: inline; }
-  .resend-link {
+.resend-form { margin: 0; display: inline; }
+.resend-link {
     background: none;
-    border: none;
+    border: 0;
     color: var(--accent-hover);
     font-family: var(--font-sans);
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
     padding: 0;
-    transition: color 0.15s;
-  }
-  .resend-link:hover { color: white; text-decoration: underline; }
-  .resend-link[disabled] { color: var(--text-muted); cursor: not-allowed; }
+    transition: color 0.15s ease;
+}
+.resend-link:hover,
+.resend-link:focus-visible {
+    color: #fff;
+    text-decoration: underline;
+    outline: none;
+}
+.resend-link[disabled] { color: var(--text-muted); cursor: not-allowed; }
 
-  .verify-help {
-    margin-top: 22px;
-    padding: 12px 14px;
-    background: rgba(109,74,255,0.06);
-    border: 1px solid rgba(109,74,255,0.18);
-    border-radius: 10px;
-    font-size: 11.5px;
+/* ────────────────────────────────────────────────────────────────────
+   HELP + BACK
+   ──────────────────────────────────────────────────────────────────── */
+.verify-help {
+    margin-top: 1.375rem;
+    padding: 0.75rem 0.875rem;
+    background: rgba(109, 74, 255, 0.06);
+    border: 1px solid rgba(109, 74, 255, 0.18);
+    border-radius: 0.625rem;
+    font-size: 0.71875rem;
     color: var(--text-secondary);
     line-height: 1.55;
-    position: relative; z-index: 1;
-  }
-  .verify-help strong { color: var(--accent-hover); }
-
-  .verify-back {
-    margin-top: 16px;
+    position: relative;
+    z-index: 1;
+}
+.verify-help strong { color: var(--accent-hover); }
+.verify-back {
+    margin-top: 1rem;
     text-align: center;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-muted);
-    position: relative; z-index: 1;
-  }
-  .verify-back a {
+    position: relative;
+    z-index: 1;
+}
+.verify-back a {
     color: var(--accent-hover);
     text-decoration: none;
     font-weight: 500;
-  }
-  .verify-back a:hover { text-decoration: underline; }
+}
+.verify-back a:hover,
+.verify-back a:focus-visible { text-decoration: underline; outline: none; }
 
-  /* ── Mensajes Django (aparecen también con el toast, pero por si acaso) ── */
-  .verify-msg-list { margin: 0 0 18px; padding: 0; list-style: none; position: relative; z-index: 1; }
-  .verify-msg {
+/* ────────────────────────────────────────────────────────────────────
+   MENSAJES DE DJANGO
+   ──────────────────────────────────────────────────────────────────── */
+.verify-msg-list {
+    margin: 0 0 1.125rem;
+    padding: 0;
+    list-style: none;
+    position: relative;
+    z-index: 1;
+}
+.verify-msg {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    padding: 11px 13px;
-    border-radius: 10px;
-    margin-bottom: 9px;
-    font-size: 12.5px;
+    gap: 0.625rem;
+    padding: 0.6875rem 0.8125rem;
+    border-radius: 0.625rem;
+    margin-bottom: 0.5625rem;
+    font-size: 0.78125rem;
     border: 1px solid;
     line-height: 1.4;
-  }
-  .verify-msg.error    { background: rgba(232,64,64,0.07); border-color: rgba(232,64,64,0.28); color: #f87171; }
-  .verify-msg.warning  { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.28); color: #fbbf24; }
-  .verify-msg.success  { background: rgba(46,204,113,0.07); border-color: rgba(46,204,113,0.28); color: #4ade80; }
-  .verify-msg.info     { background: rgba(109,74,255,0.07); border-color: rgba(109,74,255,0.28); color: var(--accent-hover); }
+}
+.verify-msg.error   { background: rgba(232, 64, 64, 0.07);   border-color: rgba(232, 64, 64, 0.28);   color: #f87171; }
+.verify-msg.warning { background: rgba(245, 158, 11, 0.07);  border-color: rgba(245, 158, 11, 0.28);  color: #fbbf24; }
+.verify-msg.success { background: rgba(46, 204, 113, 0.07);  border-color: rgba(46, 204, 113, 0.28);  color: #4ade80; }
+.verify-msg.info    { background: rgba(109, 74, 255, 0.07);  border-color: rgba(109, 74, 255, 0.28);  color: var(--accent-hover); }
+
+/* ════════════════════════════════════════════════════════════════════
+   TABLET (≥ 768px) — más respiro en el card y dígitos más grandes
+   ════════════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+    .verify-card { padding: var(--vc-card-pad-desk); }
+    .code-input-wrap { gap: var(--vc-digit-gap-desk); }
+    .code-digit {
+        width: var(--vc-digit-w-desk);
+        height: var(--vc-digit-h-desk);
+        font-size: var(--vc-digit-font-desk);
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   DESKTOP (≥ 1024px) — título un toque más prominente
+   ════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+    .verify-title { font-size: 1.5rem; }
+}

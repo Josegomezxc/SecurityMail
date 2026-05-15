@@ -1,0 +1,39 @@
+/* ════════════════════════════════════════════════════════════════════
+   PROPERTIES — login
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+    /* Shell del split */
+    --lg-shell-max-mobile:    27.5rem;     /* ≈440px */
+    --lg-shell-max-desktop:   57.5rem;     /* ≈920px */
+    --lg-wrapper-padding:     1.125rem 1.5rem;
+
+    /* Panel izquierdo (branding + features) */
+    --lg-side-padding:        2.625rem 2.375rem;
+    --lg-side-gap:            1.375rem;
+    --lg-feature-gap:         0.75rem;
+    --lg-feature-gap-desk:    0.875rem;
+
+    /* Panel derecho (form) */
+    --lg-card-pad-mobile:     2.25rem 1.75rem;
+    --lg-card-pad-desk:       1.75rem 2.25rem;
+
+    /* Logo (con texto integrado en PNG) */
+    --lg-logo-max-w:          13.75rem;    /* ≈220px */
+    --lg-logo-max-h:          5.625rem;    /* ≈90px */
+
+    /* Inputs */
+    --lg-input-pad-left:      2.375rem;
+    --lg-input-pad-right:     2.625rem;    /* eye btn */
+    --lg-icon-size:           1rem;
+
+    /* Feature items */
+    --lg-feature-icon-size:   2rem;
+    --lg-feature-icon-svg:    1rem;
+
+    /* Botón */
+    --lg-btn-pad:             0.75rem;
+    --lg-btn-radius:          var(--radius-md);
+
+    /* Alerts */
+    --lg-alert-stripe-w:      0.1875rem;
+}

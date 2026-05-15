@@ -7,7 +7,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'core/styles/admin_alias_requests.css' %}">
+<link rel="stylesheet" href="{% static 'core/styles/admin_alias_requests.css' %}?v=mobile-table-scroll">
 {% endblock %}
 
 {% block body %}
@@ -59,23 +59,31 @@
   </div>
 
   <nav class="aar-filters" aria-label="Filtros por estado">
-    <a href="{% url 'admin_alias_requests' %}" class="aar-filter-btn{% if status_filter == 'all' %} active{% endif %}">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+    <a href="{% url 'admin_alias_requests' %}"
+       class="aar-filter-btn{% if status_filter == 'all' %} active{% endif %}"
+       {% if status_filter == 'all' %}aria-current="page"{% endif %}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
       Todas
       <span class="aar-filter-count">{{ counts.all }}</span>
     </a>
-    <a href="?status=pending" class="aar-filter-btn pending{% if status_filter == 'pending' %} active{% endif %}">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <a href="?status=pending"
+       class="aar-filter-btn pending{% if status_filter == 'pending' %} active{% endif %}"
+       {% if status_filter == 'pending' %}aria-current="page"{% endif %}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       Pendientes
       <span class="aar-filter-count">{{ counts.pending }}</span>
     </a>
-    <a href="?status=approved" class="aar-filter-btn approved{% if status_filter == 'approved' %} active{% endif %}">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <a href="?status=approved"
+       class="aar-filter-btn approved{% if status_filter == 'approved' %} active{% endif %}"
+       {% if status_filter == 'approved' %}aria-current="page"{% endif %}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
       Aprobadas
       <span class="aar-filter-count">{{ counts.approved }}</span>
     </a>
-    <a href="?status=rejected" class="aar-filter-btn rejected{% if status_filter == 'rejected' %} active{% endif %}">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <a href="?status=rejected"
+       class="aar-filter-btn rejected{% if status_filter == 'rejected' %} active{% endif %}"
+       {% if status_filter == 'rejected' %}aria-current="page"{% endif %}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       Rechazadas
       <span class="aar-filter-count">{{ counts.rejected }}</span>
     </a>
@@ -352,7 +360,9 @@
             </div>
 
             <div class="aar-grant-row">
-              <!-- Stepper compacto: botones - / + + input numérico. -->
+              <!-- Stepper compacto: botones - / + + input numérico.
+                   El número grande de adentro YA es el feedback visual —
+                   no hace falta otra card duplicando el mismo dato. -->
               <div class="aar-grant-stepper">
                 <button type="button" class="aar-step-btn" aria-label="Restar 1"
                         onclick="aarStepGrant(this, -1)">
@@ -377,19 +387,24 @@
                 </button>
               </div>
 
-              <!-- Flecha decorativa stepper → preview -->
-              <svg class="aar-grant-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-              </svg>
-
-              <!-- Preview grande con el número en el centro. -->
-              <div class="aar-grant-preview">
-                <div class="aar-grant-preview-lbl">Le concederás</div>
-                <div class="aar-grant-preview-num">
-                  <span class="js-aar-preview-amount">+{{ req.requested_amount }}</span>
+              <!-- Pill de delta: muestra al instante si das IGUAL, MENOS
+                   o MÁS que lo que el usuario pidió. Más informativo que
+                   un duplicado del número. Verde=igual, ámbar=menos, violeta=más. -->
+              <div class="aar-grant-delta js-aar-delta is-equal" data-requested="{{ req.requested_amount }}">
+                <div class="aar-delta-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
                 </div>
-                <div class="aar-grant-preview-unit">alias adicionales</div>
+                <div class="aar-delta-body">
+                  <div class="aar-delta-headline">Igual a lo pedido</div>
+                  <div class="aar-delta-hint">El usuario recibe exactamente lo que solicitó.</div>
+                </div>
               </div>
+
+              <!-- Span oculto para mantener compatibilidad con el JS
+                   existente (sincroniza el botón Aprobar +N). -->
+              <span class="js-aar-preview-amount" hidden>+{{ req.requested_amount }}</span>
             </div>
           </div>
 
@@ -405,23 +420,26 @@
 
             <div class="aar-note-wrap">
 
-              <!-- Chips de nota predefinida — click rellena el textarea. -->
+              <!-- Chips de nota predefinida — click rellena el textarea.
+                   Cada chip tiene `data-tone` semántico que define:
+                     - el color del hover/active (verde/rojo/amber/amarillo)
+                     - si el chip desactiva el botón Aprobar (tone=info|reject) -->
               <div class="aar-note-chips" role="group" aria-label="Notas comunes">
-                <button type="button" class="aar-note-chip"
+                <button type="button" class="aar-note-chip" data-tone="approve"
                         onclick="aarSetNote(this, 'Aprobado. Si necesitás más en el futuro, podés pedir otra vez.')">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
                   Aprobado
                 </button>
-                <button type="button" class="aar-note-chip"
+                <button type="button" class="aar-note-chip" data-tone="reduce"
                         onclick="aarSetNote(this, 'Te concedo menos de lo que pediste. Si los usas todos, pedí más después.')">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="5" y1="12" x2="19" y2="12"/>
                   </svg>
                   Te doy menos
                 </button>
-                <button type="button" class="aar-note-chip"
+                <button type="button" class="aar-note-chip" data-tone="caution"
                         onclick="aarSetNote(this, 'Vamos a probar primero con este cupo. Si te queda chico, pedí más adelante.')">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
@@ -429,7 +447,7 @@
                   </svg>
                   Probemos primero
                 </button>
-                <button type="button" class="aar-note-chip"
+                <button type="button" class="aar-note-chip" data-tone="info"
                         onclick="aarSetNote(this, 'Necesito más información sobre el uso que les vas a dar. Respondé al admin con detalles.')">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
@@ -438,7 +456,7 @@
                   </svg>
                   Más info
                 </button>
-                <button type="button" class="aar-note-chip"
+                <button type="button" class="aar-note-chip" data-tone="reject"
                         onclick="aarSetNote(this, 'No puedo concederte más cupo en este momento. Probá usar mejor los que ya tenés.')">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"/>
@@ -450,7 +468,9 @@
 
               <textarea name="admin_note" rows="2" maxlength="500"
                         class="aar-note-textarea js-aar-note"
-                        placeholder="Escribí tu mensaje al usuario, o tocá un chip arriba para usar uno predefinido..."></textarea>
+                        readonly
+                        tabindex="-1"
+                        placeholder="Tocá un chip arriba para elegir tu respuesta. No se permite escribir libre."></textarea>
             </div>
           </div>
 
@@ -463,7 +483,8 @@
               </svg>
               Rechazar
             </button>
-            <button type="submit" name="action" value="approve" class="aar-btn-approve">
+            <button type="submit" name="action" value="approve" class="aar-btn-approve"
+                    data-user-email="{{ req.user.email }}">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
@@ -554,9 +575,9 @@ function aarStepGrant(btn, delta) {
   aarOnGrantInput(input);
 }
 
-/* Cada cambio de cantidad refresca: preview "Le concederás +N", el
-   número del botón "Aprobar +N", y limpia cualquier carácter no-dígito
-   que se haya colado. */
+/* Cada cambio de cantidad refresca: el texto del botón "Aprobar +N",
+   el pill de delta que indica si das igual/menos/más que lo pedido,
+   y limpia cualquier carácter no-dígito que se haya colado. */
 function aarOnGrantInput(input) {
   var cleaned = (input.value || '').replace(/\D/g, '').slice(0, 2);
   if (cleaned !== input.value) input.value = cleaned;
@@ -571,6 +592,52 @@ function aarOnGrantInput(input) {
   var txt = '+' + (n || '?');
   if (prevEl) prevEl.textContent = txt;
   if (btnEl)  btnEl.textContent  = txt;
+
+  /* Delta pill: comparación con lo solicitado. */
+  var deltaEl = form.querySelector('.js-aar-delta');
+  if (deltaEl) aarUpdateDelta(deltaEl, n);
+}
+
+/* Calcula y pinta el delta entre lo que el admin va a dar (granted)
+   y lo que el usuario pidió (requested, en data-attribute). */
+function aarUpdateDelta(deltaEl, granted) {
+  var requested = parseInt(deltaEl.dataset.requested, 10) || 0;
+  var diff = granted - requested;
+
+  var headEl = deltaEl.querySelector('.aar-delta-headline');
+  var hintEl = deltaEl.querySelector('.aar-delta-hint');
+  var iconWrap = deltaEl.querySelector('.aar-delta-icon');
+  if (!headEl || !hintEl || !iconWrap) return;
+
+  /* Reseteamos clases de estado para que el CSS pinte el color correcto. */
+  deltaEl.classList.remove('is-equal', 'is-less', 'is-more');
+
+  var SVG_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  var SVG_DOWN  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+  var SVG_UP    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+
+  if (granted <= 0) {
+    /* Caso borde: input vacío durante edición. */
+    deltaEl.classList.add('is-less');
+    headEl.textContent = 'Sin asignar';
+    hintEl.textContent = 'Ingresá un número para conceder alias.';
+    iconWrap.innerHTML = SVG_DOWN;
+  } else if (diff === 0) {
+    deltaEl.classList.add('is-equal');
+    headEl.textContent = 'Igual a lo pedido';
+    hintEl.textContent = 'El usuario recibe exactamente lo que solicitó.';
+    iconWrap.innerHTML = SVG_CHECK;
+  } else if (diff < 0) {
+    deltaEl.classList.add('is-less');
+    headEl.textContent = diff + ' vs lo pedido';
+    hintEl.textContent = 'Le das menos: pidió +' + requested + ', recibirá +' + granted + '.';
+    iconWrap.innerHTML = SVG_DOWN;
+  } else {
+    deltaEl.classList.add('is-more');
+    headEl.textContent = '+' + diff + ' vs lo pedido';
+    hintEl.textContent = 'Le das más: pidió +' + requested + ', recibirá +' + granted + '.';
+    iconWrap.innerHTML = SVG_UP;
+  }
 }
 
 /* Al perder foco, clampeamos al mínimo si quedó vacío o por debajo. */
@@ -586,22 +653,43 @@ document.addEventListener('blur', function (e) {
 }, true);
 
 /* ════════════════════════════════════════════════════════════════════
-   Chips de nota — click rellena el textarea del MISMO form y enfoca.
+   Chips de nota — click rellena el textarea (readonly) del MISMO form.
+   Además: si el chip elegido es de tono `reject` o `info`, deshabilita
+   el botón "Aprobar" porque esos mensajes no son coherentes con una
+   aprobación. El admin tiene que cambiar de chip o rechazar.
    ════════════════════════════════════════════════════════════════════ */
 function aarSetNote(btn, text) {
   var form = btn.closest('form');
   var ta = form && form.querySelector('.js-aar-note');
   if (!ta) return;
   ta.value = text;
-  ta.focus();
-  try {
-    var len = ta.value.length;
-    ta.setSelectionRange(len, len);
-  } catch (e) {}
   /* Marcar el chip como "usado" — los demás vuelven a estado normal. */
   var chips = form.querySelectorAll('.aar-note-chip');
   chips.forEach(function (c) { c.classList.remove('active'); });
   btn.classList.add('active');
+  aarSyncApproveState(form);
+}
+
+/* Lee el chip activo del form y desactiva/activa el botón Aprobar.
+   Tonos `reject` e `info` → Aprobar deshabilitado (con tooltip explicando
+   por qué). Cualquier otro chip activo (o ninguno) → Aprobar habilitado. */
+function aarSyncApproveState(form) {
+  var approveBtn = form.querySelector('.aar-btn-approve');
+  if (!approveBtn) return;
+  var activeChip = form.querySelector('.aar-note-chip.active');
+  var tone = activeChip && activeChip.dataset.tone;
+
+  if (tone === 'reject' || tone === 'info') {
+    approveBtn.disabled = true;
+    approveBtn.setAttribute('aria-disabled', 'true');
+    approveBtn.title = (tone === 'reject')
+      ? 'Elegiste un mensaje de rechazo. Para aprobar, seleccioná otro chip.'
+      : 'Elegiste un mensaje pidiendo más información. Para aprobar, seleccioná otro chip.';
+  } else {
+    approveBtn.disabled = false;
+    approveBtn.removeAttribute('aria-disabled');
+    approveBtn.title = '';
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -711,6 +799,53 @@ function aarCloseDetail() {
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && modal.classList.contains('open')) aarCloseDetail();
   });
+})();
+
+/* ════════════════════════════════════════════════════════════════════
+   Deep-link: cuando el admin llega desde la notificación (toast/bell)
+   con `?open=ID`, llevamos al usuario directo a esa solicitud:
+     - Si sigue pendiente → scroll al decision card + flash de highlight.
+     - Si ya está resuelta → abrimos su modal automáticamente.
+   ════════════════════════════════════════════════════════════════════ */
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var openId = params.get('open');
+  if (!openId) return;
+
+  function tryOpen() {
+    /* Pendiente: card con data-req-id */
+    var pending = document.querySelector('.aar-card[data-req-id="' + openId + '"]');
+    if (pending) {
+      pending.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      pending.classList.add('aar-flash');
+      setTimeout(function () { pending.classList.remove('aar-flash'); }, 2400);
+      return true;
+    }
+    /* Resuelta: fila con data-modal-target */
+    var row = document.querySelector('.aar-row[data-modal-target="aar-detail-' + openId + '"]');
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(function () { aarOpenDetail(row); }, 360);
+      return true;
+    }
+    return false;
+  }
+
+  /* Si la fila no está visible por filtro activo, primero reseteamos a "Todas". */
+  if (!tryOpen()) {
+    var allBtn = document.querySelector('.aar-filter-pill[data-filter="all"]');
+    if (allBtn) allBtn.click();
+    setTimeout(tryOpen, 80);
+  }
+
+  /* Limpiamos el query param para que un F5 no re-abra el modal. */
+  if (window.history && window.history.replaceState) {
+    params.delete('open');
+    var clean = window.location.pathname +
+                (params.toString() ? '?' + params.toString() : '') +
+                window.location.hash;
+    window.history.replaceState({}, '', clean);
+  }
 })();
 
 

@@ -1,7 +1,44 @@
 /* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — terminos.css
+   PROPERTIES — terminos
+   Mismas dimensiones que privacidad — los estilos cambian sólo en
+   el color de acento (verde → violeta) que viene del tema global.
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --mono: 'JetBrains Mono', monospace;
-  --display: 'Syne', sans-serif;
+    --mono:                'JetBrains Mono', monospace;
+    --display:             'Syne', sans-serif;
+
+    /* Layout */
+    --tr-content-max:      68.75rem;
+    --tr-toc-w:            15rem;
+    --tr-layout-gap:       2.5rem;
+
+    /* Progress bar */
+    --tr-progress-h:       0.1875rem;
+
+    /* Topbar */
+    --tr-topbar-pad:       0.875rem 1.5rem;
+    --tr-topbar-logo-size: 1.75rem;
+
+    /* Hero */
+    --tr-hero-pad-mobile:  2.5rem 1.25rem 2rem;
+    --tr-hero-pad-desk:    4rem 1.5rem 3rem;
+    --tr-hero-icon-size:   4rem;
+    --tr-h1-mobile:        1.875rem;
+    --tr-h1-desk:          2.5rem;
+
+    /* Sections */
+    --tr-section-radius:   1rem;
+    --tr-section-pad-mob:  1.375rem 1.25rem;
+    --tr-section-pad-desk: 1.75rem 2rem;
+    --tr-section-icon:     2.75rem;
+    --tr-h2-font:          1.1875rem;
+
+    /* Callouts */
+    --tr-callout-radius:   0.75rem;
+    --tr-callout-pad:      1rem 1.125rem;
+    --tr-callout-icon:     1.75rem;
+
+    /* CTA */
+    --tr-cta-radius:       1.125rem;
+    --tr-cta-pad:          2.25rem 2rem;
 }

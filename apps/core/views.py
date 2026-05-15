@@ -308,7 +308,7 @@ def admin_set_alias_quota(request, pk):
     if new_limit != old_limit:
         delta = new_limit - old_limit
         if delta > 0:
-            title = '✅ Cupo de alias actualizado'
+            title = 'Cupo de alias actualizado'
             msg   = f'El administrador subió tu cupo a {new_limit} alias (+{delta}).'
         else:
             title = 'Cupo de alias actualizado'
@@ -349,7 +349,7 @@ def admin_toggle_alias_unlimited(request, pk):
     if profile.alias_unlimited:
         Notification.objects.create(
             user=target, type='system',
-            title='✨ Cupo ilimitado activado',
+            title='Cupo ilimitado activado',
             message='El administrador te concedió alias ilimitados. Ya no tienes tope para crear nuevos.',
             status='done',
         )
@@ -482,13 +482,15 @@ def admin_alias_request_resolve(request, pk):
 
         # Notifica al usuario (campana global). status='done' porque no
         # requiere acción del usuario — solo es informativo.
+        # Separador '\n\n' entre mensaje del sistema y nota del admin para
+        # que el detalle los renderice como bloques distintos.
         msg_user = f"Tu solicitud fue aprobada: +{granted} alias adicionales."
         if admin_note:
-            msg_user += f"  Nota: {admin_note}"
+            msg_user += f"\n\n{admin_note}"
         Notification.objects.create(
             user=req.user,
             type='system',
-            title='✅ Solicitud aprobada',
+            title='Solicitud aprobada',
             message=msg_user,
             status='done',
         )
@@ -504,7 +506,7 @@ def admin_alias_request_resolve(request, pk):
         # Notifica al usuario.
         msg_user = "Tu solicitud de más alias fue rechazada."
         if admin_note:
-            msg_user += f"  Motivo: {admin_note}"
+            msg_user += f"\n\n{admin_note}"
         Notification.objects.create(
             user=req.user,
             type='system',

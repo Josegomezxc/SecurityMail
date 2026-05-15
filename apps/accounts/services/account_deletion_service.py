@@ -104,7 +104,7 @@ def _build_account_deleted_html(
               <tr>
                 <td width="42" style="vertical-align:middle;padding-right:12px">
                   <div style="width:42px;height:42px;background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:12px;text-align:center;line-height:42px">
-                    <span style="color:#ffffff;font-size:20px;line-height:42px;vertical-align:middle">🛡</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;margin-top:11px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   </div>
                 </td>
                 <td style="vertical-align:middle">
@@ -217,7 +217,7 @@ def _build_account_deleted_html(
           <td style="padding:14px 38px 0">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.22);border-radius:12px">
               <tr>
-                <td width="40" valign="top" style="padding:14px 0 14px 15px;color:#fbbf24;font-size:17px">⚠️</td>
+                <td width="40" valign="top" style="padding:14px 0 14px 15px"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></td>
                 <td valign="top" style="padding:14px 15px 14px 10px">
                   <div style="color:#fbbf24;font-size:12.5px;font-weight:700;margin-bottom:3px">¿No fuiste tú?</div>
                   <div style="color:#fde68a;font-size:12.5px;line-height:1.65">

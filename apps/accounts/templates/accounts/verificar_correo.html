@@ -7,19 +7,19 @@
 {% endblock %}
 
 {% block body_outer %}
-<main class="verify-wrapper">
-  <section class="verify-card" aria-labelledby="verify-title">
+<main class="verify-wrapper" aria-labelledby="verify-title">
+  <article class="verify-card">
 
-    <a href="/" class="verify-logo">
-      <div class="verify-logo-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round">
+    <a href="/" class="verify-logo" aria-label="Inicio · DockerShield">
+      <span class="verify-logo-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
         </svg>
-      </div>
+      </span>
       <span class="verify-logo-text">Docker<span>Shield</span></span>
     </a>
 
-    <div class="verify-icon">
+    <div class="verify-icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
         <polyline points="22,6 12,13 2,6"/>
@@ -35,8 +35,8 @@
     {% if messages %}
     <ul class="verify-msg-list">
       {% for m in messages %}
-        <li class="verify-msg {{ m.tags|default:'info' }}">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;margin-top:2px">
+        <li class="verify-msg {{ m.tags|default:'info' }}" role="alert">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;margin-top:2px" aria-hidden="true">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
           <span>{{ m }}</span>
@@ -47,26 +47,24 @@
 
     <form method="post" class="verify-form" id="verifyForm" novalidate>
       {% csrf_token %}
-      <label class="verify-label">Código de verificación</label>
+      <label class="verify-label" for="code-digit-0">Código de verificación</label>
 
-      <!-- 6 inputs separados para mejor UX. JS los une y los manda como un solo "code". -->
-      <div class="code-input-wrap" id="codeWrap">
-        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="0" autocomplete="one-time-code" autofocus>
-        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="1">
-        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="2">
-        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="3">
-        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="4">
-        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="5">
-      </div>
+      <fieldset class="code-input-wrap" id="codeWrap">
+        <legend class="sr-only">6 dígitos del código</legend>
+        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" id="code-digit-0" data-idx="0" autocomplete="one-time-code" autofocus aria-label="Dígito 1">
+        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="1" aria-label="Dígito 2">
+        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="2" aria-label="Dígito 3">
+        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="3" aria-label="Dígito 4">
+        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="4" aria-label="Dígito 5">
+        <input type="text" inputmode="numeric" maxlength="1" class="code-digit" data-idx="5" aria-label="Dígito 6">
+      </fieldset>
       <input type="hidden" name="code" id="codeHidden">
 
       <button type="submit" class="verify-btn" id="submitBtn" disabled>Verificar correo</button>
     </form>
 
-    <!-- Cuenta regresiva + reenvío van FUERA del form principal:
-         HTML5 NO permite anidar <form> dentro de otro <form> y rompe el CSRF. -->
     <div class="verify-meta">
-      <span class="countdown" id="countdown" data-expires-at="{{ expires_at|date:'c' }}">El código expira pronto…</span>
+      <span class="countdown" id="countdown" data-expires-at="{{ expires_at|date:'c' }}" aria-live="polite">El código expira pronto…</span>
       <form method="post" action="{% url 'reenviar_codigo' token=token %}" class="resend-form">
         {% csrf_token %}
         <span>¿No te llegó?</span>
@@ -74,16 +72,16 @@
       </form>
     </div>
 
-    <div class="verify-help">
+    <aside class="verify-help" aria-label="Ayuda">
       <strong>¿No encuentras el correo?</strong> Revisa tu carpeta de
       <em>spam</em> o <em>promociones</em>. Si llegó pero el código expiró,
       puedes pedir uno nuevo con "Reenviar" (60 segundos entre envíos).
-    </div>
+    </aside>
 
-    <div class="verify-back">
+    <p class="verify-back">
       ¿Te equivocaste de cuenta? <a href="{% url 'registro' %}">Volver al registro</a>
-    </div>
-  </section>
+    </p>
+  </article>
 </main>
 
 <script src="{% static 'accounts/js/verificar_correo.js' %}"></script>

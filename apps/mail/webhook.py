@@ -64,7 +64,8 @@ def _save_minimal_email(request, reason=""):
     if not recipient:
         return
     try:
-        alias = Alias.objects.get(address=recipient, is_active=True)
+        # Case-insensitive: los MTAs normalizan el destinatario a minúsculas
+        alias = Alias.objects.get(address__iexact=recipient, is_active=True)
     except Alias.DoesNotExist:
         return
     EmailMessage.objects.create(
@@ -284,7 +285,7 @@ def _neutralize_links_html(html: str) -> str:
         block_attrs = (
             f' class="sms-blocked-link"'
             f' data-blocked-href="{safe_title}"'
-            f' title="🛡 Enlace bloqueado por seguridad — destino: {safe_title}"'
+            f' title="Enlace bloqueado por seguridad — destino: {safe_title}"'
             f' style="pointer-events:none;cursor:not-allowed;color:#dc2626;'
             f'text-decoration:line-through wavy;opacity:0.75"'
             f' role="link" aria-disabled="true"'
@@ -307,8 +308,8 @@ def _neutralize_links_html(html: str) -> str:
                 '<rect width=%22120%22 height=%2240%22 fill=%22%23f3f4f6%22/>'
                 '<text x=%2260%22 y=%2225%22 text-anchor=%22middle%22 '
                 'font-family=%22monospace%22 font-size=%2210%22 fill=%22%236b7280%22>'
-                '🛡 imagen bloqueada</text></svg>" '
-                f'alt="Imagen externa bloqueada" title="🛡 Imagen externa bloqueada por seguridad" '
+                'imagen bloqueada</text></svg>" '
+                f'alt="Imagen externa bloqueada" title="Imagen externa bloqueada por seguridad" '
                 f'style="border:1px dashed #9ca3af;padding:4px;border-radius:4px">')
 
     html = re.sub(r'<img\b([^>]*)>', _process_img, html, flags=re.IGNORECASE)
@@ -434,9 +435,13 @@ def _handle_inbound(request):
         body = _html_to_text(body_html)
 
     # ── 2. Buscar el alias destino ─────────────────────────────────────
+    # Los MTAs (Gmail, Outlook, SendGrid) normalizan el destinatario a
+    # minúsculas en el transporte. Si el alias se guardó con mayúsculas
+    # (ej. "TigreNublado_lezara@..."), una búsqueda case-sensitive lo
+    # rechazaba. Usamos __iexact para que coincida sin importar el case.
     alias_address = _bare_email(fields['recipient'])
     try:
-        alias = Alias.objects.get(address=alias_address, is_active=True)
+        alias = Alias.objects.get(address__iexact=alias_address, is_active=True)
     except Alias.DoesNotExist:
         print(f"[webhook] alias desconocido: {alias_address} (correo descartado)")
         return HttpResponse("OK", status=200)
@@ -1410,7 +1415,7 @@ def send_safe_email_forward(email_obj, force=False):
                     f'<table cellpadding="0" cellspacing="0" width="100%"><tr>'
                     f'<td width="32" valign="middle">'
                     f'<div style="width:30px;height:30px;background:#ede9fe;border-radius:7px;text-align:center;line-height:30px">'
-                    f'<span style="color:#7c3aed;font-size:14px">📎</span></div></td>'
+                    f'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></div></td>'
                     f'<td valign="middle" style="padding-left:10px">'
                     f'<div style="font-size:12.5px;color:#1f2937;font-weight:600;font-family:monospace">{a["filename"]}</div>'
                     f'<div style="font-size:11px;color:#6b7280;margin-top:1px">{_fmt_size(a["size"])} · escaneado por sandbox</div>'

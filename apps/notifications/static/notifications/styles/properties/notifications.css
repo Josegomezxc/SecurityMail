@@ -1,0 +1,21 @@
+/* ════════════════════════════════════════════════════════════════════
+   PROPERTIES — notifications/notifications
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Page */
+  --nf-page-max:      57.5rem;        /* 920px */
+
+  /* Header */
+  --nf-h1:            1.1875rem;      /* 19px */
+  --nf-h1-lg:         1.375rem;       /* 22px */
+
+  /* Toolbar */
+  --nf-tool-radius:   0.75rem;
+
+  /* Lista */
+  --nf-list-radius:   0.875rem;
+  --nf-row-pad:       0.75rem 0.875rem;
+  --nf-row-pad-lg:    1rem 1.25rem;
+  --nf-row-icon:      2.5rem;          /* 40px */
+  --nf-row-icon-lg:   2.75rem;         /* 44px */
+}

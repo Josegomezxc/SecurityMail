@@ -1,11 +1,42 @@
 /* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — sandbox_list.css
+   PROPERTIES — sandbox/sandbox_list
    ════════════════════════════════════════════════════════════════════ */
 :root {
   --ai-purple:        #7c3aed;
   --ai-purple-light:  #a78bfa;
   --ai-purple-soft:   rgba(124,58,237,0.08);
   --ai-purple-border: rgba(124,58,237,0.22);
-  --mono: 'JetBrains Mono', monospace;
+  --mono:    'JetBrains Mono', monospace;
   --display: 'Syne', sans-serif;
+
+  /* Hero */
+  --sl-hero-radius:    1rem;
+  --sl-hero-pad:       1rem 0.875rem;
+  --sl-hero-pad-lg:    1.375rem 1.5rem;
+  --sl-hero-icon:      3rem;            /* 48px */
+  --sl-hero-h1:        1.125rem;        /* 18px */
+  --sl-hero-h1-lg:     1.375rem;        /* 22px */
+
+  /* How section */
+  --sl-step-radius:    0.75rem;
+  --sl-step-pad:       0.75rem;
+  --sl-step-pad-lg:    0.875rem;
+  --sl-step-num:       1.75rem;         /* 28px */
+
+  /* Stats */
+  --sl-stat-radius:    0.75rem;
+  --sl-stat-pad:       1.75rem 1rem 1.375rem;
+  --sl-stat-pad-lg:    2rem 1.125rem 1.625rem;
+  --sl-stat-val:       5rem;            /* 80px */
+
+  /* Toolbar */
+  --sl-tool-radius:    0.75rem;
+
+  /* Lista */
+  --sl-list-radius:    0.875rem;
+  --sl-card-radius:    0.875rem;
+  --sl-card-pad:       0.875rem;
+  --sl-card-pad-lg:    0.875rem 1rem;
+  --sl-score-ring:     3rem;            /* 48px */
+  --sl-score-ring-lg:  3.25rem;         /* 52px */
 }

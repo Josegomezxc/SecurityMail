@@ -7,97 +7,98 @@
 {% endblock %}
 
 {% block body_outer %}
-<main class="login-wrapper">
-  <div class="login-shell">
+<main class="login-wrapper" aria-labelledby="rg-title">
+  <section class="login-shell">
 
-    <!-- ── PANEL VISUAL IZQUIERDO ─────────────── -->
-    <aside class="login-side">
+    <!-- ── PANEL VISUAL IZQUIERDO ── -->
+    <aside class="login-side" aria-label="Información de DockerShield">
       <div class="side-content">
-        <div>
+        <header>
           <h2 class="side-headline">Crea tu cuenta y <span>blinda</span> tu correo en menos de 1 minuto.</h2>
           <p class="side-tagline">Tres pasos. Cero compromisos.</p>
-        </div>
+        </header>
 
-        <div class="stats-card">
-          <div class="stat">
+        <ul class="stats-card" aria-label="Estadísticas clave">
+          <li class="stat">
             <div class="stat-num">100%</div>
             <div class="stat-label">Privado</div>
-          </div>
-          <div class="stat">
+          </li>
+          <li class="stat">
             <div class="stat-num">0</div>
             <div class="stat-label">Datos vendidos</div>
-          </div>
-          <div class="stat">
+          </li>
+          <li class="stat">
             <div class="stat-num">&lt;1min</div>
             <div class="stat-label">Setup</div>
-          </div>
-        </div>
+          </li>
+        </ul>
 
-        <div class="steps">
-          <div class="step">
-            <div class="step-num">1</div>
+        <ol class="steps">
+          <li class="step">
+            <div class="step-num" aria-hidden="true">1</div>
             <div class="step-text">
               <strong>Regístrate con tu correo real</strong>
               Solo lo usamos para enviarte alertas. Nunca se expone.
             </div>
-          </div>
-          <div class="step">
-            <div class="step-num">2</div>
+          </li>
+          <li class="step">
+            <div class="step-num" aria-hidden="true">2</div>
             <div class="step-text">
               <strong>Genera alias desechables</strong>
               Una dirección distinta para cada servicio o web.
             </div>
-          </div>
-          <div class="step">
-            <div class="step-num">3</div>
+          </li>
+          <li class="step">
+            <div class="step-num" aria-hidden="true">3</div>
             <div class="step-text">
               <strong>Recibe tus correos blindados</strong>
               Cada adjunto se analiza en sandbox antes de llegar.
             </div>
-          </div>
-        </div>
+          </li>
+        </ol>
 
-        <div class="guarantees">
+        <div class="guarantees" aria-label="Nuestras garantías">
           <div class="guarantees-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
             Nuestras garantías
           </div>
-          <div class="guarantee">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Tu correo real nunca se comparte
-          </div>
-          <div class="guarantee">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Sin lectura humana de tus mensajes
-          </div>
-          <div class="guarantee">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Cifrado de extremo a extremo
-          </div>
-          <div class="guarantee">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Puedes eliminar tu cuenta cuando quieras
-          </div>
+          <ul style="list-style:none;padding:0;margin:0">
+            <li class="guarantee">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              Tu correo real nunca se comparte
+            </li>
+            <li class="guarantee">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              Sin lectura humana de tus mensajes
+            </li>
+            <li class="guarantee">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              Cifrado de extremo a extremo
+            </li>
+            <li class="guarantee">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              Puedes eliminar tu cuenta cuando quieras
+            </li>
+          </ul>
         </div>
       </div>
     </aside>
 
-    <!-- ── PANEL FORMULARIO ───────────────────── -->
-    <div class="login-card">
+    <!-- ── PANEL FORMULARIO ── -->
+    <article class="login-card">
 
-      <div class="login-logo">
-        <div class="login-logo-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
+      <header class="login-logo">
+        <span class="login-logo-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
-        </div>
+        </span>
         <span class="login-logo-text">Docker<span>Shield</span></span>
-      </div>
+      </header>
 
-      <h1 class="login-title">Crear cuenta</h1>
+      <h1 id="rg-title" class="login-title">Crear cuenta</h1>
       <p class="login-subtitle">Tu correo real quedará siempre oculto.</p>
 
       <form method="post" id="register-form" novalidate>
@@ -106,8 +107,7 @@
         <div class="form-group">
           <label class="form-label" for="name-input">Nombre de usuario</label>
           <div class="input-with-icon{% if field_errors.name %} has-error{% endif %}" id="name-wrap">
-            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
+            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
               <circle cx="12" cy="7" r="4"/>
             </svg>
@@ -115,13 +115,14 @@
                    placeholder="Ej: adrian24"
                    value="{{ form_values.name|default:'' }}"
                    required autofocus autocomplete="username"
-                   minlength="2" maxlength="30" spellcheck="false">
+                   minlength="2" maxlength="30" spellcheck="false"
+                   aria-describedby="name-hint">
           </div>
-          <div class="field-error {% if field_errors.name %}show{% endif %}" id="name-err">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div class="field-error {% if field_errors.name %}show{% endif %}" id="name-err" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span id="name-err-text">{{ field_errors.name|default:'' }}</span>
           </div>
-          <div style="margin-top:4px;font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono,monospace)">
+          <div id="name-hint" style="margin-top:4px;font-size:0.65625rem;color:var(--text-muted);font-family:var(--font-mono,monospace)">
             2-30 caracteres · letras, números, _ y - · sin espacios
           </div>
         </div>
@@ -129,17 +130,16 @@
         <div class="form-group">
           <label class="form-label" for="email-input">Correo electrónico (será tu correo real protegido)</label>
           <div class="input-with-icon{% if field_errors.email %} has-error{% endif %}" id="email-wrap">
-            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
+            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
               <polyline points="22,6 12,13 2,6" />
             </svg>
             <input type="email" id="email-input" name="email" class="form-control" placeholder="usuario@correo.com"
-              value="{{ form_values.email|default:'' }}"
-              required autocomplete="email" maxlength="254">
+                   value="{{ form_values.email|default:'' }}"
+                   required autocomplete="email" maxlength="254">
           </div>
-          <div class="field-error {% if field_errors.email %}show{% endif %}" id="email-err">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div class="field-error {% if field_errors.email %}show{% endif %}" id="email-err" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span id="email-err-text">{{ field_errors.email|default:'' }}</span>
           </div>
         </div>
@@ -147,25 +147,22 @@
         <div class="form-group">
           <label class="form-label" for="pwd1">Contraseña</label>
           <div class="input-with-icon has-eye">
-            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
+            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="11" width="18" height="11" rx="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
             <input type="password" id="pwd1" name="password" class="form-control" placeholder="Mínimo 8 caracteres"
-              required autocomplete="new-password">
+                   required autocomplete="new-password">
             <button type="button" class="eye-btn" data-target="pwd1" aria-label="Mostrar u ocultar contraseña">
-              <svg class="eye-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="eye-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
           </div>
 
-          <div class="caps-warning" id="capsWarning">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
+          <div class="caps-warning" id="capsWarning" role="status" aria-live="polite">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
               <line x1="12" y1="9" x2="12" y2="13" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -173,8 +170,8 @@
             Bloq Mayús está activado
           </div>
 
-          <div class="strength-wrap">
-            <div class="strength-bar" id="strengthBar">
+          <div class="strength-wrap" aria-live="polite">
+            <div class="strength-bar" id="strengthBar" role="presentation">
               <span></span><span></span><span></span><span></span>
             </div>
             <div class="strength-label">
@@ -183,42 +180,37 @@
             </div>
           </div>
 
-          <div class="req-list" id="reqList">
-            <div class="req" data-req="len">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                stroke-linejoin="round">
+          <ul class="req-list" id="reqList" aria-label="Requisitos de la contraseña">
+            <li class="req" data-req="len">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
               8+ caracteres
-            </div>
-            <div class="req" data-req="upper">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                stroke-linejoin="round">
+            </li>
+            <li class="req" data-req="upper">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
               Una mayúscula
-            </div>
-            <div class="req" data-req="num">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                stroke-linejoin="round">
+            </li>
+            <li class="req" data-req="num">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
               Un número
-            </div>
-            <div class="req" data-req="sym">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                stroke-linejoin="round">
+            </li>
+            <li class="req" data-req="sym">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
               Un símbolo
-            </div>
-          </div>
+            </li>
+          </ul>
 
-          {# Errores de backend sobre la contraseña (múltiples posibles) #}
           {% if field_errors.password %}
             {% for err in field_errors.password %}
-              <div class="field-error show" style="margin-top:6px">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <div class="field-error show" style="margin-top:0.375rem" role="alert">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 <span>{{ err }}</span>
               </div>
             {% endfor %}
@@ -228,47 +220,42 @@
         <div class="form-group">
           <label class="form-label" for="pwd2">Confirmar contraseña</label>
           <div class="input-with-icon has-eye">
-            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
+            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="11" width="18" height="11" rx="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
             <input type="password" id="pwd2" name="password2" class="form-control" placeholder="Repite tu contraseña"
-              required autocomplete="new-password">
+                   required autocomplete="new-password">
             <button type="button" class="eye-btn" data-target="pwd2" aria-label="Mostrar u ocultar contraseña">
-              <svg class="eye-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="eye-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
           </div>
-          <div class="match-hint" id="matchHint">
-            <svg id="matchIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-              stroke-linecap="round" stroke-linejoin="round">
+          <div class="match-hint" id="matchHint" aria-live="polite">
+            <svg id="matchIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="20 6 9 17 4 12" />
             </svg>
             <span id="matchText">Las contraseñas coinciden</span>
           </div>
           {% if field_errors.password2 %}
-            <div class="field-error show" style="margin-top:6px">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div class="field-error show" style="margin-top:0.375rem" role="alert">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               <span>{{ field_errors.password2 }}</span>
             </div>
           {% endif %}
         </div>
 
-        <div class="consent-box">
-          <div class="consent-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
+        <fieldset class="consent-box">
+          <legend class="consent-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M9 12l2 2 4-4" />
               <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.12 0 4.07.74 5.61 1.97" />
             </svg>
             Consentimientos requeridos
-          </div>
+          </legend>
 
-          <!-- Checkbox maestro: acepta los 3 de una sola vez -->
           <label class="consent-master">
             <input type="checkbox" id="consent-all">
             <span class="consent-master-text">
@@ -277,7 +264,7 @@
             </span>
           </label>
 
-          <div class="consent-divider"></div>
+          <div class="consent-divider" aria-hidden="true"></div>
 
           <label class="consent-row">
             <input type="checkbox" class="consent-checkbox" id="consent1">
@@ -289,9 +276,8 @@
           <label class="consent-row">
             <input type="checkbox" class="consent-checkbox" id="consent2">
             <span class="consent-text">
-              He leído y acepto la <a href="#" onclick="openModal('privacidad');return false;">Política de
-                Privacidad</a>. Entiendo que mis adjuntos se procesan en contenedores Docker aislados <strong
-                style="color:var(--text-primary)">sin almacenar su contenido</strong>.
+              He leído y acepto la <a href="#" onclick="openModal('privacidad');return false;">Política de Privacidad</a>.
+              Entiendo que mis adjuntos se procesan en contenedores Docker aislados <strong style="color:var(--text-primary)">sin almacenar su contenido</strong>.
             </span>
           </label>
           <label class="consent-row">
@@ -301,26 +287,24 @@
             </span>
           </label>
 
-          <div class="consent-progress" id="consentProgress">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-              stroke-linejoin="round">
+          <div class="consent-progress" id="consentProgress" aria-live="polite">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
             </svg>
             <span id="consentText">0 de 3 consentimientos aceptados</span>
           </div>
-        </div>
+        </fieldset>
 
-        {# Alerts globales del backend (solo los que no se muestran por campo) #}
         {% if messages %}
           {% for message in messages %}
-            <div class="form-alert {% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% else %}info{% endif %}">
+            <div class="form-alert {% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% else %}info{% endif %}" role="alert">
               <span class="form-alert-icon">
                 {% if message.tags == 'error' %}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 {% elif message.tags == 'success' %}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                 {% else %}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                 {% endif %}
               </span>
               <div class="form-alert-text">
@@ -334,72 +318,70 @@
         {% endif %}
 
         <button type="submit" class="btn-submit" id="submit-btn" disabled>
-          <span class="spinner"></span>
+          <span class="spinner" aria-hidden="true"></span>
           <span class="btn-text">Crear mi cuenta →</span>
         </button>
       </form>
 
-      <div class="login-footer">
+      <p class="login-footer">
         ¿Ya tienes cuenta? <a href="/">Iniciar sesión</a>
-      </div>
+      </p>
 
-      <div class="trust-strip">
+      <footer class="trust-strip" aria-label="Garantías">
         <span class="trust-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-            stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12" />
           </svg>
           Cifrado E2E
         </span>
         <span class="trust-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-            stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12" />
           </svg>
           Sin rastreo
         </span>
         <span class="trust-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-            stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12" />
           </svg>
           GDPR
         </span>
-      </div>
+      </footer>
 
-    </div>
-  </div>
+    </article>
+  </section>
 </main>
 
-<div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+<!-- ── MODAL: Términos / Privacidad ── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal()" aria-hidden="true"></div>
 
-<div class="modal-box" id="modal-terminos">
-  <div class="modal-header">
-    <div class="modal-title">
-      <div class="modal-title-icon">
+<aside class="modal-box" id="modal-terminos" role="dialog" aria-labelledby="modal-terminos-title" aria-hidden="true">
+  <header class="modal-header">
+    <h2 class="modal-title" id="modal-terminos-title">
+      <span class="modal-title-icon" aria-hidden="true">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
         </svg>
-      </div>
+      </span>
       Términos de Servicio
-    </div>
-    <button class="modal-close" onclick="closeModal()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    </h2>
+    <button class="modal-close" onclick="closeModal()" aria-label="Cerrar modal">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
         <line x1="18" y1="6" x2="6" y2="18" />
         <line x1="6" y1="6" x2="18" y2="18" />
       </svg>
     </button>
-  </div>
+  </header>
 
-  <div class="modal-section">
-    <div class="modal-section-title">1. Descripción del Servicio</div>
+  <section class="modal-section">
+    <h3 class="modal-section-title">1. Descripción del Servicio</h3>
     <p>DockerShield genera alias de correo desechables para proteger tu dirección real. Los correos recibidos en
       dichos alias son analizados automáticamente para detectar contenido malicioso.</p>
-  </div>
+  </section>
 
-  <div class="modal-section">
-    <div class="modal-section-title">2. Análisis Automatizado de Adjuntos</div>
+  <section class="modal-section">
+    <h3 class="modal-section-title">2. Análisis Automatizado de Adjuntos</h3>
     <p>Al usar este servicio aceptas expresamente que:</p>
     <ul>
       <li>Los adjuntos serán analizados automáticamente por sistemas de seguridad.</li>
@@ -411,63 +393,60 @@
       <strong style="color:var(--text-primary)">Fundamento legal:</strong> El análisis automatizado para fines de
       seguridad está amparado bajo el consentimiento explícito del usuario y es práctica estándar en ciberseguridad.
     </div>
-  </div>
+  </section>
 
-  <div class="modal-section">
-    <div class="modal-section-title">3. Uso Aceptable</div>
+  <section class="modal-section">
+    <h3 class="modal-section-title">3. Uso Aceptable</h3>
     <ul>
       <li>Usar el servicio únicamente para proteger tu propia privacidad.</li>
       <li>No usar los alias para actividades ilegales o fraudulentas.</li>
       <li>Mantener la confidencialidad de tus credenciales.</li>
     </ul>
-  </div>
+  </section>
 
-  <div class="modal-section">
-    <div class="modal-section-title">4. Limitación de Responsabilidad</div>
+  <section class="modal-section">
+    <h3 class="modal-section-title">4. Limitación de Responsabilidad</h3>
     <p>DockerShield no garantiza detección del 100% de amenazas. Es una capa adicional de seguridad, no el único
       mecanismo de protección.</p>
-  </div>
-</div>
+  </section>
+</aside>
 
-<div class="modal-box" id="modal-privacidad">
-  <div class="modal-header">
-    <div class="modal-title">
-      <div class="modal-title-icon">
+<aside class="modal-box" id="modal-privacidad" role="dialog" aria-labelledby="modal-privacidad-title" aria-hidden="true">
+  <header class="modal-header">
+    <h2 class="modal-title" id="modal-privacidad-title">
+      <span class="modal-title-icon" aria-hidden="true">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
-      </div>
+      </span>
       Política de Privacidad
-    </div>
-    <button class="modal-close" onclick="closeModal()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    </h2>
+    <button class="modal-close" onclick="closeModal()" aria-label="Cerrar modal">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
         <line x1="18" y1="6" x2="6" y2="18" />
         <line x1="6" y1="6" x2="18" y2="18" />
       </svg>
     </button>
-  </div>
+  </header>
 
-  <div class="modal-section">
-    <div class="modal-section-title">1. Tu Correo Real</div>
+  <section class="modal-section">
+    <h3 class="modal-section-title">1. Tu Correo Real</h3>
     <p>Nunca es expuesto a terceros. Solo lo usamos para enviarte alertas de seguridad cuando detectamos una amenaza en
       tus alias.</p>
-  </div>
+  </section>
 
-  <div class="modal-section">
-    <div class="modal-section-title">2. Qué Datos Almacenamos</div>
+  <section class="modal-section">
+    <h3 class="modal-section-title">2. Qué Datos Almacenamos</h3>
     <ul>
-      <li><strong style="color:var(--text-primary)">Correo electrónico</strong> — para alertas de seguridad. Nunca
-        compartido.</li>
+      <li><strong style="color:var(--text-primary)">Correo electrónico</strong> — para alertas de seguridad. Nunca compartido.</li>
       <li><strong style="color:var(--text-primary)">Alias creados</strong> — para gestionar tu protección.</li>
-      <li><strong style="color:var(--text-primary)">Metadatos de correos</strong> — remitente y asunto, para
-        mostrártelos.</li>
-      <li><strong style="color:var(--text-primary)">Resultado del análisis</strong> — score de riesgo y tipo de amenaza.
-        NO el contenido del adjunto.</li>
+      <li><strong style="color:var(--text-primary)">Metadatos de correos</strong> — remitente y asunto, para mostrártelos.</li>
+      <li><strong style="color:var(--text-primary)">Resultado del análisis</strong> — score de riesgo y tipo de amenaza. NO el contenido del adjunto.</li>
     </ul>
-  </div>
+  </section>
 
-  <div class="modal-section">
-    <div class="modal-section-title">3. Cómo Procesamos los Adjuntos</div>
+  <section class="modal-section">
+    <h3 class="modal-section-title">3. Cómo Procesamos los Adjuntos</h3>
     <ul>
       <li>El adjunto se analiza en un contenedor Docker completamente aislado.</li>
       <li>El contenedor no tiene acceso a internet ni al disco del servidor.</li>
@@ -475,25 +454,24 @@
       <li>Solo almacenamos el resultado (score, tipo de amenaza), no el archivo.</li>
     </ul>
     <div class="modal-highlight">
-      <strong style="color:var(--text-primary)">Sin intervención humana:</strong> Nadie accede al contenido de tus
-      correos o adjuntos. Todo es automatizado.
+      <strong style="color:var(--text-primary)">Sin intervención humana:</strong> Nadie accede al contenido de tus correos o adjuntos. Todo es automatizado.
     </div>
-  </div>
+  </section>
 
-  <div class="modal-section">
-    <div class="modal-section-title">4. Tus Derechos</div>
+  <section class="modal-section">
+    <h3 class="modal-section-title">4. Tus Derechos</h3>
     <ul>
       <li>Eliminar tu cuenta y todos tus datos en cualquier momento.</li>
       <li>Destruir cualquier alias activo.</li>
       <li>Solicitar información sobre los datos almacenados.</li>
     </ul>
-  </div>
+  </section>
 
-  <div class="modal-section">
-    <div class="modal-section-title">5. Contacto</div>
+  <section class="modal-section">
+    <h3 class="modal-section-title">5. Contacto</h3>
     <p>Para consultas sobre privacidad: <strong style="color:var(--accent)">jgomezm10@unemi.edu.ec</strong></p>
-  </div>
-</div>
+  </section>
+</aside>
 
 <script src="{% static 'accounts/js/register.js' %}"></script>
 {% endblock %}

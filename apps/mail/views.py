@@ -1,7 +1,7 @@
 """
 Vistas del módulo mail:
-  - Dashboard principal (HTML + endpoint live).
-  - Bandeja de entrada (HTML + APIs de polling, marcado de leído, vaciar).
+  - Dashboard principal (render server-side).
+  - Bandeja de entrada (render + marcado de leído, vaciar).
 
 Toda la lógica de scoring/sandbox vive en apps.sandbox y apps.mail.webhook.
 """
@@ -11,13 +11,12 @@ from datetime import timedelta
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
-from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.aliases.models import Alias
 from apps.sandbox.models import SandboxAnalysis
-from apps.core.services.stats_service import dashboard_stats, timesince_short
+from apps.core.services.stats_service import dashboard_stats
 from .models import EmailMessage, SentEmail, Draft
 
 
@@ -76,67 +75,6 @@ def dashboard_view(request):
         'recent_threats':  recent_threats,
         **stats,
     })
-
-
-@login_required(login_url='login')
-def dashboard_live_api(request):
-    """
-    JSON consumido por el polling del dashboard (cada 15 s).
-    Devuelve stats + listas compactas de los últimos correos, alias,
-    análisis y amenazas del usuario.
-    """
-    stats = dashboard_stats(request.user)
-
-    emails = EmailMessage.objects.filter(
-        alias__user=request.user,
-    ).select_related('alias').order_by('-received_at')[:8]
-
-    aliases = Alias.objects.filter(user=request.user, is_active=True)[:5]
-
-    analyses = SandboxAnalysis.objects.filter(
-        email__alias__user=request.user,
-    ).order_by('-analyzed_at')[:3]
-
-    threats = EmailMessage.objects.filter(
-        alias__user=request.user, risk_score__gte=61,
-    ).select_related('alias').order_by('-received_at')[:3]
-
-    data = dict(stats)
-    data["emails"] = [{
-        "id":         em.id,
-        "from":       em.from_email,
-        "subject":    em.subject,
-        "alias":      em.alias.address,
-        "risk_score": em.risk_score or 0,
-        "time_human": timesince_short(em.received_at),
-    } for em in emails]
-    data["aliases"] = [{
-        "id":          a.id,
-        "address":     a.address,
-        "label":       a.label,
-        "email_count": a.email_count,
-        "is_active":   a.is_active,
-    } for a in aliases]
-    data["analyses"] = [{
-        "id":         a.pk,
-        "filename":   a.filename,
-        "risk_score": a.risk_score or 0,
-    } for a in analyses]
-    data["threats"] = [{
-        "id":          em.id,
-        "from":        em.from_email,
-        "subject":     em.subject,
-        "alias":       em.alias.address,
-        "risk_score":  em.risk_score or 0,
-        "time_human":  timesince_short(em.received_at),
-        "analysis_url": (
-            reverse('sandbox_report', kwargs={'pk': em.analysis.pk})
-            if hasattr(em, 'analysis') and getattr(em, 'analysis', None)
-            else ''
-        ),
-    } for em in threats]
-
-    return JsonResponse(data)
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -251,54 +189,6 @@ def email_html_api(request, pk):
     resp = HttpResponse(em.body_html or '', content_type='text/html; charset=utf-8')
     resp['Cache-Control'] = 'private, max-age=86400'
     return resp
-
-
-@login_required(login_url='login')
-def inbox_new_api(request):
-    """
-    Endpoint consultado por el polling de la bandeja.
-    Devuelve solo los correos con id > after (los más nuevos).
-    """
-    try:
-        after = int(request.GET.get('after', '0'))
-    except (TypeError, ValueError):
-        after = 0
-
-    qs = (
-        EmailMessage.objects
-            .filter(alias__user=request.user, id__gt=after, deleted_at__isnull=True)
-            .select_related('alias')
-            .order_by('-received_at')[:50]
-    )
-
-    def _row(em):
-        analysis_url = ''
-        try:
-            analysis_url = reverse('sandbox_report', kwargs={'pk': em.analysis.pk})
-        except SandboxAnalysis.DoesNotExist:
-            pass
-        return {
-            "id":              em.id,
-            "from_email":      em.from_email,
-            "subject":         em.subject or "",
-            "body":            (em.body or "")[:200],
-            "alias":           em.alias.address,
-            "alias_id":        em.alias.id,
-            "alias_label":     em.alias.label,
-            "alias_active":    em.alias.is_active,
-            "received_at_iso": em.received_at.isoformat(),
-            "received_human":  timesince_short(em.received_at),
-            "read":            em.read,
-            "has_attachment":  em.has_attachment,
-            "attachment_name": em.attachment_name or "",
-            "risk_score":      em.risk_score or 0,
-            "analysis_url":    analysis_url,
-        }
-
-    return JsonResponse({
-        "emails":  [_row(em) for em in qs],
-        "has_new": qs.exists(),
-    })
 
 
 @login_required(login_url='login')

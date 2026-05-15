@@ -5,7 +5,7 @@
 {% block nav_notifications %}active{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'notifications/styles/notification_detail.css' %}">
+<link rel="stylesheet" href="{% static 'notifications/styles/notification_detail.css' %}?v=title-wrap">
 {% endblock %}
 
 {% block body %}
@@ -17,10 +17,17 @@
   </a>
 
   <!-- HERO -->
-  <header class="nd-hero t-{{ notif.type }}">
+  {% with quota=notif.quota_amount %}
+  <header class="nd-hero t-{{ notif.type }} {% if quota %}nd-hero--quota-{{ quota.kind }}{% endif %}">
     <div class="nd-hero-head">
-      <div class="nd-hero-icon t-{{ notif.type }}">
-        {% if notif.type == 'forward_request' %}
+      <div class="nd-hero-icon t-{{ notif.type }} {% if quota.kind == 'approved' %}nd-hero-icon--ok{% elif quota.kind == 'rejected' %}nd-hero-icon--ko{% endif %}">
+        {% if quota.kind == 'approved' %}
+          {# Check grande para aprobada #}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        {% elif quota.kind == 'rejected' %}
+          {# X grande para rechazada #}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        {% elif notif.type == 'forward_request' %}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         {% elif notif.type == 'forwarded' %}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -35,7 +42,68 @@
         <h1 class="nd-hero-title">{{ notif.title }}</h1>
       </div>
     </div>
-    {% if notif.message %}<div class="nd-hero-msg">{{ notif.message }}</div>{% endif %}
+
+    {# ── Bloque destacado: número de alias concedidos (solo cuota) ── #}
+    {% if quota %}
+      <div class="nd-quota-stat nd-quota-stat--{{ quota.kind }}">
+        <div class="nd-quota-stat-num">
+          {% if quota.kind == 'approved' %}+{{ quota.amount }}{% else %}0{% endif %}
+        </div>
+        <div class="nd-quota-stat-body">
+          <div class="nd-quota-stat-label">
+            {% if quota.kind == 'approved' %}Alias adicionales concedidos{% else %}Alias adicionales otorgados{% endif %}
+          </div>
+          <div class="nd-quota-stat-sub">
+            {% if quota.kind == 'approved' %}
+              Tu cupo total se actualizó. Ya podés generar más alias desde tu panel.
+            {% else %}
+              Tu cupo de alias no fue modificado. Podés volver a solicitar más adelante.
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% with parts=notif.message_parts %}
+      {% if parts.0 and not quota %}<div class="nd-hero-msg">{{ parts.0 }}</div>{% endif %}
+      {% if parts.1 %}
+        {% if 'rechazada' in notif.title|lower %}
+          {% with note_label='Motivo del rechazo' note_variant='reject' %}
+            <aside class="nd-admin-note nd-admin-note--{{ note_variant }}">
+              <div class="nd-admin-note-head">
+                <div class="nd-admin-note-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                  </svg>
+                </div>
+                <div class="nd-admin-note-meta">
+                  <div class="nd-admin-note-label">{{ note_label }}</div>
+                  <div class="nd-admin-note-author">Mensaje del administrador</div>
+                </div>
+              </div>
+              <div class="nd-admin-note-body">{{ parts.1|linebreaksbr }}</div>
+            </aside>
+          {% endwith %}
+        {% else %}
+          {% with note_label='Nota del administrador' note_variant='approve' %}
+            <aside class="nd-admin-note nd-admin-note--{{ note_variant }}">
+              <div class="nd-admin-note-head">
+                <div class="nd-admin-note-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                  </svg>
+                </div>
+                <div class="nd-admin-note-meta">
+                  <div class="nd-admin-note-label">{{ note_label }}</div>
+                  <div class="nd-admin-note-author">Mensaje del administrador</div>
+                </div>
+              </div>
+              <div class="nd-admin-note-body">{{ parts.1|linebreaksbr }}</div>
+            </aside>
+          {% endwith %}
+        {% endif %}
+      {% endif %}
+    {% endwith %}
 
     <div class="nd-meta-row">
       <span><strong>Recibida:</strong> {{ notif.created_at|date:"d M Y · H:i" }}</span>
@@ -45,6 +113,7 @@
       {% endif %}
     </div>
   </header>
+  {% endwith %}
 
   {% if email %}
   <!-- PREVIEW DEL CORREO -->
@@ -68,7 +137,11 @@
 
       {% if email.has_attachment %}
       <div class="nd-field-label">Adjunto:</div>
-      <div class="nd-field-value mono">📎 {{ email.attachment_name }}</div>
+      <div class="nd-field-value mono">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;color:var(--text-muted)">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+        </svg>{{ email.attachment_name }}
+      </div>
       {% endif %}
 
       <div class="nd-field-label">Score:</div>

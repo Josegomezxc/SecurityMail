@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'core/styles/admin_users.css' %}">
+<link rel="stylesheet" href="{% static 'core/styles/admin_users.css' %}?v=filters-horizontal">
 {% endblock %}
 
 {% block body %}
@@ -17,60 +17,63 @@
     <p>{{ users|length }} cuenta{{ users|length|pluralize:"s" }} · gestiona roles y revisa actividad</p>
   </div>
   <div class="search-bar" role="search">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
-    <input type="text" id="userSearch" placeholder="Buscar por correo o nombre..." oninput="filterUsers(this.value)" aria-label="Buscar usuarios">
+    <label for="userSearch" class="sr-only">Buscar usuarios por correo o nombre</label>
+    <input type="search" id="userSearch" placeholder="Buscar por correo o nombre..." oninput="filterUsers(this.value)">
   </div>
 </header>
 
-<!-- ── Filtros por rol ── -->
 <nav class="users-filters" id="usersFilters" aria-label="Filtros por rol">
-  <button type="button" class="users-filter-btn active" data-role-filter="all">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+  <button type="button" class="users-filter-btn active" data-role-filter="all" aria-pressed="true">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
     Todos
     <span class="users-filter-count" id="cnt-all">{{ users|length }}</span>
   </button>
-  <button type="button" class="users-filter-btn admin" data-role-filter="admin">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+  <button type="button" class="users-filter-btn admin" data-role-filter="admin" aria-pressed="false">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
     Administradores
     <span class="users-filter-count" id="cnt-admins">0</span>
   </button>
-  <button type="button" class="users-filter-btn" data-role-filter="user">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  <button type="button" class="users-filter-btn" data-role-filter="user" aria-pressed="false">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     Usuarios normales
     <span class="users-filter-count" id="cnt-users">0</span>
   </button>
-  <button type="button" class="users-filter-btn warn" data-role-filter="threats">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+  <button type="button" class="users-filter-btn warn" data-role-filter="threats" aria-pressed="false">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
     Con amenazas
     <span class="users-filter-count" id="cnt-threats">0</span>
   </button>
 </nav>
 
 {% if messages %}
-  {% for message in messages %}
-    <div class="adm-alert {% if message.tags == 'error' %}err{% endif %}">
-      {% if message.tags == 'error' %}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
-      {% else %}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      {% endif %}
-      {{ message }}
-    </div>
-  {% endfor %}
+  <div role="status" aria-live="polite">
+    {% for message in messages %}
+      <div class="adm-alert {% if message.tags == 'error' %}err{% endif %}" role="alert">
+        {% if message.tags == 'error' %}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+        {% else %}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        {% endif %}
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
 {% endif %}
 
 <div class="users-table-wrap">
   <table class="users-table">
+    <caption class="sr-only">Lista de usuarios registrados con su rol y estadísticas</caption>
     <thead>
       <tr>
-        <th>Usuario</th>
-        <th>Rol</th>
-        <th style="text-align:center">Aliases</th>
-        <th style="text-align:center">Correos</th>
-        <th style="text-align:center">Amenazas</th>
-        <th style="text-align:right">Acciones</th>
+        <th scope="col">Usuario</th>
+        <th scope="col">Rol</th>
+        <th scope="col" style="text-align:center">Aliases</th>
+        <th scope="col" style="text-align:center">Correos</th>
+        <th scope="col" style="text-align:center">Amenazas</th>
+        <th scope="col" style="text-align:right">Acciones</th>
       </tr>
     </thead>
     <tbody id="usersTbody">
@@ -80,7 +83,7 @@
           data-threats="{{ u.threats_count|default:0 }}">
         <td>
           <div class="user-cell">
-            <div class="user-avatar">
+            <div class="user-avatar" aria-hidden="true">
               {{ u.email|first|upper }}{{ u.email|slice:"1:2"|upper }}
             </div>
             <div class="user-name-col">
@@ -92,27 +95,21 @@
         <td>
           {% if u.is_staff %}
             <span class="role-badge admin">
-              <span class="dot"></span> ADMINISTRADOR
+              <span class="dot" aria-hidden="true"></span> ADMINISTRADOR
             </span>
           {% else %}
             <span class="role-badge user">
-              <span class="dot"></span> USUARIO
+              <span class="dot" aria-hidden="true"></span> USUARIO
             </span>
           {% endif %}
         </td>
-        <td class="num-cell {% if u.aliases_count == 0 %}muted{% endif %}">
-          {{ u.aliases_count }}
-        </td>
-        <td class="num-cell {% if u.emails_count == 0 %}muted{% endif %}">
-          {{ u.emails_count }}
-        </td>
-        <td class="num-cell {% if u.threats_count %}threat{% else %}muted{% endif %}">
-          {{ u.threats_count }}
-        </td>
+        <td class="num-cell {% if u.aliases_count == 0 %}muted{% endif %}">{{ u.aliases_count }}</td>
+        <td class="num-cell {% if u.emails_count == 0 %}muted{% endif %}">{{ u.emails_count }}</td>
+        <td class="num-cell {% if u.threats_count %}threat{% else %}muted{% endif %}">{{ u.threats_count }}</td>
         <td>
-          <div class="row-actions">
+          <div class="row-actions" role="group" aria-label="Acciones para {{ u.email }}">
             <a href="{% url 'admin_user_detail' u.pk %}" class="btn-mini primary">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               Ver
             </a>
             {% if u == request.user %}
@@ -123,12 +120,12 @@
                 {% csrf_token %}
                 {% if u.is_staff %}
                   <button type="submit" class="btn-mini demote" title="Quitar rol admin">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     Degradar
                   </button>
                 {% else %}
                   <button type="submit" class="btn-mini promote" title="Promover a admin">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
                     Promover
                   </button>
                 {% endif %}
@@ -138,13 +135,13 @@
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);font-family:var(--mono)">
+      <tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--text-muted);font-family:var(--mono)">
         No hay usuarios registrados.
       </td></tr>
       {% endfor %}
     </tbody>
   </table>
-  <div id="users-empty">
+  <div id="users-empty" role="status" aria-live="polite">
     Ningún usuario coincide con la búsqueda.
   </div>
 </div>

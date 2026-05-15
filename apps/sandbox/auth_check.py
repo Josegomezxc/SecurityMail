@@ -347,13 +347,13 @@ def apply_to_score(base_score: int, auth_result: dict) -> tuple:
     if verdict == VERIFIED:
         ev = {
             'type':     'auth_verified',
-            'detail':   f'✓ {auth_result.get("evidence", "")} · score reducido de {base_score} a {final}',
+            'detail':   f'{auth_result.get("evidence", "")} · score reducido de {base_score} a {final}',
             'severity': -30,
         }
     elif verdict == SPOOFED:
         ev = {
             'type':     'auth_spoofed',
-            'detail':   f'⚠ {auth_result.get("evidence", "")} · score elevado de {base_score} a {final}',
+            'detail':   f'{auth_result.get("evidence", "")} · score elevado de {base_score} a {final}',
             'severity': 70,
         }
     else:

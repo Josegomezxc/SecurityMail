@@ -3,7 +3,7 @@ Vistas y APIs del sistema de notificaciones (panel de campana).
 
   - notification_list_view  → página completa con todas las notificaciones
   - notification_detail_view → detalle de una notificación + acciones
-  - notification_unread_api  → JSON para el polling del badge
+  - notification_unread_api  → JSON para refrescar el badge bajo demanda
   - notification_mark_read_api → marca una como leída
   - notification_forward_api  → aprueba reenvío (forward_request)
   - notification_discard_api  → descarta (forward_request)
@@ -11,6 +11,7 @@ Vistas y APIs del sistema de notificaciones (panel de campana).
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -67,7 +68,7 @@ def notification_detail_view(request, pk):
 
 
 # ─────────────────────────────────────────────────────────────────────
-#  API: contador + últimas (para polling del bell)
+#  API: contador + últimas (para refrescar el dropdown del bell)
 # ─────────────────────────────────────────────────────────────────────
 
 @login_required(login_url='login')
@@ -99,6 +100,10 @@ def notification_unread_api(request):
                 risk = int(n.related_email.risk_score or 0)
             except Exception:
                 risk = None
+        # Deep-link: si la notificación trae `target_url`, ese gana.
+        # Si no, devolvemos la URL FIRMADA del detalle (el converter `sid`
+        # exige token, no entero — un /notificaciones/94/ crudo cae a 404).
+        link = n.target_url or reverse('notification_detail', kwargs={'pk': n.id})
         return {
             'id':         n.id,
             'type':       n.type,
@@ -110,7 +115,7 @@ def notification_unread_api(request):
             'risk_score': risk,
             'time_iso':   n.created_at.isoformat(),
             'time_human': _time_short(n.created_at),
-            'url':        f'/notificaciones/{n.id}/',
+            'url':        link,
         }
 
     return JsonResponse({

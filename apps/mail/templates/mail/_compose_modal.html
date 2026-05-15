@@ -19,7 +19,7 @@ Si el usuario navega con archivos adjuntos seleccionados, los pierde.
 Avisamos con un toast al restaurar si había archivos en la sesión previa.
 {% endcomment %}
 
-<link rel="stylesheet" href="{% static 'mail/styles/compose_modal.css' %}">
+<link rel="stylesheet" href="{% static 'mail/styles/compose_modal.css' %}?v=zindex-12h">
 
 
 <!-- ════════════════════════════════════════════════════════════════════
@@ -265,6 +265,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
             </div>
+            <button type="button" id="schedAmPm" class="sched-ampm-toggle" aria-label="Alternar AM / PM">AM</button>
           </div>
         </div>
         <div class="sched-summary" id="schedSummary">
@@ -288,4 +289,4 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
 </div>
 
 
-<script src="{% static 'mail/js/compose_modal.js' %}"></script>
+<script src="{% static 'mail/js/compose_modal.js' %}?v=12h-format"></script>

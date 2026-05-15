@@ -1,13 +1,85 @@
 /* ════════════════════════════════════════════════════════════════════
    PROPERTIES — alias.css
-   Custom properties usadas por alias.css. Importado al inicio del
-   archivo via @import.
+   Variables exclusivas de esta vista. Las globales (colores de tema,
+   radios) viven en core/styles/properties/base.css.
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --ai-purple:        #7c3aed;
-  --ai-purple-light:  #a78bfa;
-  --ai-purple-soft:   rgba(124,58,237,0.08);
-  --ai-purple-border: rgba(124,58,237,0.22);
-  --mono: 'JetBrains Mono', monospace;
-  --display: 'Syne', sans-serif;
+    /* Aliases cortos de colores (proyecto entero los usa) */
+    --ai-purple:        #7c3aed;
+    --ai-purple-light:  #a78bfa;
+    --ai-purple-soft:   rgba(124, 58, 237, 0.08);
+    --ai-purple-border: rgba(124, 58, 237, 0.22);
+    --mono:             'JetBrains Mono', monospace;
+    --display:          'Syne', sans-serif;
+
+    /* HERO */
+    --al-hero-radius:        1rem;
+    --al-hero-pad:           1.5rem 1.625rem;
+    --al-hero-icon-size:     3rem;        /* 48px */
+
+    /* CREATE CARD V2 */
+    --al-ccv2-radius:        1.125rem;
+    --al-ccv2-pad-mobile:    1.75rem 1.5rem;
+    --al-ccv2-pad-desk:      1.75rem 2rem;
+    --al-ccv2-gap-mobile:    1.25rem;
+    --al-ccv2-gap-desk:      1.75rem;
+    --al-ccv2-title-font:    1.375rem;    /* 22px */
+    --al-ccv2-btn-pad:       0.8125rem 1.5rem;
+    --al-ccv2-btn-radius:    0.75rem;
+
+    /* CREATE preview */
+    --al-preview-icon-size:  1.75rem;     /* 28px */
+    --al-preview-radius:     0.75rem;
+
+    /* Quota bar */
+    --al-quota-bar-h:        0.25rem;
+    --al-quota-max-w:        20rem;
+
+    /* Request more CTA */
+    --al-req-radius:         0.6875rem;
+    --al-req-icon-size:      2.25rem;     /* 36px */
+    --al-req-plus-size:      1rem;
+
+    /* LIST + cards */
+    --al-list-radius:        0.875rem;    /* 14px */
+    --al-list-pad:           0.375rem 0.625rem;
+    --al-list-row-h-mobile:  17.5rem;     /* 280px */
+    --al-list-row-h-desk:    6rem;        /* 96px */
+    --al-list-rows-mobile:   3;
+    --al-list-rows-desk:     6;
+
+    --al-card-radius:        0.875rem;
+    --al-card-pad-mobile:    0.875rem 1rem;
+    --al-card-pad-desk:      1.125rem 1.375rem;
+    --al-card-icon-mobile:   2.5rem;      /* 40px */
+    --al-card-icon-desk:     2.875rem;    /* 46px */
+
+    /* Botones */
+    --al-btn-pad-mobile:     0.5rem 0.75rem;
+    --al-btn-pad-desk:       0.375rem 0.75rem;
+    --al-btn-radius:         0.5rem;
+    --al-btn-font-mobile:    0.71875rem;
+    --al-btn-font-desk:      0.75rem;
+
+    /* Hero stats */
+    --al-stat-num-font:      1.25rem;
+
+    /* Toolbar */
+    --al-tb-radius:          0.75rem;
+    --al-tb-filter-radius:   0.5rem;
+
+    /* Empty state */
+    --al-empty-icon-size:    3.5rem;      /* 56px */
+    --al-empty-ghost-w:      20rem;
+    --al-empty-title-font:   1.375rem;
+
+    /* Modal Solicitar cupo */
+    --al-modal-max:          28.75rem;    /* 460px */
+    --al-modal-radius:       1rem;
+    --al-modal-pad:          1.5rem 1.375rem 1.25rem;
+    --al-modal-icon-size:    2.75rem;     /* 44px */
+
+    /* Slider */
+    --al-slider-h:           0.375rem;
+    --al-slider-thumb-size:  1.125rem;
 }

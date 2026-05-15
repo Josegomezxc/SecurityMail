@@ -53,7 +53,8 @@
     </div>
 
     <!-- Input -->
-    <input type="text" class="search-input" id="search-input"
+    <label class="sr-only" for="search-input">Buscar correos</label>
+    <input type="search" class="search-input" id="search-input"
            placeholder="Buscar por remitente, asunto..."
            oninput="onSearchInput(this.value)">
 
@@ -382,8 +383,9 @@
         <div style="flex:1;min-width:0">
           <div class="att-name" id="panel-att-name" style="display:flex;align-items:center;gap:6px">
             <span id="panel-att-name-text"></span>
-            <span style="font-size:9px;font-weight:700;font-family:var(--mono);color:#f87171;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);padding:2px 6px;border-radius:5px;letter-spacing:0.08em;flex-shrink:0">
-              🔒 BLOQUEADO
+            <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;font-family:var(--mono);color:#f87171;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);padding:2px 6px;border-radius:5px;letter-spacing:0.08em;flex-shrink:0">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              BLOQUEADO
             </span>
           </div>
           <div class="att-meta">Descarga deshabilitada — el archivo se analizó en sandbox aislado, tu PC nunca lo tocó.</div>
@@ -420,9 +422,8 @@
 
 <script>
 window.__INBOX_CTX__ = {
-  newApiUrl: "{% url 'inbox_new_api' %}",
   clearUrl:  "{% url 'inbox_clear' %}"
 };
 </script>
-<script src="{% static 'mail/js/inbox.js' %}"></script>
+<script src="{% static 'mail/js/inbox.js' %}?v=swipe-close"></script>
 {% endblock %}

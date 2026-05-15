@@ -126,7 +126,7 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
               <tr>
                 <td width="42" style="vertical-align:middle;padding-right:12px">
                   <div style="width:42px;height:42px;background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:12px;text-align:center;line-height:42px">
-                    <span style="color:#ffffff;font-size:20px;line-height:42px;vertical-align:middle">🛡</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;margin-top:11px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   </div>
                 </td>
                 <td style="vertical-align:middle">
@@ -209,7 +209,7 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.22);border-radius:12px;margin-bottom:10px">
               <tr>
                 <td width="40" valign="top" style="padding:14px 0 14px 15px">
-                  <div style="width:32px;height:32px;background:rgba(245,158,11,0.18);border-radius:9px;text-align:center;line-height:32px;font-size:15px">⏰</div>
+                  <div style="width:32px;height:32px;background:rgba(245,158,11,0.18);border-radius:9px;text-align:center;line-height:32px"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;margin-top:8px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
                 </td>
                 <td valign="middle" style="padding:14px 15px 14px 12px">
                   <div style="color:#fbbf24;font-size:10.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px">Expira</div>
@@ -237,7 +237,7 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
           <td style="padding:0 38px 28px">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.2);border-radius:12px">
               <tr>
-                <td width="40" valign="top" style="padding:14px 0 14px 15px;color:#4ade80;font-size:17px">🛡</td>
+                <td width="40" valign="top" style="padding:14px 0 14px 15px"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></td>
                 <td valign="top" style="padding:14px 15px 14px 10px">
                   <div style="color:#bbf2c9;font-size:12.5px;font-weight:700;margin-bottom:3px">¿No solicitaste esto?</div>
                   <div style="color:#86e6a6;font-size:12.5px;line-height:1.65">

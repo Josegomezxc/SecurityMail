@@ -6,15 +6,15 @@
 {% block nav_admin_aliases %}active{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/styles/admin_aliases.css' %}">
+<link rel="stylesheet" href="{% static 'core/styles/admin_aliases.css' %}?v=mobile-table-scroll">
 {% endblock %}
 
 {% block body %}
 
 <!-- HERO -->
 <header class="adm-hero-al">
-  <div class="adm-hero-al-icon">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <div class="adm-hero-al-icon" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
       <polyline points="22,6 12,13 2,6"/>
     </svg>
@@ -23,59 +23,66 @@
     <h1>Alias globales</h1>
     <p>todos los alias registrados en el sistema</p>
   </div>
-  <div class="adm-hero-al-stats">
+  <dl class="adm-hero-al-stats" aria-label="Resumen de alias">
     <div class="adm-hero-al-stat">
-      <div class="adm-hero-al-stat-val">{{ total_count }}</div>
-      <div class="adm-hero-al-stat-lbl">Total</div>
+      <dd class="adm-hero-al-stat-val" style="margin:0">{{ total_count }}</dd>
+      <dt class="adm-hero-al-stat-lbl">Total</dt>
     </div>
     <div class="adm-hero-al-stat">
-      <div class="adm-hero-al-stat-val act">{{ active_count }}</div>
-      <div class="adm-hero-al-stat-lbl">Activos</div>
+      <dd class="adm-hero-al-stat-val act" style="margin:0">{{ active_count }}</dd>
+      <dt class="adm-hero-al-stat-lbl">Activos</dt>
     </div>
     <div class="adm-hero-al-stat">
-      <div class="adm-hero-al-stat-val dest">{{ destroyed_count }}</div>
-      <div class="adm-hero-al-stat-lbl">Destruidos</div>
+      <dd class="adm-hero-al-stat-val dest" style="margin:0">{{ destroyed_count }}</dd>
+      <dt class="adm-hero-al-stat-lbl">Destruidos</dt>
     </div>
     <div class="adm-hero-al-stat">
-      <div class="adm-hero-al-stat-val threat">{{ with_threats_count }}</div>
-      <div class="adm-hero-al-stat-lbl">Con amenazas</div>
+      <dd class="adm-hero-al-stat-val threat" style="margin:0">{{ with_threats_count }}</dd>
+      <dt class="adm-hero-al-stat-lbl">Con amenazas</dt>
     </div>
-  </div>
+  </dl>
 </header>
 
-<!-- Toolbar — la búsqueda es client-side (real-time). Los pills SI hacen
-     reload porque cambian el dataset que llega desde el backend.
-     onsubmit="return false" evita que Enter recargue la página. -->
-<form method="get" class="al-toolbar" role="search" onsubmit="return false">
+<!-- Toolbar -->
+<form method="get" class="al-toolbar" role="search" onsubmit="return false" aria-label="Buscar y filtrar alias">
   <div class="al-search">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="aliasSearchInput" name="q" value="{{ current_q }}"
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <label for="aliasSearchInput" class="sr-only">Buscar alias por dirección, etiqueta o usuario</label>
+    <input type="search" id="aliasSearchInput" name="q" value="{{ current_q }}"
            placeholder="Buscar por dirección, etiqueta o usuario..."
            autocomplete="off" oninput="aliasTableSearch(this.value)">
     {% if current_state != 'all' %}<input type="hidden" name="state" value="{{ current_state }}">{% endif %}
   </div>
-  <div class="al-filters">
-    <a href="?{% if current_q %}q={{ current_q }}{% endif %}" class="al-filter all {% if current_state == 'all' %}active{% endif %}">
+  <nav class="al-filters" aria-label="Filtrar alias por estado">
+    <a href="?{% if current_q %}q={{ current_q }}{% endif %}"
+       class="al-filter all {% if current_state == 'all' %}active{% endif %}"
+       {% if current_state == 'all' %}aria-current="page"{% endif %}>
       Todos
     </a>
-    <a href="?state=active{% if current_q %}&q={{ current_q }}{% endif %}" class="al-filter act {% if current_state == 'active' %}active{% endif %}">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <a href="?state=active{% if current_q %}&q={{ current_q }}{% endif %}"
+       class="al-filter act {% if current_state == 'active' %}active{% endif %}"
+       {% if current_state == 'active' %}aria-current="page"{% endif %}>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
       Activos
     </a>
-    <a href="?state=destroyed{% if current_q %}&q={{ current_q }}{% endif %}" class="al-filter dest {% if current_state == 'destroyed' %}active{% endif %}">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+    <a href="?state=destroyed{% if current_q %}&q={{ current_q }}{% endif %}"
+       class="al-filter dest {% if current_state == 'destroyed' %}active{% endif %}"
+       {% if current_state == 'destroyed' %}aria-current="page"{% endif %}>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
       Destruidos
     </a>
-    <a href="?state=with_threats{% if current_q %}&q={{ current_q }}{% endif %}" class="al-filter threat {% if current_state == 'with_threats' %}active{% endif %}">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    <a href="?state=with_threats{% if current_q %}&q={{ current_q }}{% endif %}"
+       class="al-filter threat {% if current_state == 'with_threats' %}active{% endif %}"
+       {% if current_state == 'with_threats' %}aria-current="page"{% endif %}>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
       Con amenazas
     </a>
-  </div>
+  </nav>
 </form>
 
 <!-- Tabla -->
-<div class="al-table-wrap">
-  <div class="al-row head">
+<section class="al-table-wrap" aria-label="Lista de alias del sistema">
+  <div class="al-row head" role="presentation">
     <div>Alias / Etiqueta</div>
     <div>Usuario</div>
     <div class="col-center">Estado</div>
@@ -90,19 +97,19 @@
         {% if a.label %}<div class="al-label">{{ a.label|truncatechars:38 }}</div>{% endif %}
       </div>
       <div class="al-user">
-        <span class="al-user-avatar">{{ a.user.email|first|upper }}{{ a.user.email|slice:"1:2"|upper }}</span>
+        <span class="al-user-avatar" aria-hidden="true">{{ a.user.email|first|upper }}{{ a.user.email|slice:"1:2"|upper }}</span>
         <span class="al-user-email">{{ a.user.email|truncatechars:22 }}</span>
       </div>
       <div class="col-center">
         {% if a.is_active %}
-          <span class="al-state active"><span class="al-state-dot"></span>Activo</span>
+          <span class="al-state active"><span class="al-state-dot" aria-hidden="true"></span>Activo</span>
         {% else %}
-          <span class="al-state dest"><span class="al-state-dot"></span>Destruido</span>
+          <span class="al-state dest"><span class="al-state-dot" aria-hidden="true"></span>Destruido</span>
         {% endif %}
       </div>
       <div class="al-num col-center {% if a.emails_total == 0 %}zero{% endif %}">{{ a.emails_total }}</div>
       <div class="al-num col-center {% if a.threats_total > 0 %}threats{% else %}zero{% endif %}">{{ a.threats_total }}</div>
-      <div class="al-time">{{ a.created_at|timeshort }} atrás</div>
+      <div class="al-time col-right">{{ a.created_at|timeshort }} atrás</div>
     </a>
   {% empty %}
     <div class="al-empty">
@@ -113,20 +120,16 @@
       {% endif %}
     </div>
   {% endfor %}
-</div>
+</section>
 
-<!-- Mensaje cuando la búsqueda client-side no encuentra nada (JS lo
-     muestra/oculta). Vive fuera del .al-table-wrap para no romper grid. -->
-<div class="al-empty al-empty-search" id="al-empty-search" style="display:none">
+<div class="al-empty al-empty-search" id="al-empty-search" style="display:none" role="status" aria-live="polite">
   Ningún alias coincide con tu búsqueda.
 </div>
 
-<!-- Paginación client-side. La pinta el JS dinámicamente cuando hay > 10
-     filas tras filtrar. Si hay 10 o menos, se queda invisible. -->
 <nav class="al-pagination" id="al-pagination" aria-label="Paginación de alias"></nav>
 
 {% if shown_count >= 300 %}
-  <div class="al-tip">Mostrando los 300 alias más recientes — afina la búsqueda para ver más antiguos.</div>
+  <p class="al-tip">Mostrando los 300 alias más recientes — afina la búsqueda para ver más antiguos.</p>
 {% endif %}
 
 <script src="{% static 'core/js/admin_aliases.js' %}"></script>

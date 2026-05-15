@@ -1,0 +1,39 @@
+/* ════════════════════════════════════════════════════════════════════
+   PROPERTIES — notifications/notification_detail
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Page */
+  --nd-page-max:       47.5rem;       /* 760px */
+
+  /* Hero */
+  --nd-hero-radius:    1rem;
+  --nd-hero-pad:       1.625rem 1.75rem;
+  --nd-hero-icon:      3.25rem;       /* 52px */
+
+  /* Stat block (cupo) */
+  --nd-quota-radius:   0.875rem;
+  --nd-quota-pad:      1.125rem 1.25rem;
+  --nd-quota-pad-mb:   0.875rem 1rem;
+  --nd-quota-num:      3.5rem;        /* 56px */
+  --nd-quota-num-mb:   2.625rem;      /* 42px */
+
+  /* Admin note */
+  --nd-note-radius:    0.875rem;
+  --nd-note-pad:       1rem 1.125rem 1.125rem 1.125rem;
+  --nd-note-pad-mb:    0.875rem 0.875rem 1rem 0.875rem;
+
+  /* Section */
+  --nd-section-radius: 0.875rem;
+  --nd-section-pad:    1.375rem 1.5rem;
+
+  /* Action buttons */
+  --nd-act-radius:     0.875rem;
+  --nd-act-pad:        1rem 1.125rem;
+  --nd-act-icon:       2.75rem;       /* 44px */
+
+  /* Suspicious banner */
+  --nd-warn-radius:    0.75rem;
+  --nd-warn-pad:       0.75rem;
+  --nd-warn-pad-lg:    0.875rem 1rem;
+  --nd-warn-icon:      2.25rem;       /* 36px */
+}

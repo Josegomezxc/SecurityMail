@@ -1,0 +1,29 @@
+/* ════════════════════════════════════════════════════════════════════
+   PROPERTIES — admin_threats
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+    --at-hero-radius:        1rem;
+    --at-hero-pad-mobile:    1rem 0.875rem;
+    --at-hero-pad-desk:      1.375rem 1.625rem;
+    --at-hero-icon-size:     3rem;
+    --at-h1-mobile:          1.125rem;
+    --at-h1-desk:            1.375rem;
+
+    --at-stat-min-w:         5rem;
+    --at-stat-num-font:      1.25rem;
+
+    --at-toolbar-radius:     0.6875rem;
+    --at-search-min-w:       15rem;
+    --at-filter-pad:         0.5rem 0.875rem;
+    --at-filter-radius:      0.5rem;
+
+    --at-table-radius:       0.875rem;
+    --at-row-pad-mobile:     0.625rem 0.75rem;
+    --at-row-pad-desk:       0.875rem 1.125rem;
+
+    --at-score-size:         3.125rem;     /* 50px */
+    --at-score-radius:       0.75rem;
+    --at-score-font:         1.0625rem;
+
+    --at-avatar-size:        1.375rem;
+}

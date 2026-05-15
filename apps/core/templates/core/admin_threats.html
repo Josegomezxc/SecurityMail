@@ -12,8 +12,8 @@
 
 <!-- HERO -->
 <header class="adm-hero-th">
-  <div class="adm-hero-th-icon">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <div class="adm-hero-th-icon" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
       <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>
@@ -22,55 +22,60 @@
     <h1>Amenazas globales</h1>
     <p>todas las detecciones del sistema · score ≥ 61</p>
   </div>
-  <div class="adm-hero-th-stats">
+  <dl class="adm-hero-th-stats" aria-label="Resumen de amenazas">
     <div class="adm-hero-th-stat">
-      <div class="adm-hero-th-stat-val">{{ total_threats }}</div>
-      <div class="adm-hero-th-stat-lbl">Total</div>
+      <dd class="adm-hero-th-stat-val" style="margin:0">{{ total_threats }}</dd>
+      <dt class="adm-hero-th-stat-lbl">Total</dt>
     </div>
     <div class="adm-hero-th-stat">
-      <div class="adm-hero-th-stat-val crit">{{ critical_count }}</div>
-      <div class="adm-hero-th-stat-lbl">Críticas</div>
+      <dd class="adm-hero-th-stat-val crit" style="margin:0">{{ critical_count }}</dd>
+      <dt class="adm-hero-th-stat-lbl">Críticas</dt>
     </div>
     <div class="adm-hero-th-stat">
-      <div class="adm-hero-th-stat-val high">{{ high_count }}</div>
-      <div class="adm-hero-th-stat-lbl">Altas</div>
+      <dd class="adm-hero-th-stat-val high" style="margin:0">{{ high_count }}</dd>
+      <dt class="adm-hero-th-stat-lbl">Altas</dt>
     </div>
     <div class="adm-hero-th-stat">
-      <div class="adm-hero-th-stat-val today">{{ today_count }}</div>
-      <div class="adm-hero-th-stat-lbl">24 h</div>
+      <dd class="adm-hero-th-stat-val today" style="margin:0">{{ today_count }}</dd>
+      <dt class="adm-hero-th-stat-lbl">24 h</dt>
     </div>
-  </div>
+  </dl>
 </header>
 
-<!-- Toolbar — búsqueda client-side (real-time). Los pills siguen siendo
-     links GET porque cambian el dataset que llega del backend.
-     onsubmit="return false" evita que Enter recargue la página. -->
-<form method="get" class="th-toolbar" role="search" onsubmit="return false">
+<!-- Toolbar -->
+<form method="get" class="th-toolbar" role="search" onsubmit="return false" aria-label="Buscar y filtrar amenazas">
   <div class="th-search">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="threatsSearchInput" name="q" value="{{ current_q }}"
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <label for="threatsSearchInput" class="sr-only">Buscar amenazas</label>
+    <input type="search" id="threatsSearchInput" name="q" value="{{ current_q }}"
            placeholder="Buscar por remitente, asunto, alias o usuario..."
            autocomplete="off" oninput="threatsTableSearch(this.value)">
     {% if current_level != 'all' %}<input type="hidden" name="level" value="{{ current_level }}">{% endif %}
   </div>
-  <div class="th-filters">
-    <a href="?{% if current_q %}q={{ current_q }}{% endif %}" class="th-filter all {% if current_level == 'all' %}active{% endif %}">
+  <nav class="th-filters" aria-label="Filtrar por nivel de amenaza">
+    <a href="?{% if current_q %}q={{ current_q }}{% endif %}"
+       class="th-filter all {% if current_level == 'all' %}active{% endif %}"
+       {% if current_level == 'all' %}aria-current="page"{% endif %}>
       Todas
     </a>
-    <a href="?level=critical{% if current_q %}&q={{ current_q }}{% endif %}" class="th-filter crit {% if current_level == 'critical' %}active{% endif %}">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+    <a href="?level=critical{% if current_q %}&q={{ current_q }}{% endif %}"
+       class="th-filter crit {% if current_level == 'critical' %}active{% endif %}"
+       {% if current_level == 'critical' %}aria-current="page"{% endif %}>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
       Críticas (81+)
     </a>
-    <a href="?level=high{% if current_q %}&q={{ current_q }}{% endif %}" class="th-filter high {% if current_level == 'high' %}active{% endif %}">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    <a href="?level=high{% if current_q %}&q={{ current_q }}{% endif %}"
+       class="th-filter high {% if current_level == 'high' %}active{% endif %}"
+       {% if current_level == 'high' %}aria-current="page"{% endif %}>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
       Altas (61-80)
     </a>
-  </div>
+  </nav>
 </form>
 
 <!-- Tabla -->
-<div class="th-table-wrap">
-  <div class="th-row head">
+<section class="th-table-wrap" aria-label="Lista de amenazas detectadas">
+  <div class="th-row head" role="presentation">
     <div>Score</div>
     <div>Asunto / Remitente</div>
     <div>Usuario afectado</div>
@@ -83,18 +88,18 @@
     {% else %}
       <a href="{% url 'admin_user_detail' pk=t.alias.user.pk %}" class="th-row">
     {% endif %}
-      <div class="th-score {% if t.risk_score >= 81 %}crit{% else %}high{% endif %}">
+      <div class="th-score {% if t.risk_score >= 81 %}crit{% else %}high{% endif %}" aria-label="Score {{ t.risk_score }}">
         {{ t.risk_score }}
       </div>
       <div class="th-info">
         <div class="th-info-subj">{{ t.subject|default:"(sin asunto)"|truncatechars:60 }}</div>
         <div class="th-info-meta">
           <span><strong>De:</strong> {{ t.from_email|truncatechars:40 }}</span>
-          {% if t.has_attachment %}<span>📎 {{ t.attachment_name|truncatechars:24 }}</span>{% endif %}
+          {% if t.has_attachment %}<span style="display:inline-flex;align-items:center;gap:0.3125rem"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>{{ t.attachment_name|truncatechars:24 }}</span>{% endif %}
         </div>
       </div>
       <div class="th-user">
-        <span class="th-user-avatar">{{ t.alias.user.email|first|upper }}{{ t.alias.user.email|slice:"1:2"|upper }}</span>
+        <span class="th-user-avatar" aria-hidden="true">{{ t.alias.user.email|first|upper }}{{ t.alias.user.email|slice:"1:2"|upper }}</span>
         {{ t.alias.user.email|truncatechars:22 }}
       </div>
       <div class="th-alias">{{ t.alias.address|truncatechars:24 }}</div>
@@ -105,24 +110,21 @@
       {% if current_q or current_level != 'all' %}
         Ninguna amenaza coincide con los filtros actuales.
       {% else %}
-        🎉 Sin amenazas registradas en el sistema.
+        Sin amenazas registradas en el sistema.
       {% endif %}
     </div>
   {% endfor %}
-</div>
+</section>
 
-<!-- Mensaje cuando la búsqueda client-side no encuentra nada -->
-<div class="th-empty" id="th-empty-search" style="display:none">
+<div class="th-empty" id="th-empty-search" style="display:none" role="status" aria-live="polite">
   Ninguna amenaza coincide con tu búsqueda.
 </div>
 
 {% if shown_count >= 200 %}
-  <div class="th-tip">Mostrando las 200 amenazas más recientes — afina la búsqueda para ver más antiguas.</div>
+  <p class="th-tip">Mostrando las 200 amenazas más recientes — afina la búsqueda para ver más antiguas.</p>
 {% endif %}
 
 <script>
-/* Búsqueda client-side en tiempo real para la tabla de amenazas.
-   Filtra .th-row por contenido. Pills siguen siendo server-side. */
 (function () {
   var wrap = document.querySelector('.th-table-wrap');
   if (!wrap) return;

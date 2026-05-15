@@ -1,8 +1,8 @@
 """
 Cálculos estadísticos reutilizables.
 
-Usado por dashboard (GET + polling JSON), perfil, y panel de admin.
-Mantiene las consultas centralizadas para no duplicar lógica.
+Usado por dashboard, perfil, y panel de admin. Mantiene las consultas
+centralizadas para no duplicar lógica.
 """
 from datetime import timedelta
 
@@ -206,19 +206,3 @@ def profile_stats(user) -> dict:
     }
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  Utilidades de formato
-# ─────────────────────────────────────────────────────────────────────
-
-def timesince_short(dt) -> str:
-    """
-    Devuelve 'hace N min/h/d/sem' en formato compacto para el frontend.
-    Usado en las respuestas JSON del polling.
-    """
-    from django.utils.timesince import timesince
-    s = timesince(dt).split(',')[0]
-    return (s
-            .replace('hours', 'h').replace('hour', 'h')
-            .replace('minutes', 'min').replace('minute', 'min')
-            .replace('days', 'd').replace('day', 'd')
-            .replace('weeks', 'sem').replace('week', 'sem'))

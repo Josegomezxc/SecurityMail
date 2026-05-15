@@ -196,4 +196,8 @@ def generate_alias_address(label: str = '') -> str:
 
     slug = label[:30] or 'Alias'
     code = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-    return f"{slug}_{code}@{domain}"
+    # Forzamos minúsculas en la dirección final. Los MTAs (Gmail, Outlook,
+    # SendGrid) entregan los correos con el destinatario en minúsculas, así
+    # que guardar el alias en minúsculas garantiza que el webhook lo
+    # matchee con búsqueda exacta, sin necesidad de iexact.
+    return f"{slug}_{code}@{domain}".lower()

@@ -1,12 +1,69 @@
 /* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — sandbox_report.css
+   PROPERTIES — sandbox/sandbox_report
+   La vista más densa del proyecto: hero status + score + secciones de
+   evidencias, IOCs, YARA, AI verdict, origin flow y próximos pasos.
    ════════════════════════════════════════════════════════════════════ */
 :root {
   --ai-purple:        #7c3aed;
   --ai-purple-light:  #a78bfa;
   --ai-purple-soft:   rgba(124,58,237,0.08);
   --ai-purple-border: rgba(124,58,237,0.22);
-  --ai-glow:          0 0 40px rgba(124,58,237,0.12);
-  --mono: 'JetBrains Mono', monospace;
+  --ai-glow:          0 0 2.5rem rgba(124,58,237,0.12);
+  --mono:    'JetBrains Mono', monospace;
   --display: 'Syne', sans-serif;
+
+  /* Status banner */
+  --sr-banner-radius:  0.875rem;
+  --sr-banner-pad:     1rem 0.875rem;
+  --sr-banner-pad-lg:  1.125rem 1.375rem;
+  --sr-banner-icon:    2.75rem;        /* 44px */
+
+  /* Score card */
+  --sr-score-radius:   1rem;
+  --sr-score-pad:      1rem 0.875rem;
+  --sr-score-pad-lg:   1.5rem;
+  --sr-score-ring-mb:  4.5rem;         /* 72px */
+  --sr-score-ring-lg:  5.5rem;         /* 88px */
+  --sr-score-num-mb:   1.375rem;       /* 22px */
+  --sr-score-num-lg:   1.75rem;        /* 28px */
+  --sr-score-name-mb:  1rem;           /* 16px */
+  --sr-score-name-lg:  1.1875rem;      /* 19px */
+
+  /* Section card */
+  --sr-section-radius: 0.875rem;
+  --sr-section-pad-h:  0.75rem 0.875rem;
+  --sr-section-pad-h-lg: 0.875rem 1.25rem;
+  --sr-section-icon:   2rem;           /* 32px */
+
+  /* AI section */
+  --sr-ai-radius:      1rem;
+  --sr-ai-head-pad:    0.875rem;
+  --sr-ai-head-pad-lg: 1.125rem 1.375rem;
+  --sr-ai-icon:        2.5rem;         /* 40px */
+  --sr-ai-result-pad:  0.875rem;
+  --sr-ai-result-pad-lg: 1.25rem;
+  --sr-ai-card-radius: 0.75rem;
+  --sr-ai-card-pad:    1rem;
+
+  /* Insight cards */
+  --sr-insight-radius: 0.875rem;
+  --sr-insight-pad:    1.25rem;
+  --sr-insight-pad-lg: 1.375rem 1.5rem 1.375rem 1.125rem;
+  --sr-insight-icon:   2.625rem;       /* 42px */
+
+  /* Origin flow */
+  --sr-flow-radius:    0.875rem;
+  --sr-flow-pad:       1rem 1rem 0.875rem;
+  --sr-flow-icon:      2.75rem;        /* 44px */
+
+  /* Action tile */
+  --sr-tile-radius:    0.875rem;
+  --sr-tile-pad-mb:    0.875rem 0.875rem 0.875rem 0.75rem;
+  --sr-tile-pad-lg:    1.125rem 1.125rem 1.125rem 1rem;
+  --sr-tile-icon-mb:   2.5rem;         /* 40px */
+  --sr-tile-icon-lg:   3rem;           /* 48px */
+
+  /* Facts */
+  --sr-fact-radius:    0.625rem;
+  --sr-fact-pad:       0.75rem 0.875rem;
 }

@@ -1,11 +1,43 @@
 /* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — sent.css
+   PROPERTIES — mail/sent
    ════════════════════════════════════════════════════════════════════ */
 :root {
   --ai-purple:        #7c3aed;
   --ai-purple-light:  #a78bfa;
   --ai-purple-soft:   rgba(124,58,237,0.08);
   --ai-purple-border: rgba(124,58,237,0.22);
-  --mono: 'JetBrains Mono', monospace;
+  --mono:    'JetBrains Mono', monospace;
   --display: 'Syne', sans-serif;
+
+  /* Hero */
+  --st-hero-radius:    1rem;            /* 16px */
+  --st-hero-pad:       0.875rem;
+  --st-hero-pad-lg:    1.375rem 1.625rem;
+  --st-hero-icon:      2.75rem;         /* 44px */
+  --st-hero-h1:        1.125rem;        /* 18px */
+  --st-hero-h1-lg:     1.25rem;         /* 20px */
+
+  /* Stats */
+  --st-stat-val:       1.25rem;         /* 20px */
+  --st-stat-val-lg:    1.375rem;        /* 22px */
+
+  /* Toolbar */
+  --st-tool-radius:    0.75rem;
+  --st-search-min:     15rem;           /* 240px */
+
+  /* Compose / alias picker */
+  --st-compose-radius: 0.6875rem;       /* 11px */
+  --st-compose-pad:    0.6875rem 1rem 0.6875rem 0.875rem;
+  --st-picker-w-lg:    17.5rem;         /* 280px */
+
+  /* Lista */
+  --st-list-radius:    0.875rem;        /* 14px */
+  --st-row-radius:     0.875rem;
+  --st-row-pad:        0.75rem 0.875rem;
+  --st-row-pad-lg:     0.875rem 1.125rem;
+  --st-avatar:         2.375rem;        /* 38px */
+
+  /* Detail panel */
+  --st-detail-w-lg:    36.25rem;        /* 580px */
+  --st-detail-pad:     1.125rem 1.375rem;
 }

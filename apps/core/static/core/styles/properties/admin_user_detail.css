@@ -1,7 +1,39 @@
 /* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — admin_user_detail.css
+   PROPERTIES — admin_user_detail
    ════════════════════════════════════════════════════════════════════ */
 :root {
-  --mono: 'JetBrains Mono', monospace;
-  --display: 'Syne', sans-serif;
+    --mono:                'JetBrains Mono', monospace;
+    --display:             'Syne', sans-serif;
+
+    /* Header */
+    --ud-header-radius:    1.125rem;
+    --ud-header-pad:       1rem 0.875rem;       /* mobile compacto */
+    --ud-header-pad-lg:    1.5rem 1.625rem;     /* desktop generoso */
+    --ud-avatar-size:      4rem;
+    --ud-h1-font:          1.125rem;            /* mobile: cabe mejor */
+    --ud-h1-font-lg:       1.25rem;             /* desktop original */
+
+    /* Mini stats */
+    --ud-stat-radius:      0.875rem;
+    --ud-stat-pad:         1rem 1.125rem;
+    --ud-stat-val-font:    1.625rem;
+
+    /* Section card */
+    --ud-section-radius:   1rem;
+    --ud-section-head-pad: 0.875rem 1.25rem;
+
+    /* Quota */
+    --ud-quota-info-radius:0.75rem;
+    --ud-quota-bar-h:      0.5rem;
+    --ud-quota-step-w:     2.5rem;
+    --ud-quota-input-font: 1.375rem;
+
+    /* Unlim hero / grant */
+    --ud-hero-radius:      0.875rem;
+    --ud-hero-pad:         1.25rem 1.375rem;
+    --ud-hero-icon-size:   3.25rem;     /* 52px */
+
+    /* Aliases / emails rows */
+    --ud-row-pad:          0.75rem 1.25rem;
+    --ud-em-avatar-size:   1.875rem;
 }

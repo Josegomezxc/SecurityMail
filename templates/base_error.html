@@ -24,6 +24,8 @@
        Estilos inline a propósito: si el static está roto, la página
        de error igual se ve bien. Es la única página del proyecto que
        DEBE renderizar pase lo que pase.
+       Mobile First Strict — defaults pensados para móvil, @media
+       (min-width:768px) añade el layout más amplio para desktop.
        ════════════════════════════════════════════════════════════════ */
     :root {
       --bg:           #0a0814;
@@ -75,12 +77,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 1rem;
       overflow: hidden;
       position: relative;
     }
 
-    /* ── Fondo: grid de puntos + radial gradients ── */
+    /* ── Fondo: grid de puntos + radial gradients ───────────────────── */
     .err-bg {
       position: fixed;
       inset: 0;
@@ -94,7 +96,7 @@
       inset: 0;
       background-image:
         radial-gradient(circle at 1px 1px, var(--grid-color) 1px, transparent 0);
-      background-size: 28px 28px;
+      background-size: 1.75rem 1.75rem;
       mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 30%, transparent 80%);
       -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 30%, transparent 80%);
     }
@@ -103,11 +105,11 @@
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle 500px at 15% 20%, rgba(124,58,237,0.18), transparent 60%),
-        radial-gradient(circle 500px at 85% 80%, rgba(167,139,250,0.13), transparent 60%);
+        radial-gradient(circle 31.25rem at 15% 20%, rgba(124,58,237,0.18), transparent 60%),
+        radial-gradient(circle 31.25rem at 85% 80%, rgba(167,139,250,0.13), transparent 60%);
     }
 
-    /* ── Líneas decorativas de scan ── */
+    /* ── Línea decorativa de scan ────────────────────────────────────── */
     .err-scan {
       position: fixed;
       left: 0; right: 0;
@@ -125,14 +127,16 @@
       100% { top: 102%; opacity: 0; }
     }
 
-    /* ── Card principal ── */
+    /* ── Card principal — Mobile First ────────────────────────────────
+       Padding compacto, código y título reducidos, footer en 2 cols
+       con el último celda full-width. Desktop ≥768 amplía. */
     .err-card {
       position: relative;
       z-index: 2;
       width: 100%;
-      max-width: 580px;
+      max-width: 36.25rem;             /* 580px */
       padding: 1px;
-      border-radius: 24px;
+      border-radius: 1.5rem;
       background:
         linear-gradient(135deg,
           rgba(124,58,237,0.55) 0%,
@@ -140,14 +144,14 @@
           var(--border) 55%,
           rgba(124,58,237,0.25) 100%);
       box-shadow:
-        0 30px 80px rgba(0,0,0,0.55),
+        0 1.875rem 5rem rgba(0,0,0,0.55),
         0 0 0 1px rgba(124,58,237,0.08);
       animation: cardIn 0.55s cubic-bezier(.22,1,.36,1) both;
     }
     .err-card-inner {
       background: var(--bg-surface);
-      border-radius: 23px;
-      padding: 40px 40px 32px;
+      border-radius: 1.4375rem;
+      padding: 1.875rem 1.5rem 1.625rem;   /* mobile */
       position: relative;
       overflow: hidden;
     }
@@ -160,57 +164,59 @@
       opacity: 0.4;
     }
     @keyframes cardIn {
-      from { opacity: 0; transform: translateY(20px) scale(0.97); }
-      to   { opacity: 1; transform: translateY(0)    scale(1); }
+      from { opacity: 0; transform: translateY(1.25rem) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)        scale(1); }
     }
 
-    /* ── Top bar: status pill + brand ── */
+    /* ── Top bar: brand + status pill ─────────────────────────────────
+       Mobile: wrap permitido si no caben; Desktop: una sola fila. */
     .err-topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 28px;
-      gap: 12px;
+      margin-bottom: 1.75rem;
+      gap: 0.75rem;
+      flex-wrap: wrap;
     }
     .err-brand {
       display: inline-flex;
       align-items: center;
-      gap: 9px;
+      gap: 0.5625rem;
       font-family: 'Syne', sans-serif;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 0.8125rem;
       letter-spacing: -0.01em;
       color: var(--text);
     }
     .err-brand-mark {
-      width: 26px; height: 26px;
-      border-radius: 8px;
+      width: 1.625rem; height: 1.625rem;
+      border-radius: 0.5rem;
       background: linear-gradient(135deg, var(--purple), var(--purple-light));
       display: inline-flex; align-items: center; justify-content: center;
-      box-shadow: 0 6px 16px rgba(124,58,237,0.4);
+      box-shadow: 0 0.375rem 1rem rgba(124,58,237,0.4);
     }
-    .err-brand-mark svg { width: 14px; height: 14px; color: #fff; }
+    .err-brand-mark svg { width: 0.875rem; height: 0.875rem; color: #fff; }
 
     .err-status-pill {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      padding: 5px 11px;
+      gap: 0.4375rem;
+      padding: 0.3125rem 0.6875rem;
       border-radius: 999px;
       background: rgba(239,68,68,0.08);
       border: 1px solid rgba(239,68,68,0.20);
       color: #f87171;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
+      font-size: 0.625rem;
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
     .err-status-dot {
-      width: 6px; height: 6px;
+      width: 0.375rem; height: 0.375rem;
       border-radius: 50%;
       background: #ef4444;
-      box-shadow: 0 0 8px rgba(239,68,68,0.7);
+      box-shadow: 0 0 0.5rem rgba(239,68,68,0.7);
       animation: pulse 1.8s ease-in-out infinite;
     }
     @keyframes pulse {
@@ -218,12 +224,12 @@
       50%      { opacity: 0.5; transform: scale(0.85); }
     }
 
-    /* ── Icono grande central ── */
+    /* ── Icono grande central ─────────────────────────────────────── */
     .err-icon-wrap {
       position: relative;
-      width: 88px;
-      height: 88px;
-      margin: 0 auto 26px;
+      width: 5.5rem;
+      height: 5.5rem;
+      margin: 0 auto 1.625rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -231,11 +237,11 @@
     .err-icon-wrap::before {
       content: '';
       position: absolute;
-      inset: -10px;
+      inset: -0.625rem;
       border-radius: 50%;
       background: radial-gradient(circle, var(--purple-glow), transparent 70%);
       opacity: 0.6;
-      filter: blur(14px);
+      filter: blur(0.875rem);
       animation: glowPulse 3s ease-in-out infinite;
     }
     @keyframes glowPulse {
@@ -244,23 +250,23 @@
     }
     .err-icon {
       position: relative;
-      width: 78px;
-      height: 78px;
-      border-radius: 22px;
+      width: 4.875rem;
+      height: 4.875rem;
+      border-radius: 1.375rem;
       background: linear-gradient(135deg, var(--purple), #9b6dff 60%, var(--purple-light));
       display: flex;
       align-items: center;
       justify-content: center;
       box-shadow:
-        0 14px 36px rgba(124,58,237,0.5),
+        0 0.875rem 2.25rem rgba(124,58,237,0.5),
         inset 0 1px 0 rgba(255,255,255,0.2);
     }
-    .err-icon svg { width: 38px; height: 38px; color: #fff; }
+    .err-icon svg { width: 2.375rem; height: 2.375rem; color: #fff; }
 
-    /* ── Código de error gigante ── */
+    /* ── Código de error gigante — Mobile: 4.75rem, Desktop: 6.5rem ── */
     .err-code {
       font-family: 'Syne', sans-serif;
-      font-size: 104px;
+      font-size: 4.75rem;             /* mobile */
       font-weight: 800;
       line-height: 0.95;
       letter-spacing: -0.05em;
@@ -272,7 +278,7 @@
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 14px;
+      margin-bottom: 0.875rem;
       position: relative;
     }
     .err-code::after {
@@ -285,52 +291,49 @@
       background-clip: text;
       -webkit-text-fill-color: transparent;
       opacity: 0.25;
-      filter: blur(8px);
+      filter: blur(0.5rem);
       pointer-events: none;
     }
-    @media (max-width: 480px) {
-      .err-code { font-size: 76px; }
-    }
 
-    /* ── Título + mensaje ── */
+    /* ── Título + mensaje — Mobile: tipos reducidos ───────────────── */
     .err-title {
       font-family: 'Syne', sans-serif;
-      font-size: 24px;
+      font-size: 1.25rem;             /* mobile */
       font-weight: 800;
       color: var(--text);
       letter-spacing: -0.015em;
       text-align: center;
-      margin-bottom: 12px;
+      margin-bottom: 0.75rem;
     }
     .err-message {
-      font-size: 14px;
+      font-size: 0.8125rem;           /* mobile */
       line-height: 1.65;
       color: var(--text-muted);
-      max-width: 440px;
-      margin: 0 auto 28px;
+      max-width: 27.5rem;
+      margin: 0 auto 1.75rem;
       text-align: center;
     }
 
-    /* ── Acciones (botones) ── */
+    /* ── Acciones (botones) ───────────────────────────────────────── */
     .err-actions {
       display: flex;
-      gap: 10px;
+      gap: 0.625rem;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 28px;
+      margin-bottom: 1.75rem;
     }
     .err-btn {
       display: inline-flex;
       align-items: center;
-      gap: 9px;
-      padding: 12px 22px;
+      gap: 0.5625rem;
+      padding: 0.75rem 1.375rem;
       font-family: 'JetBrains Mono', ui-monospace, monospace;
-      font-size: 12px;
+      font-size: 0.75rem;
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
       text-decoration: none;
-      border-radius: 12px;
+      border-radius: 0.75rem;
       cursor: pointer;
       transition: transform 0.18s, box-shadow 0.18s, background 0.18s, border-color 0.18s, color 0.18s;
       border: 1px solid transparent;
@@ -340,7 +343,7 @@
     .err-btn-primary {
       background: linear-gradient(135deg, var(--purple), #8b5cf6);
       color: #fff;
-      box-shadow: 0 8px 22px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.15);
+      box-shadow: 0 0.5rem 1.375rem rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.15);
     }
     .err-btn-primary::before {
       content: '';
@@ -352,7 +355,7 @@
     }
     .err-btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 30px rgba(124,58,237,0.55), inset 0 1px 0 rgba(255,255,255,0.2);
+      box-shadow: 0 0.75rem 1.875rem rgba(124,58,237,0.55), inset 0 1px 0 rgba(255,255,255,0.2);
     }
     .err-btn-primary:hover::before { left: 100%; }
     .err-btn-secondary {
@@ -365,32 +368,32 @@
       border-color: var(--purple);
       transform: translateY(-2px);
     }
-    .err-btn svg { width: 14px; height: 14px; }
+    .err-btn svg { width: 0.875rem; height: 0.875rem; }
 
-    /* ── Footer técnico tipo terminal ── */
+    /* ── Footer técnico tipo terminal ─────────────────────────────────
+       Mobile: 2 cols con last celda spanning. Desktop: 3 cols. */
     .err-footer {
-      margin-top: 28px;
-      padding-top: 20px;
+      margin-top: 1.75rem;
+      padding-top: 1.25rem;
       border-top: 1px dashed var(--border);
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.875rem;
     }
-    .err-footer-cell {
-      text-align: center;
-    }
+    .err-footer-cell:last-child { grid-column: 1 / -1; }
+    .err-footer-cell { text-align: center; }
     .err-footer-label {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 9px;
+      font-size: 0.5625rem;
       font-weight: 600;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: var(--text-dim);
-      margin-bottom: 5px;
+      margin-bottom: 0.3125rem;
     }
     .err-footer-value {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 0.6875rem;
       font-weight: 600;
       color: var(--text-muted);
       letter-spacing: 0.02em;
@@ -402,16 +405,22 @@
     .err-footer-value.is-warn { color: #fbbf24; }
     .err-footer-value.is-bad { color: #f87171; }
 
-    @media (max-width: 540px) {
-      .err-card-inner { padding: 30px 24px 26px; }
-      .err-title { font-size: 20px; }
-      .err-message { font-size: 13px; }
-      .err-footer { grid-template-columns: 1fr 1fr; }
-      .err-footer-cell:last-child { grid-column: 1 / -1; }
-      .err-topbar { flex-wrap: wrap; }
+    /* ══════════════════════════════════════════════════════════════════
+       DESKTOP — ≥ 768 px
+       Card más generosa, código gigante, footer en 3 cols, topbar nowrap.
+       ══════════════════════════════════════════════════════════════════ */
+    @media (min-width: 768px) {
+      body { padding: 1.5rem; }
+      .err-card-inner { padding: 2.5rem 2.5rem 2rem; }
+      .err-topbar { flex-wrap: nowrap; }
+      .err-code { font-size: 6.5rem; }
+      .err-title { font-size: 1.5rem; }
+      .err-message { font-size: 0.875rem; }
+      .err-footer { grid-template-columns: repeat(3, 1fr); }
+      .err-footer-cell:last-child { grid-column: auto; }
     }
 
-    /* ── Accesibilidad: reducir movimiento ── */
+    /* ── Accesibilidad: reducir movimiento ───────────────────────── */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.001s !important;

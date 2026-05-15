@@ -9,26 +9,24 @@
 
 {% block body_outer %}
 
-<div class="read-progress"><div class="bar" id="readBar"></div></div>
+<div class="read-progress" role="presentation"><div class="bar" id="readBar"></div></div>
 
-<!-- ── TOPBAR ── -->
-<header class="legal-topbar">
+<nav class="legal-topbar" aria-label="Barra de navegación legal">
   <a href="javascript:history.back()" class="back-link">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
     Volver
   </a>
-  <a href="/" class="topbar-logo">
-    <div class="topbar-logo-icon">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    </div>
+  <a href="/" class="topbar-logo" aria-label="Inicio · DockerShield">
+    <span class="topbar-logo-icon" aria-hidden="true">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </span>
     <span class="topbar-logo-text">Secure<span>Mail</span></span>
   </a>
-</header>
+</nav>
 
-<!-- ── HERO ── -->
 <header class="legal-hero">
-  <div class="legal-hero-icon">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <div class="legal-hero-icon" aria-hidden="true">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
       <polyline points="14 2 14 8 20 8"/>
       <line x1="16" y1="13" x2="8" y2="13"/>
@@ -39,15 +37,15 @@
   <p class="subtitle">Estos son los términos que regulan el uso de DockerShield. Léelos con calma — el resumen está al inicio.</p>
   <div class="meta-chips">
     <span class="meta-chip accent">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
       8 min de lectura
     </span>
     <span class="meta-chip">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/></svg>
       Última actualización: Abril 2026
     </span>
     <span class="meta-chip">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       v2.0
     </span>
   </div>
@@ -55,66 +53,66 @@
 
 <div class="legal-layout">
 
-  <!-- ── TOC ── -->
-  <aside class="toc">
-    <div class="toc-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+  <aside class="toc" aria-label="Índice de secciones">
+    <h2 class="toc-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
       Índice
-    </div>
-    <a class="toc-link" data-target="sec-1"><span class="toc-num">1</span> Descripción</a>
-    <a class="toc-link" data-target="sec-2"><span class="toc-num">2</span> Análisis automatizado</a>
-    <a class="toc-link" data-target="sec-3"><span class="toc-num">3</span> Reenvío y notificaciones</a>
-    <a class="toc-link" data-target="sec-4"><span class="toc-num">4</span> Análisis con IA</a>
-    <a class="toc-link" data-target="sec-5"><span class="toc-num">5</span> Uso aceptable</a>
-    <a class="toc-link" data-target="sec-6"><span class="toc-num">6</span> Cuenta y eliminación</a>
-    <a class="toc-link" data-target="sec-7"><span class="toc-num">7</span> Responsabilidad</a>
-    <a class="toc-link" data-target="sec-8"><span class="toc-num">8</span> Contacto</a>
+    </h2>
+    <nav>
+      <a class="toc-link" data-target="sec-1"><span class="toc-num">1</span> Descripción</a>
+      <a class="toc-link" data-target="sec-2"><span class="toc-num">2</span> Análisis automatizado</a>
+      <a class="toc-link" data-target="sec-3"><span class="toc-num">3</span> Reenvío y notificaciones</a>
+      <a class="toc-link" data-target="sec-4"><span class="toc-num">4</span> Análisis con IA</a>
+      <a class="toc-link" data-target="sec-5"><span class="toc-num">5</span> Uso aceptable</a>
+      <a class="toc-link" data-target="sec-6"><span class="toc-num">6</span> Cuenta y eliminación</a>
+      <a class="toc-link" data-target="sec-7"><span class="toc-num">7</span> Responsabilidad</a>
+      <a class="toc-link" data-target="sec-8"><span class="toc-num">8</span> Contacto</a>
+    </nav>
   </aside>
 
-  <!-- ── CONTENIDO ── -->
   <main class="legal-content">
 
     <!-- TL;DR -->
-    <div class="tldr-box">
-      <div class="tldr-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <aside class="tldr-box" aria-labelledby="tldr-title">
+      <h2 class="tldr-title" id="tldr-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         En resumen
         <span class="badge">TL;DR</span>
-      </div>
-      <div class="tldr-list">
-        <div class="tldr-item">
-          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+      </h2>
+      <ul class="tldr-list" style="list-style:none;padding:0;margin:0">
+        <li class="tldr-item">
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           <span>Generamos <strong>alias de correo desechables</strong> en el dominio <code>@dockershield.lat</code> para que tu correo real nunca quede expuesto.</span>
-        </div>
-        <div class="tldr-item">
-          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </li>
+        <li class="tldr-item">
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           <span>Cada correo recibe un <strong>score de riesgo de 0 a 100</strong>. Las amenazas (≥61) se bloquean; los sospechosos (31-60) y seguros (0-30) los puedes reenviar tú.</span>
-        </div>
-        <div class="tldr-item">
-          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </li>
+        <li class="tldr-item">
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           <span>Los adjuntos se analizan en <strong>sandbox Docker aislado</strong> con YARA y análisis de comportamiento. Sin intervención humana.</span>
-        </div>
-        <div class="tldr-item">
-          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </li>
+        <li class="tldr-item">
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           <span>Puedes pedir un <strong>análisis adicional con IA</strong> (Groq · Llama 3.3) para correos sospechosos. Es opcional.</span>
-        </div>
-        <div class="tldr-item">
-          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </li>
+        <li class="tldr-item">
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           <span>Solo debes usarlo para <strong>proteger tu propia privacidad</strong>, no para actividades ilegales, spam o suplantación.</span>
-        </div>
-        <div class="tldr-item">
-          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </li>
+        <li class="tldr-item">
+          <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           <span>Es una <strong>capa adicional de seguridad</strong>, no garantizamos detectar el 100% de las amenazas.</span>
-        </div>
-      </div>
-    </div>
+        </li>
+      </ul>
+    </aside>
 
-    <!-- ─────── Sección 1: Descripción del servicio ─────── -->
-    <section class="legal-section" id="sec-1">
-      <h2>
-        <div class="section-icon c-service">
+    <!-- Sección 1 -->
+    <section class="legal-section" id="sec-1" aria-labelledby="sec-1-title">
+      <h2 id="sec-1-title">
+        <span class="section-icon c-service" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
+        </span>
         <span class="section-num">SECCIÓN 01</span>
         Descripción del Servicio
       </h2>
@@ -129,8 +127,8 @@
         <li><strong>Análisis con IA</strong> (opcional): para correos sospechosos puedes pedir un análisis adicional con un modelo de lenguaje.</li>
         <li><strong>Perfil personalizable</strong>: avatar, foto de perfil, cambio de contraseña y recuperación.</li>
       </ul>
-      <div class="callout info">
-        <div class="callout-icon">
+      <div class="callout info" role="note">
+        <div class="callout-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         </div>
         <div class="callout-body">
@@ -140,12 +138,12 @@
       </div>
     </section>
 
-    <!-- ─────── Sección 2: Análisis automatizado ─────── -->
-    <section class="legal-section" id="sec-2">
-      <h2>
-        <div class="section-icon c-analysis">
+    <!-- Sección 2 -->
+    <section class="legal-section" id="sec-2" aria-labelledby="sec-2-title">
+      <h2 id="sec-2-title">
+        <span class="section-icon c-analysis" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </div>
+        </span>
         <span class="section-num">SECCIÓN 02</span>
         Análisis Automatizado de Correos y Adjuntos
       </h2>
@@ -162,8 +160,8 @@
         <li><strong>31–60 (Sospechoso)</strong>: el correo queda en tu bandeja con aviso. Puedes reenviarlo manualmente asumiendo el riesgo, o descartarlo.</li>
         <li><strong>61–100 (Amenaza bloqueada)</strong>: el correo nunca se reenvía. Solo recibes una alerta indicando el tipo de amenaza.</li>
       </ul>
-      <div class="callout warning">
-        <div class="callout-icon">
+      <div class="callout warning" role="note">
+        <div class="callout-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
         </div>
         <div class="callout-body">
@@ -173,12 +171,12 @@
       </div>
     </section>
 
-    <!-- ─────── Sección 3: Reenvío y notificaciones ─────── -->
-    <section class="legal-section" id="sec-3">
-      <h2>
-        <div class="section-icon c-service">
+    <!-- Sección 3 -->
+    <section class="legal-section" id="sec-3" aria-labelledby="sec-3-title">
+      <h2 id="sec-3-title">
+        <span class="section-icon c-service" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/><path d="M16 11l3-3-3-3"/><path d="M19 8h-7"/></svg>
-        </div>
+        </span>
         <span class="section-num">SECCIÓN 03</span>
         Reenvío de Correos y Sistema de Notificaciones
       </h2>
@@ -190,12 +188,12 @@
       </ul>
       <p>El sistema de notificaciones incluye:</p>
       <ul>
-        <li>Una <strong>campana en el topbar</strong> con badge de pendientes que se actualiza cada 6 segundos.</li>
+        <li>Una <strong>campana en el topbar</strong> con badge de pendientes que se actualiza al refrescar.</li>
         <li>Un <strong>toast lateral con sonido</strong> que aparece automáticamente al llegar un correo nuevo.</li>
         <li>Una <strong>página de notificaciones</strong> con filtros (pendientes, reenviadas, descartadas) y opción de vaciar.</li>
       </ul>
-      <div class="callout info">
-        <div class="callout-icon">
+      <div class="callout info" role="note">
+        <div class="callout-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         </div>
         <div class="callout-body">
@@ -205,12 +203,12 @@
       </div>
     </section>
 
-    <!-- ─────── Sección 4: Análisis con IA ─────── -->
-    <section class="legal-section" id="sec-4">
-      <h2>
-        <div class="section-icon c-analysis">
+    <!-- Sección 4 -->
+    <section class="legal-section" id="sec-4" aria-labelledby="sec-4-title">
+      <h2 id="sec-4-title">
+        <span class="section-icon c-analysis" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
-        </div>
+        </span>
         <span class="section-num">SECCIÓN 04</span>
         Análisis con Inteligencia Artificial (opcional)
       </h2>
@@ -222,8 +220,8 @@
         <li>Los <strong>adjuntos NO se envían</strong> a la IA — solo el texto del correo.</li>
         <li>El resultado del análisis se guarda en tu cuenta para que puedas consultarlo posteriormente.</li>
       </ul>
-      <div class="callout warning">
-        <div class="callout-icon">
+      <div class="callout warning" role="note">
+        <div class="callout-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
         </div>
         <div class="callout-body">
@@ -233,12 +231,12 @@
       </div>
     </section>
 
-    <!-- ─────── Sección 5: Uso aceptable ─────── -->
-    <section class="legal-section" id="sec-5">
-      <h2>
-        <div class="section-icon c-usage">
+    <!-- Sección 5 -->
+    <section class="legal-section" id="sec-5" aria-labelledby="sec-5-title">
+      <h2 id="sec-5-title">
+        <span class="section-icon c-usage" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
+        </span>
         <span class="section-num">SECCIÓN 05</span>
         Uso Aceptable
       </h2>
@@ -251,8 +249,8 @@
         <li>Mantener la <strong>confidencialidad de sus credenciales</strong> de acceso (correo y contraseña).</li>
         <li>Respetar los derechos de terceros y no compartir contenido ilegal a través del servicio.</li>
       </ul>
-      <div class="callout success">
-        <div class="callout-icon">
+      <div class="callout success" role="note">
+        <div class="callout-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         </div>
         <div class="callout-body">
@@ -262,12 +260,12 @@
       </div>
     </section>
 
-    <!-- ─────── Sección 6: Cuenta y eliminación ─────── -->
-    <section class="legal-section" id="sec-6">
-      <h2>
-        <div class="section-icon c-usage">
+    <!-- Sección 6 -->
+    <section class="legal-section" id="sec-6" aria-labelledby="sec-6-title">
+      <h2 id="sec-6-title">
+        <span class="section-icon c-usage" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </div>
+        </span>
         <span class="section-num">SECCIÓN 06</span>
         Cuenta, Recuperación y Eliminación
       </h2>
@@ -284,8 +282,8 @@
         <li><strong>Vaciar tus notificaciones</strong> en cualquier momento.</li>
         <li><strong>Eliminar tu cuenta completa</strong> desde la <em>"Zona de peligro"</em> de tu perfil. Esta acción borra tus alias, correos, análisis y notificaciones.</li>
       </ul>
-      <div class="callout info">
-        <div class="callout-icon">
+      <div class="callout info" role="note">
+        <div class="callout-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         </div>
         <div class="callout-body">
@@ -295,12 +293,12 @@
       </div>
     </section>
 
-    <!-- ─────── Sección 7: Limitación de responsabilidad ─────── -->
-    <section class="legal-section" id="sec-7">
-      <h2>
-        <div class="section-icon c-liability">
+    <!-- Sección 7 -->
+    <section class="legal-section" id="sec-7" aria-labelledby="sec-7-title">
+      <h2 id="sec-7-title">
+        <span class="section-icon c-liability" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </div>
+        </span>
         <span class="section-num">SECCIÓN 07</span>
         Limitación de Responsabilidad
       </h2>
@@ -316,19 +314,19 @@
       <p>El servicio se proporciona <strong>"tal cual"</strong> sin garantías expresas o implícitas. Nos reservamos el derecho de modificar, suspender o terminar el servicio (o partes de él) en cualquier momento, notificando previamente a los usuarios cuando sea posible.</p>
     </section>
 
-    <!-- ─────── Sección 8: Contacto ─────── -->
-    <section class="legal-section" id="sec-8">
-      <h2>
-        <div class="section-icon c-contact">
+    <!-- Sección 8 -->
+    <section class="legal-section" id="sec-8" aria-labelledby="sec-8-title">
+      <h2 id="sec-8-title">
+        <span class="section-icon c-contact" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        </div>
+        </span>
         <span class="section-num">SECCIÓN 08</span>
         Contacto y Cambios en los Términos
       </h2>
       <p>Estos términos pueden actualizarse cuando agreguemos nuevas funcionalidades o cambien requisitos legales. Si los cambios son relevantes te avisaremos en tu correo real con razonable antelación.</p>
       <p>Para cualquier consulta sobre estos términos puedes contactarnos en:</p>
-      <div class="callout info" style="margin-top:4px">
-        <div class="callout-icon">
+      <div class="callout info" style="margin-top:0.25rem" role="note">
+        <div class="callout-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         </div>
         <div class="callout-body">
@@ -338,21 +336,21 @@
       </div>
     </section>
 
-    <!-- ─────── CTA ─────── -->
-    <div class="cta-section">
+    <!-- CTA final -->
+    <footer class="cta-section" aria-label="Llamada a la acción">
       <h3>¿Listo para proteger tu correo?</h3>
       <p>Crea tu cuenta gratis y empieza a generar alias en menos de un minuto.</p>
       <div class="cta-actions">
         <a href="/registro/" class="btn-cta-primary">
           Crear cuenta gratis
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
         <a href="javascript:history.back()" class="btn-cta-ghost">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           Volver
         </a>
       </div>
-    </div>
+    </footer>
 
   </main>
 </div>

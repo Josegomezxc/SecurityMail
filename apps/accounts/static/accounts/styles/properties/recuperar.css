@@ -1,0 +1,38 @@
+/* ════════════════════════════════════════════════════════════════════
+   PROPERTIES — recuperar
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+    /* Shell del split */
+    --rc-shell-max-mobile:    27.5rem;     /* ≈440px */
+    --rc-shell-max-desktop:   57.5rem;     /* ≈920px */
+    --rc-shell-padding:       1.5rem;
+
+    /* Panel izquierdo */
+    --rc-side-padding:        2.625rem 2.375rem;
+    --rc-side-gap:            1.5rem;
+
+    /* Panel derecho */
+    --rc-card-pad-mobile:     2.25rem 1.75rem;
+    --rc-card-pad-desk:       3rem 2.625rem;
+
+    /* Logo */
+    --rc-logo-size:           3.5rem;
+
+    /* Inputs */
+    --rc-input-pad-left:      2.375rem;
+    --rc-icon-size:           1rem;
+
+    /* Help items */
+    --rc-help-icon-size:      1.875rem;
+    --rc-help-icon-svg:       0.875rem;
+
+    /* Success state */
+    --rc-success-icon-size:   4.5rem;
+
+    /* Botón */
+    --rc-btn-pad:             0.75rem;
+    --rc-btn-radius:          var(--radius-md);
+
+    /* Alertas */
+    --rc-alert-stripe-w:      0.1875rem;
+}

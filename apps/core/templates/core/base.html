@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="{% static 'core/js/base.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'core/styles/base.css' %}">
+    <link rel="stylesheet" href="{% static 'core/styles/base.css' %}?v=toast-modal-zindex">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -488,7 +488,7 @@ Compose modal global: vive en base.html para que persista entre páginas
 {% if user.is_authenticated %}
   {% include 'mail/_compose_modal.html' %}
 {% endif %}
-y
+
 {% endblock %}
 </body>
 </html>
