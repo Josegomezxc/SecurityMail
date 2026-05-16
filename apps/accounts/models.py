@@ -70,6 +70,15 @@ class UserProfile(models.Model):
         default=False,
         help_text="Concede al usuario alias ilimitados sin volverlo admin.",
     )
+    # ID de la notificación más reciente cuyo TOAST ya se mostró al usuario.
+    # Se actualiza server-side cada vez que el dropdown del bell muestra
+    # toasts, así otros dispositivos del mismo usuario NO vuelven a verlos.
+    # Antes esto vivía en localStorage del navegador → era per-dispositivo,
+    # rompía la sincronía cuando el usuario abría su cuenta en celular + PC.
+    last_toast_notif_id = models.PositiveBigIntegerField(
+        default=0,
+        help_text="ID máximo de notificación cuyo toast ya se mostró.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

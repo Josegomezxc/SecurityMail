@@ -413,21 +413,37 @@ document.addEventListener('keydown', function (e) {
     };
 
     let openPanel = false;
-    // Último id de notificación que el usuario ya vio. Se guarda en
-    // localStorage para sobrevivir recargas (F5) y comparar contra los
-    // ids que devuelve el endpoint en cada carga de página. Si después
-    // de F5 hay ids mayores, disparamos un toast por cada uno.
-    // Si es la PRIMERA vez del usuario (clave inexistente), no toasteamos
-    // las viejas — solo guardamos el máximo actual para futuras visitas.
+    // Último id de notificación cuyo toast ya se mostró al usuario.
+    // Antes vivía en localStorage (per-dispositivo): si el usuario veía un
+    // toast en su celular, al abrir la app en su PC se le volvía a mostrar.
+    // Ahora el marker es SERVER-SIDE (UserProfile.last_toast_notif_id),
+    // sincronizado entre todos los dispositivos del mismo usuario.
+    //
+    // Mantenemos una copia local en memoria (lastSeenId) y la sincronizamos
+    // con el server en cada refresh. localStorage queda como caché caliente
+    // para evitar parpadeos de toasts entre el render inicial y la primera
+    // respuesta del endpoint en F5.
     const SEEN_KEY = 'sms_notif_last_seen_id';
-    function getLastSeenId() {
-        try {
-            const v = localStorage.getItem(SEEN_KEY);
-            return v === null ? null : (parseInt(v, 10) || 0);
-        } catch (e) { return null; }
-    }
-    function setLastSeenId(id) {
+    let lastSeenId = null;   // null = aún no sabemos (esperar respuesta server)
+    try {
+        const cached = localStorage.getItem(SEEN_KEY);
+        if (cached !== null) lastSeenId = parseInt(cached, 10) || 0;
+    } catch (e) { /* localStorage bloqueado, sin caché */ }
+
+    function updateLocalCache(id) {
         try { localStorage.setItem(SEEN_KEY, String(id)); } catch (e) {}
+    }
+    function pushToServer(id) {
+        // Avanza el marker server-side. El backend solo lo mueve hacia
+        // adelante (nunca retrocede), así llamadas desordenadas son safe.
+        const fd = new FormData();
+        fd.append('last_id', String(id));
+        fetch('/notificaciones/api/toast-shown/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'X-CSRFToken': getCsrf() },
+            body: fd,
+        }).catch(err => console.debug('[notif] toast-shown sync error:', err));
     }
 
     function setOpen(state) {
@@ -505,17 +521,26 @@ document.addEventListener('keydown', function (e) {
                 }
 
                 // ── Toasts en cada recarga: dispara solo para notificaciones
-                // que el usuario NO ha visto antes (id > último visto, guardado
-                // en localStorage). Primera visita del usuario (sin clave):
-                // no toasteamos nada — solo guardamos el máximo para la próxima.
+                // que el usuario NO ha visto antes (id > último visto). El
+                // marker es server-side, sincronizado entre dispositivos.
                 if (data.recent && data.recent.length > 0) {
-                    const lastSeen = getLastSeenId();
+                    // Server es la fuente de verdad. Si localStorage tenía
+                    // un valor mayor (raro), lo respetamos como caché — pero
+                    // siempre tomamos el MAX entre server y local.
+                    const serverSeen = (typeof data.last_toast_id === 'number')
+                        ? data.last_toast_id
+                        : 0;
+                    const effectiveSeen = Math.max(serverSeen, lastSeenId ?? serverSeen);
+                    // Si es la primera carga del usuario (server=0 Y sin caché
+                    // local) NO toasteamos las viejas — solo registramos el max.
+                    const firstTime = (serverSeen === 0 && lastSeenId === null);
+
                     const maxId = data.recent.reduce(
                         (m, it) => (it.id > m ? it.id : m), 0
                     );
 
-                    if (lastSeen !== null && maxId > lastSeen) {
-                        const newOnes = data.recent.filter(it => it.id > lastSeen);
+                    if (!firstTime && maxId > effectiveSeen) {
+                        const newOnes = data.recent.filter(it => it.id > effectiveSeen);
                         // Orden cronológico (más antigua primero) para que la
                         // más reciente quede arriba del stack de toasts.
                         newOnes.sort((a, b) => a.id - b.id).forEach(item => {
@@ -558,10 +583,16 @@ document.addEventListener('keydown', function (e) {
                         });
                     }
 
-                    // Persistimos el máximo para que la próxima recarga sepa
-                    // qué es "nuevo". Incluso en la primera visita (sin spam):
-                    // el usuario solo verá toasts a partir del siguiente F5.
-                    setLastSeenId(maxId);
+                    // Persistimos el máximo. localStorage queda como caché
+                    // caliente (evita parpadeos en F5) y el server queda como
+                    // fuente de verdad sincronizada entre dispositivos. Solo
+                    // hacemos push al server si el marker AVANZA (no en cada
+                    // refresh, para no spammear el endpoint).
+                    if (maxId > (lastSeenId ?? 0) || maxId > serverSeen) {
+                        updateLocalCache(maxId);
+                        lastSeenId = maxId;
+                        pushToServer(maxId);
+                    }
                 }
             })
             .catch(err => console.debug('[notif] refresh error:', err));

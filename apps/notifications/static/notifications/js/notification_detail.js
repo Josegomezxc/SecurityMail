@@ -23,27 +23,49 @@
       method: 'POST', credentials: 'same-origin',
       headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
     })
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => {
-        if (data.ok) {
+      .then(async r => {
+        // Intentamos leer el body como JSON aunque el status no sea 2xx.
+        // El backend devuelve {ok:false, error:'no_actionable'} con 400, etc.
+        let data = null;
+        try { data = await r.json(); } catch (e) { /* sin JSON */ }
+        return { ok: r.ok, status: r.status, data };
+      })
+      .then(({ ok, status, data }) => {
+        if (ok && data && data.ok) {
           disable();
           show('ok', okMsg);
           if (statusEl) {
             statusEl.textContent = statusLabel;
             statusEl.className = 'nd-status-pill ' + statusClass;
           }
-        } else {
-          show('err', 'No se pudo procesar la acción.');
-          btn.disabled = false;
+          return;
         }
+        // Hubo error. Mapeamos códigos comunes a mensajes legibles.
+        let msg;
+        const errCode = (data && data.error) || '';
+        if (status === 403)                  msg = 'Sesión expirada. Recarga la página.';
+        else if (errCode === 'no_actionable') msg = 'Esta notificación ya fue procesada.';
+        else if (errCode === 'no_email')     msg = 'El correo asociado ya no existe.';
+        else if (status === 500)             msg = 'Error del servidor al reenviar. Revisa la consola.';
+        else if (status >= 400 && status < 500) msg = `No se pudo procesar (HTTP ${status}).`;
+        else                                  msg = 'Error inesperado. Intenta de nuevo.';
+        console.error('[notification-action] fallo', { url, status, data });
+        show('err', msg);
+        btn.disabled = false;
       })
-      .catch(() => {
-        show('err', 'Error de red. Intenta de nuevo.');
+      .catch(err => {
+        // Sólo entra acá si la petición NO se completó (DNS, offline, CORS).
+        console.error('[notification-action] network error', err);
+        show('err', 'Error de red. Verifica tu conexión y reintenta.');
         btn.disabled = false;
       });
   }
 
-  const id = btnFw.dataset.id;
+  // El template inyecta la URL completa con {% url ... notif.id %} en
+  // data-url. Antes el JS leía data-id (no existe), generando POSTs a
+  // /notificaciones/undefined/reenviar/ que respondían 404.
+  const fwUrl   = btnFw.dataset.url;
+  const dcUrl   = btnDc.dataset.url;
   const isRisky = btnFw.dataset.risky === '1';
 
   btnFw.addEventListener('click', async () => {
@@ -62,7 +84,7 @@
     }
     action(
       btnFw,
-      `/notificaciones/${id}/reenviar/`,
+      fwUrl,
       '✓ Listo. El correo está en camino a tu Gmail.',
       'Aprobada — reenviada',
       'nd-status-pill nd-status-approved'
@@ -71,7 +93,7 @@
 
   btnDc.addEventListener('click', () => action(
     btnDc,
-    `/notificaciones/${id}/descartar/`,
+    dcUrl,
     '✓ Descartado. El correo sigue en tu bandeja pero no se reenvió.',
     'Descartada',
     'nd-status-pill nd-status-discarded'

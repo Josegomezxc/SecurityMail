@@ -118,11 +118,20 @@ def notification_unread_api(request):
             'url':        link,
         }
 
+    # Marker server-side del último toast mostrado para este usuario.
+    # Lo usa el JS del bell para evitar que el mismo toast se muestre en
+    # OTRO dispositivo cuando el usuario ya lo vio en uno (ej. celular → PC).
+    try:
+        last_toast_id = request.user.profile.last_toast_notif_id or 0
+    except Exception:
+        last_toast_id = 0
+
     return JsonResponse({
         'unread_count':         unread_count,
         'pending_count':        pending_count,
         'unread_pending_count': unread_pending_count,
         'unread_ids':           unread_ids,
+        'last_toast_id':        last_toast_id,
         'total':                qs.count(),
         'recent':               [_row(n) for n in recent],
     })
@@ -165,6 +174,36 @@ def notification_mark_all_read_api(request):
 
 @login_required(login_url='login')
 @require_POST
+def notification_mark_toast_shown_api(request):
+    """
+    Actualiza el marker server-side del último ID de notificación cuyo toast
+    ya se mostró al usuario. Sincroniza la "vista" entre dispositivos:
+    si el usuario ya vio el toast en su celular, no se vuelve a disparar
+    cuando abre la app en su PC con la misma cuenta.
+
+    POST body: last_id=<int>
+    Sólo avanza el marker (nunca lo retrocede), por si llegan llamadas
+    desordenadas desde 2 tabs abiertas en paralelo.
+    """
+    try:
+        last_id = int(request.POST.get('last_id', 0))
+    except (TypeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'invalid_last_id'}, status=400)
+
+    try:
+        profile = request.user.profile
+    except Exception:
+        return JsonResponse({'ok': False, 'error': 'no_profile'}, status=400)
+
+    if last_id > (profile.last_toast_notif_id or 0):
+        profile.last_toast_notif_id = last_id
+        profile.save(update_fields=['last_toast_notif_id'])
+
+    return JsonResponse({'ok': True, 'last_toast_id': profile.last_toast_notif_id})
+
+
+@login_required(login_url='login')
+@require_POST
 def notification_forward_api(request, pk):
     """Aprueba el reenvío de un correo seguro al correo real del usuario."""
     n = get_object_or_404(
@@ -178,8 +217,21 @@ def notification_forward_api(request, pk):
 
     # force=True salta el check de opt-in (el usuario está aprobando MANUALMENTE
     # desde el panel de notificaciones, así que su voluntad ya está clara).
-    from apps.mail.webhook import send_safe_email_forward
-    send_safe_email_forward(n.related_email, force=True)
+    # Envolvemos en try/except: un fallo de SendGrid (timeout, credenciales,
+    # adjunto roto, etc.) NO debe devolver 500 al frontend. Logueamos y
+    # respondemos con error legible para que el JS muestre algo útil.
+    try:
+        from apps.mail.webhook import send_safe_email_forward
+        send_safe_email_forward(n.related_email, force=True)
+    except Exception as e:
+        import traceback
+        print(f"[notification_forward_api] Falló send_safe_email_forward: {e}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'ok': False,
+            'error': 'send_failed',
+            'detail': str(e),
+        }, status=500)
 
     n.status = 'approved'
     n.actioned_at = timezone.now()
