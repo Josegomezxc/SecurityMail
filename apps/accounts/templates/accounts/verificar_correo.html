@@ -45,7 +45,7 @@
     </ul>
     {% endif %}
 
-    <form method="post" class="verify-form" id="verifyForm" novalidate>
+    <form method="post" class="verify-form" id="verifyForm" novalidate data-ds-loader>
       {% csrf_token %}
       <label class="verify-label" for="code-digit-0">Código de verificación</label>
 
@@ -65,7 +65,7 @@
 
     <div class="verify-meta">
       <span class="countdown" id="countdown" data-expires-at="{{ expires_at|date:'c' }}" aria-live="polite">El código expira pronto…</span>
-      <form method="post" action="{% url 'reenviar_codigo' token=token %}" class="resend-form">
+      <form method="post" action="{% url 'reenviar_codigo' token=token %}" class="resend-form" data-ds-loader>
         {% csrf_token %}
         <span>¿No te llegó?</span>
         <button type="submit" class="resend-link">Reenviar</button>

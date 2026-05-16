@@ -574,10 +574,6 @@
 }
 .quota-save-btn:active { transform: translateY(0); }
 
-/* Light mode */
-html[data-theme="light"] .quota-info { background: rgba(124, 58, 237, 0.04); }
-html[data-theme="light"] .quota-form-row { background: rgba(124, 58, 237, 0.04); }
-
 /* ════════════════════════════════════════════════════════════════════
    QUOTA — Modo ilimitado + grant card
    ════════════════════════════════════════════════════════════════════ */
@@ -797,14 +793,6 @@ html[data-theme="light"] .quota-form-row { background: rgba(124, 58, 237, 0.04);
     transition: transform 0.2s ease;
 }
 .quota-grant-cta:hover svg:last-child { transform: translateX(0.125rem); opacity: 1; }
-
-/* Light mode */
-html[data-theme="light"] .quota-unlim-hero,
-html[data-theme="light"] .quota-grant-card {
-    background:
-        radial-gradient(ellipse 60% 100% at 0% 0%, rgba(124, 58, 237, 0.12), transparent 60%),
-        linear-gradient(135deg, rgba(124, 58, 237, 0.06), rgba(167, 139, 250, 0.02));
-}
 
 /* ════════════════════════════════════════════════════════════════════
    TABLET (≥ 768px) — Header horizontal, stats 3 cols, quota grid 2

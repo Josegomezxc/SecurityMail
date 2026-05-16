@@ -67,26 +67,6 @@ html[data-theme="dark"] {
     --ba-z-topbar:         200;
 }
 
-/* ── TEMA CLARO ─────────────────────────── */
-html[data-theme="light"] {
-    --bg-base:       #f4f4fb;
-    --bg-surface:    #ffffff;
-    --bg-elevated:   #f8f8fd;
-    --bg-hover:      #eceaf5;
-    --sidebar-top:   #ffffff;
-    --sidebar-bottom:#f1f0f9;
-    --topbar-bg:     rgba(255,255,255,0.8);
-    --accent:        #6d4aff;
-    --accent-hover:  #7c5cff;
-    --accent-soft:   rgba(109,74,255,0.1);
-    --accent-border: rgba(109,74,255,0.3);
-    --text-primary:  #1a1830;
-    --text-secondary:#4d4b66;
-    --text-muted:    #8a889e;
-    --border:        rgba(20,15,45,0.08);
-    --border-soft:   rgba(20,15,45,0.04);
-}
-
 /* ── TEMA CARBON (negro profundo) ─────── */
 html[data-theme="carbon"] {
     --bg-base:       #08080f;

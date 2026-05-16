@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════
    PROPERTIES — mail/dashboard
    Tokens de la vista (radios, paddings, tamaños). Las paletas
-   globales (dark/light/carbon) viven en core/properties/base.css.
+   globales (dark/carbon) viven en core/properties/base.css.
    ════════════════════════════════════════════════════════════════════ */
 :root {
   /* Paleta heredada (alias cortos usados por la vista) */

@@ -1424,18 +1424,6 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   LIGHT MODE
-   ════════════════════════════════════════════════════════════════════ */
-html[data-theme="light"] .aar-card { background: #fff; border-color: rgba(0, 0, 0, 0.08); }
-html[data-theme="light"] .aar-section { background: rgba(124, 58, 237, 0.04); }
-html[data-theme="light"] .aar-note-textarea { background: rgba(124, 58, 237, 0.04); color: var(--text-primary, #1c1b2a); }
-html[data-theme="light"] .aar-filter-btn { background: #fff; }
-html[data-theme="light"] .aar-empty { background: #fff; }
-html[data-theme="light"] .aar-modal-overlay { background: rgba(20, 15, 35, 0.55); }
-html[data-theme="light"] .aar-modal { background: #fff; border-color: rgba(124, 58, 237, 0.25); }
-html[data-theme="light"] .aar-row   { background: #fff; }
-
-/* ════════════════════════════════════════════════════════════════════
    TABLET (≥ 768px) — toolbar horizontal, grant row horizontal,
    acciones inline, decisión modal 2 cols, timeline horizontal
    ════════════════════════════════════════════════════════════════════ */

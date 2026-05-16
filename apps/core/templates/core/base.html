@@ -10,11 +10,34 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script src="{% static 'core/js/base.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'core/styles/base.css' %}?v=toast-modal-zindex">
+    <script src="{% static 'core/js/base.js' %}?v=loader-14"></script>
+    <link rel="stylesheet" href="{% static 'core/styles/base.css' %}?v=loader-14">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════
+     Pantalla de carga global (Uiverse-style)
+     Visible cuando <html> tiene la clase `ds-loading`.
+     Se activa por sessionStorage 'ds_navLoad' (lo setea
+     el form de login antes de submit) y se quita en
+     window.load de la página destino.
+============================================ -->
+<div class="ds-loader" id="dsLoader" role="status" aria-live="polite" aria-label="Cargando">
+  <div class="ds-loader-card">
+    <div class="ds-spinner" aria-hidden="true"></div>
+    <div class="ds-loader-msg">
+      <p>cargando</p>
+      <div class="ds-words" aria-hidden="true">
+        <span class="ds-word">bandeja</span>
+        <span class="ds-word">alias</span>
+        <span class="ds-word">sandbox</span>
+        <span class="ds-word">seguridad</span>
+        <span class="ds-word">bandeja</span>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Container global para toasts (alerts deslizantes) -->
 {% if user.is_authenticated %}<div class="toast-container" id="toast-container"></div>{% endif %}
@@ -290,7 +313,7 @@
                     Apariencia
                 </button>
                 <hr class="dd-sep">
-                <a href="{% url 'logout' %}" class="dd-item danger">
+                <a href="{% url 'logout' %}" class="dd-item danger" data-ds-loader>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                         <polyline points="16 17 21 12 16 7"/>
@@ -421,14 +444,6 @@
                 <div class="theme-name">Oscuro</div>
             </div>
 
-            <div class="theme-card" data-theme="light" onclick="selectThemeCard('light')">
-                <div class="theme-preview tp-light">
-                    <div class="tp-sidebar"><i></i><i></i><i></i><i></i></div>
-                    <div class="tp-content"><i></i><i></i><i></i><i></i></div>
-                </div>
-                <div class="theme-name">Claro</div>
-            </div>
-
             <div class="theme-card" data-theme="carbon" onclick="selectThemeCard('carbon')">
                 <div class="theme-preview tp-carbon">
                     <div class="tp-sidebar"><i></i><i></i><i></i><i></i></div>
@@ -453,7 +468,7 @@
 ════════════════════════════════════════════ -->
 <script src="{% static 'core/js/base_2.js' %}"></script>
 
-<script src="{% static 'core/js/base_3.js' %}?v=toast-server-sync"></script>
+<script src="{% static 'core/js/base_3.js' %}?v=loader"></script>
 
 {% comment %}
 MENSAJES DJANGO → TOASTS — global para TODAS las páginas.

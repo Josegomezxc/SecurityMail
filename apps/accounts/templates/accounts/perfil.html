@@ -78,7 +78,7 @@
         </div>
       </div>
 
-      <form method="post" enctype="multipart/form-data" id="avatarUploadForm" style="display:none">
+      <form method="post" enctype="multipart/form-data" id="avatarUploadForm" style="display:none" data-ds-loader>
         {% csrf_token %}
         <input type="hidden" name="form_type" value="avatar">
         <label class="sr-only" for="avatarFileInput">Seleccionar archivo de imagen para avatar</label>

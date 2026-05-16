@@ -7,11 +7,15 @@
   <title>{% block title %}Error{% endblock %} — DockerShield</title>
   <link rel="icon" type="image/png" href="{% static 'core/img/logo.png' %}">
 
-  {# Carga el tema guardado antes de pintar — evita flash blanco en light theme. #}
+  {# Carga el tema guardado antes de pintar. Solo 'dark' o 'carbon' son válidos. #}
   <script>
     (function () {
       try {
         var t = localStorage.getItem('sms_theme') || 'dark';
+        if (t !== 'dark' && t !== 'carbon') {
+          t = 'dark';
+          localStorage.setItem('sms_theme', t);
+        }
         document.documentElement.setAttribute('data-theme', t);
       } catch (e) {}
     })();
@@ -42,18 +46,6 @@
       --border-strong:rgba(255,255,255,0.14);
       --grid-color:   rgba(124,58,237,0.07);
       --accent:       #ef4444;
-    }
-    html[data-theme="light"] {
-      --bg:           #f5f3fa;
-      --bg-deep:      #ebe7f4;
-      --bg-surface:   #ffffff;
-      --bg-elev:      #fafaff;
-      --text:         #1c1b2a;
-      --text-muted:   #6b6884;
-      --text-dim:     #a09db5;
-      --border:       rgba(0,0,0,0.08);
-      --border-strong:rgba(0,0,0,0.14);
-      --grid-color:   rgba(124,58,237,0.06);
     }
     html[data-theme="carbon"] {
       --bg:           #050505;

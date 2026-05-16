@@ -144,6 +144,17 @@ def login_view(request):
 
             login_clear_failures(ip)
             login_single_session(request, user)
+
+            # "Recordarme en este equipo": si está marcado, la sesión
+            # persiste 30 días aunque cierre el navegador. Si no, expira
+            # al cerrar el navegador (set_expiry(0)) — pisa el setting
+            # global SESSION_COOKIE_AGE para esta sesión específica.
+            remember = (request.POST.get('remember') or '').lower() in ('on', '1', 'true', 'yes')
+            if remember:
+                request.session.set_expiry(60 * 60 * 24 * 30)   # 30 días
+            else:
+                request.session.set_expiry(0)                   # cierre del navegador
+
             return redirect('dashboard')
 
         # ── Fallo: contraseña incorrecta (el email/username SÍ existe) ──

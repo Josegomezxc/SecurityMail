@@ -1058,27 +1058,6 @@
 #alias-no-results { display: none; }
 
 /* ════════════════════════════════════════════════════════════════════
-   THEME LIGHT — overrides
-   ════════════════════════════════════════════════════════════════════ */
-html[data-theme="light"] .ccv2-preview-card {
-    background: rgba(124, 58, 237, 0.05);
-    border-color: rgba(124, 58, 237, 0.32);
-}
-html[data-theme="light"] .ccv2-preview-text { color: var(--ai-purple); }
-html[data-theme="light"] .ccv2-preview-tag.ok {
-    background: rgba(34, 197, 94, 0.1);
-    color: #15803d;
-    border-color: rgba(34, 197, 94, 0.32);
-}
-html[data-theme="light"] .ccv2-request-btn {
-    border-color: rgba(124, 58, 237, 0.5);
-    color: var(--ai-purple, #7c3aed);
-}
-html[data-theme="light"] .ccv2-request-btn:hover { color: #fff; }
-html[data-theme="light"] .ccv2-request-btn strong { color: var(--text-primary, #1c1b2a); }
-html[data-theme="light"] .ccv2-request-btn:hover strong { color: #fff; }
-
-/* ════════════════════════════════════════════════════════════════════
    MODAL: Solicitar más cupo
    ════════════════════════════════════════════════════════════════════ */
 .aliasreq-overlay {
@@ -1509,18 +1488,6 @@ html[data-theme="light"] .ccv2-request-btn:hover strong { color: #fff; }
     cursor: not-allowed;
     transform: none;
 }
-
-/* Modal light overrides */
-html[data-theme="light"] .aliasreq-overlay { background: rgba(20, 15, 35, 0.55); }
-html[data-theme="light"] .aliasreq-modal {
-    background: #ffffff;
-    border-color: rgba(124, 58, 237, 0.25);
-}
-html[data-theme="light"] .aliasreq-textarea {
-    background: rgba(124, 58, 237, 0.04);
-    color: var(--text-primary, #1c1b2a);
-}
-html[data-theme="light"] .aliasreq-close { border-color: rgba(0, 0, 0, 0.08); }
 
 /* ════════════════════════════════════════════════════════════════════
    TABLET (≥ 768px) — create card 2 cols, slider+num en fila, modal acciones

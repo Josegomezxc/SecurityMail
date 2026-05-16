@@ -315,8 +315,14 @@
 })();
 
 /* ─── Gestor de temas (se ejecuta ANTES de que el usuario interactúe) ─── */
+// Temas válidos: 'dark' y 'carbon'. Si llega 'light' (versión vieja) → 'dark'.
+const VALID_THEMES = ['dark', 'carbon'];
 (function () {
-    const saved = localStorage.getItem('sms_theme') || 'dark';
+    let saved = localStorage.getItem('sms_theme') || 'dark';
+    if (!VALID_THEMES.includes(saved)) {
+        saved = 'dark';
+        localStorage.setItem('sms_theme', saved);
+    }
     document.documentElement.setAttribute('data-theme', saved);
 })();
 
@@ -343,6 +349,7 @@ function closeThemeModal() {
     document.body.style.overflow = '';
 }
 function selectThemeCard(name) {
+    if (!VALID_THEMES.includes(name)) return;
     const current = localStorage.getItem('sms_theme') || 'dark';
     // Si ya es el tema actual, solo cierra la modal
     if (name === current) {

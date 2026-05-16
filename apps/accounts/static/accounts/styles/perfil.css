@@ -386,7 +386,6 @@
     margin-bottom: 0.25rem;
 }
 .ps-val--emails { color: #f0eeff; }
-html[data-theme="light"] .ps-val--emails { color: #60a5fa; }
 .ps-lbl {
     font-size: 0.625rem;
     font-family: var(--mono);
@@ -934,12 +933,6 @@ html[data-theme="light"] .ps-val--emails { color: #60a5fa; }
 .ftc-rule--warn svg { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
 .ftc-rule--no   { color: #fca5a5; }
 .ftc-rule--no svg   { background: rgba(239, 68, 68, 0.18); color: #f87171; }
-
-/* Tema claro: colores más saturados para contraste */
-html[data-theme="light"] .ftc-rules     { background: rgba(0, 0, 0, 0.04); }
-html[data-theme="light"] .ftc-rule--ok   { color: #15803d; }
-html[data-theme="light"] .ftc-rule--warn { color: #b45309; }
-html[data-theme="light"] .ftc-rule--no   { color: #b91c1c; }
 
 /* ── Toggle switch del header ── */
 .ftc-form { margin: 0; }

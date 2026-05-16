@@ -27,51 +27,11 @@
 :focus-visible { outline: none; }
 
 /* ──────────────────────────────────────────────────────────────────────
-   OVERRIDES POR TEMA (light / carbon)
+   OVERRIDES POR TEMA (carbon)
    Las paletas como tal viven en properties/base.css. Aquí solo quedan
    los detalles estilísticos hard-coded: gradientes, sombras y filtros
    que dependen de imágenes o colores no parametrizables.
    ────────────────────────────────────────────────────────────────────── */
-html[data-theme="light"] body {
-    background: linear-gradient(180deg, #f4f4fb 0%, #ecebf5 100%);
-}
-html[data-theme="light"] .sidebar-label::after,
-html[data-theme="light"] .sidebar-logo::after,
-html[data-theme="light"] .sidebar-footer::before {
-    background: linear-gradient(90deg, transparent, rgba(109,74,255,0.22), transparent);
-}
-/* El PNG del logo está diseñado con texto claro sobre fondo oscuro
-   (perfecto en dark/carbon). En light invertimos para reusarlo sin
-   asset alternativo. */
-html[data-theme="light"] .sidebar-logo .logo-icon img {
-    filter: invert(1) hue-rotate(180deg);
-}
-html[data-theme="light"] .sidebar-link:hover { background: rgba(109,74,255,0.07); }
-html[data-theme="light"] .sidebar-link.active {
-    background: linear-gradient(90deg, rgba(109,74,255,0.12), rgba(109,74,255,0.02));
-    color: #1a1830;
-    box-shadow: 0 0 0 1px rgba(109,74,255,0.22) inset;
-}
-html[data-theme="light"] .user-row {
-    background: linear-gradient(160deg, rgba(109,74,255,0.05), rgba(0,0,0,0.015));
-    border-color: rgba(109,74,255,0.1);
-}
-html[data-theme="light"] .user-row:hover {
-    background: linear-gradient(160deg, rgba(109,74,255,0.1), rgba(0,0,0,0.03));
-    border-color: rgba(109,74,255,0.25);
-}
-html[data-theme="light"] .user-dropdown {
-    background: linear-gradient(160deg, #ffffff 0%, #fafaff 100%);
-    border-color: rgba(109,74,255,0.18);
-    box-shadow: 0 0.875rem 2.5rem rgba(20,15,45,0.18);
-}
-html[data-theme="light"] .dd-item:hover {
-    background: rgba(109,74,255,0.08);
-    color: #1a1830;
-}
-html[data-theme="light"] .avatar-wrap::after { border-color: #ffffff; }
-html[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(20,15,45,0.15); }
-
 html[data-theme="carbon"] .logo-text span {
     background: linear-gradient(90deg, #ff6b8e, #ff9ab2);
     -webkit-background-clip: text;
@@ -1390,7 +1350,7 @@ select:-webkit-autofill {
 .page-header p  { color: var(--text-secondary); font-size: 0.84375rem; }
 
 /* ──────────────────────────────────────────────────────────────────────
-   MODAL DE TEMAS — selector dark / light / carbon
+   MODAL DE TEMAS — selector dark / carbon
    ────────────────────────────────────────────────────────────────────── */
 #themeOverlay {
     position: fixed;
@@ -1426,9 +1386,6 @@ select:-webkit-autofill {
     width: calc(100% - 2.5rem);
     box-shadow: 0 2rem 5rem rgba(0,0,0,0.6), 0 0 0 1px rgba(109,74,255,0.08) inset;
     animation: themeIn 0.28s cubic-bezier(.22,1,.36,1) both;
-}
-html[data-theme="light"] .theme-modal {
-    box-shadow: 0 2rem 5rem rgba(20,15,45,0.18), 0 0 0 1px rgba(109,74,255,0.08) inset;
 }
 .theme-modal-close {
     position: absolute;
@@ -1545,11 +1502,6 @@ html[data-theme="carbon"] .theme-card.selected {
 .tp-dark .tp-sidebar { background: #15131f; color: #7c5cff; }
 .tp-dark .tp-content { color: #e8e6f0; }
 .tp-dark .tp-sidebar i:first-child { background: #7c5cff; }
-
-.tp-light { background: #ffffff; }
-.tp-light .tp-sidebar { background: #f1f0f9; color: #6d4aff; }
-.tp-light .tp-content { color: #1a1830; }
-.tp-light .tp-sidebar i:first-child { background: #6d4aff; }
 
 .tp-carbon { background: #08080f; }
 .tp-carbon .tp-sidebar { background: #0d0d14; color: #ff4f7a; }
@@ -1945,4 +1897,108 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
    ────────────────────────────────────────────────────────────────────── */
 @media (max-width: 23.75rem) {
     .threat-pill { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PANTALLA DE CARGA GLOBAL (login → dashboard, etc.)
+   Markup adaptado de Uiverse — Chriskoziol. Se muestra cuando hay
+   navegación entre páginas marcada por sessionStorage 'ds_navLoad'.
+   Se oculta automáticamente al disparar window.load en la página
+   destino. Si JS está deshabilitado nunca se muestra → el form
+   sigue funcionando normalmente.
+   ══════════════════════════════════════════════════════════════════════ */
+.ds-loader {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    background: rgba(8, 6, 18, 0.78);   /* sin blur — mucho más liviano */
+    align-items: center;
+    justify-content: center;
+    /* Hint al compositor: la layer se aísla y no fuerza repaint
+       del resto de la página detrás. */
+    contain: layout paint;
+}
+html.ds-loading .ds-loader { display: flex; }
+
+.ds-loader-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.ds-spinner {
+    width: 3.5rem;
+    height: 3.5rem;
+    display: grid;
+    border: 4px solid transparent;
+    border-radius: 50%;
+    border-right-color: var(--accent);
+    animation: dsSpin 1.2s infinite linear;
+    /* will-change promueve la layer al GPU sin sobrescribir el
+       transform de la animación. NO usar translateZ acá: rompe la
+       rotación porque pisa el transform de los keyframes. */
+    will-change: transform;
+}
+.ds-spinner::before,
+.ds-spinner::after {
+    content: '';
+    grid-area: 1 / 1;
+    margin: 2px;
+    border: inherit;
+    border-radius: 50%;
+    animation: dsSpin 2.4s infinite linear;
+    will-change: transform;
+}
+.ds-spinner::after {
+    margin: 8px;
+    animation-duration: 3.6s;
+}
+@keyframes dsSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.ds-loader-msg {
+    color: var(--text-secondary);
+    font-family: var(--font-sans, sans-serif);
+    font-weight: 500;
+    font-size: 1.25rem;
+    box-sizing: content-box;
+    height: 2.25rem;
+    padding: 0.5rem;
+    display: flex;
+    border-radius: 0.5rem;
+}
+.ds-loader-msg p { margin: 0; }
+
+.ds-words { overflow: hidden; height: 100%; }
+
+.ds-word {
+    display: block;
+    height: 100%;
+    padding-left: 0.375rem;
+    color: var(--accent);
+    animation: dsCycleWords 3.5s infinite;
+    line-height: 2.25rem;
+    will-change: transform;
+}
+
+@keyframes dsCycleWords {
+    10%  { transform: translate3d(0, -105%, 0); }
+    25%  { transform: translate3d(0, -100%, 0); }
+    35%  { transform: translate3d(0, -205%, 0); }
+    50%  { transform: translate3d(0, -200%, 0); }
+    60%  { transform: translate3d(0, -305%, 0); }
+    75%  { transform: translate3d(0, -300%, 0); }
+    85%  { transform: translate3d(0, -405%, 0); }
+    100% { transform: translate3d(0, -400%, 0); }
+}
+
+/* Mobile: spinner y texto más chicos */
+@media (max-width: 30rem) {
+    .ds-spinner { width: 2.75rem; height: 2.75rem; }
+    .ds-loader-msg { font-size: 1rem; height: 1.875rem; }
+    .ds-word { line-height: 1.875rem; }
 }

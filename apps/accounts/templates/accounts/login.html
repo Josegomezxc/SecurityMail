@@ -79,7 +79,7 @@
       <h1 id="lg-title" class="login-title">Bienvenido de nuevo</h1>
       <p class="login-subtitle">Inicia sesión para acceder a tu bandeja segura.</p>
 
-      <form method="post" action="{% url 'login' %}" id="loginForm" novalidate>
+      <form method="post" action="{% url 'login' %}" id="loginForm" novalidate data-ds-loader>
         {% csrf_token %}
 
         <div class="form-group">
@@ -167,7 +167,7 @@
       </form>
 
       <p class="login-footer">
-        ¿No tienes cuenta? <a href="/registro/">Crear cuenta gratis</a>
+        ¿No tienes cuenta? <a href="/registro/" data-ds-loader>Crear cuenta gratis</a>
       </p>
 
       <footer class="trust-strip" aria-label="Garantías">
@@ -195,5 +195,5 @@
   </section>
 </main>
 
-<script src="{% static 'accounts/js/login.js' %}"></script>
+<script src="{% static 'accounts/js/login.js' %}?v=loader"></script>
 {% endblock %}

@@ -79,7 +79,7 @@
         <h1 id="rc-title" class="login-title">Recuperar contraseña</h1>
         <p class="login-subtitle">Ingresa tu correo y te enviaremos un enlace para restablecerla.</p>
 
-        <form method="post" id="recoverForm" novalidate>
+        <form method="post" id="recoverForm" novalidate data-ds-loader>
           {% csrf_token %}
           <div class="form-group">
             <label class="form-label" for="email-input">Correo electrónico</label>

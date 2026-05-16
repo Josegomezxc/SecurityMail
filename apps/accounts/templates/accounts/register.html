@@ -101,7 +101,7 @@
       <h1 id="rg-title" class="login-title">Crear cuenta</h1>
       <p class="login-subtitle">Tu correo real quedará siempre oculto.</p>
 
-      <form method="post" id="register-form" novalidate>
+      <form method="post" id="register-form" novalidate data-ds-loader>
         {% csrf_token %}
 
         <div class="form-group">
@@ -324,7 +324,7 @@
       </form>
 
       <p class="login-footer">
-        ¿Ya tienes cuenta? <a href="/">Iniciar sesión</a>
+        ¿Ya tienes cuenta? <a href="/" data-ds-loader>Iniciar sesión</a>
       </p>
 
       <footer class="trust-strip" aria-label="Garantías">

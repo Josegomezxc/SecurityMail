@@ -54,5 +54,7 @@
         return;
       }
       btnLogin.classList.add('loading');
+      // El handler global de base.js (data-ds-loader en el <form>) se encarga
+      // de mostrar el loader y disparar el submit programático.
     });
   })();
