@@ -71,6 +71,9 @@ def run_sandbox_analysis(email_message) -> dict:
             ],
             capture_output=True,
             text=True,
+            encoding="utf-8",                 # ← fuerza UTF-8 (Windows usa cp1252 por defecto
+                                              #    y rompe acentos como "detección" → "detecciÃ³n")
+            errors="replace",                 # nunca crashea por bytes raros del sandbox
             timeout=25,                       # por adjunto — previene hang en lotes
         )
 

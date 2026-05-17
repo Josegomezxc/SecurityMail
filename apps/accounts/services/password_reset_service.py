@@ -84,7 +84,9 @@ def send_reset_email(user: User, token: PasswordResetToken) -> Tuple[bool, str]:
 # ─────────────────────────────────────────────────────────────────────
 
 def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str) -> str:
+    from apps.core.services.email_service import get_site_url
     display_name = (user.first_name or user.email or 'Usuario').strip()
+    logo_url = f"{get_site_url()}/static/core/img/logo.png"
 
     # Email HTML — diseño profesional basado en tables (máx compat con Gmail,
     # Outlook, iOS Mail, etc.) + estilos 100% inline (muchos clientes strippean
@@ -119,24 +121,11 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
           <td height="4" style="background:#6d4aff;background:linear-gradient(90deg,#6d4aff 0%,#9b6dff 50%,#c3a8ff 100%);font-size:0;line-height:0">&nbsp;</td>
         </tr>
 
-        <!-- ── Logo + marca ── -->
+        <!-- ── Logo real DockerShield centrado ── -->
         <tr>
-          <td style="padding:30px 38px 0">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td width="42" style="vertical-align:middle;padding-right:12px">
-                  <div style="width:42px;height:42px;background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:12px;text-align:center;line-height:42px">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;margin-top:11px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  </div>
-                </td>
-                <td style="vertical-align:middle">
-                  <span style="font-size:18px;font-weight:700;color:#f0eeff;letter-spacing:-0.01em">Secure<span style="color:#a78bfa">Mail</span> Shield</span>
-                </td>
-                <td align="right" style="vertical-align:middle">
-                  <span style="font-size:10.5px;font-weight:700;color:#a78bfa;font-family:'SF Mono',Menlo,Consolas,monospace;letter-spacing:0.14em;text-transform:uppercase;padding:4px 9px;background:rgba(124,92,255,0.12);border:1px solid rgba(124,92,255,0.3);border-radius:20px">Seguridad</span>
-                </td>
-              </tr>
-            </table>
+          <td align="center" style="padding:32px 32px 12px">
+            <img src="{logo_url}" alt="DockerShield" width="200" style="display:block;height:auto;max-width:200px;margin:0 auto 10px;border:0;outline:none;text-decoration:none">
+            <div style="font-size:10.5px;font-weight:700;color:#a78bfa;font-family:'SF Mono',Menlo,Consolas,monospace;letter-spacing:0.14em;text-transform:uppercase;display:inline-block;padding:4px 11px;background:rgba(124,92,255,0.12);border:1px solid rgba(124,92,255,0.3);border-radius:20px">Recuperar contraseña</div>
           </td>
         </tr>
 

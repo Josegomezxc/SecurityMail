@@ -191,9 +191,11 @@ def send_verification_email(user: User, ev: EmailVerificationCode) -> bool:
 
 def _build_verification_html(user: User, ev: EmailVerificationCode) -> str:
     """HTML del correo con el código en una caja grande y destacada."""
+    from apps.core.services.email_service import get_site_url
     code = ev.code
     minutes = CODE_VALIDITY_MINUTES
     name = user.first_name or user.username or 'usuario'
+    logo_url = f"{get_site_url()}/static/core/img/logo.png"
 
     return f"""<!DOCTYPE html>
 <html lang="es">
@@ -211,13 +213,12 @@ def _build_verification_html(user: User, ev: EmailVerificationCode) -> str:
         <tr>
           <td style="background:#161527;border:1px solid rgba(109,74,255,0.25);border-radius:14px;overflow:hidden">
 
-            <!-- HEADER morado -->
+            <!-- HEADER morado con LOGO REAL -->
             <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%)">
               <tr>
                 <td style="padding:26px 28px" align="center">
-                  <div style="display:inline-block;width:48px;height:48px;background:rgba(255,255,255,0.18);border-radius:12px;text-align:center;line-height:48px;font-size:24px;color:#ffffff">&#128737;</div>
-                  <div style="color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-0.01em;margin-top:12px">DockerShield</div>
-                  <div style="color:rgba(255,255,255,0.75);font-size:11.5px;font-family:monospace;letter-spacing:0.1em;margin-top:4px;text-transform:uppercase">Verificación de correo</div>
+                  <img src="{logo_url}" alt="DockerShield" width="200" style="display:inline-block;height:auto;max-width:200px;border:0;outline:none;text-decoration:none">
+                  <div style="color:rgba(255,255,255,0.75);font-size:11.5px;font-family:monospace;letter-spacing:0.1em;margin-top:12px;text-transform:uppercase">Verificación de correo</div>
                 </td>
               </tr>
             </table>

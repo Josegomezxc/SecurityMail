@@ -1108,15 +1108,26 @@
 
 .severity-pill {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.1875rem 0;
-  border-radius: 0.25rem;
-  font-size: 0.625rem;
-  font-weight: 700;
+  padding: 0.3125rem 0.375rem;
+  border-radius: 0.375rem;
   font-family: var(--mono);
   letter-spacing: 0.04em;
   width: 3.5rem;
+  min-height: 2.375rem;
+  gap: 0.0625rem;
+  line-height: 1.1;
+}
+.severity-pill .sev-label {
+  font-size: 0.5625rem;
+  font-weight: 700;
+}
+.severity-pill .sev-score {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 .severity-pill.sev-critical { background: rgba(232,64,64,0.15);  color: var(--danger); }
 .severity-pill.sev-high     { background: rgba(249,115,22,0.15); color: #fb923c; }
@@ -1521,4 +1532,285 @@
     grid-template-columns: 2.75rem 1fr;
     gap: 1rem;
   }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   SISTEMA DE AYUDA "¿QUÉ ES?" — botón circular pequeño + modal info
+   ════════════════════════════════════════════════════════════════════ */
+
+.help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-left: 0.4375rem;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.32);
+  color: #60a5fa;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-family: var(--mono, monospace);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s, border-color 0.15s;
+  padding: 0;
+  line-height: 1;
+  vertical-align: middle;
+  user-select: none;
+  flex-shrink: 0;
+}
+.help-btn::before { content: '?'; }
+.help-btn:hover,
+.help-btn:focus-visible {
+  background: #60a5fa;
+  color: #ffffff;
+  border-color: #60a5fa;
+  transform: scale(1.12);
+  outline: none;
+}
+.help-btn:active { transform: scale(0.95); }
+
+/* Variante chiquita para usar dentro de pills/labels muy compactos */
+.help-btn.help-btn--xs {
+  width: 0.875rem;
+  height: 0.875rem;
+  font-size: 0.5625rem;
+  margin-left: 0.3125rem;
+}
+
+/* ── Modal de info ────────────────────────────────────────────── */
+.help-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 6, 18, 0.78);
+  z-index: 2147483600;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.help-modal[aria-hidden="false"] { display: flex; }
+.help-modal.visible { opacity: 1; }
+
+.help-modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  max-width: 32rem;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.65);
+  transform: translateY(0.625rem) scale(0.98);
+  transition: transform 0.25s cubic-bezier(.4, 0, .2, 1);
+}
+.help-modal.visible .help-modal-card {
+  transform: translateY(0) scale(1);
+}
+
+.help-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.125rem;
+  border-bottom: 1px solid var(--border-soft, var(--border));
+  background: var(--bg-elevated);
+}
+.help-modal-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.18);
+  color: #60a5fa;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1rem;
+  font-family: var(--mono, monospace);
+  flex-shrink: 0;
+  border: 1px solid rgba(96, 165, 250, 0.32);
+}
+.help-modal-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+.help-modal-close {
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.help-modal-close svg { width: 0.875rem; height: 0.875rem; }
+.help-modal-close:hover,
+.help-modal-close:focus-visible {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: rgba(96, 165, 250, 0.5);
+  outline: none;
+}
+
+.help-modal-body {
+  padding: 1.125rem 1.25rem 1.375rem;
+  overflow-y: auto;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Badge "Explicado por IA" en el header del modal */
+.help-modal-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 0.5rem;
+  background: rgba(124, 58, 237, 0.14);
+  border: 1px solid rgba(124, 58, 237, 0.32);
+  color: #a78bfa;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.help-modal-source svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+/* Secciones internas (Qué encontró / Qué significa) */
+.help-section {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-soft, var(--border));
+}
+.help-section:last-child { border-bottom: 0; }
+.help-section:first-child { padding-top: 0; }
+.help-section--found .help-section-icon {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.32);
+  color: var(--warning);
+}
+.help-section-icon {
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 0.5rem;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  color: #60a5fa;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.help-section-icon svg { width: 0.9375rem; height: 0.9375rem; }
+.help-section-text { flex: 1; min-width: 0; }
+.help-section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+.help-section-body { color: var(--text-secondary); line-height: 1.55; }
+
+/* Loading state cuando se está pegando a Groq */
+.help-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1.5rem 0.5rem 1rem;
+}
+.help-spinner {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0.1875rem solid rgba(124, 58, 237, 0.18);
+  border-top-color: #a78bfa;
+  border-radius: 50%;
+  animation: helpSpin 0.7s linear infinite;
+}
+@keyframes helpSpin { to { transform: rotate(360deg); } }
+.help-loading-text {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 22rem;
+  line-height: 1.5;
+}
+
+/* Error en la carga */
+.help-error {
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(232, 64, 64, 0.08);
+  border: 1px solid rgba(232, 64, 64, 0.25);
+  color: var(--danger);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+/* Botón "?" mientras hay loading: lo "atenuamos" un poco */
+.help-btn[disabled] {
+  opacity: 0.5;
+  cursor: wait;
+  pointer-events: none;
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Panel "sin adjunto" — se muestra cuando el correo no trajo adjuntos
+   en lugar de la sección de Identificación del archivo con campos
+   vacíos (mejor UX que mostrar `—` por todos lados).
+   ──────────────────────────────────────────────────────────────────── */
+.no-attach-card { padding: 1.25rem 1.125rem; }
+.no-attach-inner {
+  display: flex;
+  gap: 0.875rem;
+  align-items: flex-start;
+}
+.no-attach-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  background: rgba(96, 165, 250, 0.12);
+  color: #60a5fa;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+}
+.no-attach-icon svg { width: 1.125rem; height: 1.125rem; }
+.no-attach-body { flex: 1; min-width: 0; }
+.no-attach-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+.no-attach-text {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
 }

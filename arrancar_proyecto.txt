@@ -20,3 +20,8 @@ cloudflared tunnel run dockershield
 #    Inbound Parse a:  https://twilight-baking-viewing.ngrok-free.dev/webhook/inbound/
 #    y actualizar SITE_URL + ALLOWED_HOSTS en .env
 ngrok http --url=twilight-baking-viewing.ngrok-free.dev 8000
+
+
+
+#Si hago cambios en reglas yara, rebuildear la imagen docker:
+docker build -t email_seguro_sandbox -f Dockerfile.sandbox .

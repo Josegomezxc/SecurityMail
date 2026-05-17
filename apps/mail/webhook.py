@@ -1052,6 +1052,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
             if sandbox_id
             else f"{base_url}/sandbox/"
         )
+        logo_url = f"{base_url}/static/core/img/logo.png"
 
         # ── Nivel de amenaza ───────────────────────────────────────────
         if risk_score >= 81:
@@ -1083,32 +1084,21 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
         <tr>
           <td style="background:#161527;border:1px solid rgba(109,74,255,0.25);border-radius:14px;overflow:hidden">
 
-            <!-- HEADER morado -->
+            <!-- HEADER morado — Logo centrado + tagline + pill ALERTA -->
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#6d4aff">
               <tr>
-                <td style="padding:22px 28px">
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td style="vertical-align:middle">
-                        <table cellpadding="0" cellspacing="0">
-                          <tr>
-                            <td style="vertical-align:middle;padding-right:12px">
-                              <div style="width:36px;height:36px;background:rgba(255,255,255,0.15);border-radius:9px;text-align:center;line-height:36px">
-                                <img src="https://img.icons8.com/ios-filled/24/ffffff/shield.png" width="18" height="18" alt="" style="vertical-align:middle;margin-top:-2px">
-                              </div>
-                            </td>
-                            <td style="vertical-align:middle">
-                              <div style="color:#ffffff;font-size:16px;font-weight:700;letter-spacing:-0.01em;line-height:1.2">DockerShield</div>
-                              <div style="color:rgba(255,255,255,0.6);font-size:10px;font-family:monospace;letter-spacing:0.08em;margin-top:2px">SISTEMA DE CORREO SEGURO</div>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                      <td align="right" style="vertical-align:top">
-                        <span style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:4px 12px;color:#ffffff;font-size:10px;font-family:monospace;letter-spacing:0.08em;white-space:nowrap">&#9679; ALERTA ACTIVA</span>
-                      </td>
-                    </tr>
-                  </table>
+                <td align="center" style="padding:26px 20px 22px">
+                  <!-- Logo grande centrado (con tinte blanco implícito por fondo morado) -->
+                  <img src="{logo_url}" alt="DockerShield · Sistema de correo seguro" width="200"
+                       style="display:block;height:auto;max-width:200px;margin:0 auto 10px;border:0;outline:none;text-decoration:none">
+
+                  <!-- Tagline blanco translúcido -->
+                  <div style="font-size:11.5px;color:rgba(255,255,255,0.78);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;letter-spacing:0.02em;margin-bottom:14px">
+                    Detectamos una amenaza en tu alias y la bloqueamos
+                  </div>
+
+                  <!-- Pill ALERTA ACTIVA centrada -->
+                  <span style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:5px 14px;color:#ffffff;font-size:10.5px;font-family:monospace;letter-spacing:0.1em;white-space:nowrap;font-weight:700">&#9679; ALERTA ACTIVA</span>
                 </td>
               </tr>
             </table>
@@ -1331,8 +1321,10 @@ def send_safe_email_forward(email_obj, force=False):
             return
 
         from django.conf import settings
+        from apps.core.services.email_service import get_site_url
         domain = settings.MAIL_DOMAIN or 'dockershield.lat'
         from_addr = f"DockerShield <forward@{domain}>"
+        logo_url = f"{get_site_url()}/static/core/img/logo.png"
 
         original_sender  = email_obj.from_email or '(remitente desconocido)'
         original_subject = email_obj.subject or '(sin asunto)'
@@ -1411,23 +1403,26 @@ def send_safe_email_forward(email_obj, force=False):
             items_html = ''
             for a in attachments_meta:
                 items_html += (
-                    f'<tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6">'
+                    f'<tr><td style="padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.06)">'
                     f'<table cellpadding="0" cellspacing="0" width="100%"><tr>'
                     f'<td width="32" valign="middle">'
-                    f'<div style="width:30px;height:30px;background:#ede9fe;border-radius:7px;text-align:center;line-height:30px">'
-                    f'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></div></td>'
-                    f'<td valign="middle" style="padding-left:10px">'
-                    f'<div style="font-size:12.5px;color:#1f2937;font-weight:600;font-family:monospace">{a["filename"]}</div>'
-                    f'<div style="font-size:11px;color:#6b7280;margin-top:1px">{_fmt_size(a["size"])} · escaneado por sandbox</div>'
+                    f'<div style="width:30px;height:30px;background:rgba(124,92,255,0.18);border:1px solid rgba(124,92,255,0.3);border-radius:7px;text-align:center;line-height:30px">'
+                    f'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></div></td>'
+                    f'<td valign="middle" style="padding-left:12px">'
+                    f'<div style="font-size:12.5px;color:#f0eeff;font-weight:600;font-family:monospace">{a["filename"]}</div>'
+                    f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">{_fmt_size(a["size"])} · escaneado por sandbox</div>'
                     f'</td></tr></table></td></tr>'
                 )
+            # Envoltorio en tabla propia (fondo oscuro consistente)
             attachments_banner_html = (
-                '<tr><td style="padding:0 22px 18px">'
-                '<div style="font-size:11px;color:#6b7280;font-family:monospace;letter-spacing:0.04em;margin-bottom:8px">'
-                f'ADJUNTOS ({len(attachments_meta)})</div>'
-                '<table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#fafafa">'
+                '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+                'style="background:#0c0a18;border-bottom:1px solid rgba(255,255,255,0.06)">'
+                '<tr><td style="padding:14px 22px 18px">'
+                '<div style="font-size:11px;color:#a78bfa;font-family:monospace;letter-spacing:0.06em;margin-bottom:10px;text-transform:uppercase;font-weight:700">'
+                f'Adjuntos ({len(attachments_meta)})</div>'
+                '<table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;background:#14121f">'
                 f'{items_html}'
-                '</table></td></tr>'
+                '</table></td></tr></table>'
             )
 
         wrapper_html = f"""<!DOCTYPE html>
@@ -1437,69 +1432,68 @@ def send_safe_email_forward(email_obj, force=False):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="x-apple-disable-message-reformatting">
 </head>
-<body style="margin:0;padding:0;background:#eef0f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#1a1830">
+<body style="margin:0;padding:0;background:#0c0a18;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#e5e7eb">
 
 <!-- Línea de acento superior (firma de marca) -->
 <div style="height:4px;background:linear-gradient(90deg,#6d4aff 0%,#9b6dff 40%,#22c55e 100%);font-size:0;line-height:0">&nbsp;</div>
 
-<!-- ═══════ HEADER ═══════ -->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-bottom:1px solid #ebedf3">
+<!-- ═══════ HEADER OSCURO — Logo centrado + tagline + pill VERIFICADO ═══════ -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0c0a18;border-bottom:1px solid rgba(255,255,255,0.06)">
   <tr>
-    <td style="padding:18px 28px">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <!-- Logo + Brand -->
-          <td valign="middle" style="vertical-align:middle;line-height:1">
-            <table cellpadding="0" cellspacing="0" border="0"><tr>
-              <!-- Logo box: escudo Unicode centrado por line-height -->
-              <td width="40" height="40" valign="middle" align="center" style="background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:11px;text-align:center;vertical-align:middle;line-height:40px;mso-line-height-rule:exactly;font-size:22px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 6px 16px rgba(109,74,255,0.35)">
-                &#128737;
-              </td>
-              <td width="12" style="line-height:0;font-size:0">&nbsp;</td>
-              <td valign="middle" style="vertical-align:middle">
-                <div style="font-size:17px;font-weight:800;color:#1a1830;letter-spacing:-0.015em;line-height:1.1">Secure<span style="color:#7c5cff">Mail</span> Shield</div>
-                <div style="font-size:10.5px;color:#9ca3af;font-family:'SF Mono',Menlo,Consolas,monospace;letter-spacing:0.08em;margin-top:3px;text-transform:uppercase">Correo seguro · sandbox aislado</div>
-              </td>
-            </tr></table>
-          </td>
-          <!-- Pill VERIFICADO -->
-          <td valign="middle" align="right" style="vertical-align:middle">
-            <table cellpadding="0" cellspacing="0" border="0"><tr>
-              <td height="28" valign="middle" style="background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:0 12px 0 8px;line-height:28px">
-                <table cellpadding="0" cellspacing="0" border="0"><tr>
-                  <td width="16" height="16" valign="middle" align="center" style="background:#22c55e;border-radius:50%;text-align:center;vertical-align:middle;line-height:16px;mso-line-height-rule:exactly;font-size:10px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">
-                    &#10003;
-                  </td>
-                  <td width="6" style="line-height:0;font-size:0">&nbsp;</td>
-                  <td style="font-size:11px;font-weight:800;color:#15803d;letter-spacing:0.08em;line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">VERIFICADO</td>
-                </tr></table>
-              </td>
-            </tr></table>
-          </td>
-        </tr>
-      </table>
+    <td align="center" style="padding:28px 20px 22px">
+      <!-- Logo grande centrado -->
+      <img src="{logo_url}" alt="DockerShield · Correo seguro anti-phishing" width="220"
+           style="display:block;height:auto;max-width:220px;margin:0 auto 12px;border:0;outline:none;text-decoration:none">
+
+      <!-- Tagline informativo -->
+      <div style="font-size:12px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;letter-spacing:0.01em;margin-bottom:14px">
+        Correo seguro · sandbox aislado · análisis automático
+      </div>
+
+      <!-- Pill VERIFICADO centrada debajo del logo (tonos verdes adaptados a fondo oscuro) -->
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr>
+        <td height="28" valign="middle" style="background:rgba(34,197,94,0.16);border:1px solid rgba(34,197,94,0.45);border-radius:20px;padding:0 14px 0 10px;line-height:28px">
+          <table cellpadding="0" cellspacing="0" border="0"><tr>
+            <td width="16" height="16" valign="middle" align="center" style="background:#22c55e;border-radius:50%;text-align:center;vertical-align:middle;line-height:16px;mso-line-height-rule:exactly;font-size:10px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">
+              &#10003;
+            </td>
+            <td width="6" style="line-height:0;font-size:0">&nbsp;</td>
+            <td style="font-size:11px;font-weight:800;color:#86efac;letter-spacing:0.08em;line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">VERIFICADO POR SANDBOX</td>
+          </tr></table>
+        </td>
+      </tr></table>
     </td>
   </tr>
 </table>
 
-<!-- ═══════ Sub-info: alias + estado ═══════ -->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fc;border-bottom:1px solid #ebedf3">
+<!-- ═══════ Sub-info OSCURO: alias + estado ═══════ -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#14121f;border-bottom:1px solid rgba(255,255,255,0.06)">
   <tr>
-    <td style="padding:11px 28px;font-size:12px;color:#4b5563">
+    <td style="padding:13px 28px;font-size:12px;color:#9ca3af">
       Recibido en tu alias
-      <span style="display:inline-block;color:#7c5cff;font-family:'SF Mono',Menlo,Consolas,monospace;font-weight:600;background:#ede9fe;padding:2px 8px;border-radius:5px;margin:0 3px;font-size:11px">{alias_address}</span>
+      <span style="display:inline-block;color:#a78bfa;font-family:'SF Mono',Menlo,Consolas,monospace;font-weight:600;background:rgba(124,92,255,0.14);border:1px solid rgba(124,92,255,0.25);padding:2px 8px;border-radius:5px;margin:0 3px;font-size:11px">{alias_address}</span>
       &nbsp;·&nbsp;
-      Análisis sandbox <strong style="color:#15803d">sin amenazas</strong>
+      Análisis sandbox <strong style="color:#4ade80">sin amenazas</strong>
     </td>
   </tr>
 </table>
 
 {attachments_banner_html or ''}
 
-<!-- ═══════ CORREO ORIGINAL TAL CUAL ═══════ -->
-<div style="background:#ffffff;padding:0">
-{original_body_html}
-</div>
+<!-- ═══════ CORREO ORIGINAL — card blanca con padding sobre fondo oscuro ═══════
+     IMPORTANTE: el HTML del remitente puede tener su propio estilo (newsletters,
+     correos con fondo blanco, etc.). NO oscurecemos ese contenido — solo lo
+     envolvemos en un card blanco con margen para que se vea claramente que
+     es el correo original, separado del chrome de DockerShield. -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0c0a18">
+  <tr>
+    <td style="padding:0 0">
+      <div style="background:#ffffff;color:#1a1830">
+        {original_body_html}
+      </div>
+    </td>
+  </tr>
+</table>
 
 <!-- ═══════ FOOTER PROFESIONAL ═══════ -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0c0a18;color:#e5e7eb;margin-top:36px">
@@ -1512,17 +1506,18 @@ def send_safe_email_forward(email_obj, force=False):
       <!-- Outer table que organiza el footer en bloques verticales -->
       <table cellpadding="0" cellspacing="0" border="0" width="100%">
 
-        <!-- ROW 1: Brand line (logo + nombre) -->
+        <!-- ROW 1: Logo real DockerShield (footer oscuro) -->
         <tr>
-          <td style="padding-bottom:24px">
+          <td style="padding-bottom:20px">
             <table cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td width="32" height="32" valign="middle" align="center" style="background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:9px;text-align:center;vertical-align:middle;line-height:32px;mso-line-height-rule:exactly;font-size:18px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 4px 12px rgba(109,74,255,0.4)">
-                  &#128737;
+                <td valign="middle">
+                  <img src="{logo_url}" alt="DockerShield" width="150" style="display:block;height:auto;max-width:150px;border:0;outline:none;text-decoration:none">
                 </td>
-                <td width="10" style="line-height:0;font-size:0">&nbsp;</td>
-                <td valign="middle" style="vertical-align:middle;font-size:14px;font-weight:700;color:#f0eeff;letter-spacing:-0.005em;line-height:1">
-                  Secure<span style="color:#a78bfa">Mail</span> Shield
+                <td width="14" style="line-height:0;font-size:0">&nbsp;</td>
+                <td valign="middle" style="font-size:11px;color:#8a87a8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;line-height:1.4;border-left:1px solid rgba(255,255,255,0.1);padding-left:14px">
+                  Correo seguro<br>
+                  <span style="color:#a78bfa">anti-phishing</span>
                 </td>
               </tr>
             </table>

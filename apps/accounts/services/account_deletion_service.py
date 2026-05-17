@@ -66,6 +66,7 @@ def _build_account_deleted_html(
     base_url    = get_site_url()
     register_url = f"{base_url}/registro/"
     name_safe    = (display_name or 'Usuario').strip() or 'Usuario'
+    logo_url     = f"{base_url}/static/core/img/logo.png"
 
     return f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="es">
@@ -97,24 +98,11 @@ def _build_account_deleted_html(
           <td height="4" style="background:#e84040;background:linear-gradient(90deg,#e84040 0%,#f87171 50%,#fca5a5 100%);font-size:0;line-height:0">&nbsp;</td>
         </tr>
 
-        <!-- ── Logo + marca ── -->
+        <!-- ── Logo real DockerShield centrado ── -->
         <tr>
-          <td style="padding:30px 38px 0">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td width="42" style="vertical-align:middle;padding-right:12px">
-                  <div style="width:42px;height:42px;background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:12px;text-align:center;line-height:42px">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;margin-top:11px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  </div>
-                </td>
-                <td style="vertical-align:middle">
-                  <span style="font-size:18px;font-weight:700;color:#f0eeff;letter-spacing:-0.01em">Docker<span style="color:#a78bfa">Shield</span></span>
-                </td>
-                <td align="right" style="vertical-align:middle">
-                  <span style="font-size:10.5px;font-weight:700;color:#fca5a5;font-family:'SF Mono',Menlo,Consolas,monospace;letter-spacing:0.14em;text-transform:uppercase;padding:4px 9px;background:rgba(232,64,64,0.12);border:1px solid rgba(232,64,64,0.3);border-radius:20px">Cuenta cerrada</span>
-                </td>
-              </tr>
-            </table>
+          <td align="center" style="padding:32px 32px 12px">
+            <img src="{logo_url}" alt="DockerShield" width="200" style="display:block;height:auto;max-width:200px;margin:0 auto 10px;border:0;outline:none;text-decoration:none">
+            <div style="font-size:10.5px;font-weight:700;color:#fca5a5;font-family:'SF Mono',Menlo,Consolas,monospace;letter-spacing:0.14em;text-transform:uppercase;display:inline-block;padding:4px 11px;background:rgba(232,64,64,0.12);border:1px solid rgba(232,64,64,0.3);border-radius:20px">Cuenta cerrada</div>
           </td>
         </tr>
 
