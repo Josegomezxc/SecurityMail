@@ -1,57 +1,4 @@
-import hashlib
 from django.db import models
-
-
-# ═══════════════════════════════════════════════════════════════════════
-#  CACHE DE EXPLICACIONES GENERADAS POR IA (Groq fallback)
-# ═══════════════════════════════════════════════════════════════════════
-
-class TermExplanation(models.Model):
-    """
-    Cache persistente de explicaciones generadas por IA para términos
-    técnicos del sandbox (yara_*, ev.type, reglas, etc.).
-
-    Cuando un usuario hace click en "?" sobre un término que NO está
-    en el diccionario fijo del frontend, el backend pega a Groq para
-    generar la explicación y la guarda acá. La próxima vez que aparezca
-    el mismo término con un detail parecido, se devuelve el cacheado
-    sin pegar a la API → ahorra cuota y tiempo.
-
-    `cache_key` es un hash determinístico de (evidence_type + detail
-    truncado y normalizado), así dos llamadas con la misma evidencia
-    producen el mismo hash y reusan la explicación.
-    """
-    cache_key       = models.CharField(max_length=64, unique=True, db_index=True,
-                                       help_text='SHA-1 de "type|detail" normalizado')
-    evidence_type   = models.CharField(max_length=120,
-                                       help_text='Tipo de evidencia o regla YARA original')
-    evidence_detail = models.TextField(blank=True,
-                                       help_text='Texto detail del análisis (contexto)')
-    explanation     = models.TextField(help_text='Respuesta generada por la IA')
-    model_used      = models.CharField(max_length=80, blank=True,
-                                       help_text='Modelo Groq usado (para auditoría)')
-    hit_count       = models.PositiveIntegerField(default=1,
-                                                  help_text='Cuántas veces se reusó este cache')
-    created_at      = models.DateTimeField(auto_now_add=True)
-    last_used_at    = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-last_used_at']
-        verbose_name = 'Explicación cacheada'
-        verbose_name_plural = 'Explicaciones cacheadas'
-
-    @staticmethod
-    def make_key(evidence_type: str, evidence_detail: str) -> str:
-        """Hash determinístico para deduplicar explicaciones."""
-        normalized = (evidence_type or '').strip().lower()
-        # Truncamos el detail a 200 chars: si dos análisis tienen detail
-        # casi idéntico (mismos primeros 200 chars), reusamos cache.
-        detail = (evidence_detail or '').strip().lower()[:200]
-        h = hashlib.sha1(f"{normalized}|{detail}".encode('utf-8')).hexdigest()
-        return h
-
-    def __str__(self):
-        return f"{self.evidence_type} [{self.cache_key[:8]}…]"
 
 
 class SandboxAnalysis(models.Model):
@@ -127,6 +74,22 @@ class SandboxAnalysis(models.Model):
     risk_level  = models.CharField(max_length=10, choices=RISK_LEVELS, default='safe')
     threat_name = models.CharField(max_length=200, blank=True)
     blocked     = models.BooleanField(default=False)
+
+    # ── Cache del análisis IA (Groq) ────────────────────────────────────
+    # La sección "Análisis IA" del reporte llama al modelo SOLO una vez
+    # por reporte. Una vez generada la respuesta, se guarda acá y futuras
+    # visitas al mismo reporte reusan el cache sin tocar la API. Esto
+    # ahorra cuota diaria de tokens drásticamente.
+    ai_verdict      = models.CharField(max_length=20, blank=True,
+                                       help_text='MALICIOSO / SOSPECHOSO / SEGURO')
+    ai_threat_type  = models.CharField(max_length=100, blank=True,
+                                       help_text='Tipo de amenaza (Phishing, Malware, etc.)')
+    ai_explanation  = models.TextField(blank=True,
+                                       help_text='Respuesta de la IA en Markdown (EXPLICACION)')
+    ai_recommendation = models.TextField(blank=True,
+                                         help_text='Respuesta de la IA en Markdown (RECOMENDACION)')
+    ai_generated_at = models.DateTimeField(null=True, blank=True,
+                                           help_text='Cuándo se generó el análisis IA por última vez')
 
     def set_risk_level(self):
         if self.risk_score <= 30:

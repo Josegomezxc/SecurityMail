@@ -10,7 +10,6 @@ Estas vistas solo son el controlador que muestra los resultados.
 """
 import json
 import os
-import time
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -19,7 +18,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.mail.models import EmailMessage
-from .models import SandboxAnalysis, TermExplanation
+from .models import SandboxAnalysis
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -77,8 +76,31 @@ def sandbox_report_view(request, pk):
     analysis = get_object_or_404(
         SandboxAnalysis, pk=pk, email__alias__user=request.user,
     )
+
+    # Contexto enriquecido de reglas YARA detectadas — se inyecta al
+    # prompt del análisis IA del cliente para que pueda explicar cada
+    # regla en lenguaje claro sin pegarle a Groq por cada `?`.
+    yara_context = []
+    for match in (analysis.yara_matches or [])[:10]:
+        if isinstance(match, dict):
+            rule_name = match.get('rule', '')
+        else:
+            rule_name = str(match)
+        if not rule_name:
+            continue
+        meta = _yara_lookup(rule_name)
+        entry = {
+            'rule':     rule_name,
+            'desc':     (meta or {}).get('description', ''),
+            'category': (meta or {}).get('category', ''),
+            'severity': (meta or {}).get('severity', ''),
+            'strings':  ((meta or {}).get('strings') or [])[:5],
+        }
+        yara_context.append(entry)
+
     return render(request, 'sandbox/sandbox_report.html', {
-        'analysis': analysis,
+        'analysis':          analysis,
+        'yara_context_json': json.dumps(yara_context, ensure_ascii=False),
     })
 
 
@@ -86,73 +108,155 @@ def sandbox_report_view(request, pk):
 #  Análisis IA (Groq + Llama 3.3)
 # ─────────────────────────────────────────────────────────────────────
 
+def _parse_ai_blocks(text: str) -> dict:
+    """
+    Extrae las 4 secciones (VEREDICTO, TIPO DE AMENAZA, EXPLICACION,
+    RECOMENDACION) del texto plano que devuelve la IA. Reusa el mismo
+    parser que el JS para poder cachear los campos por separado.
+    """
+    keys = ['VEREDICTO', 'TIPO DE AMENAZA', 'EXPLICACION', 'RECOMENDACION']
+    out = {k: '' for k in keys}
+    if not text:
+        return out
+    lines = text.splitlines()
+    # Encontramos los índices de cada KEY: y extraemos el bloque hasta la próxima
+    indices = []
+    for i, line in enumerate(lines):
+        s = line.strip()
+        for k in keys:
+            if s.startswith(k + ':'):
+                indices.append((i, k))
+                break
+    indices.append((len(lines), None))
+    for j in range(len(indices) - 1):
+        start, key = indices[j]
+        end = indices[j + 1][0]
+        block_lines = lines[start:end]
+        if not block_lines:
+            continue
+        first = block_lines[0]
+        # Quita el "KEY:" del inicio de la primera línea
+        first_stripped = first.split(':', 1)[1].lstrip() if ':' in first else first
+        rest = '\n'.join([first_stripped] + block_lines[1:]).strip()
+        out[key] = rest
+    return out
+
+
 @login_required(login_url='login')
 @require_POST
 def ai_analysis_view(request):
     """
-    Entrada:  { "prompt": "texto del prompt construido por el frontend" }
-    Salida:   { "result": "veredicto en el formato VEREDICTO/TIPO/EXPLICACION/RECOMENDACION" }
-    Fallo:    { "error": "mensaje" }  con status 500
+    Entrada:  {
+        "prompt":      "texto del prompt construido por el frontend",
+        "analysis_id": <int>            ← opcional: si viene, se cachea
+    }
+    Salida:   {
+        "result": "<respuesta completa>",
+        "cached": false                 ← false si vino de Groq, true si de BD
+    }
+    Errores:
+      - 429 (rate limit): { "error": "...", "retry_after": <minutos>, "code": "rate_limit" }
+      - 500 (otros):      { "error": "..." }
     """
     try:
-        from groq import Groq
         data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
 
-        api_key = os.environ.get('GROQ_API_KEY', '').strip()
-        if not api_key:
-            return JsonResponse(
-                {'error': 'GROQ_API_KEY no configurada. Revisa tu archivo .env'},
-                status=500,
-            )
+    analysis_id = data.get('analysis_id')
+    prompt      = data.get('prompt', '')
+
+    # ── 1. Cache hit ──────────────────────────────────────────────────
+    # Si el reporte ya tiene análisis IA generado, devolvemos eso SIN
+    # pegarle a Groq. Esto ahorra ~5,000-8,000 tokens por visualización
+    # repetida del mismo reporte.
+    cached_obj = None
+    if analysis_id:
+        try:
+            cached_obj = SandboxAnalysis.objects.filter(
+                pk=analysis_id,
+                email__alias__user=request.user,
+            ).first()
+        except Exception:
+            cached_obj = None
+
+        if cached_obj and cached_obj.ai_explanation:
+            # Reconstruimos el texto en el formato que espera el frontend
+            parts = [
+                f'VEREDICTO: {cached_obj.ai_verdict or "SEGURO"}',
+                f'TIPO DE AMENAZA: {cached_obj.ai_threat_type or "No aplica"}',
+                f'EXPLICACION: {cached_obj.ai_explanation}',
+                f'RECOMENDACION: {cached_obj.ai_recommendation or ""}',
+            ]
+            return JsonResponse({
+                'result': '\n\n'.join(parts),
+                'cached': True,
+            })
+
+    # ── 2. Cache miss → pegamos a Groq ────────────────────────────────
+    api_key = os.environ.get('GROQ_API_KEY', '').strip()
+    if not api_key:
+        return JsonResponse(
+            {'error': 'GROQ_API_KEY no configurada. Revisa tu archivo .env'},
+            status=500,
+        )
+
+    try:
+        from groq import Groq
         client = Groq(api_key=api_key)
         response = client.chat.completions.create(
             model='llama-3.3-70b-versatile',
-            messages=[{'role': 'user', 'content': data.get('prompt', '')}],
-            max_tokens=2000,        # ↑ permite explicaciones detalladas con definiciones
-            temperature=0.4,        # ↓ menos creativo, más consistente con el formato pedido
+            messages=[{'role': 'user', 'content': prompt}],
+            max_tokens=3500,
+            temperature=0.4,
         )
-        return JsonResponse({'result': response.choices[0].message.content})
-
+        raw = response.choices[0].message.content
     except Exception as e:
-        print('ERROR IA:', str(e))
-        return JsonResponse({'error': str(e)}, status=500)
+        err_str = str(e)
+        print('ERROR IA:', err_str)
+        # Detectar rate limit (429) y extraer el tiempo de espera
+        if '429' in err_str or 'rate_limit' in err_str.lower() or 'tokens per day' in err_str.lower():
+            import re as _re
+            # Buscar el "try again in Xm" del mensaje de Groq
+            m = _re.search(r'try again in\s+(\d+)\s*m', err_str, _re.IGNORECASE)
+            wait_min = int(m.group(1)) if m else 60
+            return JsonResponse({
+                'error': 'Se alcanzó el límite diario de la API de IA.',
+                'code': 'rate_limit',
+                'retry_after_min': wait_min,
+            }, status=429)
+        return JsonResponse({'error': err_str}, status=500)
+
+    # ── 3. Si vino analysis_id, cacheamos en la BD ────────────────────
+    if cached_obj is not None:
+        try:
+            from django.utils import timezone
+            blocks = _parse_ai_blocks(raw)
+            cached_obj.ai_verdict       = (blocks.get('VEREDICTO') or '')[:20]
+            cached_obj.ai_threat_type   = (blocks.get('TIPO DE AMENAZA') or '')[:100]
+            cached_obj.ai_explanation   = blocks.get('EXPLICACION') or ''
+            cached_obj.ai_recommendation = blocks.get('RECOMENDACION') or ''
+            cached_obj.ai_generated_at  = timezone.now()
+            cached_obj.save(update_fields=[
+                'ai_verdict', 'ai_threat_type', 'ai_explanation',
+                'ai_recommendation', 'ai_generated_at',
+            ])
+        except Exception as e:
+            # No crítico: si falla el guardado igual servimos la respuesta
+            print('ai_analysis: cache save failed:', e)
+
+    return JsonResponse({'result': raw, 'cached': False})
 
 
 # ─────────────────────────────────────────────────────────────────────
-#  Explicación de términos técnicos (Groq como fallback del diccionario)
-#  El frontend tiene un diccionario fijo de explicaciones (HELP_TEXTS en
-#  sandbox_report.js). Cuando un término NO está ahí, se pega a este
-#  endpoint que delega en Groq, cachea la respuesta en BD, y la sirve.
+#  Indexado de reglas YARA — se usa en sandbox_report_view para enriquecer
+#  el contexto que se manda al prompt de análisis IA. Antes había un
+#  endpoint dedicado por click "¿Qué es?", pero consumía demasiada cuota
+#  de Groq. Ahora una sola llamada por reporte cubre todo.
 # ─────────────────────────────────────────────────────────────────────
 
-# Rate limit en memoria: { ip: [(ts1, ts2, ...)] }
-_EXPLAIN_RL = {}
-_EXPLAIN_RL_LIMIT = 6        # máximo 6 explicaciones por ventana
-_EXPLAIN_RL_WINDOW = 60      # ventana = 60 segundos
-_MAX_DETAIL_LEN = 400        # truncamos el detail a 400 chars para Groq
-
-# Cache en memoria del índice de reglas YARA (se carga 1 vez)
+# Cache en memoria del índice de reglas YARA (se carga 1 vez por proceso)
 _YARA_INDEX = None
-
-
-def _get_client_ip(request):
-    xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
-    if xff:
-        return xff.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR', 'unknown')
-
-
-def _rate_limited(ip: str) -> bool:
-    """True si esta IP excedió el límite. Limpia los timestamps viejos."""
-    now = time.time()
-    cutoff = now - _EXPLAIN_RL_WINDOW
-    history = [t for t in _EXPLAIN_RL.get(ip, []) if t > cutoff]
-    if len(history) >= _EXPLAIN_RL_LIMIT:
-        _EXPLAIN_RL[ip] = history
-        return True
-    history.append(now)
-    _EXPLAIN_RL[ip] = history
-    return False
 
 
 def _build_yara_index() -> dict:
@@ -313,173 +417,3 @@ def _extract_rule_name_from_detail(detail: str) -> str | None:
     return None
 
 
-def _build_prompt(evidence_type: str, evidence_detail: str) -> str:
-    """
-    Construye el prompt para Groq. Incluye contexto real si el tipo
-    es una regla YARA (o si encontramos el nombre en el detail).
-    """
-    detail = (evidence_detail or '').strip()[:_MAX_DETAIL_LEN]
-
-    # ── Intentamos sacar contexto real de las reglas YARA ──────────
-    # Caso A: ev_type ES el nombre de la regla (clic en sección YARA matches)
-    # Caso B: ev_type es genérico (yara_*) y el detail tiene "YARA `nombre`:"
-    rule_meta = _yara_lookup(evidence_type)
-    rule_name = evidence_type if rule_meta else None
-    if not rule_meta:
-        guess = _extract_rule_name_from_detail(detail)
-        if guess:
-            rule_meta = _yara_lookup(guess)
-            rule_name = guess if rule_meta else None
-
-    context_block = ''
-    if rule_meta:
-        bits = [f"  - Nombre de la regla: {rule_name}"]
-        if rule_meta.get('description'):
-            bits.append(f"  - Descripción técnica: {rule_meta['description']}")
-        if rule_meta.get('category'):
-            bits.append(f"  - Categoría: {rule_meta['category']}")
-        if rule_meta.get('severity'):
-            bits.append(f"  - Severidad asignada: {rule_meta['severity']}/100")
-        strings_list = rule_meta.get('strings') or []
-        if strings_list:
-            bits.append("  - Patrones/strings que busca la regla:")
-            for s in strings_list:
-                bits.append(f"      • {s}")
-        context_block = (
-            "INFORMACIÓN REAL DE LA REGLA YARA DETECTADA "
-            f"(extraída del archivo {rule_meta.get('file', 'desconocido')}):\n"
-            + "\n".join(bits)
-            + "\n\nBasate en estos datos REALES para explicar qué hace la regla "
-            "y qué encontró. Los strings que busca te dicen exactamente qué "
-            "patrón está marcando como sospechoso.\n\n"
-        )
-
-    return (
-        "Sos un asistente que explica conceptos de ciberseguridad a usuarios sin "
-        "conocimiento técnico. Te paso un indicador detectado por un sandbox de "
-        "análisis de correos electrónicos.\n\n"
-        + context_block +
-        f"Tipo del indicador: {evidence_type}\n"
-        f"Detalle del análisis: {detail or '(sin detalle adicional)'}\n\n"
-        "Tu respuesta tiene que tener exactamente este formato (sin saludos ni "
-        "introducciones, solo las dos secciones):\n\n"
-        "QUE_ENCONTRO: una oración corta (máximo 25 palabras) describiendo en "
-        "lenguaje natural qué encontró el sandbox en este correo específico, "
-        "basándote en el detalle y la descripción técnica si está disponible.\n"
-        "QUE_SIGNIFICA: 2-3 oraciones explicando POR QUÉ eso es relevante para "
-        "la seguridad, qué riesgo implica y qué hacer al respecto. Sin jerga "
-        "técnica, lenguaje claro.\n\n"
-        "Reglas importantes:\n"
-        "- Si el contexto real de la regla YARA está disponible arriba, "
-        "  USALO. NO digas 'no se pudo determinar': la información existe.\n"
-        "- Si NO hay contexto, podés inferir del nombre del indicador (es "
-        "  descriptivo, ej: 'PDF_Embedded_JS_Action' significa JavaScript "
-        "  embebido en un PDF que se ejecuta al abrir).\n"
-        "- NO uses comillas ni asteriscos ni markdown.\n"
-        "- Respondé en español latinoamericano.\n"
-        "- Tono neutro, factual, ni alarmista ni minimizador."
-    )
-
-
-def _parse_groq_response(raw: str) -> dict:
-    """Parsea la respuesta del modelo en las dos secciones."""
-    text = (raw or '').strip()
-    found = ''
-    means = ''
-    # Búsqueda robusta de los marcadores
-    for line in text.splitlines():
-        if line.startswith('QUE_ENCONTRO:'):
-            found = line.split(':', 1)[1].strip()
-        elif line.startswith('QUE_SIGNIFICA:'):
-            means = line.split(':', 1)[1].strip()
-    if not found and not means:
-        # Si el modelo no respetó el formato, devolvemos todo como "means"
-        return {'found': '', 'means': text}
-    return {'found': found, 'means': means}
-
-
-@login_required(login_url='login')
-@require_POST
-def explain_term_view(request):
-    """
-    Recibe { "type": "<ev.type>", "detail": "<ev.detail opcional>" }
-    Devuelve { "found": "...", "means": "...", "cached": bool, "source": "groq|cache" }
-    """
-    try:
-        body = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-
-    ev_type   = (body.get('type') or '').strip()[:120]
-    ev_detail = (body.get('detail') or '').strip()
-
-    if not ev_type:
-        return JsonResponse({'error': 'falta el campo type'}, status=400)
-
-    # Rate limit por IP
-    ip = _get_client_ip(request)
-    if _rate_limited(ip):
-        return JsonResponse({
-            'error': 'demasiadas explicaciones en poco tiempo, esperá un momento',
-        }, status=429)
-
-    # ── 1. Cache hit ─────────────────────────────────────────────────
-    key = TermExplanation.make_key(ev_type, ev_detail)
-    cached = TermExplanation.objects.filter(cache_key=key).first()
-    if cached:
-        cached.hit_count = (cached.hit_count or 0) + 1
-        cached.save(update_fields=['hit_count', 'last_used_at'])
-        parsed = _parse_groq_response(cached.explanation)
-        return JsonResponse({
-            'found':  parsed['found'],
-            'means':  parsed['means'],
-            'cached': True,
-            'source': 'cache',
-        })
-
-    # ── 2. Cache miss → pegamos a Groq ───────────────────────────────
-    api_key = os.environ.get('GROQ_API_KEY', '').strip()
-    if not api_key:
-        return JsonResponse({
-            'error': 'GROQ_API_KEY no configurada en .env'
-        }, status=500)
-
-    try:
-        from groq import Groq
-        client = Groq(api_key=api_key)
-        prompt = _build_prompt(ev_type, ev_detail)
-        completion = client.chat.completions.create(
-            model='llama-3.3-70b-versatile',   # el mejor disponible para esto
-            messages=[{'role': 'user', 'content': prompt}],
-            max_tokens=350,
-            temperature=0.3,
-        )
-        raw = completion.choices[0].message.content
-        model_used = 'llama-3.3-70b-versatile'
-    except Exception as e:
-        print('explain_term ERROR Groq:', e)
-        return JsonResponse({
-            'error': 'No se pudo contactar al modelo de IA en este momento',
-            'detail': str(e),
-        }, status=502)
-
-    # ── 3. Guardamos en cache + devolvemos ───────────────────────────
-    try:
-        TermExplanation.objects.create(
-            cache_key=key,
-            evidence_type=ev_type,
-            evidence_detail=ev_detail[:_MAX_DETAIL_LEN],
-            explanation=raw,
-            model_used=model_used,
-        )
-    except Exception as e:
-        # No es crítico: si falla el guardado seguimos sirviendo la respuesta
-        print('explain_term: cache save failed:', e)
-
-    parsed = _parse_groq_response(raw)
-    return JsonResponse({
-        'found':  parsed['found'],
-        'means':  parsed['means'],
-        'cached': False,
-        'source': 'groq',
-    })

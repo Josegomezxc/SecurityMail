@@ -11,8 +11,4 @@ urlpatterns = [
 
     # Análisis IA bajo demanda
     path('ai-analysis/', views.ai_analysis_view, name='ai_analysis'),
-
-    # Explicación de términos técnicos del reporte (fallback de IA cuando
-    # el diccionario fijo del frontend no tiene la explicación)
-    path('sandbox/api/explain/', views.explain_term_view, name='sandbox_explain_term'),
 ]

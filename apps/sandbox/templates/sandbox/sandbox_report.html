@@ -6,7 +6,7 @@
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_report.css' %}?v=ai-help">
+<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_report.css' %}?v=odd-min3">
 {% endblock %}
 
 {% block page_title %}
@@ -127,7 +127,7 @@
 
   <div class="facts-grid">
     <div class="fact">
-      <div class="fact-label">Tipo MIME real <button type="button" class="help-btn" data-help="mime_real" aria-label="¿Qué es Tipo MIME real?"></button></div>
+      <div class="fact-label">Tipo MIME real</div>
       <div class="fact-value {% if analysis.extension_spoof %}danger{% endif %}">
         {{ analysis.real_mime_type|default:"desconocido" }}
       </div>
@@ -140,12 +140,12 @@
     </div>
 
     <div class="fact">
-      <div class="fact-label">Extensión <button type="button" class="help-btn" data-help="extension" aria-label="¿Qué es Extensión?"></button></div>
+      <div class="fact-label">Extensión</div>
       <div class="fact-value">{{ analysis.extension|default:"—" }}</div>
     </div>
 
     <div class="fact">
-      <div class="fact-label">Tamaño <button type="button" class="help-btn" data-help="size" aria-label="¿Qué es Tamaño?"></button></div>
+      <div class="fact-label">Tamaño</div>
       <div class="fact-value">
         {% if analysis.file_size %}
           {{ analysis.file_size|filesizeformat }}
@@ -154,7 +154,7 @@
     </div>
 
     <div class="fact" style="grid-column:1/-1">
-      <div class="fact-label">Hash SHA-256 <button type="button" class="help-btn" data-help="sha256" aria-label="¿Qué es Hash SHA-256?"></button></div>
+      <div class="fact-label">Hash SHA-256</div>
       <div class="fact-value" style="font-size:11px;color:var(--text-secondary)">
         {{ analysis.sha256_hash|default:"—" }}
       </div>
@@ -162,7 +162,7 @@
 
     {% if analysis.md5_hash %}
     <div class="fact" style="grid-column:1/-1">
-      <div class="fact-label">Hash MD5 <button type="button" class="help-btn" data-help="md5" aria-label="¿Qué es Hash MD5?"></button></div>
+      <div class="fact-label">Hash MD5</div>
       <div class="fact-value" style="font-size:11px;color:var(--text-secondary)">{{ analysis.md5_hash }}</div>
     </div>
     {% endif %}
@@ -257,7 +257,7 @@
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
       </svg>
     </div>
-    <h2 class="section-head-title">Evidencia detectada <button type="button" class="help-btn" data-help="evidence_section" aria-label="¿Qué es Evidencia detectada?"></button></h2>
+    <h2 class="section-head-title">Evidencia detectada</h2>
     <div class="section-head-tag">
       {% if analysis.evidence %}
         <span class="tag tag-red">{{ analysis.evidence|length }} indicador{{ analysis.evidence|length|pluralize:"es" }}</span>
@@ -280,7 +280,7 @@
                 </span>
                 <div class="evidence-body">
                   <div class="evidence-detail">{{ ev.detail }}</div>
-                  <span class="evidence-type">{{ ev.type }}</span><button type="button" class="help-btn help-btn--xs" data-help="{{ ev.type }}" aria-label="¿Qué es este indicador?"></button>
+                  <span class="evidence-type">{{ ev.type }}</span>
                 </div>
               </div>
             {% endwith %}
@@ -293,7 +293,7 @@
                 </span>
                 <div class="evidence-body">
                   <div class="evidence-detail">{{ ev.detail }}</div>
-                  <span class="evidence-type">{{ ev.type }}</span><button type="button" class="help-btn help-btn--xs" data-help="{{ ev.type }}" aria-label="¿Qué es este indicador?"></button>
+                  <span class="evidence-type">{{ ev.type }}</span>
                 </div>
               </div>
             {% endwith %}
@@ -306,7 +306,7 @@
                 </span>
                 <div class="evidence-body">
                   <div class="evidence-detail">{{ ev.detail }}</div>
-                  <span class="evidence-type">{{ ev.type }}</span><button type="button" class="help-btn help-btn--xs" data-help="{{ ev.type }}" aria-label="¿Qué es este indicador?"></button>
+                  <span class="evidence-type">{{ ev.type }}</span>
                 </div>
               </div>
             {% endwith %}
@@ -319,7 +319,7 @@
                 </span>
                 <div class="evidence-body">
                   <div class="evidence-detail">{{ ev.detail }}</div>
-                  <span class="evidence-type">{{ ev.type }}</span><button type="button" class="help-btn help-btn--xs" data-help="{{ ev.type }}" aria-label="¿Qué es este indicador?"></button>
+                  <span class="evidence-type">{{ ev.type }}</span>
                 </div>
               </div>
             {% endwith %}
@@ -331,7 +331,7 @@
                 </span>
                 <div class="evidence-body">
                   <div class="evidence-detail">{{ ev.detail }}</div>
-                  <span class="evidence-type">{{ ev.type }}</span><button type="button" class="help-btn help-btn--xs" data-help="{{ ev.type }}" aria-label="¿Qué es este indicador?"></button>
+                  <span class="evidence-type">{{ ev.type }}</span>
                 </div>
               </div>
             {% endwith %}
@@ -356,7 +356,7 @@
         <path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/>
       </svg>
     </div>
-    <h2 class="section-head-title">Reglas YARA coincidentes <button type="button" class="help-btn" data-help="yara_matches" aria-label="¿Qué son las reglas YARA?"></button></h2>
+    <h2 class="section-head-title">Reglas YARA coincidentes</h2>
     <div class="section-head-tag">
       <span class="tag tag-purple">{{ analysis.yara_matches|length }} match{{ analysis.yara_matches|length|pluralize:"es" }}</span>
     </div>
@@ -366,9 +366,6 @@
       <div class="yara-rule">
         <div class="yara-rule-name">
           {% if match.rule %}{{ match.rule }}{% else %}{{ match }}{% endif %}
-          <button type="button" class="help-btn help-btn--xs"
-                  data-help="{% if match.rule %}{{ match.rule }}{% else %}{{ match }}{% endif %}"
-                  aria-label="¿Qué es esta regla YARA?"></button>
         </div>
         {% if match.category %}
           <div class="yara-rule-cat">categoría: {{ match.category }} · severidad: {{ match.severity|default:"?" }}/100</div>
@@ -388,7 +385,7 @@
         <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
       </svg>
     </div>
-    <h2 class="section-head-title">Indicadores de compromiso (IOCs) <button type="button" class="help-btn" data-help="iocs" aria-label="¿Qué son los IOCs?"></button></h2>
+    <h2 class="section-head-title">Indicadores de compromiso (IOCs)</h2>
     <div class="section-head-tag"><span class="tag tag-blue">extraídos del análisis</span></div>
   </header>
 
@@ -397,7 +394,6 @@
     <div class="ioc-group-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       URLs ({{ analysis.iocs.urls|length }})
-      <button type="button" class="help-btn" data-help="iocs_urls" aria-label="¿Qué son las URLs detectadas?"></button>
     </div>
     <div class="ioc-list collapsible-list" data-show="5" data-label="URLs">
       {% for url in analysis.iocs.urls %}
@@ -415,7 +411,6 @@
     <div class="ioc-group-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
       Direcciones IP ({{ analysis.iocs.ips|length }})
-      <button type="button" class="help-btn" data-help="iocs_ips" aria-label="¿Qué son las IPs detectadas?"></button>
     </div>
     <div class="ioc-list collapsible-list" data-show="5" data-label="IPs">
       {% for ip in analysis.iocs.ips %}
@@ -433,7 +428,6 @@
     <div class="ioc-group-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
       Dominios ({{ analysis.iocs.domains|length }})
-      <button type="button" class="help-btn" data-help="iocs_domains" aria-label="¿Qué son los dominios detectados?"></button>
     </div>
     <div class="ioc-list collapsible-list" data-show="5" data-label="dominios">
       {% for d in analysis.iocs.domains %}
@@ -457,7 +451,7 @@
         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
       </svg>
     </div>
-    <h2 class="section-head-title">Análisis del cuerpo del correo <button type="button" class="help-btn" data-help="body_analysis" aria-label="¿Qué es el análisis del cuerpo del correo?"></button></h2>
+    <h2 class="section-head-title">Análisis del cuerpo del correo</h2>
     <div class="section-head-tag">
       {% if analysis.body_score >= 61 %}
         <span class="tag tag-red">Score {{ analysis.body_score }}</span>
@@ -494,7 +488,7 @@
               </span>
               <div class="evidence-body">
                 <div class="evidence-detail">{{ ev.detail }}</div>
-                <span class="evidence-type">{{ ev.type }}</span><button type="button" class="help-btn help-btn--xs" data-help="{{ ev.type }}" aria-label="¿Qué es este indicador?"></button>
+                <span class="evidence-type">{{ ev.type }}</span>
               </div>
             </div>
           {% endwith %}
@@ -506,7 +500,7 @@
               </span>
               <div class="evidence-body">
                 <div class="evidence-detail">{{ ev.detail }}</div>
-                <span class="evidence-type">{{ ev.type }}</span><button type="button" class="help-btn help-btn--xs" data-help="{{ ev.type }}" aria-label="¿Qué es este indicador?"></button>
+                <span class="evidence-type">{{ ev.type }}</span>
               </div>
             </div>
           {% endwith %}
@@ -518,7 +512,7 @@
               </span>
               <div class="evidence-body">
                 <div class="evidence-detail">{{ ev.detail }}</div>
-                <span class="evidence-type">{{ ev.type }}</span><button type="button" class="help-btn help-btn--xs" data-help="{{ ev.type }}" aria-label="¿Qué es este indicador?"></button>
+                <span class="evidence-type">{{ ev.type }}</span>
               </div>
             </div>
           {% endwith %}
@@ -530,7 +524,7 @@
               </span>
               <div class="evidence-body">
                 <div class="evidence-detail">{{ ev.detail }}</div>
-                <span class="evidence-type">{{ ev.type }}</span><button type="button" class="help-btn help-btn--xs" data-help="{{ ev.type }}" aria-label="¿Qué es este indicador?"></button>
+                <span class="evidence-type">{{ ev.type }}</span>
               </div>
             </div>
           {% endwith %}
@@ -850,7 +844,11 @@
 <!-- ── AI SCRIPT ── -->
 <script>
 window.__SANDBOX_CTX__ = {
+  analysisId:   {{ analysis.id }},
   filename:     "{{ analysis.filename|escapejs }}",
+  fileSize:     {{ analysis.file_size|default:0 }},
+  md5:          "{{ analysis.md5_hash|escapejs }}",
+  sha256:       "{{ analysis.sha256_hash|escapejs }}",
   mimeType:     "{{ analysis.real_mime_type|escapejs }}",
   extension:    "{{ analysis.extension|escapejs }}",
   extSpoof:     {% if analysis.extension_spoof %}true{% else %}false{% endif %},
@@ -860,11 +858,12 @@ window.__SANDBOX_CTX__ = {
   evidence:     {{ analysis.evidence|safe }},
   iocs:         {{ analysis.iocs|safe }},
   yaraMatches:  {{ analysis.yara_matches|safe }},
+  yaraContext:  {{ yara_context_json|default:"[]"|safe }},
   bodyScore:    {{ analysis.body_score|default:0 }},
   bodyThreat:   "{{ analysis.body_threat|escapejs }}",
   analyzersRun: {{ analysis.analyzers_run|safe }}
 };
 </script>
-<script src="{% static 'sandbox/js/sandbox_report.js' %}?v=ai-help"></script>
+<script src="{% static 'sandbox/js/sandbox_report.js' %}?v=odd-min3"></script>
 
 {% endblock %}
