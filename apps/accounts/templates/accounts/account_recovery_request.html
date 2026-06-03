@@ -1,0 +1,381 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Recuperar cuenta bloqueada — DockerShield{% endblock %}
+
+{% block extra_css %}
+{% comment %}
+Reusamos estilos del modal de pedir cupo de alias (.aar-mb-* + .aliasreq-*) —
+mismo lenguaje visual del admin para que la decisión se vea exactamente igual
+desde el lado del usuario.
+{% endcomment %}
+<link rel="stylesheet" href="{% static 'aliases/styles/alias.css' %}">
+<link rel="stylesheet" href="{% static 'core/styles/admin_alias_requests.css' %}?v=modal-top-align">
+<link rel="stylesheet" href="{% static 'core/styles/admin_account_recovery.css' %}?v=v2-aar">
+<link rel="stylesheet" href="{% static 'accounts/styles/account_recovery.css' %}?v=v4-nocomment">
+{% endblock %}
+
+{% block body_outer %}
+<main class="recovery-wrapper">
+  <div class="recovery-shell">
+    <div class="aliasreq-modal recovery-card">
+
+      {# ═══ Estado: PENDIENTE ═══════════════════════════════════════════ #}
+      {% if pending %}
+        <header class="aliasreq-head">
+          <div class="aliasreq-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="aliasreq-titles">
+            <h2 class="aliasreq-title">Solicitud en revisión</h2>
+            <p class="aliasreq-sub">
+              {% if just_sent %}
+                Recibimos tu solicitud. El admin la revisa y te avisa por correo.
+              {% else %}
+                Esperá la respuesta del administrador. No podés enviar otra mientras esta esté pendiente.
+              {% endif %}
+            </p>
+          </div>
+        </header>
+
+        <div class="aar-mb-block aar-mb-block--user rec-user-block">
+          <div class="aar-mb-block-head">
+            <svg class="aar-mb-block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="aar-mb-block-title">Tu motivo</span>
+          </div>
+          <div class="aar-mb-quote">
+            <svg class="aar-mb-quote-mark" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-3.983v-10h9.983z"/>
+            </svg>
+            <div class="aar-mb-quote-text">{{ pending.reason }}</div>
+          </div>
+        </div>
+
+        <footer class="aar-mb-foot rec-foot">
+          <div class="aar-mb-timeline">
+            <div class="aar-mb-tl-step">
+              <div class="aar-mb-tl-dot aar-mb-tl-dot--start">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div class="aar-mb-tl-content">
+                <div class="aar-mb-tl-label">Enviada</div>
+                <div class="aar-mb-tl-time"><strong>{{ pending.created_at|timesince }}</strong> atrás</div>
+              </div>
+            </div>
+            <div class="aar-mb-tl-line" aria-hidden="true"></div>
+            <div class="aar-mb-tl-step aar-mb-tl-step--end">
+              <div class="aar-mb-tl-dot">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                </svg>
+              </div>
+              <div class="aar-mb-tl-content">
+                <div class="aar-mb-tl-label">Esperando respuesta</div>
+                <div class="aar-mb-tl-time">el admin la revisa</div>
+              </div>
+            </div>
+          </div>
+        </footer>
+
+        <div class="aliasreq-actions rec-actions">
+          <a href="{% url 'login' %}" class="aliasreq-btn-secondary">Volver al inicio de sesión</a>
+        </div>
+
+      {# ═══ Estado: APROBADA / RECHAZADA (resuelta) ════════════════════ #}
+      {% elif resolved %}
+        <header class="aliasreq-head">
+          <div class="aliasreq-icon" aria-hidden="true">
+            {% if resolved.status == 'approved' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            {% else %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            {% endif %}
+          </div>
+          <div class="aliasreq-titles">
+            <h2 class="aliasreq-title">
+              {% if resolved.status == 'approved' %}Tu solicitud fue aprobada{% else %}Tu solicitud fue rechazada{% endif %}
+            </h2>
+            <p class="aliasreq-sub">
+              {% if resolved.status == 'approved' %}
+                El admin reactivó tu cuenta. Ya podés iniciar sesión normalmente.
+              {% else %}
+                El admin decidió no reactivar tu cuenta. Podés volver a solicitar más abajo si tu situación cambió.
+              {% endif %}
+            </p>
+          </div>
+        </header>
+
+        {# Decisión "Pidió → Le dieron" — espejo del modal del admin. #}
+        <div class="aar-mb-decision rec-decision">
+          <div class="aar-mb-side aar-mb-side--ask">
+            <div class="aar-mb-side-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div class="aar-mb-side-lbl">Pediste</div>
+            <div class="aar-mb-side-num arr-decision-text">recuperar</div>
+            <div class="aar-mb-side-sub">tu cuenta</div>
+          </div>
+
+          <svg class="aar-mb-decision-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+
+          <div class="aar-mb-side aar-mb-side--{{ resolved.status }}">
+            <div class="aar-mb-side-icon">
+              {% if resolved.status == 'approved' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </div>
+            <div class="aar-mb-side-lbl">Te dieron</div>
+            <div class="aar-mb-side-num arr-decision-text">
+              {% if resolved.status == 'approved' %}acceso{% else %}nada{% endif %}
+            </div>
+            <div class="aar-mb-side-sub">
+              {% if resolved.status == 'approved' %}cuenta activa{% else %}sigue bloqueada{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="aar-mb-block aar-mb-block--user rec-user-block">
+          <div class="aar-mb-block-head">
+            <svg class="aar-mb-block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="aar-mb-block-title">Lo que dijiste</span>
+          </div>
+          <div class="aar-mb-quote">
+            <svg class="aar-mb-quote-mark" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-3.983v-10h9.983z"/>
+            </svg>
+            <div class="aar-mb-quote-text">{{ resolved.reason }}</div>
+          </div>
+        </div>
+
+        {% if resolved.admin_note %}
+        <div class="aar-mb-block aar-mb-block--mine rec-admin-block">
+          <div class="aar-mb-block-head">
+            <svg class="aar-mb-block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 2L11 13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            <span class="aar-mb-block-title">Respuesta del administrador{% if resolved.resolved_by %} <span class="aar-mb-block-meta">— {{ resolved.resolved_by.username }}</span>{% endif %}</span>
+          </div>
+          <div class="aar-mb-mynote">{{ resolved.admin_note }}</div>
+        </div>
+        {% endif %}
+
+        <footer class="aar-mb-foot rec-foot">
+          <div class="aar-mb-timeline aar-mb-timeline--{{ resolved.status }}">
+            <div class="aar-mb-tl-step">
+              <div class="aar-mb-tl-dot aar-mb-tl-dot--start">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div class="aar-mb-tl-content">
+                <div class="aar-mb-tl-label">Enviada</div>
+                <div class="aar-mb-tl-time"><strong>{{ resolved.created_at|timesince }}</strong> atrás</div>
+              </div>
+            </div>
+            <div class="aar-mb-tl-line" aria-hidden="true"></div>
+            <div class="aar-mb-tl-step aar-mb-tl-step--end">
+              <div class="aar-mb-tl-dot aar-mb-tl-dot--{{ resolved.status }}">
+                {% if resolved.status == 'approved' %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                {% else %}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                {% endif %}
+              </div>
+              <div class="aar-mb-tl-content">
+                <div class="aar-mb-tl-label">{% if resolved.status == 'approved' %}Aprobada{% else %}Rechazada{% endif %}</div>
+                <div class="aar-mb-tl-time">
+                  {% if resolved.resolved_at %}<strong>{{ resolved.resolved_at|timesince }}</strong> atrás{% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </footer>
+
+        {% if resolved.status == 'rejected' and is_locked %}
+          {# Permitimos un nuevo intento si la cuenta SIGUE bloqueada y la última solicitud fue rechazada. #}
+          <div class="rec-retry">
+            <div class="rec-retry-divider"><span>o intentar de nuevo</span></div>
+            <form method="post" novalidate data-ds-loader>
+              {% csrf_token %}
+              <div class="aliasreq-field">
+                <label for="reason-input" class="aliasreq-label">
+                  <svg class="aliasreq-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  Nueva explicación para el admin
+                </label>
+                <textarea id="reason-input" name="reason" rows="4" maxlength="2000" minlength="20" required
+                          class="aliasreq-textarea"
+                          placeholder="Si tu situación cambió o querés agregar info nueva, contásela acá.">{{ reason|default:'' }}</textarea>
+                <div class="aliasreq-counter"><span id="reasonCount">{{ reason|default:''|length }}</span>/2000 · mínimo 20</div>
+              </div>
+
+              {% if messages %}
+              {% for message in messages %}
+              <div class="aliasreq-error" role="alert">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {{ message }}
+              </div>
+              {% endfor %}
+              {% endif %}
+
+              <div class="aliasreq-actions">
+                <a href="{% url 'login' %}" class="aliasreq-btn-secondary">Volver al login</a>
+                <button type="submit" class="aliasreq-btn-primary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  Enviar nueva solicitud
+                </button>
+              </div>
+            </form>
+          </div>
+        {% else %}
+          <div class="aliasreq-actions rec-actions">
+            <a href="{% url 'login' %}" class="aliasreq-btn-primary">
+              {% if resolved.status == 'approved' %}Ir al inicio de sesión{% else %}Volver al inicio de sesión{% endif %}
+            </a>
+          </div>
+        {% endif %}
+
+      {# ═══ Estado: SIN HISTORIAL — form nuevo ══════════════════════════ #}
+      {% else %}
+        <header class="aliasreq-head">
+          <div class="aliasreq-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+            </svg>
+          </div>
+          <div class="aliasreq-titles">
+            <h2 class="aliasreq-title">Recuperar cuenta bloqueada</h2>
+            <p class="aliasreq-sub">
+              Cuenta <strong>{{ target_user.email }}</strong> bloqueada por seguridad.
+            </p>
+          </div>
+        </header>
+
+        <form method="post" novalidate data-ds-loader>
+          {% csrf_token %}
+
+          <div class="aliasreq-field">
+            <label for="reason-input" class="aliasreq-label">
+              <svg class="aliasreq-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Contale al admin qué pasó
+            </label>
+
+            <div class="aliasreq-reason-chips" role="group" aria-label="Motivos comunes">
+              <button type="button" class="aliasreq-chip" onclick="recSetReason(this, 'Olvidé mi contraseña e intenté muchas veces hasta que se bloqueó. Es mi cuenta, la quiero recuperar.')">
+                <svg class="aliasreq-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Olvidé la contraseña
+              </button>
+              <button type="button" class="aliasreq-chip" onclick="recSetReason(this, 'No fui yo el que falló los intentos. Sospecho que alguien quiso entrar a mi cuenta sin permiso.')">
+                <svg class="aliasreq-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Acceso sospechoso
+              </button>
+              <button type="button" class="aliasreq-chip" onclick="recSetReason(this, 'Estoy usando un teclado distinto y me confundí varias veces tipeando la contraseña.')">
+                <svg class="aliasreq-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <line x1="6" y1="8" x2="6.01" y2="8"/>
+                  <line x1="10" y1="8" x2="10.01" y2="8"/>
+                  <line x1="14" y1="8" x2="14.01" y2="8"/>
+                  <line x1="18" y1="8" x2="18.01" y2="8"/>
+                  <line x1="7" y1="16" x2="17" y2="16"/>
+                </svg>
+                Teclado distinto
+              </button>
+              <button type="button" class="aliasreq-chip" onclick="recSetReason(this, 'Compartí mi cuenta accidentalmente y la otra persona falló los intentos.')">
+                <svg class="aliasreq-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Cuenta compartida
+              </button>
+              <button type="button" class="aliasreq-chip" onclick="recSetReason(this, 'Es una cuenta que uso para temas importantes y necesito recuperar acceso lo antes posible.')">
+                <svg class="aliasreq-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Cuenta importante
+              </button>
+            </div>
+
+            <textarea id="reason-input" name="reason" rows="4" maxlength="2000" minlength="20" required
+                      class="aliasreq-textarea"
+                      readonly
+                      tabindex="-1"
+                      placeholder="Tocá un motivo arriba para llenar este campo. El admin lo lee antes de decidir.">{{ reason|default:'' }}</textarea>
+            <div class="aliasreq-counter" aria-live="polite">
+              <span id="reasonCount">{{ reason|default:''|length }}</span>/2000 caracteres · mínimo 20
+            </div>
+          </div>
+
+          {% if messages %}
+          {% for message in messages %}
+          <div class="aliasreq-error" role="alert">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            {{ message }}
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <div class="aliasreq-actions">
+            <a href="{% url 'login' %}" class="aliasreq-btn-secondary">Cancelar</a>
+            <button type="submit" class="aliasreq-btn-primary" id="recSubmit">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              <span>Enviar solicitud</span>
+            </button>
+          </div>
+        </form>
+      {% endif %}
+
+    </div>
+  </div>
+</main>
+
+<script>
+  /* Click en chip → llena el textarea + marca chip activo + actualiza contador */
+  function recSetReason(btn, text) {
+    var ta = document.getElementById('reason-input');
+    if (!ta) return;
+    ta.value = text;
+    document.querySelectorAll('.aliasreq-chip').forEach(function (c) { c.classList.remove('active'); });
+    btn.classList.add('active');
+    var counter = document.getElementById('reasonCount');
+    if (counter) counter.textContent = text.length;
+  }
+</script>
+{% endblock %}

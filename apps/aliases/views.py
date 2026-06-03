@@ -58,36 +58,50 @@ def _user_alias_limit(user) -> int:
     return max(0, ALIAS_LIMIT_PER_USER + extra)
 
 
+ALIAS_BATCH = 6   # alias por "página" en el load-more
+
+
+def _aliases_qs(user):
+    """QuerySet base de alias del usuario con conteos anotados."""
+    return (
+        Alias.objects.filter(user=user).annotate(
+            emails_total  = Count('emails'),
+            threats_total = Count('emails', filter=Q(emails__risk_score__gte=61)),
+        ).order_by('-created_at')
+    )
+
+
 @login_required(login_url='login')
 def alias_list_view(request):
     """
-    Lista todos los alias del usuario con sus contadores anotados
-    (correos totales, amenazas) para la UI.
+    Lista de alias con carga diferida. Render inicial: primeros ALIAS_BATCH.
     """
-    # Ojo: los nombres de anotaciones NO pueden empezar con "_"
-    # porque Django templates rechaza variables con underscore inicial.
-    aliases = Alias.objects.filter(user=request.user).annotate(
-        emails_total  = Count('emails'),
-        threats_total = Count('emails', filter=Q(emails__risk_score__gte=61)),
-    ).order_by('-created_at')
+    full_qs = _aliases_qs(request.user)
+    total   = full_qs.count()
 
-    active_count    = sum(1 for a in aliases if a.is_active)
-    destroyed_count = sum(1 for a in aliases if not a.is_active)
-    total_emails    = sum(a.emails_total for a in aliases)
-    total_threats   = sum(a.threats_total for a in aliases)
+    aliases  = list(full_qs[:ALIAS_BATCH])
+    has_more = total > ALIAS_BATCH
 
-    # El cupo se CONSUME al crear un alias y NO se libera al destruirlo.
-    # Esto evita que un usuario "recicle" el cupo infinitamente destruyendo
-    # alias para crear otros (lo que rompería el propósito de la moderación
-    # del admin). Si llegó al límite y elimina uno, el contador NO baja.
-    # Para conseguir más cupo debe pedirle al admin que se lo aumente.
-    quota_used       = active_count + destroyed_count       # = len(aliases)
+    # ── Agregados sobre TODOS los alias (no solo los visibles) ──────────
+    # Para los stats usamos `full_qs.aggregate` y filtros directos en BD
+    # — son COUNT() baratos.
+    from django.db.models import Sum
+    active_count    = full_qs.filter(is_active=True).count()
+    destroyed_count = total - active_count
+
+    # Sumas globales (Count anotado por alias × Sum global)
+    totals = full_qs.aggregate(
+        emails  = Sum('emails_total'),
+        threats = Sum('threats_total'),
+    )
+    total_emails  = totals['emails']  or 0
+    total_threats = totals['threats'] or 0
+
+    quota_used       = total
     is_unlimited     = _user_is_unlimited(request.user)
     alias_limit      = None if is_unlimited else _user_alias_limit(request.user)
     alias_remaining  = None if is_unlimited else max(0, alias_limit - quota_used)
 
-    # ¿Tiene una solicitud `pending` ahora mismo? Si sí, mostramos su estado
-    # en la UI y deshabilitamos el botón de "Pedir más" (evitamos spam).
     pending_request = None
     if not is_unlimited:
         pending_request = AliasQuotaRequest.objects.filter(
@@ -105,6 +119,39 @@ def alias_list_view(request):
         'alias_remaining': alias_remaining,
         'is_unlimited':    is_unlimited,
         'pending_request': pending_request,
+        'has_more':        has_more,
+        'next_offset':     len(aliases),
+        'batch_size':      ALIAS_BATCH,
+    })
+
+
+@login_required(login_url='login')
+def alias_more_api(request):
+    """Siguiente lote de alias como HTML parcial. Espera `?offset=N`."""
+    try:
+        offset = int(request.GET.get('offset') or 0)
+    except ValueError:
+        offset = 0
+    offset = max(0, offset)
+
+    qs = _aliases_qs(request.user)
+    total = qs.count()
+    batch = list(qs[offset:offset + ALIAS_BATCH])
+
+    from django.template.loader import render_to_string
+    html = render_to_string(
+        'aliases/_alias_rows.html',
+        {'aliases': batch, 'offset': offset},
+        request=request,
+    )
+
+    new_offset = offset + len(batch)
+    return JsonResponse({
+        'ok':          True,
+        'html':        html,
+        'count':       len(batch),
+        'next_offset': new_offset,
+        'has_more':    new_offset < total,
     })
 
 

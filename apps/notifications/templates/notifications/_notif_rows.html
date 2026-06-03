@@ -1,0 +1,6 @@
+{% comment %}
+Lote de filas para el endpoint AJAX `notification_more_api`.
+{% endcomment %}
+{% for n in notifications %}
+  {% include 'notifications/_notif_row.html' with n=n %}
+{% endfor %}

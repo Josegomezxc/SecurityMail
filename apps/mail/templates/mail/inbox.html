@@ -6,7 +6,8 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'mail/styles/inbox.css' %}">
+<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'mail/styles/inbox.css' %}?v=carbon-fix-1">
 {% endblock %}
 
 {% block body %}
@@ -26,102 +27,66 @@
     </div>
     <div class="inbox-stats">
       <div class="inbox-stat">
-        <span class="inbox-stat-val" style="color:var(--ai-purple-light)" id="stat-total">{{ emails|length }}</span>
+        <span class="inbox-stat-val" style="color:var(--ai-purple-light)">{{ counts.all }}</span>
         <span class="inbox-stat-lbl">Total</span>
       </div>
       <div class="inbox-stat">
-        <span class="inbox-stat-val" style="color:var(--danger)" id="stat-unread">0</span>
+        <span class="inbox-stat-val" style="color:var(--danger)">{{ counts.unread }}</span>
         <span class="inbox-stat-lbl">Sin leer</span>
       </div>
       <div class="inbox-stat">
-        <span class="inbox-stat-val" style="color:var(--warning)" id="stat-threats">0</span>
+        <span class="inbox-stat-val" style="color:var(--warning)">{{ counts.danger }}</span>
         <span class="inbox-stat-lbl">Amenazas</span>
       </div>
     </div>
   </div>
 </header>
 
-<!-- ── TOOLBAR: barra con filtros integrados ── -->
-<section class="toolbar" role="search" aria-label="Buscar y filtrar bandeja">
-  <div class="search-wrap" id="search-wrap">
-
-    <!-- Icono lupa -->
-    <div class="search-icon-wrap">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-    </div>
-
-    <!-- Input -->
+<!-- ── TOOLBAR: búsqueda + filtros server-side ── -->
+<section class="ds-filterbar" role="search" aria-label="Buscar y filtrar bandeja">
+  <form method="get" action="" class="ds-filterbar-search {% if q %}has-value{% endif %}" id="search-form">
+    <svg class="lupa" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
     <label class="sr-only" for="search-input">Buscar correos</label>
-    <input type="search" class="search-input" id="search-input"
-           placeholder="Buscar por remitente, asunto..."
-           oninput="onSearchInput(this.value)">
-
-    <!-- Botón limpiar (aparece cuando hay texto) -->
-    <button class="search-clear" id="search-clear" onclick="clearSearch()" title="Limpiar búsqueda">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <input type="search" name="q" id="search-input" value="{{ q }}"
+           placeholder="Buscar por remitente, asunto o contenido...">
+    {% if filter and filter != 'all' %}
+      <input type="hidden" name="filter" value="{{ filter }}">
+    {% endif %}
+    <button type="button" class="ds-search-clear" onclick="clearSearch()" title="Limpiar búsqueda">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
       </svg>
     </button>
+  </form>
 
-    <div class="search-divider"></div>
-
-    <!-- Filtro: Todos -->
-    <button class="qfilter-btn active" data-filter="all" title="Todos los correos">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-      </svg>
-      Todos
-      <span class="qbadge" id="qb-all">0</span>
-    </button>
-
-    <div class="search-divider"></div>
-
-    <!-- Filtro: Sin leer -->
-    <button class="qfilter-btn" data-filter="unread" title="Sin leer">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <circle cx="12" cy="12" r="4" fill="currentColor"/>
-      </svg>
-      Sin leer
-      <span class="qbadge" id="qb-unread">0</span>
-    </button>
-
-    <div class="search-divider"></div>
-
-    <!-- Filtro: Adjuntos -->
-    <button class="qfilter-btn" data-filter="attachment" title="Con adjunto">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-      </svg>
-      Adjuntos
-      <span class="qbadge" id="qb-att">0</span>
-    </button>
-
-    <div class="search-divider"></div>
-
-    <!-- Filtro: Amenazas -->
-    <button class="qfilter-btn" data-filter="danger" title="Amenazas bloqueadas">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-      </svg>
-      Amenazas
-      <span class="qbadge" id="qb-danger">0</span>
-    </button>
-
-    <div class="search-divider"></div>
-
-    <!-- Filtro: Seguros -->
-    <button class="qfilter-btn" data-filter="safe" title="Correos seguros">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-      </svg>
-      Seguros
-      <span class="qbadge" id="qb-safe">0</span>
-    </button>
-
+  <div class="ds-filterbar-tabs">
+    <a href="?{% if q %}q={{ q }}{% endif %}"
+       class="ds-filterbar-tab {% if filter == 'all' %}active{% endif %}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+      Todos <span class="ds-tab-count">{{ counts.all }}</span>
+    </a>
+    <a href="?filter=unread{% if q %}&q={{ q }}{% endif %}"
+       class="ds-filterbar-tab {% if filter == 'unread' %}active{% endif %}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
+      Sin leer <span class="ds-tab-count">{{ counts.unread }}</span>
+    </a>
+    <a href="?filter=attachment{% if q %}&q={{ q }}{% endif %}"
+       class="ds-filterbar-tab {% if filter == 'attachment' %}active{% endif %}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      Adjuntos <span class="ds-tab-count">{{ counts.attachment }}</span>
+    </a>
+    <a href="?filter=danger{% if q %}&q={{ q }}{% endif %}"
+       class="ds-filterbar-tab {% if filter == 'danger' %}active{% endif %}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      Amenazas <span class="ds-tab-count">{{ counts.danger }}</span>
+    </a>
+    <a href="?filter=safe{% if q %}&q={{ q }}{% endif %}"
+       class="ds-filterbar-tab {% if filter == 'safe' %}active{% endif %}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Seguros <span class="ds-tab-count">{{ counts.safe }}</span>
+    </a>
   </div>
 
   <!-- Botón "Vaciar correos" con dropdown -->
@@ -137,193 +102,166 @@
     <div class="inbox-clear-menu" id="inbox-clear-menu">
       <button type="button" class="icm-item" data-scope="read">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-        <div>
-          <div class="icm-title">Solo los leídos</div>
-          <div class="icm-sub">Borra los correos que ya viste</div>
-        </div>
+        <div><div class="icm-title">Solo los leídos</div><div class="icm-sub">Borra los correos que ya viste</div></div>
       </button>
       <button type="button" class="icm-item" data-scope="threats">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
-        <div>
-          <div class="icm-title">Solo amenazas bloqueadas</div>
-          <div class="icm-sub">Score 61+ — limpia el historial de bloqueos</div>
-        </div>
+        <div><div class="icm-title">Solo amenazas bloqueadas</div><div class="icm-sub">Score 61+ — limpia el historial de bloqueos</div></div>
       </button>
       <button type="button" class="icm-item" data-scope="safe">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        <div>
-          <div class="icm-title">Solo correos seguros</div>
-          <div class="icm-sub">Score 0-30 — limpia los confiables</div>
-        </div>
+        <div><div class="icm-title">Solo correos seguros</div><div class="icm-sub">Score 0-30 — limpia los confiables</div></div>
       </button>
       <div class="icm-sep"></div>
       <button type="button" class="icm-item icm-item-danger" data-scope="all">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-        <div>
-          <div class="icm-title">Vaciar TODA la bandeja</div>
-          <div class="icm-sub">Borra todos los correos sin excepción</div>
-        </div>
+        <div><div class="icm-title">Vaciar TODA la bandeja</div><div class="icm-sub">Borra todos los correos sin excepción</div></div>
       </button>
     </div>
   </div>
 </section>
 
-<!-- ── EMAIL LIST ── -->
-<section id="email-list" aria-label="Lista de correos">
-  {% for group in email_groups %}
-    <div class="date-divider" data-group="{{ group.label|lower }}" role="separator" aria-label="{{ group.label }}">
-      {{ group.label }}
-      <span class="count">{{ group.emails|length }}</span>
-    </div>
-    {% for email in group.emails %}
-    <article class="email-row {% if not email.read %}unread{% endif %} {% if email.risk_score >= 61 %}threat{% endif %}"
-         data-id="{{ email.id }}"
-         data-read="{{ email.read|yesno:'true,false' }}"
-         data-attachment="{{ email.has_attachment|yesno:'true,false' }}"
-         data-risk="{{ email.risk_score|default:0 }}"
-         data-from="{{ email.from_email|lower }}"
-         data-subject="{{ email.subject|lower }}"
-         data-body="{{ email.body|truncatechars:120|lower }}"
-         data-analysis-url="{% if email.analysis %}{% url 'sandbox_report' email.analysis.pk %}{% endif %}"
-         onclick="openEmail({{ email.id }})">
+<!-- ── TABLA DE CORREOS ── -->
+<div class="ds-table-wrap" id="inbox-list" aria-label="Lista de correos">
+  <div class="ds-table-scroll">
+    <table class="ds-table inbox-table" id="email-table">
+      <colgroup>
+        <col class="col-status"  style="width:2rem">
+        <col class="col-avatar"  style="width:3rem">
+        <col class="col-from"    style="width:18%">
+        <col class="col-subject">
+        <col class="col-alias"   style="width:14%">
+        <col class="col-risk"    style="width:7.5rem">
+        <col class="col-time"    style="width:6rem">
+        <col class="col-actions" style="width:8rem">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="ds-td-center" aria-label="Estado"></th>
+          <th class="ds-td-center" aria-label="Avatar"></th>
+          <th>Remitente</th>
+          <th class="ds-td-mid">Asunto</th>
+          <th class="ds-td-mid">Alias</th>
+          <th class="ds-td-mid">Riesgo</th>
+          <th class="ds-td-mid">Recibido</th>
+          <th class="ds-td-mid">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for email in page_obj %}
+          <tr class="inbox-row {% if not email.read %}unread{% endif %} {% if email.risk_score >= 61 %}threat{% endif %}"
+              data-id="{{ email.id }}"
+              data-read="{{ email.read|yesno:'true,false' }}"
+              data-attachment="{{ email.has_attachment|yesno:'true,false' }}"
+              data-risk="{{ email.risk_score|default:0 }}"
+              data-from="{{ email.from_email|lower }}"
+              data-subject="{{ email.subject|lower }}"
+              data-body="{{ email.body|truncatechars:120|lower }}"
+              data-analysis-url="{% if email.analysis %}{% url 'sandbox_report' email.analysis.pk %}{% endif %}"
+              onclick="openEmail({{ email.id }})">
 
-      {% if not email.read %}<div class="unread-dot"></div>{% endif %}
+            <td class="ds-td-center">{% if not email.read %}<span class="ds-dot" title="No leído"></span>{% endif %}</td>
 
-      <div class="sender-avatar"
-           style="background:{% cycle 'rgba(124,58,237,0.1)' 'rgba(46,204,113,0.1)' 'rgba(245,158,11,0.1)' 'rgba(59,130,246,0.1)' 'rgba(232,64,64,0.1)' %};
-                  color:{% cycle 'var(--ai-purple-light)' 'var(--success)' 'var(--warning)' '#60a5fa' 'var(--danger)' %}">
-        {{ email.from_email|first|upper }}
-      </div>
+            <td class="ds-td-center"><span class="ds-mini-avatar">{{ email.from_email|first|upper }}</span></td>
 
-      <div class="email-content">
-        <div class="email-top">
-          <span class="email-from">{{ email.from_email|truncatechars:32 }}</span>
-          <span class="email-time">{{ email.received_at|timesince }} atrás</span>
-        </div>
-        <div class="email-subject">{{ email.subject }}</div>
-        <div class="email-preview">{{ email.body|truncatechars:80 }}</div>
-        <div class="email-meta">
-          <span class="alias-tag">→ {{ email.alias.address }}</span>
-          {% if email.has_attachment %}
-            <span class="att-pill blocked-asset" onclick="event.stopPropagation();return false;">
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-              {{ email.attachment_name }}
-              <span class="blocked-tip">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Bloqueado por seguridad — analizado en sandbox
-              </span>
-            </span>
-          {% endif %}
-          {% if email.risk_score >= 61 %}
-            <span class="risk-pill danger">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-              Bloqueado
-            </span>
-          {% elif email.risk_score >= 31 %}
-            <span class="risk-pill warning">Sospechoso</span>
-          {% elif email.risk_score > 0 %}
-            <span class="risk-pill success">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-              Seguro
-            </span>
-          {% endif %}
+            <td class="{% if not email.read %}ds-cell-unread{% else %}ds-cell-strong{% endif %}"
+                title="{{ email.from_email }}">
+              {{ email.from_email }}
+            </td>
 
-          {% if email.auth_verdict == 'verified' %}
-            <span class="auth-pill verified" title="Remitente verificado criptográficamente · DKIM pass{% if email.auth_signed_by %} · firmado por {{ email.auth_signed_by }}{% endif %}">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              Verificado
-            </span>
-          {% elif email.auth_verdict == 'spoofed' %}
-            <span class="auth-pill spoofed" title="Suplantación detectada · DKIM/DMARC fail · el correo NO viene realmente del dominio que dice">
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-              Spoof
-            </span>
-          {% endif %}
-        </div>
-      </div>
+            <td class="{% if not email.read %}ds-cell-unread{% endif %}"
+                title="{{ email.subject }}">
+              {{ email.subject }}{% if email.has_attachment %} <span aria-hidden="true" style="opacity:.7">📎</span>{% endif %}
+            </td>
 
-      {% if email.analysis %}
-        <a href="{% url 'sandbox_report' email.analysis.pk %}" class="quick-report" onclick="event.stopPropagation()">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          reporte
-        </a>
-      {% endif %}
+            <td class="ds-cell-mono" title="{{ email.alias.address }}">{{ email.alias.address }}</td>
 
-      <button type="button" class="quick-trash" data-email-id="{{ email.id }}"
-              onclick="event.stopPropagation();trashEmail(this, 'inbound')"
-              title="Mover a papelera">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"/>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-        </svg>
-        Eliminar
-      </button>
+            <td class="ds-td-mid">
+              {% if email.risk_score >= 61 %}
+                <span class="ds-pill ds-pill-danger">Bloqueado</span>
+              {% elif email.risk_score >= 31 %}
+                <span class="ds-pill ds-pill-warning">Sospechoso</span>
+              {% elif email.risk_score > 0 %}
+                <span class="ds-pill ds-pill-success">Seguro</span>
+              {% else %}
+                <span class="ds-cell-muted">—</span>
+              {% endif %}
+            </td>
 
-      <button type="button"
-              class="quick-reply{% if not email.alias.is_active %} disabled{% endif %}"
-              data-email-id="{{ email.id }}"
-              data-from="{{ email.from_email }}"
-              data-subject="{{ email.subject }}"
-              data-body="{{ email.body }}"
-              data-alias-id="{{ email.alias.id }}"
-              data-alias-address="{{ email.alias.address }}"
-              data-alias-label="{{ email.alias.label }}"
-              data-alias-active="{{ email.alias.is_active|yesno:'1,0' }}"
-              data-time="{{ email.received_at|date:'d/m/Y H:i' }}"
-              onclick="event.stopPropagation();replyFromButton(this)"
-              {% if not email.alias.is_active %}disabled title="Alias destruido — no se puede responder"{% else %}title="Responder este correo"{% endif %}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
-        </svg>
-        Responder
-      </button>
+            <td class="ds-cell-mono ds-td-mid" title="{{ email.received_at|date:'d/m/Y H:i' }}">
+              {{ email.time_short }}
+            </td>
 
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="flex-shrink:0;margin-top:2px">
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
-    </article>
+            <td class="ds-td-actions">
+              <div class="ds-actions-inline">
+                {% if email.analysis %}
+                  <a href="{% url 'sandbox_report' email.analysis.pk %}"
+                     class="ds-row-btn" onclick="event.stopPropagation()"
+                     title="Ver reporte del sandbox">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  </a>
+                {% endif %}
+                <button type="button" class="ds-row-btn"
+                        data-email-id="{{ email.id }}"
+                        data-from="{{ email.from_email }}"
+                        data-subject="{{ email.subject }}"
+                        data-body="{{ email.body }}"
+                        data-alias-id="{{ email.alias.id }}"
+                        data-alias-address="{{ email.alias.address }}"
+                        data-alias-label="{{ email.alias.label }}"
+                        data-alias-active="{{ email.alias.is_active|yesno:'1,0' }}"
+                        data-time="{{ email.received_at|date:'d/m/Y H:i' }}"
+                        {% if not email.alias.is_active %}disabled title="Alias destruido — no se puede responder"{% else %}title="Responder"{% endif %}
+                        onclick="event.stopPropagation();replyFromButton(this)">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                </button>
+                <button type="button" class="ds-row-btn ds-row-btn-danger"
+                        data-email-id="{{ email.id }}"
+                        onclick="event.stopPropagation();trashEmail(this, 'inbound')"
+                        title="Mover a papelera">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
 
-    <!-- Datos para el panel lateral (HTML del cuerpo se carga bajo demanda vía AJAX para no inflar el peso de la página) -->
-    <div id="detail-{{ email.id }}" style="display:none"
-         data-id="{{ email.id }}"
-         data-from="{{ email.from_email }}"
-         data-subject="{{ email.subject }}"
-         data-body="{{ email.body }}"
-         data-has-html="{% if email.body_html %}1{% else %}0{% endif %}"
-         data-alias="{{ email.alias.address }}"
-         data-alias-id="{{ email.alias.id }}"
-         data-alias-label="{{ email.alias.label }}"
-         data-alias-active="{{ email.alias.is_active|yesno:'1,0' }}"
-         data-time="{{ email.received_at|date:'d/m/Y H:i' }}"
-         data-attachment="{{ email.attachment_name }}"
-         data-risk="{{ email.risk_score|default:0 }}"
-         data-analysis-url="{% if email.analysis %}{% url 'sandbox_report' email.analysis.pk %}{% endif %}">
-    </div>
-    {% endfor %}
-  {% empty %}
-    <div class="empty-state">
-      <div class="empty-icon-wrap">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5">
-          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-          <polyline points="22,6 12,13 2,6"/>
-        </svg>
-      </div>
-      <div class="empty-title">Bandeja vacía</div>
-      <div class="empty-sub">Los correos recibidos en tus alias aparecerán aquí.</div>
-    </div>
-  {% endfor %}
-
-  <div id="no-results" class="empty-state">
-    <div class="empty-icon-wrap">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-        <polyline points="22,6 12,13 2,6"/>
-      </svg>
-    </div>
-    <div id="no-results-msg" class="empty-title">Sin resultados</div>
-    <div id="no-results-hint" class="empty-sub"></div>
+          <!-- Datos para el panel lateral (HTML del cuerpo se carga bajo demanda) -->
+          <tr style="display:none" aria-hidden="true">
+            <td colspan="8" style="padding:0;border:0">
+              <div id="detail-{{ email.id }}"
+                   data-id="{{ email.id }}"
+                   data-from="{{ email.from_email }}"
+                   data-subject="{{ email.subject }}"
+                   data-body="{{ email.body }}"
+                   data-has-html="{% if email.body_html %}1{% else %}0{% endif %}"
+                   data-alias="{{ email.alias.address }}"
+                   data-alias-id="{{ email.alias.id }}"
+                   data-alias-label="{{ email.alias.label }}"
+                   data-alias-active="{{ email.alias.is_active|yesno:'1,0' }}"
+                   data-time="{{ email.received_at|date:'d/m/Y H:i' }}"
+                   data-attachment="{{ email.attachment_name }}"
+                   data-risk="{{ email.risk_score|default:0 }}"
+                   data-analysis-url="{% if email.analysis %}{% url 'sandbox_report' email.analysis.pk %}{% endif %}"></div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr class="ds-empty-row">
+            <td colspan="8">
+              {% if q or filter != 'all' %}
+                Sin resultados para los filtros aplicados.
+                <a href="{% url 'inbox' %}" style="color:var(--accent-hover);text-decoration:underline;margin-left:.5rem">Limpiar</a>
+              {% else %}
+                Bandeja vacía. Los correos recibidos en tus alias aparecerán aquí.
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-</section>{# /#email-list #}
+
+  {% include 'core/_pagination.html' with page_obj=page_obj qs_params=qs_params %}
+</div>
 
 {% endblock %}
 
@@ -409,12 +347,10 @@
           VER COMO TEXTO
         </button>
       </div>
-      <!-- Render HTML estilo Gmail (iframe sandbox: aísla CSS y bloquea scripts) -->
       <div class="email-body-box" id="panel-body-html-wrap" style="display:none;padding:0;overflow:hidden;background:#ffffff">
         <iframe id="panel-body-iframe" sandbox
                 style="width:100%;min-height:320px;border:0;display:block;background:#ffffff"></iframe>
       </div>
-      <!-- Fallback: texto plano (cuando no hay HTML o el usuario lo pide) -->
       <div class="email-body-box" id="panel-body"></div>
     </div>
   </div>
@@ -425,5 +361,5 @@ window.__INBOX_CTX__ = {
   clearUrl:  "{% url 'inbox_clear' %}"
 };
 </script>
-<script src="{% static 'mail/js/inbox.js' %}?v=swipe-close"></script>
+<script src="{% static 'mail/js/inbox.js' %}?v=table10"></script>
 {% endblock %}

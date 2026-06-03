@@ -18,6 +18,16 @@ urlpatterns = [
     # Cambio de contraseña
     path('cuenta/cambiar-password/', views.cambiar_password, name='cambiar_password'),
 
-    # Eliminar cuenta (destructivo — requiere POST + password + reto "ELIMINAR")
-    path('cuenta/eliminar/', views.eliminar_cuenta, name='eliminar_cuenta'),
+    # Eliminar cuenta (flujo de 2 pasos con código por email + soft delete)
+    # Paso 1: password + "ELIMINAR" → genera y manda código
+    path('cuenta/eliminar/',           views.eliminar_cuenta_request,    name='eliminar_cuenta'),
+    # Paso 2: ingresar código → marca soft delete
+    path('cuenta/eliminar/confirmar/', views.eliminar_cuenta_confirmar,  name='eliminar_cuenta_confirmar'),
+
+    # Recuperación de cuenta bloqueada permanentemente por intentos fallidos
+    # (NO requiere login — la cuenta está deshabilitada). El user_id viene
+    # del flujo del login cuando se detecta el bloqueo permanente.
+    path('cuenta/recuperar-bloqueada/<int:user_id>/',
+         views.account_recovery_request_view,
+         name='account_recovery_request'),
 ]

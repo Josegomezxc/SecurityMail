@@ -539,3 +539,89 @@
     --sb-rows:  6;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   TABLA DE SANDBOX — score-ring compacto en celda + responsive
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Score ring dentro de la celda */
+.sb-score-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.sb-score-num {
+  position: absolute;
+  font-family: var(--font-mono, var(--mono));
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Fila de la tabla: cursor pointer ya viene de .ds-table tbody tr */
+.sandbox-table tbody tr.threat {
+  background: rgba(239, 68, 68, 0.04);
+}
+.sandbox-table tbody tr.threat:hover {
+  background: rgba(239, 68, 68, 0.09);
+}
+
+/* Tablet ≤1024: oculta "Remitente" */
+@media (max-width: 1024px) {
+  .sandbox-table col.col-sender,
+  .sandbox-table th:nth-child(4),
+  .sandbox-table td:nth-child(4) { display: none; }
+}
+
+/* Mobile ≤720: oculta "Asunto" y "Analizado".
+   Quedan: score · archivo · categoría · estado */
+@media (max-width: 720px) {
+  .sandbox-table col.col-subject,
+  .sandbox-table col.col-time,
+  .sandbox-table th:nth-child(3),
+  .sandbox-table td:nth-child(3),
+  .sandbox-table th:nth-child(6),
+  .sandbox-table td:nth-child(6) { display: none; }
+
+  .ds-table.sandbox-table { min-width: 0; }
+  .ds-table.sandbox-table thead th,
+  .ds-table.sandbox-table td { padding: 0.75rem 0.5rem; }
+}
+
+/* Muy estrecho ≤420: oculta también "Categoría" */
+@media (max-width: 420px) {
+  .sandbox-table col.col-category,
+  .sandbox-table th:nth-child(5),
+  .sandbox-table td:nth-child(5) { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   OVERRIDES TEMA CARBON — Sandbox lista
+   ══════════════════════════════════════════════════════════════════════ */
+html[data-theme="carbon"] .sb-hero {
+    background: linear-gradient(135deg,
+        rgba(255, 79, 122, 0.18) 0%,
+        var(--bg-surface) 100%);
+}
+html[data-theme="carbon"] .sb-hero-icon {
+    background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
+}
+html[data-theme="carbon"] .sb-live-badge {
+    color: var(--accent-hover, #ff6b8e);
+    border-color: rgba(255, 79, 122, 0.4);
+}
+html[data-theme="carbon"] .sb-live-dot {
+    background: var(--accent, #ff4f7a);
+    box-shadow: 0 0 0.5rem var(--accent-hover, #ff6b8e);
+}
+html[data-theme="carbon"] .stat-card.total .stat-val,
+html[data-theme="carbon"] .stat-card.total .stat-icon {
+    color: var(--accent-hover, #ff6b8e);
+    stroke: var(--accent-hover, #ff6b8e);
+}
+html[data-theme="carbon"] .how-num {
+    color: var(--accent-hover, #ff6b8e);
+}

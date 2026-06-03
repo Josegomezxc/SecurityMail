@@ -370,3 +370,91 @@ function submitAliasRequest(ev) {
   return false;
 }
 
+/* ══════════════════════════════════════════
+   VER MÁS / VER MENOS (load-more con toggle)
+══════════════════════════════════════════ */
+var aliasLoadingMore = false;
+
+function loadMoreAlias() {
+  if (aliasLoadingMore) return;
+  var btn      = document.getElementById('alias-loadmore-btn');
+  var collapse = document.getElementById('alias-collapse-btn');
+  var list     = document.getElementById('alias-list');
+  if (!btn || !list) return;
+
+  var offset = parseInt(list.dataset.nextOffset || '0', 10) || 0;
+  aliasLoadingMore = true;
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  fetch('/alias/mas/?offset=' + encodeURIComponent(offset), {
+    credentials: 'same-origin',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function (data) {
+      if (!data || !data.ok) throw new Error('bad response');
+
+      if (data.count > 0) {
+        // Append antes del placeholder #alias-no-results
+        var noRes = document.getElementById('alias-no-results');
+        var tmp = document.createElement('div');
+        tmp.innerHTML = data.html.trim();
+        while (tmp.firstChild) {
+          var node = tmp.firstChild;
+          if (node.nodeType === 1 && node.classList && node.classList.contains('alias-card')) {
+            node.dataset.loaded = '1';
+          }
+          if (noRes) list.insertBefore(node, noRes);
+          else       list.appendChild(node);
+        }
+      }
+
+      list.dataset.nextOffset = String(data.next_offset);
+      list.dataset.hasMore    = data.has_more ? '1' : '0';
+
+      if (!data.has_more) btn.style.display = 'none';
+      if (collapse)       collapse.style.display = '';
+
+      // Re-aplicar filtro+búsqueda a las tarjetas recién insertadas
+      if (typeof aliasApply === 'function') aliasApply();
+    })
+    .catch(function () {
+      if (window.showToast) {
+        window.showToast({
+          type: 'danger',
+          title: 'No se pudieron cargar más alias',
+          message: 'Intenta de nuevo en unos segundos.',
+          duration: 4000,
+        });
+      }
+    })
+    .finally(function () {
+      aliasLoadingMore = false;
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    });
+}
+
+function collapseAlias() {
+  var btn      = document.getElementById('alias-loadmore-btn');
+  var collapse = document.getElementById('alias-collapse-btn');
+  var wrap     = document.getElementById('alias-loadmore-wrap');
+  var list     = document.getElementById('alias-list');
+  if (!list || !wrap) return;
+
+  list.querySelectorAll('.alias-card[data-loaded="1"]').forEach(function (c) {
+    c.remove();
+  });
+
+  var initial = parseInt(wrap.dataset.initialCount || '0', 10) || 0;
+  list.dataset.nextOffset = String(initial);
+  list.dataset.hasMore    = '1';
+
+  if (btn)      btn.style.display = '';
+  if (collapse) collapse.style.display = 'none';
+
+  if (typeof aliasApply === 'function') aliasApply();
+  list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+

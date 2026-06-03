@@ -502,3 +502,52 @@
     .al-row > .al-time   { display: revert; }
     .al-pg-info { /* mantiene su comportamiento normal */ }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   OVERRIDES TEMA CARBON — Admin: Alias globales
+   El CSS original tiene muchos rgba(155, 109, 255, ...) y #9b6dff
+   hardcoded (un morado lila secundario) — los pisamos por rosa.
+   ══════════════════════════════════════════════════════════════════════ */
+html[data-theme="carbon"] .adm-hero-al {
+    background: linear-gradient(160deg, rgba(255, 79, 122, 0.10) 0%, var(--bg-surface) 60%);
+    border-color: rgba(255, 79, 122, 0.25);
+}
+html[data-theme="carbon"] .adm-hero-al::before {
+    background: radial-gradient(circle, rgba(255, 79, 122, 0.22) 0%, transparent 65%);
+}
+html[data-theme="carbon"] .adm-hero-al-icon {
+    background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
+    box-shadow: 0 0.375rem 1.25rem rgba(255, 79, 122, 0.4);
+}
+html[data-theme="carbon"] .adm-hero-al-text h1 {
+    background: linear-gradient(90deg, var(--text-primary) 0%, var(--accent-hover, #ff6b8e) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+html[data-theme="carbon"] .al-filter-btn.active {
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.12);
+}
+html[data-theme="carbon"] .al-user-email {
+    color: var(--accent-hover, #ff6b8e);
+}
+html[data-theme="carbon"] .al-user-avatar {
+    background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
+}
+html[data-theme="carbon"] .al-table-wrap::-webkit-scrollbar-thumb {
+    background: rgba(255, 79, 122, 0.35);
+}
+html[data-theme="carbon"] .al-row:hover,
+html[data-theme="carbon"] .al-row:focus-visible {
+    background: rgba(255, 79, 122, 0.04);
+}
+html[data-theme="carbon"] .al-pg-btn:hover:not(:disabled):not(.active),
+html[data-theme="carbon"] .al-pg-btn:focus-visible:not(:disabled):not(.active) {
+    background: rgba(255, 79, 122, 0.08);
+    border-color: rgba(255, 79, 122, 0.35);
+}
+html[data-theme="carbon"] .al-pg-btn.active {
+    background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
+    box-shadow: 0 0.25rem 0.75rem rgba(255, 79, 122, 0.4);
+}

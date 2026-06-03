@@ -1542,3 +1542,132 @@
         justify-self: auto;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   TABLA DE SOLICITUDES (.aar-table) — extiende .ds-table
+   ══════════════════════════════════════════════════════════════════════ */
+.aar-table tbody tr.aar-tr--pending {
+    background: rgba(245, 158, 11, 0.04);
+}
+.aar-table tbody tr.aar-tr--pending:hover {
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.aar-tr-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.aar-tr-email {
+    font-family: var(--font-mono, var(--mono));
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.aar-tr-amount {
+    font-family: var(--font-mono, var(--mono));
+    color: var(--accent-hover);
+    font-weight: 700;
+}
+.aar-tr-arrow {
+    color: var(--text-muted);
+    margin: 0 0.25rem;
+}
+.aar-tr-given {
+    font-family: var(--font-mono, var(--mono));
+    color: #6ee7b7;
+    font-weight: 700;
+}
+
+/* Responsive: ocultamos columnas en pantallas estrechas */
+@media (max-width: 720px) {
+    .aar-table col.col-amount,
+    .aar-table th:nth-child(3),
+    .aar-table td:nth-child(3) { display: none; }
+
+    .ds-table.aar-table { min-width: 0; }
+    .ds-table.aar-table thead th,
+    .ds-table.aar-table td { padding: 0.75rem 0.5rem; }
+}
+@media (max-width: 480px) {
+    .aar-table col.col-time,
+    .aar-table th:nth-child(5),
+    .aar-table td:nth-child(5) { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   MOBILE: el modal arranca desde arriba (no centrado) + X anclada
+   Causa raíz: el overlay tiene `align-items: center` y `overflow-y: auto`.
+   Cuando el contenido del modal es más alto que el viewport, el centrado
+   vertical empuja la parte de arriba FUERA del scroll (bug conocido de
+   flexbox: el contenido sale por encima del scrollable area).
+   Solución: en mobile alineamos al inicio para que la parte de arriba —
+   incluyendo la X — siempre quede dentro del scroll alcanzable. Como
+   refuerzo, la X queda `fixed` al viewport.
+   ══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 720px) {
+    .aar-modal-overlay {
+        align-items: flex-start;
+        padding: 0.75rem;
+    }
+    .aar-modal {
+        margin-top: 0;
+    }
+    .aar-modal-close {
+        position: fixed;
+        top: 0.75rem;
+        right: 0.75rem;
+        z-index: 2147483647;
+        background: rgba(20, 14, 40, 0.92);
+        backdrop-filter: blur(0.25rem);
+        -webkit-backdrop-filter: blur(0.25rem);
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.45);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   OVERRIDES TEMA CARBON — Admin: Solicitudes
+   ══════════════════════════════════════════════════════════════════════ */
+html[data-theme="carbon"] .aar-hero {
+    background: linear-gradient(135deg,
+        rgba(255, 79, 122, 0.16) 0%,
+        var(--bg-surface) 100%);
+}
+html[data-theme="carbon"] .aar-hero-icon {
+    background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
+}
+html[data-theme="carbon"] .aar-card.aar-status-pending,
+html[data-theme="carbon"] .aar-tr--pending {
+    border-color: rgba(255, 79, 122, 0.18);
+}
+html[data-theme="carbon"] .aar-row-avatar,
+html[data-theme="carbon"] .aar-user-avatar,
+html[data-theme="carbon"] .aar-mb-avatar {
+    background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
+}
+html[data-theme="carbon"] .aar-pulse {
+    background: var(--accent, #ff4f7a);
+    box-shadow: 0 0 0 0 var(--accent, #ff4f7a);
+}
+html[data-theme="carbon"] .aar-btn-approve {
+    background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
+    box-shadow: 0 0.375rem 1.125rem rgba(255, 79, 122, 0.4);
+}
+html[data-theme="carbon"] .aar-grant-input:focus,
+html[data-theme="carbon"] .aar-note-textarea:focus {
+    border-color: var(--accent, #ff4f7a);
+}
+html[data-theme="carbon"] .aar-mb-block--mine {
+    background: linear-gradient(135deg,
+        rgba(255, 79, 122, 0.08),
+        rgba(255, 79, 122, 0.02));
+    border-color: rgba(255, 79, 122, 0.2);
+}
+html[data-theme="carbon"] .aar-loadmore-btn:hover:not(:disabled) {
+    border-color: rgba(255, 79, 122, 0.5);
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.08);
+}

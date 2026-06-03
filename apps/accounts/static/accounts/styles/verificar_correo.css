@@ -5,7 +5,9 @@
    Cascada: base mobile → ≥768px tablet → ≥1024px desktop.
    ════════════════════════════════════════════════════════════════════ */
 
-body { background: var(--bg-base); }
+body {
+    background: var(--bg-base);
+}
 
 /* ────────────────────────────────────────────────────────────────────
    WRAPPER (full-bleed centrado)
@@ -40,18 +42,30 @@ body { background: var(--bg-base); }
     overflow: hidden;
     animation: fadeUp 0.45s cubic-bezier(.22, 1, .36, 1) both;
 }
+
 @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(0.875rem); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(0.875rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
+
 .verify-card::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 0.125rem;
     background: linear-gradient(90deg, transparent, var(--accent), transparent);
     opacity: 0.7;
 }
+
 .verify-card::after {
     content: '';
     position: absolute;
@@ -78,29 +92,12 @@ body { background: var(--bg-base); }
     position: relative;
     z-index: 1;
 }
-.verify-logo-icon {
-    width: var(--vc-logo-size);
-    height: var(--vc-logo-size);
-    border-radius: var(--vc-logo-radius);
-    background: linear-gradient(135deg, var(--accent), #9b6dff);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0.25rem 0.875rem rgba(109, 74, 255, 0.4);
-}
-.verify-logo-text {
-    font-family: 'Syne', sans-serif;
-    font-size: 1.0625rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    letter-spacing: -0.015em;
-}
-.verify-logo-text span { color: var(--accent-hover); }
 
-/* ────────────────────────────────────────────────────────────────────
-   ICONO HERO
-   ──────────────────────────────────────────────────────────────────── */
-.verify-icon {
+/* Antes era un escudo chiquito; ahora hospeda el ícono de correo grande
+   (heredando el estilo del antiguo .verify-icon). Tamaño/sombra matchean
+   lo que era el hero del correo, para que el header quede como
+   [icono-correo-grande] DockerShield en una sola línea. */
+.verify-logo-icon {
     width: var(--vc-icon-size);
     height: var(--vc-icon-size);
     border-radius: var(--vc-icon-radius);
@@ -109,14 +106,24 @@ body { background: var(--bg-base); }
     align-items: center;
     justify-content: center;
     box-shadow: 0 0.5rem 1.5rem rgba(109, 74, 255, 0.35);
-    margin-bottom: 1.125rem;
-    position: relative;
-    z-index: 1;
+    flex-shrink: 0;
 }
-.verify-icon svg {
+.verify-logo-icon svg {
     width: var(--vc-icon-svg-size);
     height: var(--vc-icon-svg-size);
     color: #fff;
+}
+
+.verify-logo-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.0625rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.015em;
+}
+
+.verify-logo-text span {
+    color: var(--accent-hover);
 }
 
 /* ────────────────────────────────────────────────────────────────────
@@ -133,6 +140,7 @@ body { background: var(--bg-base); }
     position: relative;
     z-index: 1;
 }
+
 .verify-subtitle {
     font-size: 0.84375rem;
     color: var(--text-secondary);
@@ -141,10 +149,24 @@ body { background: var(--bg-base); }
     position: relative;
     z-index: 1;
 }
+
 .verify-subtitle strong {
     color: var(--accent-hover);
     font-weight: 600;
-    word-break: break-all;
+}
+
+/* El correo va en su propia línea y NUNCA se parte a la mitad. Si no
+   entra en una línea, baja entero — `word-break: break-all` cortaba la
+   ".com" en dos, que es lo que veía el usuario. */
+.verify-email {
+    display: inline-block;
+    max-width: 100%;
+    word-break: keep-all;
+    overflow-wrap: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
 }
 
 /* ────────────────────────────────────────────────────────────────────
@@ -155,6 +177,7 @@ body { background: var(--bg-base); }
     position: relative;
     z-index: 1;
 }
+
 .verify-label {
     display: block;
     font-size: 0.6875rem;
@@ -165,12 +188,20 @@ body { background: var(--bg-base); }
     margin-bottom: 0.75rem;
     font-family: var(--font-mono);
 }
+
 .code-input-wrap {
     display: flex;
     justify-content: center;
     gap: var(--vc-digit-gap-mobile);
     margin-bottom: 1.375rem;
+    border: none !important;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    margin-inline: 0;
+    min-inline-size: 0;
 }
+
 .code-digit {
     width: var(--vc-digit-w-mobile);
     height: var(--vc-digit-h-mobile);
@@ -187,17 +218,24 @@ body { background: var(--bg-base); }
     -webkit-appearance: none;
     -moz-appearance: textfield;
 }
+
 .code-digit::-webkit-outer-spin-button,
 .code-digit::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
-.code-digit:focus {
+
+.code-digit:focus,
+.code-digit:focus-visible {
     border-color: var(--accent);
     background: rgba(109, 74, 255, 0.08);
-    box-shadow: 0 0 0 0.1875rem rgba(109, 74, 255, 0.18);
+    /* Solo un glow sutil — sin el "ring" grueso que se ve como cuadro
+       blanco/morado pegado al input. */
+    box-shadow: 0 0 0.625rem rgba(109, 74, 255, 0.25);
     transform: translateY(-0.0625rem);
+    outline: none;
 }
+
 .code-digit.filled {
     border-color: rgba(109, 74, 255, 0.35);
     color: var(--accent-hover);
@@ -221,8 +259,15 @@ body { background: var(--bg-base); }
     letter-spacing: 0.01em;
     box-shadow: 0 0.375rem 1.125rem rgba(109, 74, 255, 0.35);
 }
-.verify-btn:hover { filter: brightness(1.08); }
-.verify-btn:active { transform: translateY(0.0625rem); }
+
+.verify-btn:hover {
+    filter: brightness(1.08);
+}
+
+.verify-btn:active {
+    transform: translateY(0.0625rem);
+}
+
 .verify-btn:disabled {
     opacity: 0.55;
     cursor: not-allowed;
@@ -246,10 +291,21 @@ body { background: var(--bg-base); }
     position: relative;
     z-index: 1;
 }
-.verify-meta .countdown { color: var(--text-secondary); }
-.verify-meta .countdown.expired { color: var(--danger); font-weight: 600; }
 
-.resend-form { margin: 0; display: inline; }
+.verify-meta .countdown {
+    color: var(--text-secondary);
+}
+
+.verify-meta .countdown.expired {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.resend-form {
+    margin: 0;
+    display: inline;
+}
+
 .resend-link {
     background: none;
     border: 0;
@@ -262,13 +318,18 @@ body { background: var(--bg-base); }
     padding: 0;
     transition: color 0.15s ease;
 }
+
 .resend-link:hover,
 .resend-link:focus-visible {
     color: #fff;
     text-decoration: underline;
     outline: none;
 }
-.resend-link[disabled] { color: var(--text-muted); cursor: not-allowed; }
+
+.resend-link[disabled] {
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
 
 /* ────────────────────────────────────────────────────────────────────
    HELP + BACK
@@ -285,7 +346,11 @@ body { background: var(--bg-base); }
     position: relative;
     z-index: 1;
 }
-.verify-help strong { color: var(--accent-hover); }
+
+.verify-help strong {
+    color: var(--accent-hover);
+}
+
 .verify-back {
     margin-top: 1rem;
     text-align: center;
@@ -294,13 +359,18 @@ body { background: var(--bg-base); }
     position: relative;
     z-index: 1;
 }
+
 .verify-back a {
     color: var(--accent-hover);
     text-decoration: none;
     font-weight: 500;
 }
+
 .verify-back a:hover,
-.verify-back a:focus-visible { text-decoration: underline; outline: none; }
+.verify-back a:focus-visible {
+    text-decoration: underline;
+    outline: none;
+}
 
 /* ────────────────────────────────────────────────────────────────────
    MENSAJES DE DJANGO
@@ -312,6 +382,7 @@ body { background: var(--bg-base); }
     position: relative;
     z-index: 1;
 }
+
 .verify-msg {
     display: flex;
     align-items: flex-start;
@@ -323,17 +394,43 @@ body { background: var(--bg-base); }
     border: 1px solid;
     line-height: 1.4;
 }
-.verify-msg.error   { background: rgba(232, 64, 64, 0.07);   border-color: rgba(232, 64, 64, 0.28);   color: #f87171; }
-.verify-msg.warning { background: rgba(245, 158, 11, 0.07);  border-color: rgba(245, 158, 11, 0.28);  color: #fbbf24; }
-.verify-msg.success { background: rgba(46, 204, 113, 0.07);  border-color: rgba(46, 204, 113, 0.28);  color: #4ade80; }
-.verify-msg.info    { background: rgba(109, 74, 255, 0.07);  border-color: rgba(109, 74, 255, 0.28);  color: var(--accent-hover); }
+
+.verify-msg.error {
+    background: rgba(232, 64, 64, 0.07);
+    border-color: rgba(232, 64, 64, 0.28);
+    color: #f87171;
+}
+
+.verify-msg.warning {
+    background: rgba(245, 158, 11, 0.07);
+    border-color: rgba(245, 158, 11, 0.28);
+    color: #fbbf24;
+}
+
+.verify-msg.success {
+    background: rgba(46, 204, 113, 0.07);
+    border-color: rgba(46, 204, 113, 0.28);
+    color: #4ade80;
+}
+
+.verify-msg.info {
+    background: rgba(109, 74, 255, 0.07);
+    border-color: rgba(109, 74, 255, 0.28);
+    color: var(--accent-hover);
+}
 
 /* ════════════════════════════════════════════════════════════════════
    TABLET (≥ 768px) — más respiro en el card y dígitos más grandes
    ════════════════════════════════════════════════════════════════════ */
 @media (min-width: 768px) {
-    .verify-card { padding: var(--vc-card-pad-desk); }
-    .code-input-wrap { gap: var(--vc-digit-gap-desk); }
+    .verify-card {
+        padding: var(--vc-card-pad-desk);
+    }
+
+    .code-input-wrap {
+        gap: var(--vc-digit-gap-desk);
+    }
+
     .code-digit {
         width: var(--vc-digit-w-desk);
         height: var(--vc-digit-h-desk);
@@ -345,5 +442,7 @@ body { background: var(--bg-base); }
    DESKTOP (≥ 1024px) — título un toque más prominente
    ════════════════════════════════════════════════════════════════════ */
 @media (min-width: 1024px) {
-    .verify-title { font-size: 1.5rem; }
+    .verify-title {
+        font-size: 1.5rem;
+    }
 }

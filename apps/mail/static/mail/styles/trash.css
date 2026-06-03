@@ -565,3 +565,74 @@
   }
   .btn-restore:hover, .btn-purge:hover { transform: translateY(-1px); }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   VER MÁS / VER MENOS — botones de carga diferida
+   ══════════════════════════════════════════════════════════════════════ */
+.trash-loadmore-wrap {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1.25rem;
+  flex-wrap: wrap;
+}
+
+.trash-loadmore-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5625rem 1.125rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono, var(--mono));
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
+  min-width: 9rem;
+  justify-content: center;
+}
+
+.trash-loadmore-btn:hover:not(:disabled) {
+  border-color: rgba(124, 58, 237, 0.5);
+  color: var(--ai-purple-light, #a78bfa);
+  background: var(--ai-purple-soft, rgba(124, 58, 237, 0.08));
+}
+
+.trash-loadmore-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.trash-loadmore-spinner { display: none; animation: trash-spin 0.8s linear infinite; }
+.trash-loadmore-btn.loading .trash-loadmore-spinner { display: inline-flex; }
+.trash-loadmore-btn.loading > svg:first-child       { display: none; }
+.trash-loadmore-btn.loading .trash-loadmore-label   { opacity: 0.7; }
+
+.trash-collapse-btn { color: var(--text-muted); }
+.trash-collapse-btn:hover:not(:disabled) {
+  border-color: var(--border-soft, var(--border));
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+}
+
+@keyframes trash-spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════════════════════════════════
+   OVERRIDES TEMA CARBON — Papelera
+   ══════════════════════════════════════════════════════════════════════ */
+html[data-theme="carbon"] .tab-btn.active {
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.1);
+}
+html[data-theme="carbon"] .trash-kind-pill.draft {
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.1);
+    border-color: rgba(255, 79, 122, 0.3);
+}
+html[data-theme="carbon"] .trash-loadmore-btn:hover:not(:disabled) {
+    border-color: rgba(255, 79, 122, 0.5);
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.08);
+}

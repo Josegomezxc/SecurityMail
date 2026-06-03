@@ -7,8 +7,11 @@ Toda la lógica de scoring/sandbox vive en apps.sandbox y apps.mail.webhook.
 """
 import re
 from datetime import timedelta
+from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import JsonResponse, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
 from django.utils import timezone
@@ -18,6 +21,20 @@ from apps.aliases.models import Alias
 from apps.sandbox.models import SandboxAnalysis
 from apps.core.services.stats_service import dashboard_stats
 from .models import EmailMessage, SentEmail, Draft
+
+
+# Items por página en todas las listas. Subir/bajar global desde aquí.
+PAGE_SIZE = 6
+
+
+def _qs_params(request, exclude=('page',)):
+    """
+    Devuelve los query params actuales como string para preservarlos al
+    paginar (excepto los que se quieran sobreescribir, típicamente `page`).
+    Ej: si la URL es ?q=hola&filter=unread&page=2 → "q=hola&filter=unread"
+    """
+    params = {k: v for k, v in request.GET.items() if k not in exclude and v}
+    return urlencode(params)
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -83,42 +100,82 @@ def dashboard_view(request):
 
 @login_required(login_url='login')
 def inbox_view(request):
-    """Bandeja de entrada con correos agrupados por fecha relativa.
-       Excluye correos en papelera (deleted_at != null)."""
-    emails = list(
-        EmailMessage.objects
-            .filter(alias__user=request.user, deleted_at__isnull=True)
-            .select_related('alias')
-            .order_by('-received_at')
+    """
+    Bandeja de entrada paginada (server-side).
+
+    Query params soportados:
+      ?q=<texto>     búsqueda en remitente / asunto / preview
+      ?filter=<f>    all | unread | attachment | danger | safe
+      ?page=<n>      número de página (PAGE_SIZE items)
+
+    El filtrado y la búsqueda se hacen en BD para que el paginado tenga
+    sentido: solo se traen 25 filas por request, no la bandeja entera.
+    """
+    base_qs = EmailMessage.objects.filter(
+        alias__user=request.user, deleted_at__isnull=True,
     )
 
-    now      = timezone.now()
-    today    = now.date()
-    yday     = today - timedelta(days=1)
-    week_ago = today - timedelta(days=7)
+    # Contadores por categoría (se calculan UNA vez sobre el base_qs y se
+    # muestran en los tabs). Son SELECT COUNT — baratos, pero los podemos
+    # convertir a aggregate único si la tabla crece mucho.
+    counts = {
+        'all':        base_qs.count(),
+        'unread':     base_qs.filter(read=False).count(),
+        'attachment': base_qs.filter(has_attachment=True).count(),
+        'danger':     base_qs.filter(risk_score__gte=61).count(),
+        'safe':       base_qs.filter(risk_score__gt=0, risk_score__lte=30).count(),
+    }
 
-    groups = [
-        {"label": "Hoy",          "emails": []},
-        {"label": "Ayer",         "emails": []},
-        {"label": "Esta semana",  "emails": []},
-        {"label": "Anteriores",   "emails": []},
-    ]
-    for em in emails:
-        d = em.received_at.date()
-        if d == today:
-            groups[0]["emails"].append(em)
-        elif d == yday:
-            groups[1]["emails"].append(em)
-        elif d > week_ago:
-            groups[2]["emails"].append(em)
-        else:
-            groups[3]["emails"].append(em)
+    qs = base_qs
 
-    groups = [g for g in groups if g["emails"]]   # quita vacíos
+    # ── Filtro por categoría ───────────────────────────────────────────
+    filter_ = (request.GET.get('filter') or 'all').strip().lower()
+    if filter_ == 'unread':
+        qs = qs.filter(read=False)
+    elif filter_ == 'attachment':
+        qs = qs.filter(has_attachment=True)
+    elif filter_ == 'danger':
+        qs = qs.filter(risk_score__gte=61)
+    elif filter_ == 'safe':
+        qs = qs.filter(risk_score__gt=0, risk_score__lte=30)
+    else:
+        filter_ = 'all'
+
+    # ── Búsqueda libre ─────────────────────────────────────────────────
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(
+            Q(from_email__icontains=q) |
+            Q(subject__icontains=q) |
+            Q(body__icontains=q)
+        )
+
+    qs = qs.select_related('alias').order_by('-received_at')
+
+    # ── Paginación ─────────────────────────────────────────────────────
+    paginator = Paginator(qs, PAGE_SIZE)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+
+    # Pre-computa un timestamp compacto ("3 d", "53 min", "2 h"…) para la
+    # columna "Recibido". `timesince` devuelve cosas largas como "3 días,
+    # 4 horas" que quedan feas en una celda.
+    _now = timezone.now()
+    for em in page_obj.object_list:
+        delta = _now - em.received_at
+        secs = int(delta.total_seconds())
+        if   secs < 45:        em.time_short = 'ahora'
+        elif secs < 3600:      em.time_short = f'{max(1, secs // 60)} min'
+        elif secs < 86400:     em.time_short = f'{secs // 3600} h'
+        elif secs < 86400 * 7: em.time_short = f'{secs // 86400} d'
+        else:                  em.time_short = f'{secs // (86400*7)} sem'
 
     return render(request, 'mail/inbox.html', {
-        'emails':       emails,          # compat para iteración flat
-        'email_groups': groups,
+        'page_obj':   page_obj,
+        'emails':     page_obj.object_list,    # compat con código que itera flat
+        'counts':     counts,
+        'q':          q,
+        'filter':     filter_,
+        'qs_params':  _qs_params(request),
     })
 
 
@@ -225,19 +282,29 @@ def inbox_clear_api(request):
 #  ENVIADOS
 # ═════════════════════════════════════════════════════════════════════
 
-@login_required(login_url='login')
-def sent_view(request):
-    """Lista los correos enviados por el usuario, agrupados por fecha.
-       Excluye correos en papelera."""
-    sent_emails = list(
+SENT_BATCH = 6   # cuántos correos por "página" en el load-more
+
+
+def _sent_qs(user):
+    """QuerySet base de enviados (excluye papelera, select_related al alias)."""
+    return (
         SentEmail.objects
-            .filter(alias__user=request.user, deleted_at__isnull=True)
+            .filter(alias__user=user, deleted_at__isnull=True)
             .select_related('alias')
             .order_by('-sent_at')
     )
 
-    now      = timezone.now()
-    today    = now.date()
+
+def _prepare_sent_for_render(emails):
+    """Anota cada SentEmail con metadata pre-serializada para el template."""
+    import json as _json
+    for em in emails:
+        em.attachments_meta_json = _json.dumps(em.attachments_meta or [])
+
+
+def _group_sent_by_date(emails):
+    """Agrupa la lista de enviados en Hoy / Ayer / Esta semana / Anteriores."""
+    today    = timezone.now().date()
     yday     = today - timedelta(days=1)
     week_ago = today - timedelta(days=7)
 
@@ -247,40 +314,91 @@ def sent_view(request):
         {"label": "Esta semana",  "emails": []},
         {"label": "Anteriores",   "emails": []},
     ]
-    for em in sent_emails:
+    for em in emails:
         d = em.sent_at.date()
-        if d == today:
-            groups[0]["emails"].append(em)
-        elif d == yday:
-            groups[1]["emails"].append(em)
-        elif d > week_ago:
-            groups[2]["emails"].append(em)
-        else:
-            groups[3]["emails"].append(em)
+        if d == today:        groups[0]["emails"].append(em)
+        elif d == yday:       groups[1]["emails"].append(em)
+        elif d > week_ago:    groups[2]["emails"].append(em)
+        else:                 groups[3]["emails"].append(em)
 
-    groups = [g for g in groups if g["emails"]]
+    return [g for g in groups if g["emails"]]
 
-    # Aliases activos para el botón "Nuevo correo" — el compose modal
-    # necesita aliasId/address/label para arrancar.
-    active_aliases = Alias.objects.filter(user=request.user, is_active=True).order_by('-created_at')
 
-    # Contadores para los filtros del sidebar de la lista
-    attach_count    = sum(1 for em in sent_emails if em.attachments_count and em.attachments_count > 0)
-    scheduled_count = sum(1 for em in sent_emails if em.scheduled_at is not None)
+@login_required(login_url='login')
+def sent_view(request):
+    """
+    Lista de enviados.
 
-    # Pre-serializamos la metadata de adjuntos a JSON string para inyectarla
-    # en un atributo data-* y consumirla desde JavaScript.
-    import json as _json
-    for em in sent_emails:
-        em.attachments_meta_json = _json.dumps(em.attachments_meta or [])
+    Render inicial muestra solo los SENT_BATCH primeros. El front pide
+    los siguientes lotes vía `sent_more_api` (botón "Cargar más"). Así
+    no cargamos los miles de correos del usuario en cada visita.
+
+    Filtros y búsqueda se mantienen client-side sobre lo que está
+    cargado en el DOM. Si el usuario filtra y ve pocos resultados, basta
+    con que pulse "Cargar más" para que entren nuevos batches.
+    """
+    full_qs = _sent_qs(request.user)
+    total_sent = full_qs.count()
+
+    sent_emails = list(full_qs[:SENT_BATCH])
+    has_more    = total_sent > SENT_BATCH
+
+    _prepare_sent_for_render(sent_emails)
+    groups = _group_sent_by_date(sent_emails)
+
+    # Aliases activos para el compose
+    active_aliases = Alias.objects.filter(
+        user=request.user, is_active=True,
+    ).order_by('-created_at')
+
+    # Contadores para los filtros del sidebar (sobre TODOS los enviados)
+    attach_count    = full_qs.filter(attachments_count__gt=0).count()
+    scheduled_count = full_qs.filter(scheduled_at__isnull=False).count()
 
     return render(request, 'mail/sent.html', {
-        'sent_emails':       sent_emails,
-        'sent_groups':       groups,
-        'total_sent':        len(sent_emails),
-        'active_aliases':    active_aliases,
-        'attach_count':      attach_count,
-        'scheduled_count':   scheduled_count,
+        'sent_emails':     sent_emails,
+        'sent_groups':     groups,
+        'total_sent':      total_sent,
+        'has_more':        has_more,
+        'next_offset':     len(sent_emails),
+        'batch_size':      SENT_BATCH,
+        'active_aliases':  active_aliases,
+        'attach_count':    attach_count,
+        'scheduled_count': scheduled_count,
+    })
+
+
+@login_required(login_url='login')
+def sent_more_api(request):
+    """
+    Devuelve el siguiente lote de enviados como HTML parcial listo para
+    appendear. Espera `?offset=<n>` (cuántos ya están en pantalla).
+
+    Respuesta JSON:
+      { ok, html, count, next_offset, has_more }
+    """
+    try:
+        offset = int(request.GET.get('offset') or 0)
+    except ValueError:
+        offset = 0
+    offset = max(0, offset)
+
+    qs = _sent_qs(request.user)
+    total = qs.count()
+    batch = list(qs[offset:offset + SENT_BATCH])
+
+    _prepare_sent_for_render(batch)
+
+    from django.template.loader import render_to_string
+    html = render_to_string('mail/_sent_rows.html', {'sent_emails': batch}, request=request)
+
+    new_offset = offset + len(batch)
+    return JsonResponse({
+        'ok':          True,
+        'html':        html,
+        'count':       len(batch),
+        'next_offset': new_offset,
+        'has_more':    new_offset < total,
     })
 
 
@@ -522,35 +640,33 @@ def trash_empty_api(request):
     })
 
 
-@login_required(login_url='login')
-def trash_view(request):
-    """Lista todos los items en papelera (recibidos + enviados + borradores).
-    Hace cleanup lazy de los que ya pasaron TRASH_RETENTION_DAYS."""
-    _cleanup_expired_trash(request.user)
+TRASH_BATCH = 6   # ítems por lote en "Ver más" de papelera
 
+
+def _trash_items(user):
+    """
+    Devuelve la lista mixta (recibidos + enviados + borradores) en
+    papelera, anotada con `kind` y `expires_at` y ordenada por
+    deleted_at descendente.
+    """
     inbound = list(
         EmailMessage.objects
-            .filter(alias__user=request.user, deleted_at__isnull=False)
+            .filter(alias__user=user, deleted_at__isnull=False)
             .select_related('alias')
             .order_by('-deleted_at')
     )
     outbound = list(
         SentEmail.objects
-            .filter(alias__user=request.user, deleted_at__isnull=False)
+            .filter(alias__user=user, deleted_at__isnull=False)
             .select_related('alias')
             .order_by('-deleted_at')
     )
     drafts = list(
         Draft.objects
-            .filter(user=request.user, deleted_at__isnull=False)
+            .filter(user=user, deleted_at__isnull=False)
             .select_related('alias')
             .order_by('-deleted_at')
     )
-
-    # Anotamos la fecha de expiración (deleted_at + 30 días) en cada
-    # objeto para que la plantilla pueda usar {{ em.expires_at|timeuntil }}
-    # y mostrar "se borra en X días". Sin esto, deleted_at es una fecha
-    # pasada y timeuntil siempre devuelve "0 minutos".
     retention_delta = timedelta(days=TRASH_RETENTION_DAYS)
     for em in inbound:
         em.expires_at = em.deleted_at + retention_delta
@@ -562,21 +678,61 @@ def trash_view(request):
         d.expires_at = d.deleted_at + retention_delta
         d.kind = 'draft'
 
-    # Lista mixta para el filtro "Todos": recibidos + enviados + borradores
-    # juntos, ordenados por deleted_at descendente (recién eliminados arriba).
-    all_trash = sorted(
-        inbound + outbound + drafts,
-        key=lambda it: it.deleted_at,
-        reverse=True,
+    return (
+        sorted(inbound + outbound + drafts,
+               key=lambda it: it.deleted_at, reverse=True),
+        inbound, outbound, drafts,
     )
 
+
+@login_required(login_url='login')
+def trash_view(request):
+    """Lista la papelera. Carga diferida: primer lote en server-side,
+    siguientes vía `trash_more_api`."""
+    _cleanup_expired_trash(request.user)
+
+    all_trash, inbound, outbound, drafts = _trash_items(request.user)
+    total = len(all_trash)
+    page  = all_trash[:TRASH_BATCH]
+    has_more = total > TRASH_BATCH
+
     return render(request, 'mail/trash.html', {
-        'all_trash':        all_trash,
-        'inbound_trash':    inbound,
+        'all_trash':        page,
+        'inbound_trash':    inbound,     # se usa solo para contadores
         'outbound_trash':   outbound,
         'drafts_trash':     drafts,
-        'total_trash':      len(inbound) + len(outbound) + len(drafts),
+        'total_trash':      total,
         'retention_days':   TRASH_RETENTION_DAYS,
+        'has_more':         has_more,
+        'next_offset':      len(page),
+        'batch_size':       TRASH_BATCH,
+    })
+
+
+@login_required(login_url='login')
+def trash_more_api(request):
+    """Siguiente lote de items de papelera como HTML parcial.
+    Espera `?offset=N`."""
+    try:
+        offset = int(request.GET.get('offset') or 0)
+    except ValueError:
+        offset = 0
+    offset = max(0, offset)
+
+    all_trash, _, _, _ = _trash_items(request.user)
+    total = len(all_trash)
+    batch = all_trash[offset:offset + TRASH_BATCH]
+
+    from django.template.loader import render_to_string
+    html = render_to_string('mail/_trash_rows.html', {'all_trash': batch}, request=request)
+
+    new_offset = offset + len(batch)
+    return JsonResponse({
+        'ok':          True,
+        'html':        html,
+        'count':       len(batch),
+        'next_offset': new_offset,
+        'has_more':    new_offset < total,
     })
 
 
@@ -739,20 +895,68 @@ def drafts_empty_api(request):
     return JsonResponse({'ok': True, 'moved': count})
 
 
+DRAFTS_BATCH = 6   # cuántos borradores por "página" en el load-more
+
+
+def _drafts_qs(user):
+    """QuerySet base de borradores activos (no en papelera)."""
+    return (
+        Draft.objects
+            .filter(user=user, deleted_at__isnull=True)
+            .select_related('alias')
+            .order_by('-updated_at')
+    )
+
+
 @login_required(login_url='login')
 def drafts_view(request):
-    """Lista todos los borradores ACTIVOS del usuario (no en papelera)."""
-    drafts = list(
-        Draft.objects
-            .filter(user=request.user, deleted_at__isnull=True)
-            .select_related('alias').order_by('-updated_at')
-    )
-    # Contadores para los filtros
-    no_recipient = sum(1 for d in drafts if not d.to_email.strip())
-    scheduled    = sum(1 for d in drafts if d.scheduled_at is not None)
+    """
+    Lista de borradores con carga diferida.
+    Render inicial: solo los DRAFTS_BATCH primeros. El front pide los
+    siguientes lotes vía `drafts_more_api`.
+    """
+    full_qs = _drafts_qs(request.user)
+    total   = full_qs.count()
+
+    drafts   = list(full_qs[:DRAFTS_BATCH])
+    has_more = total > DRAFTS_BATCH
+
+    # Contadores GLOBALES (no solo del lote visible)
+    no_recipient_count = full_qs.filter(to_email='').count()
+    scheduled_count    = full_qs.filter(scheduled_at__isnull=False).count()
+
     return render(request, 'mail/drafts.html', {
         'drafts':              drafts,
-        'total_drafts':        len(drafts),
-        'no_recipient_count':  no_recipient,
-        'scheduled_count':     scheduled,
+        'total_drafts':        total,
+        'no_recipient_count':  no_recipient_count,
+        'scheduled_count':     scheduled_count,
+        'has_more':            has_more,
+        'next_offset':         len(drafts),
+        'batch_size':          DRAFTS_BATCH,
+    })
+
+
+@login_required(login_url='login')
+def drafts_more_api(request):
+    """Siguiente lote de borradores como HTML parcial. Espera `?offset=N`."""
+    try:
+        offset = int(request.GET.get('offset') or 0)
+    except ValueError:
+        offset = 0
+    offset = max(0, offset)
+
+    qs = _drafts_qs(request.user)
+    total = qs.count()
+    batch = list(qs[offset:offset + DRAFTS_BATCH])
+
+    from django.template.loader import render_to_string
+    html = render_to_string('mail/_drafts_rows.html', {'drafts': batch}, request=request)
+
+    new_offset = offset + len(batch)
+    return JsonResponse({
+        'ok':          True,
+        'html':        html,
+        'count':       len(batch),
+        'next_offset': new_offset,
+        'has_more':    new_offset < total,
     })

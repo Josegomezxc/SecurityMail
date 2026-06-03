@@ -50,6 +50,139 @@ def send_account_deleted_email(
         return False, f'error: {e}'
 
 
+def send_deletion_code_email(
+    *,
+    to_email: str,
+    display_name: str,
+    code: str,
+    minutes: int = 10,
+) -> Tuple[bool, str]:
+    """
+    Envía el código de 6 dígitos para CONFIRMAR la eliminación de la
+    cuenta. Tono de alerta (header rojo) porque es destructivo, aunque
+    en realidad ahora es soft delete y reversible mientras esté en el
+    período de recuperación.
+    """
+    if not to_email:
+        return False, 'sin destinatario'
+    try:
+        html = _build_deletion_code_html(
+            display_name = display_name,
+            code         = code,
+            minutes      = minutes,
+        )
+        return send_email(
+            to      = to_email,
+            subject = f'Confirma la eliminación de tu cuenta: {code}',
+            html    = html,
+        )
+    except Exception as e:
+        return False, f'error: {e}'
+
+
+def _build_deletion_code_html(*, display_name: str, code: str, minutes: int) -> str:
+    """HTML con el código en caja grande y advertencia roja."""
+    base_url = get_site_url()
+    logo_url = f"{base_url}/static/core/img/logo.png"
+    name_safe = (display_name or 'Usuario').strip() or 'Usuario'
+
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Confirma la eliminación · DockerShield</title>
+</head>
+<body style="margin:0;padding:0;background:#0d0c1a;font-family:'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0c1a;padding:32px 16px">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
+        <tr>
+          <td style="background:#161527;border:1px solid rgba(232,64,64,0.28);border-radius:14px;overflow:hidden">
+
+            <!-- HEADER ROJO de alerta -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%)">
+              <tr>
+                <td style="padding:26px 28px" align="center">
+                  <img src="{logo_url}" alt="DockerShield" width="200" style="display:inline-block;height:auto;max-width:200px;border:0;outline:none;text-decoration:none">
+                  <div style="color:rgba(255,255,255,0.85);font-size:11.5px;font-family:monospace;letter-spacing:0.1em;margin-top:12px;text-transform:uppercase">Eliminar cuenta</div>
+                </td>
+              </tr>
+            </table>
+
+            <!-- CUERPO -->
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:32px 28px 8px">
+                  <h1 style="margin:0 0 12px;color:#f0eeff;font-size:18px;font-weight:700;letter-spacing:-0.01em">Hola {name_safe},</h1>
+                  <p style="margin:0 0 20px;color:#b8b6cf;font-size:14px;line-height:1.6">
+                    Recibimos tu solicitud para eliminar tu cuenta de DockerShield.
+                    Para confirmar que fuiste tú, ingresa este código en la página
+                    de tu perfil:
+                  </p>
+
+                  <!-- Código grande -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a1829;border:1px solid rgba(232,64,64,0.45);border-radius:12px;margin-bottom:20px">
+                    <tr>
+                      <td align="center" style="padding:24px 12px">
+                        <div style="font-family:'Courier New',Consolas,monospace;font-size:36px;font-weight:800;color:#fca5a5;letter-spacing:0.4em;text-align:center">{code}</div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Aviso expiración -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.22);border-radius:9px;margin-bottom:16px">
+                    <tr>
+                      <td style="padding:12px 14px">
+                        <span style="color:#fbbf24;font-size:12.5px;line-height:1.5">
+                          &#9888; Este código expira en <strong>{minutes} minutos</strong>.
+                          Solo se usa una vez.
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Aviso de no fui yo -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:9px;margin-bottom:20px">
+                    <tr>
+                      <td style="padding:12px 14px">
+                        <span style="color:#fca5a5;font-size:12.5px;line-height:1.5">
+                          <strong>Si tú NO solicitaste eliminar tu cuenta</strong>, ignora este correo y cambia tu contraseña de inmediato.
+                          Mientras no ingreses el código, tu cuenta queda intacta.
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:0 0 16px;color:#7d7a96;font-size:12px;line-height:1.6">
+                    Aún puedes cancelar la solicitud: simplemente no uses el código y déjalo expirar.
+                  </p>
+                </td>
+              </tr>
+            </table>
+
+            <!-- FOOTER -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid rgba(255,255,255,0.05);background:#08070f">
+              <tr>
+                <td style="padding:14px 28px">
+                  <span style="font-size:11px;color:#5e5b75;font-family:monospace">&copy; DockerShield &middot; correo automático</span>
+                </td>
+              </tr>
+            </table>
+
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>"""
+
+
 # ─────────────────────────────────────────────────────────────────────
 #  Plantilla HTML (mismo lenguaje visual que password_reset_service)
 # ─────────────────────────────────────────────────────────────────────

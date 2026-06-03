@@ -5,7 +5,8 @@
 {% block nav_admin_threats %}active{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/styles/admin_threats.css' %}">
+<link rel="stylesheet" href="{% static 'core/styles/admin_threats.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v=carbon-fix-1">
 {% endblock %}
 
 {% block body %}
@@ -43,13 +44,13 @@
 </header>
 
 <!-- Toolbar -->
-<form method="get" class="th-toolbar" role="search" onsubmit="return false" aria-label="Buscar y filtrar amenazas">
+<form method="get" class="th-toolbar" role="search" aria-label="Buscar y filtrar amenazas" id="th-search-form">
   <div class="th-search">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <label for="threatsSearchInput" class="sr-only">Buscar amenazas</label>
     <input type="search" id="threatsSearchInput" name="q" value="{{ current_q }}"
            placeholder="Buscar por remitente, asunto, alias o usuario..."
-           autocomplete="off" oninput="threatsTableSearch(this.value)">
+           autocomplete="off">
     {% if current_level != 'all' %}<input type="hidden" name="level" value="{{ current_level }}">{% endif %}
   </div>
   <nav class="th-filters" aria-label="Filtrar por nivel de amenaza">
@@ -76,11 +77,11 @@
 <!-- Tabla -->
 <section class="th-table-wrap" aria-label="Lista de amenazas detectadas">
   <div class="th-row head" role="presentation">
-    <div>Score</div>
-    <div>Asunto / Remitente</div>
-    <div>Usuario afectado</div>
-    <div>Alias</div>
-    <div style="text-align:right">Recibido</div>
+    <div style="text-align:center">Score</div>
+    <div style="text-align:center">Asunto / Remitente</div>
+    <div style="text-align:center">Usuario afectado</div>
+    <div style="text-align:center">Alias</div>
+    <div style="text-align:center">Recibido</div>
   </div>
   {% for t in threats %}
     {% if t.analysis %}
@@ -103,12 +104,13 @@
         {{ t.alias.user.email|truncatechars:22 }}
       </div>
       <div class="th-alias">{{ t.alias.address|truncatechars:24 }}</div>
-      <div class="th-time">{{ t.received_at|timesince }} atrás</div>
+      <div class="th-time" title="{{ t.received_at|date:'d/m/Y H:i' }}">{{ t.time_short }}</div>
     </a>
   {% empty %}
     <div class="th-empty">
       {% if current_q or current_level != 'all' %}
         Ninguna amenaza coincide con los filtros actuales.
+        <a href="{% url 'admin_threats' %}" style="color:var(--accent-hover);text-decoration:underline;margin-left:.5rem">Limpiar</a>
       {% else %}
         Sin amenazas registradas en el sistema.
       {% endif %}
@@ -116,33 +118,35 @@
   {% endfor %}
 </section>
 
-<div class="th-empty" id="th-empty-search" style="display:none" role="status" aria-live="polite">
-  Ninguna amenaza coincide con tu búsqueda.
-</div>
-
-{% if shown_count >= 200 %}
-  <p class="th-tip">Mostrando las 200 amenazas más recientes — afina la búsqueda para ver más antiguas.</p>
-{% endif %}
+{% include 'core/_pagination.html' with page_obj=page_obj qs_params=qs_params %}
 
 <script>
+/* Búsqueda server-side con debounce 350ms (mismo patrón que bandeja/sandbox). */
 (function () {
-  var wrap = document.querySelector('.th-table-wrap');
-  if (!wrap) return;
-  var rows = Array.prototype.slice.call(
-    wrap.querySelectorAll('.th-row:not(.head)')
-  ).filter(function (r) { return !r.classList.contains('th-empty'); });
-  var emptyEl = document.getElementById('th-empty-search');
+  const form  = document.getElementById('th-search-form');
+  const input = document.getElementById('threatsSearchInput');
+  if (!form || !input) return;
 
-  window.threatsTableSearch = function (q) {
-    var query = (q || '').trim().toLowerCase();
-    var visible = 0;
-    rows.forEach(function (r) {
-      var match = !query || (r.textContent || '').toLowerCase().indexOf(query) !== -1;
-      r.style.display = match ? '' : 'none';
-      if (match) visible++;
-    });
-    if (emptyEl) emptyEl.style.display = (query && visible === 0) ? '' : 'none';
-  };
+  let timer = null;
+  function go() {
+    const q = input.value.trim();
+    const url = new URL(window.location.href);
+    if (q) url.searchParams.set('q', q);
+    else   url.searchParams.delete('q');
+    url.searchParams.delete('page');
+    if (url.toString() !== window.location.href) {
+      window.location.href = url.toString();
+    }
+  }
+  input.addEventListener('input', function () {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(go, 350);
+  });
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (timer) clearTimeout(timer);
+    go();
+  });
 })();
 </script>
 

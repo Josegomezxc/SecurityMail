@@ -1,10 +1,8 @@
   /* ══════════════════════════════════════════
      ABRIR DETALLE DE CORREO ENVIADO
-     ══════════════════════════════════════════ */
-  /* Click en un correo enviado → abre el compose modal global pre-llenado
-     con los datos del envío (alias, destinatario, asunto, cuerpo). Es el
-     mismo modal que se usa al responder un correo o al darle a "Nuevo
-     correo" — solo cambia que aquí lo abrimos con el contenido ya cargado. */
+     ══════════════════════════════════════════
+     Click en un correo enviado → abre el compose modal global en
+     readonly con los datos del envío ya cargados. */
   function openSent(id) {
     var data = document.getElementById('sent-detail-' + id);
     if (!data) return;
@@ -28,13 +26,8 @@
     var subject    = data.dataset.subject || '';
     var bodyHtml   = data.dataset.body || '';
 
-    /* 1) Abrir compose en SOLO LECTURA con el alias correcto en "Desde".
-       Usamos el mismo modal del compose para que el usuario reconozca
-       la estética, pero todo es no-editable y el botón Enviar/Adjuntar
-       se ocultan vía CSS (.compose-window.readonly). */
     window.openCompose(aliasId, aliasAddr, aliasLabel, { readonly: true });
 
-    /* 2) Pre-llenar PARA y ASUNTO */
     var subjInput = document.getElementById('composeSubject');
     var editor    = document.getElementById('composeMessage');
 
@@ -43,18 +36,12 @@
     }
     if (subjInput) subjInput.value = subject;
 
-    /* 3) Pre-llenar el editor con el cuerpo original.
-       El backend envuelve el HTML enviado en un wrapper con la firma
-       "Enviado desde un alias seguro de DockerShield". Lo despojamos
-       para que el editor muestre solo lo que el usuario escribió —
-       si no, al re-enviar se duplicaría el wrapper. */
     if (editor) {
       var inner = bodyHtml;
       try {
         var doc = new DOMParser().parseFromString(bodyHtml, 'text/html');
         var wrapper = doc.body.firstElementChild;
         if (wrapper && wrapper.tagName === 'DIV') {
-          /* Quitar el <hr> y la firma de DockerShield que vienen al final */
           var hr = wrapper.querySelector('hr');
           if (hr) {
             var node = hr;
@@ -66,14 +53,10 @@
           }
           inner = wrapper.innerHTML.trim();
         }
-      } catch (e) { /* si falla el parser, usamos el HTML completo */ }
-
+      } catch (e) {}
       editor.innerHTML = inner || '<p><br></p>';
     }
 
-    /* 4) Renderizar los adjuntos como chips read-only.
-       Solo nombre + tamaño formateado (no hay forma de descargarlos:
-       los archivos ya viajaron al destinatario y no los conservamos). */
     var attachWrap = document.getElementById('composeAttachments');
     if (attachWrap) {
       attachWrap.innerHTML = '';
@@ -108,159 +91,122 @@
   }
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-      closeAliasPicker();
-    }
+    if (e.key === 'Escape') closeAliasPicker();
   });
 
   /* ══════════════════════════════════════════
-     INSERCIÓN EN VIVO — escuchamos el evento `compose:sent` que dispara
-     el compose modal al enviar un correo. Insertamos la fila arriba del
-     todo y actualizamos contadores, sin recargar la página.
+     COMPOSE:SENT — al enviar un nuevo correo, lo mejor es recargar
+     la página para que el load-more empiece "limpio" desde el batch 1
      ══════════════════════════════════════════ */
-  document.addEventListener('compose:sent', function (ev) {
-    var em = ev.detail;
-    if (!em || !em.id) return;
-
-    /* Si la lista venía vacía (.empty-state), la quitamos para dar
-       lugar al nuevo row. */
-    var emptyState = document.querySelector('#sent-list .empty-state');
-    if (emptyState) emptyState.remove();
-
-    var list = document.getElementById('sent-list');
-    if (!list) return;
-
-    /* Aseguramos que existe el separador "HOY" al inicio. Buscamos primero
-       por data-group, y si no, por texto (los dividers ya renderizados por
-       Django no tienen el atributo). Si no hay ninguno, creamos uno arriba. */
-    var hoyDivider = list.querySelector('.date-divider[data-group="hoy"]');
-    if (!hoyDivider) {
-      list.querySelectorAll('.date-divider').forEach(function (d) {
-        if (!hoyDivider && d.textContent.trim().toLowerCase().startsWith('hoy')) {
-          d.dataset.group = 'hoy';
-          hoyDivider = d;
-        }
-      });
-    }
-    if (!hoyDivider) {
-      hoyDivider = document.createElement('div');
-      hoyDivider.className = 'date-divider';
-      hoyDivider.dataset.group = 'hoy';
-      hoyDivider.innerHTML = 'Hoy <span class="count">0</span>';
-      list.insertBefore(hoyDivider, list.firstChild);
-    }
-    var countEl = hoyDivider.querySelector('.count');
-    if (countEl) countEl.textContent = String(parseInt(countEl.textContent || '0', 10) + 1);
-
-    var row = buildSentRow(em);
-    /* Insertar JUSTO después del divisor "Hoy" (queda en el tope de la lista). */
-    if (hoyDivider.nextSibling) {
-      list.insertBefore(row, hoyDivider.nextSibling);
-    } else {
-      list.appendChild(row);
-    }
-
-    /* Pequeño flash morado para que el usuario vea el correo aterrizar */
-    row.style.animation = 'fadeUp 0.35s ease both';
-    row.style.boxShadow = '0 0 0 2px rgba(124,58,237,0.4)';
-    setTimeout(function () { row.style.boxShadow = ''; }, 1200);
-
-    /* Actualizar contadores del hero y los badges de filtros */
-    bumpStat('.sent-stats .sent-stat:first-child .sent-stat-val', 1);
-    bumpStat('.sent-tab-btn[data-filter="all"] .qbadge', 1);
-    if (em.attachments_count > 0) bumpStat('.sent-tab-btn[data-filter="attach"] .qbadge', 1);
-    if (em.scheduled_at)          bumpStat('.sent-tab-btn[data-filter="scheduled"] .qbadge', 1);
-
-    /* Re-aplicar filtro/búsqueda activos para que la nueva fila respete
-       el filtro vigente (si está en "Programados" y este no lo es, se oculta). */
-    applySentFilters();
+  document.addEventListener('compose:sent', function () {
+    setTimeout(function () { window.location.reload(); }, 250);
   });
 
-  function bumpStat(selector, delta) {
-    var el = document.querySelector(selector);
-    if (!el) return;
-    var n = parseInt(el.textContent || '0', 10) || 0;
-    el.textContent = String(n + delta);
+  /* ══════════════════════════════════════════
+     VER MÁS / VER MENOS
+     ──────────────────────────────────────────
+     "Ver más"  → pide el siguiente lote al backend y lo appendea.
+                  Cada fila nueva queda marcada con data-loaded="1"
+                  para poder distinguir las server-rendered de las
+                  cargadas dinámicamente.
+     "Ver menos" → quita TODAS las filas con data-loaded="1" y
+                  restaura el offset al inicial (las 6 originales).
+     ══════════════════════════════════════════ */
+  var loadingMore = false;
+
+  function loadMoreSent() {
+    if (loadingMore) return;
+    var btn      = document.getElementById('sent-loadmore-btn');
+    var collapse = document.getElementById('sent-collapse-btn');
+    var list     = document.getElementById('sent-list');
+    if (!btn || !list) return;
+
+    var offset = parseInt(list.dataset.nextOffset || '0', 10) || 0;
+    loadingMore = true;
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    fetch('/enviados/mas/?offset=' + encodeURIComponent(offset), {
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error('bad response');
+
+        if (data.count > 0) {
+          // Append antes del placeholder #sent-no-results para que las
+          // nuevas filas queden dentro de la lista pero arriba del
+          // mensaje "Sin resultados".
+          var noRes = document.getElementById('sent-no-results');
+          var tmp = document.createElement('div');
+          tmp.innerHTML = data.html.trim();
+          while (tmp.firstChild) {
+            var node = tmp.firstChild;
+            // Marca solo los .sent-row appendeados (no los wrappers vacíos)
+            if (node.nodeType === 1 && node.classList && node.classList.contains('sent-row')) {
+              node.dataset.loaded = '1';
+            }
+            list.insertBefore(node, noRes);
+          }
+        }
+
+        list.dataset.nextOffset = String(data.next_offset);
+        list.dataset.hasMore    = data.has_more ? '1' : '0';
+
+        // Ver más se oculta si ya no hay más; Ver menos aparece porque
+        // hay rows extra cargados.
+        if (!data.has_more) btn.style.display = 'none';
+        if (collapse)       collapse.style.display = '';
+
+        // Re-aplicar filtro/búsqueda actuales a las filas recién insertadas
+        applySentFilters();
+      })
+      .catch(function () {
+        if (window.showToast) {
+          window.showToast({
+            type: 'danger',
+            title: 'No se pudieron cargar más correos',
+            message: 'Intenta de nuevo en unos segundos.',
+            duration: 4000,
+          });
+        }
+      })
+      .finally(function () {
+        loadingMore = false;
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      });
   }
 
-  /* Construye un .sent-row equivalente al que renderiza Django. */
-  function buildSentRow(em) {
-    var row = document.createElement('div');
-    row.className = 'sent-row';
-    row.dataset.id          = em.id;
-    row.dataset.to          = (em.to || '').toLowerCase();
-    row.dataset.subject     = (em.subject || '').toLowerCase();
-    row.dataset.alias       = (em.alias || '').toLowerCase();
-    row.dataset.hasAttach   = (em.attachments_count > 0) ? '1' : '0';
-    row.dataset.scheduled   = em.scheduled_at ? '1' : '0';
-    row.onclick = function () { openSent(em.id); };
+  function collapseSent() {
+    var btn      = document.getElementById('sent-loadmore-btn');
+    var collapse = document.getElementById('sent-collapse-btn');
+    var wrap     = document.getElementById('sent-loadmore-wrap');
+    var list     = document.getElementById('sent-list');
+    if (!list || !wrap) return;
 
-    var firstLetter = (em.to || '?').charAt(0).toUpperCase();
-    var to42 = (em.to || '').length > 42 ? (em.to.slice(0, 41) + '…') : (em.to || '');
+    // Quita todas las filas appendeadas vía AJAX
+    list.querySelectorAll('.sent-row[data-loaded="1"]').forEach(function (r) {
+      r.remove();
+    });
 
-    var attPill = '';
-    if (em.attachments_count > 0) {
-      attPill =
-        '<span class="sent-att-pill">' +
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
-            '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>' +
-          '</svg>' +
-          em.attachments_count + ' adjunto' + (em.attachments_count === 1 ? '' : 's') +
-        '</span>';
-    }
-    var schedPill = '';
-    if (em.scheduled_at) {
-      schedPill =
-        '<span class="sent-sched-pill">' +
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
-          'Programado · ' + escapeAttr(em.scheduled_at_short || em.scheduled_at) +
-        '</span>';
-    }
+    // Restaura el offset al inicial (lo que server-side trajo en el GET)
+    var initial = parseInt(wrap.dataset.initialCount || '0', 10) || 0;
+    list.dataset.nextOffset = String(initial);
+    list.dataset.hasMore    = '1';
 
-    row.innerHTML =
-      '<div class="sent-avatar">' + escapeAttr(firstLetter) + '</div>' +
-      '<div class="sent-content">' +
-        '<div class="sent-top">' +
-          '<span class="sent-to"><span class="label">Para:</span>' + escapeAttr(to42) + '</span>' +
-          '<span class="sent-time">justo ahora</span>' +
-        '</div>' +
-        '<div class="sent-subject">' + escapeAttr(em.subject || '(Sin asunto)') + '</div>' +
-        '<div class="sent-meta">' +
-          '<span class="sent-from-tag">desde ' + escapeAttr(em.alias || '') + '</span>' +
-          attPill + schedPill +
-        '</div>' +
-      '</div>' +
-      '<button type="button" class="sent-trash-btn" data-email-id="' + em.id + '" ' +
-              'onclick="event.stopPropagation();sentTrashEmail(this)" title="Mover a papelera">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-          '<polyline points="3 6 5 6 21 6"/>' +
-          '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>' +
-        '</svg>Eliminar</button>' +
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="flex-shrink:0;margin-top:2px"><polyline points="9 18 15 12 9 6"/></svg>';
+    // Ver más vuelve a aparecer; Ver menos se esconde
+    if (btn)      btn.style.display = '';
+    if (collapse) collapse.style.display = 'none';
 
-    /* `detail` oculto para que openSent() pueda leer la metadata sin
-       hacer otro fetch al backend. */
-    var detail = document.createElement('div');
-    detail.id = 'sent-detail-' + em.id;
-    detail.style.display = 'none';
-    detail.dataset.to            = em.to || '';
-    detail.dataset.subject       = em.subject || '';
-    detail.dataset.alias         = em.alias || '';
-    detail.dataset.aliasId       = em.alias_id || '';
-    detail.dataset.aliasLabel    = em.alias_label || '';
-    detail.dataset.aliasActive   = em.alias_active ? '1' : '0';
-    detail.dataset.time          = em.sent_at || '';
-    detail.dataset.scheduled     = em.scheduled_at || '';
-    detail.dataset.attachments   = String(em.attachments_count || 0);
-    detail.dataset.attachmentsMeta = JSON.stringify(em.attachments_meta || []);
-    detail.dataset.body          = em.body_html || '';
-    row.appendChild(detail);
-
-    return row;
+    // Re-aplicar filtros + scroll suave al inicio de la lista
+    applySentFilters();
+    list.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   /* ══════════════════════════════════════════
-     FILTROS + BÚSQUEDA — operan sobre el mismo set y se combinan
+     FILTROS + BÚSQUEDA — operan sobre el DOM cargado (client-side)
      ══════════════════════════════════════════ */
   var sentFilter = 'all';      // all | attach | scheduled
   var sentSearchQ = '';
@@ -296,13 +242,13 @@
       noRes.style.display = 'block';
       if (sentSearchQ) {
         msg.textContent  = 'Sin correos que coincidan con "' + sentSearchQ + '"';
-        hint.textContent = 'Prueba otro término o cambia el filtro.';
+        hint.textContent = 'Prueba otro término, cambia el filtro o pulsa "Cargar más" para traer más correos.';
       } else if (sentFilter === 'attach') {
-        msg.textContent  = 'Sin correos con adjuntos';
-        hint.textContent = 'Prueba con otro filtro o adjunta archivos en tu próximo envío.';
+        msg.textContent  = 'Sin correos con adjuntos en lo cargado';
+        hint.textContent = 'Prueba con otro filtro o pulsa "Cargar más".';
       } else if (sentFilter === 'scheduled') {
-        msg.textContent  = 'Sin correos programados';
-        hint.textContent = 'Prueba con otro filtro o programa el envío de un correo nuevo.';
+        msg.textContent  = 'Sin correos programados en lo cargado';
+        hint.textContent = 'Prueba con otro filtro o pulsa "Cargar más".';
       } else {
         msg.textContent  = 'Sin resultados';
         hint.textContent = 'Prueba con otro filtro o término de búsqueda.';

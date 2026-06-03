@@ -10,15 +10,29 @@ Estas vistas solo son el controlador que muestra los resultados.
 """
 import json
 import os
+from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.mail.models import EmailMessage
 from .models import SandboxAnalysis
+
+
+# Items por página — coincide con el resto del proyecto (bandeja, etc.)
+PAGE_SIZE = 6
+
+
+def _qs_params(request, exclude=('page',)):
+    """Query params actuales como string, para preservarlos al paginar."""
+    params = {k: v for k, v in request.GET.items() if k not in exclude and v}
+    return urlencode(params)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -27,26 +41,79 @@ from .models import SandboxAnalysis
 
 @login_required(login_url='login')
 def sandbox_list_view(request):
-    """Lista de todos los análisis del usuario ordenados por fecha."""
-    qs = SandboxAnalysis.objects.filter(email__alias__user=request.user)
+    """
+    Lista de análisis sandbox paginada server-side.
 
-    # Stats por nivel de riesgo (los 4 cards superiores).
-    # Hay 2 fuentes de verdad para "bloqueado": el flag `blocked` (que se
-    # marca en webhook al guardar) y `risk_score >= 61`. Usamos el flag
-    # cuando esté presente y caemos al score como fallback.
-    total_count   = qs.count()
-    blocked_count = qs.filter(risk_score__gte=61).count()
-    safe_count    = qs.filter(risk_score__lte=30).count()
-    warning_count = qs.filter(risk_score__gt=30, risk_score__lt=61).count()
+    Query params:
+      ?q=<texto>     busca en filename / asunto / remitente / amenaza
+      ?filter=<f>    all | malware | danger | warning | safe
+      ?page=<n>      número de página (PAGE_SIZE items)
+    """
+    base_qs = SandboxAnalysis.objects.filter(email__alias__user=request.user)
 
-    analyses = qs.order_by('-analyzed_at')
+    # Contadores por categoría (sobre el base_qs, no sobre lo filtrado)
+    counts = {
+        'all':     base_qs.count(),
+        'malware': base_qs.filter(risk_score__gte=81).count(),
+        'danger':  base_qs.filter(risk_score__gte=61, risk_score__lt=81).count(),
+        'warning': base_qs.filter(risk_score__gt=30, risk_score__lt=61).count(),
+        'safe':    base_qs.filter(risk_score__lte=30).count(),
+    }
+
+    qs = base_qs
+
+    # ── Filtro por categoría ───────────────────────────────────────────
+    filter_ = (request.GET.get('filter') or 'all').strip().lower()
+    if filter_ == 'malware':
+        qs = qs.filter(risk_score__gte=81)
+    elif filter_ == 'danger':
+        qs = qs.filter(risk_score__gte=61, risk_score__lt=81)
+    elif filter_ == 'warning':
+        qs = qs.filter(risk_score__gt=30, risk_score__lt=61)
+    elif filter_ == 'safe':
+        qs = qs.filter(risk_score__lte=30)
+    else:
+        filter_ = 'all'
+
+    # ── Búsqueda libre ─────────────────────────────────────────────────
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(
+            Q(filename__icontains=q) |
+            Q(email__subject__icontains=q) |
+            Q(email__from_email__icontains=q) |
+            Q(threat_name__icontains=q)
+        )
+
+    qs = qs.select_related('email', 'email__alias').order_by('-analyzed_at')
+
+    # ── Paginación ─────────────────────────────────────────────────────
+    paginator = Paginator(qs, PAGE_SIZE)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+
+    # Timestamp compacto ("3 d", "53 min", "2 h"…)
+    _now = timezone.now()
+    for a in page_obj.object_list:
+        delta = _now - a.analyzed_at
+        secs = int(delta.total_seconds())
+        if   secs < 45:        a.time_short = 'ahora'
+        elif secs < 3600:      a.time_short = f'{max(1, secs // 60)} min'
+        elif secs < 86400:     a.time_short = f'{secs // 3600} h'
+        elif secs < 86400 * 7: a.time_short = f'{secs // 86400} d'
+        else:                  a.time_short = f'{secs // (86400*7)} sem'
 
     return render(request, 'sandbox/sandbox_list.html', {
-        'analyses':      analyses,
-        'total_count':   total_count,
-        'blocked_count': blocked_count,
-        'safe_count':    safe_count,
-        'warning_count': warning_count,
+        'page_obj':      page_obj,
+        'analyses':      page_obj.object_list,
+        'counts':        counts,
+        'q':             q,
+        'filter':        filter_,
+        'qs_params':     _qs_params(request),
+        # Compat: estadísticas en el hero (4 stat cards)
+        'total_count':   counts['all'],
+        'blocked_count': counts['danger'] + counts['malware'],
+        'safe_count':    counts['safe'],
+        'warning_count': counts['warning'],
     })
 
 

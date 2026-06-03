@@ -15,8 +15,12 @@ urlpatterns = [
     path('admin-panel/amenazas/',         views.admin_threats_view,     name='admin_threats'),
     path('admin-panel/alias-globales/',   views.admin_aliases_view,     name='admin_aliases'),
     # Solicitudes de cupo de alias (usuario → admin)
-    path('admin-panel/solicitudes/',                   views.admin_alias_requests_view,  name='admin_alias_requests'),
-    path('admin-panel/solicitudes/<sid:pk>/resolver/', views.admin_alias_request_resolve, name='admin_alias_request_resolve'),
+    path('admin-panel/solicitudes/',                   views.admin_alias_requests_view,     name='admin_alias_requests'),
+    path('admin-panel/solicitudes/<sid:pk>/resolver/', views.admin_alias_request_resolve,   name='admin_alias_request_resolve'),
+
+    # Solicitudes de recuperación de cuenta bloqueada permanentemente
+    path('admin-panel/solicitudes-cuenta/',                   views.admin_account_recovery_requests_view,   name='admin_account_recovery_requests'),
+    path('admin-panel/solicitudes-cuenta/<sid:pk>/resolver/', views.admin_account_recovery_request_resolve, name='admin_account_recovery_request_resolve'),
 
     # Previews de las páginas de error — útiles en DEBUG=True donde
     # Django no muestra los handlers reales. Solo para desarrollo.

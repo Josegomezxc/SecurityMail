@@ -8,7 +8,7 @@
 <link
   href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap"
   rel="stylesheet">
-<link rel="stylesheet" href="{% static 'mail/styles/sent.css' %}">
+<link rel="stylesheet" href="{% static 'mail/styles/sent.css' %}?v=carbon-fix-1">
 {% endblock %}
 
 {% block body %}
@@ -138,74 +138,13 @@
 </div>
 
 <!-- ── LISTA DE ENVIADOS ── -->
-<section id="sent-list" aria-label="Lista de correos enviados">
+<section id="sent-list" aria-label="Lista de correos enviados"
+         data-next-offset="{{ next_offset }}"
+         data-has-more="{{ has_more|yesno:'1,0' }}">
   {% for group in sent_groups %}
   <div class="date-divider" role="separator" aria-label="{{ group.label }}">{{ group.label }} <span class="count">{{ group.emails|length }}</span></div>
   {% for em in group.emails %}
-  <article class="sent-row" data-id="{{ em.id }}" data-to="{{ em.to_email|lower }}" data-subject="{{ em.subject|lower }}"
-    data-alias="{{ em.alias.address|lower }}"
-    data-has-attach="{% if em.attachments_count %}1{% else %}0{% endif %}"
-    data-scheduled="{% if em.scheduled_at %}1{% else %}0{% endif %}"
-    onclick="openSent({{ em.id }})">
-
-    <div class="sent-avatar">{{ em.to_email|first|upper }}</div>
-
-    <div class="sent-content">
-      <div class="sent-top">
-        <span class="sent-to">
-          <span class="label">Para:</span>{{ em.to_email|truncatechars:42 }}
-        </span>
-        <span class="sent-time">{{ em.sent_at|timesince }} atrás</span>
-      </div>
-      <div class="sent-subject">{{ em.subject|default:'(Sin asunto)' }}</div>
-      <div class="sent-meta">
-        <span class="sent-from-tag">desde {{ em.alias.address }}</span>
-        {% if em.attachments_count %}
-        <span class="sent-att-pill">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path
-              d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-          </svg>
-          {{ em.attachments_count }} adjunto{{ em.attachments_count|pluralize:"s" }}
-        </span>
-        {% endif %}
-        {% if em.scheduled_at %}
-        <span class="sent-sched-pill">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          Programado · {{ em.scheduled_at|date:"d/m H:i" }}
-        </span>
-        {% endif %}
-      </div>
-    </div>
-
-    <button type="button" class="sent-trash-btn" data-email-id="{{ em.id }}"
-      onclick="event.stopPropagation();sentTrashEmail(this)" title="Mover a papelera">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <polyline points="3 6 5 6 21 6" />
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      </svg>
-      Eliminar
-    </button>
-
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"
-      style="flex-shrink:0;margin-top:2px">
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
-
-    <!-- Datos para el panel de detalle -->
-    <div id="sent-detail-{{ em.id }}" style="display:none" data-to="{{ em.to_email }}" data-subject="{{ em.subject }}"
-      data-alias="{{ em.alias.address }}" data-alias-id="{{ em.alias.id }}" data-alias-label="{{ em.alias.label }}"
-      data-alias-active="{{ em.alias.is_active|yesno:'1,0' }}" data-time="{{ em.sent_at|date:'d/m/Y H:i' }}"
-      data-scheduled="{% if em.scheduled_at %}{{ em.scheduled_at|date:'d/m/Y H:i' }}{% endif %}"
-      data-attachments="{{ em.attachments_count }}"
-      data-attachments-meta="{{ em.attachments_meta_json|default:'[]' }}"
-      data-body="{{ em.body_html|default:'' }}">
-    </div>
-  </article>
+    {% include 'mail/_sent_row.html' with em=em %}
   {% endfor %}
   {% empty %}
   <div class="empty-state">
@@ -235,8 +174,34 @@
   </div>
 </section>{# /#sent-list #}
 
+<!-- ── BOTONES VER MÁS / VER MENOS ── -->
+<div class="sent-loadmore-wrap" id="sent-loadmore-wrap"
+     data-initial-count="{{ next_offset }}">
+  <button type="button" class="sent-loadmore-btn" id="sent-loadmore-btn"
+          onclick="loadMoreSent()"
+          {% if not has_more %}style="display:none"{% endif %}>
+    <svg class="sent-loadmore-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+    <span class="sent-loadmore-label">Ver más</span>
+    <span class="sent-loadmore-spinner" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      </svg>
+    </span>
+  </button>
+
+  <button type="button" class="sent-loadmore-btn sent-collapse-btn" id="sent-collapse-btn"
+          onclick="collapseSent()" style="display:none">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="18 15 12 9 6 15"/>
+    </svg>
+    <span>Ver menos</span>
+  </button>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'mail/js/sent.js' %}"></script>
+<script src="{% static 'mail/js/sent.js' %}?v=loadmore2"></script>
 {% endblock %}

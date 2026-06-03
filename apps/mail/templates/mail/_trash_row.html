@@ -1,0 +1,94 @@
+{% comment %}
+Una fila .trash-row — partial reusable. Despacha por it.kind.
+Se espera `it` en el contexto.
+{% endcomment %}
+{% if it.kind == 'inbound' %}
+  <article class="trash-row" data-kind="inbound" id="trash-row-inbound-{{ it.id }}">
+    <div class="trash-avatar">{{ it.from_email|first|upper }}</div>
+    <div class="trash-content">
+      <div class="trash-top">
+        <span class="trash-addr"><span class="label">De:</span>{{ it.from_email|truncatechars:42 }}</span>
+      </div>
+      <div class="trash-subject">{{ it.subject|default:'(Sin asunto)' }}</div>
+      <div class="trash-meta">
+        <span class="trash-kind-pill inbound">RECIBIDO</span>
+        <span>→ {{ it.alias.address }}</span>
+        <span class="trash-expiry">se borra en {{ it.expires_at|timeuntil }}</span>
+      </div>
+    </div>
+    <div class="trash-actions">
+      <span class="trash-deleted-at">eliminado {{ it.deleted_at|timesince }} atrás</span>
+      <div class="trash-actions-buttons">
+        <button class="btn-restore" onclick="restoreEmail('inbound', {{ it.id }})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          Restaurar
+        </button>
+        <button class="btn-purge" onclick="purgeEmail('inbound', {{ it.id }})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Borrar ahora
+        </button>
+      </div>
+    </div>
+  </article>
+{% elif it.kind == 'outbound' %}
+  <article class="trash-row" data-kind="outbound" id="trash-row-outbound-{{ it.id }}">
+    <div class="trash-avatar">{{ it.to_email|first|upper }}</div>
+    <div class="trash-content">
+      <div class="trash-top">
+        <span class="trash-addr"><span class="label">Para:</span>{{ it.to_email|truncatechars:42 }}</span>
+      </div>
+      <div class="trash-subject">{{ it.subject|default:'(Sin asunto)' }}</div>
+      <div class="trash-meta">
+        <span class="trash-kind-pill outbound">ENVIADO</span>
+        <span>desde {{ it.alias.address }}</span>
+        <span class="trash-expiry">se borra en {{ it.expires_at|timeuntil }}</span>
+      </div>
+    </div>
+    <div class="trash-actions">
+      <span class="trash-deleted-at">eliminado {{ it.deleted_at|timesince }} atrás</span>
+      <div class="trash-actions-buttons">
+        <button class="btn-restore" onclick="restoreEmail('outbound', {{ it.id }})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          Restaurar
+        </button>
+        <button class="btn-purge" onclick="purgeEmail('outbound', {{ it.id }})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Borrar ahora
+        </button>
+      </div>
+    </div>
+  </article>
+{% else %}
+  <article class="trash-row" data-kind="draft" id="trash-row-draft-{{ it.id }}">
+    <div class="trash-avatar">{% if it.to_email %}{{ it.to_email|first|upper }}{% else %}—{% endif %}</div>
+    <div class="trash-content">
+      <div class="trash-top">
+        <span class="trash-addr">
+          <span class="label">Para:</span>
+          {% if it.to_email %}{{ it.to_email|truncatechars:42 }}{% else %}<em style="color:var(--text-muted)">(sin destinatario)</em>{% endif %}
+        </span>
+      </div>
+      <div class="trash-subject">
+        {% if it.subject %}{{ it.subject }}{% else %}<em style="color:var(--text-muted);font-style:italic">(Sin asunto)</em>{% endif %}
+      </div>
+      <div class="trash-meta">
+        <span class="trash-kind-pill draft">BORRADOR</span>
+        {% if it.alias %}<span>desde {{ it.alias.address }}</span>{% endif %}
+        <span class="trash-expiry">se borra en {{ it.expires_at|timeuntil }}</span>
+      </div>
+    </div>
+    <div class="trash-actions">
+      <span class="trash-deleted-at">eliminado {{ it.deleted_at|timesince }} atrás</span>
+      <div class="trash-actions-buttons">
+        <button class="btn-restore" onclick="restoreEmail('draft', {{ it.id }})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          Restaurar
+        </button>
+        <button class="btn-purge" onclick="purgeEmail('draft', {{ it.id }})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Borrar ahora
+        </button>
+      </div>
+    </div>
+  </article>
+{% endif %}

@@ -56,11 +56,19 @@ function deleteDraft(id) {
   });
 }
 
-/* Filtra la lista de borradores: 'all' | 'no-recipient' | 'scheduled'. */
+/* Estado actual del filtro de pestañas (se persiste entre cargas) */
+var currentDraftFilter = 'all';
+
+/* Filtra la lista de borradores: 'all' | 'no-recipient' | 'scheduled'.
+   Cuando `btn` es null, no toca los botones (lo usamos al re-aplicar
+   el filtro tras un load-more). */
 function filterDrafts(filter, btn) {
-  document.querySelectorAll('.dr-tab-btn').forEach(function (b) {
-    b.classList.toggle('active', b === btn);
-  });
+  currentDraftFilter = filter;
+  if (btn) {
+    document.querySelectorAll('.dr-tab-btn').forEach(function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+  }
   var rows    = document.querySelectorAll('.dr-row');
   var visible = 0;
   rows.forEach(function (r) {
@@ -83,6 +91,92 @@ function filterDrafts(filter, btn) {
       noRes.style.display = 'none';
     }
   }
+}
+
+/* ══════════════════════════════════════════
+   VER MÁS / VER MENOS (load-more con toggle)
+══════════════════════════════════════════ */
+var draftsLoadingMore = false;
+
+function loadMoreDrafts() {
+  if (draftsLoadingMore) return;
+  var btn      = document.getElementById('dr-loadmore-btn');
+  var collapse = document.getElementById('dr-collapse-btn');
+  var list     = document.getElementById('drafts-list');
+  if (!btn || !list) return;
+
+  var offset = parseInt(list.dataset.nextOffset || '0', 10) || 0;
+  draftsLoadingMore = true;
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  fetch('/borradores/mas/?offset=' + encodeURIComponent(offset), {
+    credentials: 'same-origin',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function (data) {
+      if (!data || !data.ok) throw new Error('bad response');
+
+      if (data.count > 0) {
+        var noRes = document.getElementById('dr-no-results');
+        var tmp = document.createElement('div');
+        tmp.innerHTML = data.html.trim();
+        while (tmp.firstChild) {
+          var node = tmp.firstChild;
+          if (node.nodeType === 1 && node.classList && node.classList.contains('dr-row')) {
+            node.dataset.loaded = '1';
+          }
+          list.insertBefore(node, noRes);
+        }
+      }
+
+      list.dataset.nextOffset = String(data.next_offset);
+      list.dataset.hasMore    = data.has_more ? '1' : '0';
+
+      if (!data.has_more) btn.style.display = 'none';
+      if (collapse)       collapse.style.display = '';
+
+      // Re-aplicar el filtro activo a las filas nuevas
+      filterDrafts(currentDraftFilter, null);
+    })
+    .catch(function () {
+      if (window.showToast) {
+        window.showToast({
+          type: 'danger',
+          title: 'No se pudieron cargar más borradores',
+          message: 'Intenta de nuevo en unos segundos.',
+          duration: 4000,
+        });
+      }
+    })
+    .finally(function () {
+      draftsLoadingMore = false;
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    });
+}
+
+function collapseDrafts() {
+  var btn      = document.getElementById('dr-loadmore-btn');
+  var collapse = document.getElementById('dr-collapse-btn');
+  var wrap     = document.getElementById('dr-loadmore-wrap');
+  var list     = document.getElementById('drafts-list');
+  if (!list || !wrap) return;
+
+  list.querySelectorAll('.dr-row[data-loaded="1"]').forEach(function (r) {
+    r.remove();
+  });
+
+  var initial = parseInt(wrap.dataset.initialCount || '0', 10) || 0;
+  list.dataset.nextOffset = String(initial);
+  list.dataset.hasMore    = '1';
+
+  if (btn)      btn.style.display = '';
+  if (collapse) collapse.style.display = 'none';
+
+  filterDrafts(currentDraftFilter, null);
+  list.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /* Manda TODOS los borradores activos a la papelera. */

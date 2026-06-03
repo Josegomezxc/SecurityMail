@@ -25,17 +25,29 @@ from .services.auth_service import (
     login_is_locked, login_register_failure, login_clear_failures,
     SESSION_IDLE_TIMEOUT_SECONDS,
 )
+from .services.login_lock_service import (
+    check_user_lock_state, register_user_failure, clear_user_failures,
+    STATE_TEMP_LOCKED, STATE_PERMANENT_LOCK,
+)
 from .services.password_reset_service import (
     create_token, get_valid_token, send_reset_email, invalidate_other_tokens,
 )
+from django.utils import timezone
+
 from .services.email_verification_service import (
-    create_verification_code, get_valid_code_by_token, verify_code,
-    can_resend, send_verification_email,
+    create_verification_code, verify_deletion_code, can_resend,
+)
+from .services.pending_registration_service import (
+    create_pending_registration, get_valid_pending_by_token,
+    get_pending_by_token_any, verify_pending_code, can_resend_pending,
+    send_pending_registration_email, cleanup_expired_pending_registrations,
 )
 from .services.profile_service import (
     save_avatar, remove_avatar, get_user_initials, get_user_color,
 )
-from .services.account_deletion_service import send_account_deleted_email
+from .services.account_deletion_service import (
+    send_account_deleted_email, send_deletion_code_email,
+)
 from apps.core.services.stats_service import profile_stats
 
 
@@ -48,11 +60,76 @@ def login_view(request):
     GET  → muestra la pantalla de bienvenida + formulario de login.
     POST → autentica al usuario por email O username, con rate limiting
            por IP para prevenir fuerza bruta.
+
+    Persistencia del modal de lock: cuando una cuenta queda temp/permanent
+    locked, guardamos su id en `request.session['locked_user_id']`. En cada
+    GET re-chequeamos el estado del usuario y, si sigue bloqueado, re-
+    renderizamos el modal flotante. Así el usuario no puede "saltar" la
+    espera recargando.
     """
     if request.user.is_authenticated:
         return redirect('dashboard')
 
     form_values = {'email': ''}
+
+    # ── GET: flash de "solicitud enviada" (dismissible) ─────────────
+    # Cuando el usuario acaba de enviar una solicitud de recuperación
+    # desde /cuenta/recuperar-bloqueada/<id>/, la vista guarda en session
+    # `recovery_sent_flash = user_id` y redirige acá. Mostramos un card
+    # con X para cerrar; al cerrar (JS) o al recargar, no aparece más.
+    recovery_flash_uid = None
+    if request.method == 'GET':
+        recovery_flash_uid = request.session.pop('recovery_sent_flash', None)
+
+    # ── GET: persistencia del modal de lock ──────────────────────────
+    # Si la session recuerda un user_id lockeado, re-renderizamos el
+    # overlay correspondiente. PERO si el usuario ya envió una solicitud
+    # de recuperación (pending o resolved), apagamos el modal persistente:
+    # ya está informado, dejamos que vea el login normal. La info sigue
+    # siendo accesible vía /cuenta/recuperar-bloqueada/<id>/.
+    locked_uid = request.session.get('locked_user_id')
+    if locked_uid and request.method == 'GET':
+        locked_user = User.objects.filter(pk=locked_uid).first()
+        if locked_user is None:
+            request.session.pop('locked_user_id', None)
+        else:
+            from .models import AccountRecoveryRequest
+            has_any_recovery = AccountRecoveryRequest.objects.filter(
+                user=locked_user,
+            ).exists()
+            if has_any_recovery:
+                # Ya hay solicitud → no taparle el login.
+                request.session.pop('locked_user_id', None)
+            else:
+                state, ctx = check_user_lock_state(locked_user)
+                if state == STATE_PERMANENT_LOCK:
+                    return render(request, 'accounts/login.html', {
+                        'form_values':          form_values,
+                        'permanent_lock':       True,
+                        'lock_reason':          ctx.get('reason', ''),
+                        'lock_user_id':         locked_user.id,
+                        'lock_request_pending': ctx.get('pending_request', False),
+                    })
+                if state == STATE_TEMP_LOCKED:
+                    return render(request, 'accounts/login.html', {
+                        'form_values':       form_values,
+                        'temp_lock':         True,
+                        'temp_lock_seconds': ctx.get('remaining_seconds', 0),
+                        'temp_lock_warning': True,
+                    })
+                # Estado ya OK — limpiamos la marca.
+                request.session.pop('locked_user_id', None)
+
+    # GET con flash de solicitud enviada (después de pasar el bloque de
+    # lock para evitar conflicto si justo se acaba de bloquear).
+    if recovery_flash_uid and request.method == 'GET':
+        flash_user = User.objects.filter(pk=recovery_flash_uid).first()
+        if flash_user is not None:
+            return render(request, 'accounts/login.html', {
+                'form_values':    form_values,
+                'recovery_flash': True,
+                'flash_email':    flash_user.email,
+            })
 
     if request.method == 'POST':
         identifier_raw = request.POST.get('email', '')
@@ -86,9 +163,8 @@ def login_view(request):
         user = authenticate_flexible(request, identifier, password)
 
         # Si la autenticación falla, intentamos diagnosticar la causa para
-        # dar un mensaje útil (correo inexistente, cuenta sin verificar, etc.)
+        # dar un mensaje útil (correo inexistente, cuenta deshabilitada, etc.)
         if user is None and identifier:
-            from .models import EmailVerificationCode
             candidate = (
                 User.objects.filter(email__iexact=identifier).first()
                 or User.objects.filter(username__iexact=identifier).first()
@@ -96,6 +172,26 @@ def login_view(request):
 
             # ── Caso 1: el correo / usuario no existe en la BD ──
             if candidate is None:
+                # Antes de avisar "correo inexistente", revisamos si hay un
+                # registro pendiente de verificación (el dueño cerró el tab
+                # antes de meter el código). Si lo hay, lo mandamos a esa
+                # pantalla en vez de decirle que su correo no existe.
+                from .models import PendingRegistration
+                if '@' in identifier:
+                    pr = (
+                        PendingRegistration.objects
+                        .filter(email__iexact=identifier, used_at__isnull=True)
+                        .order_by('-created_at')
+                        .first()
+                    )
+                    if pr is not None and pr.is_valid:
+                        messages.warning(
+                            request,
+                            'Aún no has verificado tu correo. Ingresa el código '
+                            'que te enviamos para completar el registro.',
+                        )
+                        return redirect('verificar_correo', token=pr.token)
+
                 # Contamos el intento contra el rate limit (anti-enumeración).
                 login_register_failure(ip)
                 msg = ('Esta dirección de correo no existe. Intenta de nuevo '
@@ -105,27 +201,85 @@ def login_view(request):
                 messages.error(request, msg)
                 return render(request, 'accounts/login.html', {'form_values': form_values})
 
-            # ── Caso 2: existe pero NO está verificada → mandar al flow de verificación ──
+            # ── Caso 2: cuenta marcada como eliminada (soft delete) ─────
+            # Si profile.is_deleted = True, la cuenta fue cerrada a propósito.
             if (not candidate.is_active
-                    and candidate.check_password(password)):
-                last_ev = (
-                    EmailVerificationCode.objects
-                    .filter(user=candidate)
-                    .order_by('-created_at')
-                    .first()
+                    and candidate.check_password(password)
+                    and getattr(getattr(candidate, 'profile', None), 'is_deleted', False)):
+                messages.error(
+                    request,
+                    'Esta cuenta fue eliminada. Si querés volver a usar DockerShield, '
+                    'creá una cuenta nueva.',
                 )
-                if last_ev is None or not last_ev.is_valid:
-                    new_ev = create_verification_code(candidate)
-                    if new_ev:
-                        send_verification_email(candidate, new_ev)
-                        last_ev = new_ev
-                if last_ev is not None:
-                    messages.warning(
-                        request,
-                        'Aún no has verificado tu correo. Te enviamos un nuevo '
-                        'código si era necesario.',
-                    )
-                    return redirect('verificar_correo', token=last_ev.token)
+                return render(request, 'accounts/login.html', {'form_values': form_values})
+
+            # ── Caso 3: cuenta bloqueada por intentos (permanent o temp) ─
+            # Si el user existe pero está en lock, mostramos la card
+            # apropiada SIN contar el intento (no penalizamos por mirar).
+            lock_state, lock_ctx = check_user_lock_state(candidate)
+            if lock_state == STATE_PERMANENT_LOCK:
+                has_pending_req = lock_ctx.get('pending_request', False)
+                # Si ya hay solicitud pendiente, el card es DISMISSIBLE y no
+                # se persiste en session — el usuario ya está informado.
+                # Si no hay solicitud aún, el card es persistente (el usuario
+                # tiene que pasar por el flujo de recuperación).
+                if not has_pending_req:
+                    request.session['locked_user_id'] = candidate.id
+                return render(request, 'accounts/login.html', {
+                    'form_values':          form_values,
+                    'permanent_lock':       True,
+                    'lock_reason':          lock_ctx.get('reason', ''),
+                    'lock_user_id':         candidate.id,
+                    'lock_request_pending': has_pending_req,
+                    'dismissible':          has_pending_req,
+                })
+            if lock_state == STATE_TEMP_LOCKED:
+                # El user existe y está temp-locked. Si la contraseña
+                # es correcta, NO lo dejamos entrar igual (respetamos el
+                # tiempo de espera para defender contra brute force).
+                request.session['locked_user_id'] = candidate.id
+                return render(request, 'accounts/login.html', {
+                    'form_values':       form_values,
+                    'temp_lock':         True,
+                    'temp_lock_seconds': lock_ctx.get('remaining_seconds', 0),
+                    'temp_lock_warning': lock_ctx.get('warning_permanent', False),
+                })
+
+            # ── Caso 4: contraseña incorrecta → registrar fallo por user ─
+            new_state, new_ctx = register_user_failure(candidate)
+            login_register_failure(ip)  # también cuenta contra rate-limit IP
+
+            if new_state == STATE_PERMANENT_LOCK:
+                request.session['locked_user_id'] = candidate.id
+                return render(request, 'accounts/login.html', {
+                    'form_values':          form_values,
+                    'permanent_lock':       True,
+                    'lock_reason':          new_ctx.get('reason', ''),
+                    'lock_user_id':         candidate.id,
+                    'lock_request_pending': False,
+                })
+            if new_state == STATE_TEMP_LOCKED:
+                request.session['locked_user_id'] = candidate.id
+                return render(request, 'accounts/login.html', {
+                    'form_values':       form_values,
+                    'temp_lock':         True,
+                    'temp_lock_seconds': new_ctx.get('remaining_seconds', 0),
+                    'temp_lock_warning': True,  # próxima falla = permanente
+                })
+            # Sigue habiendo intentos — mensaje normal con contador.
+            attempts_left = new_ctx.get('attempts_left', 0)
+            if attempts_left == 1:
+                messages.error(
+                    request,
+                    'Contraseña incorrecta. Te queda 1 intento antes del '
+                    'bloqueo temporal de la cuenta.',
+                )
+            else:
+                messages.error(
+                    request,
+                    f'Contraseña incorrecta. Te quedan {attempts_left} intentos.',
+                )
+            return render(request, 'accounts/login.html', {'form_values': form_values})
 
         if user:
             # ── BLOQUEO: si la cuenta tiene sesión activa reciente, NO dejar entrar.
@@ -143,6 +297,7 @@ def login_view(request):
                 return render(request, 'accounts/login.html', {'form_values': form_values})
 
             login_clear_failures(ip)
+            clear_user_failures(user)
             login_single_session(request, user)
 
             # "Recordarme en este equipo": si está marcado, la sesión
@@ -157,26 +312,126 @@ def login_view(request):
 
             return redirect('dashboard')
 
-        # ── Fallo: contraseña incorrecta (el email/username SÍ existe) ──
-        remaining = login_register_failure(ip)
-
-        if remaining <= 0:
-            messages.error(
-                request,
-                'Demasiados intentos fallidos. Acceso bloqueado por 10 minutos.',
-            )
-        elif remaining == 1:
-            messages.error(
-                request,
-                'Contraseña incorrecta. Te queda 1 intento antes del bloqueo.',
-            )
-        else:
-            messages.error(
-                request,
-                f'Contraseña incorrecta. Te quedan {remaining} intentos.',
-            )
-
     return render(request, 'accounts/login.html', {'form_values': form_values})
+
+
+# ═════════════════════════════════════════════════════════════════════
+#  SOLICITUD DE RECUPERACIÓN DE CUENTA BLOQUEADA
+# ═════════════════════════════════════════════════════════════════════
+
+def account_recovery_request_view(request, user_id):
+    """
+    Pantalla pública (no requiere login) donde el dueño de una cuenta
+    bloqueada puede ver el estado de sus solicitudes de recuperación
+    o crear una nueva.
+
+    Comportamiento según estado actual:
+      - Cuenta bloqueada + sin solicitudes              → form
+      - Cuenta bloqueada + última solicitud pendiente   → card "esperá"
+      - Cuenta bloqueada + última rechazada             → card de rechazo
+        con la respuesta del admin + form para reintentar
+      - Cuenta OK + tiene solicitudes en historial      → muestra la
+        más reciente (aprobada / rechazada vieja) para que el usuario
+        vea el resultado
+      - Cuenta OK + sin solicitudes                     → redirect a login
+    """
+    from .models import AccountRecoveryRequest
+    candidate = User.objects.filter(pk=user_id).first()
+    if candidate is None:
+        return redirect('login')
+
+    state, _ctx = check_user_lock_state(candidate)
+    is_locked = (state == STATE_PERMANENT_LOCK)
+
+    # Última solicitud (cualquier estado) — la usamos para renderizar
+    # historial de decisión incluso si la cuenta ya fue recuperada.
+    last_req = (
+        AccountRecoveryRequest.objects
+        .filter(user=candidate)
+        .order_by('-created_at')
+        .first()
+    )
+
+    # Si no está bloqueado y no hay historial, no hay nada que mostrar.
+    if not is_locked and last_req is None:
+        return redirect('login')
+
+    pending = last_req if (last_req and last_req.status == 'pending') else None
+    resolved = last_req if (last_req and last_req.status != 'pending') else None
+
+    if request.method == 'POST':
+        if not is_locked:
+            messages.error(
+                request,
+                'Tu cuenta ya no está bloqueada — no hay nada que solicitar.',
+            )
+            return redirect('login')
+        if pending is not None:
+            messages.warning(
+                request,
+                'Ya tenés una solicitud pendiente. Esperá la respuesta del administrador.',
+            )
+            return redirect('account_recovery_request', user_id=candidate.id)
+
+        reason = (request.POST.get('reason') or '').strip()[:2000]
+        if len(reason) < 20:
+            messages.error(
+                request,
+                'Explicá tu situación con al menos 20 caracteres para que el admin '
+                'pueda evaluarla.',
+            )
+            return render(request, 'accounts/account_recovery_request.html', {
+                'target_user': candidate,
+                'is_locked':   is_locked,
+                'pending':     None,
+                'resolved':    resolved,
+                'reason':      reason,
+            })
+
+        req = AccountRecoveryRequest.objects.create(
+            user=candidate,
+            reason=reason,
+        )
+
+        # Notificar a todos los admins (mismo patrón que alias_quota_request_create).
+        try:
+            from apps.notifications.models import Notification
+            admins = User.objects.filter(is_staff=True, is_active=True)
+            user_name = (candidate.get_full_name() or candidate.email
+                         or candidate.username)
+            admin_target = f'/admin-panel/solicitudes-cuenta/?open={req.id}'
+            notif_objs = [
+                Notification(
+                    user=admin,
+                    type='system',
+                    title='Recuperación de cuenta bloqueada',
+                    message=(f'{user_name} pide reactivar su cuenta bloqueada '
+                             'permanentemente. Revisá en el panel.'),
+                    status='pending',
+                    read=False,
+                    target_url=admin_target,
+                )
+                for admin in admins
+            ]
+            if notif_objs:
+                Notification.objects.bulk_create(notif_objs)
+        except Exception as e:
+            print(f"[account_recovery_request] No se pudo notificar al admin: {e}")
+
+        # Una vez enviada la solicitud, el usuario debe poder ver el login
+        # normal (sin el modal flotante persistente). Limpiamos la marca
+        # de "locked_user_id" en session y dejamos un flash dismissible
+        # ("Solicitud enviada al admin") que se renderiza en /login/.
+        request.session.pop('locked_user_id', None)
+        request.session['recovery_sent_flash'] = candidate.id
+        return redirect('login')
+
+    return render(request, 'accounts/account_recovery_request.html', {
+        'target_user': candidate,
+        'is_locked':   is_locked,
+        'pending':     pending,
+        'resolved':    resolved,
+    })
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -187,6 +442,12 @@ def registro_view(request):
     """Registro con validación estricta y preservación de valores al fallar."""
     if request.user.is_authenticated:
         return redirect('dashboard')
+
+    # Limpieza oportunista de pendientes expirados (no impacta al usuario)
+    try:
+        cleanup_expired_pending_registrations()
+    except Exception:
+        pass
 
     form_values  = {'name': '', 'email': ''}
     field_errors = {'name': '', 'email': '', 'password': [], 'password2': ''}
@@ -217,36 +478,14 @@ def registro_view(request):
             field_errors['password2'] = 'Las dos contraseñas no coinciden.'
 
         # Unicidad del email (solo si lo anterior es válido).
-        # Casos:
-        #   • Correo NO existe                            → seguimos al registro
-        #   • Correo existe + cuenta activa (is_active)   → "ya tienes cuenta"
-        #     (esto cubre TANTO los verificados, COMO los superusers creados
-        #      por createsuperuser, COMO usuarios legacy. Una cuenta activa
-        #      JAMÁS se puede sobreescribir desde el formulario público —
-        #      eso sería un agujero: cualquiera tomaría tu cuenta solo con
-        #      conocer tu email.)
-        #   • Correo existe + cuenta inactiva (registro abandonado a medias)
-        #     → reusamos esa cuenta para no llenar la BD de basura
-        existing_pending_user = None
+        # IMPORTANTE: Ya NO creamos User(is_active=False) durante el registro.
+        # Los datos se guardan en PendingRegistration hasta que se verifique
+        # el código. Por eso aquí solo bloqueamos si existe un User REAL con
+        # ese email (cuenta ya verificada o creada por createsuperuser).
         if (not field_errors['name'] and not field_errors['email']
                 and not field_errors['password'] and not field_errors['password2']):
-            existing = User.objects.filter(email__iexact=email).first()
-            if existing:
-                # Una cuenta es "reusable" SOLO si:
-                #  - is_active = False  (nunca se activó)
-                #  - email_verified = False  (nunca se verificó)
-                # Cualquier otra combinación = cuenta legítima → bloqueamos.
-                try:
-                    is_verified = bool(existing.profile.email_verified)
-                except Exception:
-                    is_verified = False
-
-                is_reusable = (not existing.is_active) and (not is_verified)
-
-                if is_reusable:
-                    existing_pending_user = existing
-                else:
-                    field_errors['email'] = 'Ya existe una cuenta con ese correo.'
+            if User.objects.filter(email__iexact=email).exists():
+                field_errors['email'] = 'Ya existe una cuenta con ese correo.'
 
         has_errors = any((
             field_errors['name'], field_errors['email'],
@@ -254,29 +493,12 @@ def registro_view(request):
         ))
 
         if not has_errors:
-            if existing_pending_user is not None:
-                # Reutilizamos la cuenta abandonada: actualizamos contraseña + nombre
-                user = existing_pending_user
-                user.first_name = username[:150]
-                user.set_password(password)
-                user.is_active = False
-                user.save(update_fields=['first_name', 'password', 'is_active'])
-            else:
-                user = User.objects.create_user(
-                    username=email,
-                    email=email,
-                    password=password,
-                    first_name=username[:150],
-                    last_name='',
-                )
-                # Cuenta inactiva hasta verificar el correo
-                if user.is_active:
-                    user.is_active = False
-                    user.save(update_fields=['is_active'])
-
-            # Generar código y enviar correo
-            ev = create_verification_code(user)
-            if ev is None:
+            # Creamos un PendingRegistration con los datos del form + código.
+            # El User real se crea solo cuando se ingrese el código correcto.
+            pr = create_pending_registration(
+                email=email, first_name=username, password=password,
+            )
+            if pr is None:
                 messages.error(
                     request,
                     'Has solicitado demasiados códigos en la última hora. '
@@ -287,22 +509,22 @@ def registro_view(request):
                     'field_errors': field_errors,
                 })
 
-            # ── Tracking: guardamos en la sesión del navegador todos los
-            # user.id de cuentas que este navegador ha intentado registrar.
-            # Cuando finalmente verifique exitosamente, borraremos las
-            # otras (típicamente typos del mismo usuario corrigiéndose).
-            pending = request.session.get('pending_registration_ids', [])
-            if user.id not in pending:
-                pending.append(user.id)
-                request.session['pending_registration_ids'] = pending
+            # ── Tracking de tokens pendientes en la sesión del navegador.
+            # Si el usuario hace varios intentos (typos al escribir el email,
+            # vuelve a /registro/, corrige), guardamos cada token. Cuando
+            # finalmente verifique uno, invalidamos los otros pendientes.
+            pending_tokens = request.session.get('pending_registration_tokens', [])
+            if pr.token not in pending_tokens:
+                pending_tokens.append(pr.token)
+                request.session['pending_registration_tokens'] = pending_tokens
 
-            send_verification_email(user, ev)
+            send_pending_registration_email(pr)
             messages.info(
                 request,
-                f'Te enviamos un código de 6 dígitos a {user.email}. '
+                f'Te enviamos un código de 6 dígitos a {pr.email}. '
                 f'Revisa tu bandeja (también la carpeta spam).',
             )
-            return redirect('verificar_correo', token=ev.token)
+            return redirect('verificar_correo', token=pr.token)
 
     return render(request, 'accounts/register.html', {
         'form_values':  form_values,
@@ -317,13 +539,13 @@ def registro_view(request):
 def verificar_correo_view(request, token):
     """
     GET  → muestra el formulario para ingresar el código.
-    POST → valida el código. Si OK: activa cuenta + login + dashboard.
+    POST → valida el código. Si OK: CREA el User real + login + dashboard.
     """
     if request.user.is_authenticated:
         return redirect('dashboard')
 
-    ev = get_valid_code_by_token(token)
-    if ev is None:
+    pr = get_valid_pending_by_token(token)
+    if pr is None:
         # Token inexistente, ya usado o demasiados intentos
         messages.error(
             request,
@@ -334,40 +556,19 @@ def verificar_correo_view(request, token):
 
     if request.method == 'POST':
         code_input = (request.POST.get('code', '') or '').strip()
-        ok, err, user = verify_code(token, code_input)
+        ok, err, user = verify_pending_code(token, code_input)
 
         if ok:
-            # Activar la cuenta
-            user.is_active = True
-            user.save(update_fields=['is_active'])
-            try:
-                profile = user.profile
-                profile.email_verified = True
-                profile.save(update_fields=['email_verified'])
-            except Exception:
-                pass
-
-            # ── Limpieza de typos: borramos las OTRAS cuentas no-verificadas
-            # que este mismo navegador intentó registrar (típicamente porque
-            # el usuario escribió mal el correo, volvió a /registro/ y lo
-            # corrigió). Solo borramos cuentas que sigan inactivas — nunca
-            # tocamos cuentas activas/verificadas.
-            pending_ids = request.session.get('pending_registration_ids', []) or []
-            other_ids = [pid for pid in pending_ids if pid != user.id]
-            if other_ids:
-                User.objects.filter(
-                    id__in=other_ids,
-                    is_active=False,
-                    profile__email_verified=False,
-                ).delete()
-            # Limpiamos el tracking — ya completó el registro
-            request.session['pending_registration_ids'] = []
+            # Limpiamos el tracking de tokens pendientes — ya completó.
+            # Los otros pendings del mismo email fueron invalidados dentro
+            # del service (`verify_pending_code`).
+            request.session['pending_registration_tokens'] = []
 
             # Login automático con sesión única
             login_single_session(request, user)
             messages.success(
                 request,
-                f'¡Listo! Tu correo está verificado. Bienvenido a DockerShield.',
+                '¡Listo! Tu correo está verificado. Bienvenido a DockerShield.',
             )
             return redirect('dashboard')
 
@@ -387,13 +588,19 @@ def verificar_correo_view(request, token):
                 request,
                 'El código es incorrecto. Revisa el correo y vuelve a intentar.',
             )
+        elif err == 'email_tomado':
+            messages.error(
+                request,
+                'Ese correo fue registrado mientras verificabas. Inicia sesión.',
+            )
+            return redirect('login')
         else:
             messages.error(request, 'No se pudo verificar el código.')
 
     return render(request, 'accounts/verificar_correo.html', {
         'token':       token,
-        'email':       ev.user.email,
-        'expires_at':  ev.expires_at,
+        'email':       pr.email,
+        'expires_at':  pr.expires_at,
     })
 
 
@@ -406,23 +613,19 @@ def reenviar_codigo_view(request, token):
     if request.user.is_authenticated:
         return redirect('dashboard')
 
-    # Buscamos el usuario asociado al token (aunque el código en sí esté
-    # expirado/usado, podemos generar uno nuevo para el mismo user).
-    from .models import EmailVerificationCode
-    try:
-        ev_old = EmailVerificationCode.objects.select_related('user').get(token=token)
-    except EmailVerificationCode.DoesNotExist:
+    pr_old = get_pending_by_token_any(token)
+    if pr_old is None:
         messages.error(request, 'Enlace inválido. Vuelve a registrarte.')
         return redirect('registro')
 
-    user = ev_old.user
-    if user.is_active and getattr(user.profile, 'email_verified', False):
-        # Ya está verificado
-        messages.info(request, 'Tu correo ya estaba verificado. Inicia sesión.')
+    # Si entre medias el correo se registró por otra vía (otra pestaña),
+    # ya no tiene sentido reenviar — mandamos al login.
+    if User.objects.filter(email__iexact=pr_old.email).exists():
+        messages.info(request, 'Ese correo ya estaba verificado. Inicia sesión.')
         return redirect('login')
 
-    # Cooldown
-    ok, secs = can_resend(user)
+    # Cooldown desde el último pending de este email
+    ok, secs = can_resend_pending(pr_old)
     if not ok:
         messages.error(
             request,
@@ -430,17 +633,50 @@ def reenviar_codigo_view(request, token):
         )
         return redirect('verificar_correo', token=token)
 
-    ev_new = create_verification_code(user)
-    if ev_new is None:
+    # Generamos un NUEVO pending (invalida el anterior dentro del service).
+    # Reusamos los mismos datos (first_name + password ya hasheado) → no
+    # podemos llamar create_pending_registration porque rehashea; en
+    # cambio creamos directamente.
+    from .models import PendingRegistration
+    from .services.pending_registration_service import (
+        _generate_code, TOKEN_BYTES, CODE_VALIDITY_MINUTES,
+        MAX_PENDING_PER_HOUR,
+    )
+    from datetime import timedelta
+    last_hour = timezone.now() - timedelta(hours=1)
+    recent = PendingRegistration.objects.filter(
+        email__iexact=pr_old.email, created_at__gte=last_hour,
+    ).count()
+    if recent >= MAX_PENDING_PER_HOUR:
         messages.error(
             request,
             'Has pedido demasiados códigos. Espera unos minutos.',
         )
         return redirect('verificar_correo', token=token)
 
-    send_verification_email(user, ev_new)
+    PendingRegistration.objects.filter(
+        email__iexact=pr_old.email, used_at__isnull=True,
+    ).update(used_at=timezone.now())
+
+    import secrets
+    pr_new = PendingRegistration.objects.create(
+        email=pr_old.email,
+        first_name=pr_old.first_name,
+        password_hash=pr_old.password_hash,
+        code=_generate_code(),
+        token=secrets.token_urlsafe(TOKEN_BYTES),
+        expires_at=timezone.now() + timedelta(minutes=CODE_VALIDITY_MINUTES),
+    )
+
+    # Mantenemos el tracking de tokens en la sesión
+    pending_tokens = request.session.get('pending_registration_tokens', [])
+    if pr_new.token not in pending_tokens:
+        pending_tokens.append(pr_new.token)
+        request.session['pending_registration_tokens'] = pending_tokens
+
+    send_pending_registration_email(pr_new)
     messages.success(request, 'Te enviamos un código nuevo. Revisa tu correo.')
-    return redirect('verificar_correo', token=ev_new.token)
+    return redirect('verificar_correo', token=pr_new.token)
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -679,29 +915,34 @@ def perfil_view(request):
 
 
 # ═════════════════════════════════════════════════════════════════════
-#  ELIMINAR CUENTA — destructivo, requiere confirmación de password
+#  ELIMINAR CUENTA — Flujo de 2 pasos con código por email + soft delete
+#
+#  Paso 1 (eliminar_cuenta_request):
+#      Valida password + texto "ELIMINAR".
+#      Genera código de 6 dígitos.
+#      Envía el código al correo del usuario.
+#      Devuelve {ok: true} para que el frontend pase al paso 2.
+#
+#  Paso 2 (eliminar_cuenta_confirmar):
+#      Recibe el código de 6 dígitos.
+#      Verifica contra el último código activo del usuario.
+#      Marca profile.is_deleted = True (SOFT DELETE — no borra datos).
+#      Cierra sesión y manda el correo "Tu cuenta fue eliminada".
+#
+#  Soft delete (vs hard delete que había antes):
+#      - User.is_active = False
+#      - UserProfile.is_deleted = True
+#      - UserProfile.deleted_at = now
+#      - Datos (alias, correos, análisis) quedan en BD para auditoría /
+#        eventual recuperación.
+#      - El middleware de auth + login bloquean cualquier intento de
+#        entrar mientras is_deleted = True.
 # ═════════════════════════════════════════════════════════════════════
 
 @login_required(login_url='login')
 @require_POST
-def eliminar_cuenta(request):
-    """
-    Borra la cuenta del usuario y todos sus datos asociados.
-
-    Seguridad:
-      - Solo POST (CSRF protegido por middleware).
-      - Requiere reintroducir la contraseña actual — evita borrados
-        accidentales o por sesión secuestrada.
-      - Bloquea borrado de cuentas staff/superuser desde la web (deben
-        eliminarse desde el admin de Django con privilegios explícitos).
-
-    Cascada:
-      - Alias.user es FK con on_delete=CASCADE → arrastra Aliases.
-      - EmailMessage.alias también es CASCADE → se borran los correos.
-      - SandboxAnalysis.email también → se borran los análisis.
-      - Notification.user → se borran las notificaciones.
-      - UserProfile (OneToOne) y avatares → caen junto con el usuario.
-    """
+def eliminar_cuenta_request(request):
+    """Paso 1: valida password+confirmación y envía el código por email."""
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     def _err(msg, status=400):
@@ -710,7 +951,6 @@ def eliminar_cuenta(request):
         messages.error(request, msg)
         return redirect('perfil')
 
-    # Bloqueo: no permitimos borrar cuentas privilegiadas desde la web.
     if request.user.is_superuser or request.user.is_staff:
         return _err(
             'Las cuentas administrativas no se pueden eliminar desde aquí. '
@@ -721,39 +961,117 @@ def eliminar_cuenta(request):
     password = request.POST.get('password', '')
     if not password:
         return _err('Debes ingresar tu contraseña para confirmar.')
-
     if not request.user.check_password(password):
         return _err('La contraseña es incorrecta.', status=401)
 
-    # Reto secundario: el usuario debe escribir literalmente "ELIMINAR".
     confirm = (request.POST.get('confirm_text') or '').strip().upper()
     if confirm != 'ELIMINAR':
         return _err('Debes escribir ELIMINAR para confirmar.')
 
+    # Rate limit + cooldown
+    can_send, wait_secs = can_resend(request.user, purpose='delete_account')
+    if not can_send:
+        return _err(
+            f'Espera {wait_secs} segundos antes de pedir otro código.',
+            status=429,
+        )
+
+    # Generar código de 10 minutos
+    ev = create_verification_code(request.user, purpose='delete_account')
+    if ev is None:
+        return _err(
+            'Demasiadas solicitudes en la última hora. Intenta más tarde.',
+            status=429,
+        )
+
+    # Enviar el correo con el código (en thread para no bloquear)
+    import threading
+    display_name = (request.user.first_name or request.user.email or 'Usuario').strip()
+    threading.Thread(
+        target=send_deletion_code_email,
+        kwargs=dict(
+            to_email     = request.user.email,
+            display_name = display_name,
+            code         = ev.code,
+            minutes      = 10,
+        ),
+        daemon=True,
+    ).start()
+
+    if is_ajax:
+        return JsonResponse({
+            'ok': True,
+            'message': 'Código enviado a tu correo. Tenés 10 minutos para usarlo.',
+        })
+    messages.info(request, 'Te enviamos un código a tu correo para confirmar.')
+    return redirect('perfil')
+
+
+@login_required(login_url='login')
+@require_POST
+def eliminar_cuenta_confirmar(request):
+    """Paso 2: valida el código y aplica el soft delete."""
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    def _err(msg, status=400, code_state=''):
+        if is_ajax:
+            payload = {'ok': False, 'error': msg}
+            if code_state:
+                payload['code_state'] = code_state
+            return JsonResponse(payload, status=status)
+        messages.error(request, msg)
+        return redirect('perfil')
+
+    if request.user.is_superuser or request.user.is_staff:
+        return _err(
+            'Las cuentas administrativas no se pueden eliminar desde aquí.',
+            status=403,
+        )
+
+    code_input = (request.POST.get('code') or '').strip()
+    if not code_input:
+        return _err('Ingresa el código que te llegó al correo.')
+
+    ok, err_kind = verify_deletion_code(request.user, code_input)
+    if not ok:
+        messages_map = {
+            'no_encontrado': 'No hay código pendiente. Vuelve a iniciar el proceso.',
+            'expirado':      'El código expiró. Vuelve a iniciar el proceso para recibir uno nuevo.',
+            'demasiados':    'Demasiados intentos fallidos. Vuelve a iniciar el proceso.',
+            'incorrecto':    'El código es incorrecto. Verifica que lo copiaste bien.',
+        }
+        return _err(messages_map.get(err_kind, 'Código inválido.'),
+                    status=400, code_state=err_kind)
+
+    # ── Soft delete (NO borra datos, solo marca) ─────────────────────
     user = request.user
 
-    # ── Snapshot ANTES del delete ──
-    # Una vez borramos al user, no podemos consultar nada de él. Capturamos
-    # email + nombre + contadores aquí para mandar el correo de confirmación
-    # al correo personal una vez termine el borrado.
-    from django.utils import timezone
-
+    # Snapshot antes de cerrar sesión
     snapshot_email   = user.email
     snapshot_display = (user.first_name or user.email or 'Usuario').strip()
     stats_snapshot   = profile_stats(user)
     deleted_at_str   = timezone.localtime().strftime('%d/%m/%Y · %H:%M')
     client_ip        = get_client_ip(request)
 
-    # Cerramos la sesión PRIMERO para invalidar el cookie inmediatamente.
-    logout(request)
-    # Borrado en cascada — Django + las FKs lo gestionan.
-    user.delete()
+    # Marcamos el perfil como eliminado
+    try:
+        profile = user.profile
+        profile.is_deleted   = True
+        profile.deleted_at   = timezone.now()
+        profile.deletion_ip  = client_ip
+        profile.save(update_fields=['is_deleted', 'deleted_at', 'deletion_ip', 'updated_at'])
+    except Exception as e:
+        print(f'[eliminar_cuenta_confirmar] no se pudo marcar profile.is_deleted: {e}')
 
-    # Enviamos el correo de confirmación al CORREO PERSONAL del usuario
-    # en un thread daemon EN BACKGROUND. SMTP de Gmail puede tardar 5-20s
-    # y bloquearía la respuesta HTTP (el usuario vería el spinner colgado).
-    # `send_account_deleted_email` no levanta excepciones — devuelve (ok, _),
-    # así que un fallo del thread no cae a logs como traceback ruidoso.
+    # Deshabilitamos el User para que no pueda hacer login mientras está
+    # marcado como eliminado (el backend de Django auth filtra is_active).
+    user.is_active = False
+    user.save(update_fields=['is_active'])
+
+    # Cerramos la sesión actual
+    logout(request)
+
+    # Mandamos el correo "Tu cuenta fue eliminada" en background
     import threading
     threading.Thread(
         target=send_account_deleted_email,
@@ -772,5 +1090,11 @@ def eliminar_cuenta(request):
     if is_ajax:
         return JsonResponse({'ok': True, 'redirect': '/'})
 
-    messages.success(request, 'Tu cuenta y todos tus datos han sido eliminados.')
+    messages.success(request, 'Tu cuenta ha sido eliminada.')
     return redirect('login')
+
+
+# Alias retro-compat: la URL antigua 'eliminar_cuenta' ahora apunta al
+# paso 1 (request). El nombre se mantiene para no romper templates ni
+# reverse() en el código viejo.
+eliminar_cuenta = eliminar_cuenta_request

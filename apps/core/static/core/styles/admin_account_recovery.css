@@ -1,0 +1,39 @@
+/* ════════════════════════════════════════════════════════════════════
+   ADMIN — Solicitudes de recuperación de cuenta
+   Solo overrides puntuales. Lo grueso (tabla, filtros, hero, modal,
+   blocks, timeline, badges, decision) se hereda de admin_alias_requests.css.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* El motivo del bloqueo es texto multilínea con bullets. Mantenemos los
+   saltos (white-space: pre-wrap) pero con tipografía sans para que se
+   integre con el resto del modal — antes era monospace y se veía como
+   un "code dump" desentonando con el quote del usuario. */
+.arr-lock-reason {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* En la sección de decisión, el lado "Pidió/Le diste" usa el slot del
+   número grande (.aar-mb-side-num). En alias era un "+3"; acá es una
+   palabra ("recuperar", "acceso", "nada") — la achicamos para que
+   entre con el mismo ritmo visual sin partirse a dos líneas. */
+.arr-decision-text {
+    font-size: 1.5rem !important;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    word-break: keep-all;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Modal overlay: arrancar desde ARRIBA en TODA pantalla, no centrar.
+   Causa raíz: el modal del recovery es más alto que el de alias porque
+   trae motivo del bloqueo + lo que dice el usuario + nota + acciones.
+   Con align-items: center y overflow-y: auto, la parte superior se sale
+   por encima del scroll y no se puede llegar a ella — el usuario veía
+   la card "cortada" desde la mitad.
+   ════════════════════════════════════════════════════════════════════ */
+#arrModalOverlay {
+    align-items: flex-start;
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+}

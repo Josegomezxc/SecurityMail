@@ -1,0 +1,499 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load timeshort %}
+{% block title %}Recuperación de cuentas — Panel admin{% endblock %}
+{% block page_title %}Recuperación de cuentas{% endblock %}
+{% block nav_admin_account_recovery_requests %}active{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+{# Reusamos la base de estilos del módulo de alias requests — son del mismo dominio visual (tabla + modal + filtros). #}
+<link rel="stylesheet" href="{% static 'core/styles/admin_alias_requests.css' %}?v=modal-top-align">
+<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'core/styles/admin_account_recovery.css' %}?v=v3-topalign">
+{% endblock %}
+
+{% block body %}
+
+<header class="aar-hero">
+  <div class="aar-hero-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+    </svg>
+  </div>
+  <div class="aar-hero-text">
+    <h1>Recuperación de cuentas</h1>
+    <p>aprobá o rechazá los pedidos de reactivación de cuentas bloqueadas por intentos fallidos</p>
+  </div>
+  <div class="aar-hero-stats">
+    <div class="aar-hero-stat aar-hero-stat--pending">
+      <span class="aar-hero-stat-val">{{ counts.pending }}</span>
+      <span class="aar-hero-stat-lbl">Pendiente{{ counts.pending|pluralize:"s" }}</span>
+    </div>
+    <div class="aar-hero-stat aar-hero-stat--approved">
+      <span class="aar-hero-stat-val">{{ counts.approved }}</span>
+      <span class="aar-hero-stat-lbl">Aprobadas</span>
+    </div>
+    <div class="aar-hero-stat aar-hero-stat--rejected">
+      <span class="aar-hero-stat-val">{{ counts.rejected }}</span>
+      <span class="aar-hero-stat-lbl">Rechazadas</span>
+    </div>
+  </div>
+</header>
+
+<section class="ds-filterbar" role="search" aria-label="Buscar y filtrar solicitudes de recuperación">
+  <form method="get" action="" class="ds-filterbar-search {% if q %}has-value{% endif %}" id="arr-search-form">
+    <svg class="lupa" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <label class="sr-only" for="arr-search-input">Buscar solicitudes de recuperación</label>
+    <input type="search" name="q" id="arr-search-input" value="{{ q }}"
+           placeholder="Buscar por usuario, correo o motivo..."
+           autocomplete="off">
+    {% if status_filter and status_filter != 'all' %}
+      <input type="hidden" name="status" value="{{ status_filter }}">
+    {% endif %}
+    <button type="button" class="ds-search-clear" onclick="arrClearSearch()" title="Limpiar búsqueda">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </form>
+
+  <div class="ds-filterbar-tabs">
+    <a href="?{% if q %}q={{ q }}{% endif %}"
+       class="ds-filterbar-tab {% if status_filter == 'all' %}active{% endif %}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+      Todas <span class="ds-tab-count">{{ counts.all }}</span>
+    </a>
+    <a href="?status=pending{% if q %}&q={{ q }}{% endif %}"
+       class="ds-filterbar-tab {% if status_filter == 'pending' %}active{% endif %}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Pendientes <span class="ds-tab-count">{{ counts.pending }}</span>
+    </a>
+    <a href="?status=approved{% if q %}&q={{ q }}{% endif %}"
+       class="ds-filterbar-tab {% if status_filter == 'approved' %}active{% endif %}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      Aprobadas <span class="ds-tab-count">{{ counts.approved }}</span>
+    </a>
+    <a href="?status=rejected{% if q %}&q={{ q }}{% endif %}"
+       class="ds-filterbar-tab {% if status_filter == 'rejected' %}active{% endif %}">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      Rechazadas <span class="ds-tab-count">{{ counts.rejected }}</span>
+    </a>
+  </div>
+</section>
+
+<div class="ds-table-wrap" id="arr-list-wrap" aria-label="Solicitudes de recuperación de cuenta">
+  <div class="ds-table-scroll">
+    <table class="ds-table aar-table" id="arr-table">
+      <colgroup>
+        <col class="col-avatar" style="width:2.75rem">
+        <col class="col-user">
+        <col class="col-status" style="width:8rem">
+        <col class="col-time"   style="width:5rem">
+        <col class="col-action" style="width:6.5rem">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="ds-td-center" aria-label="Avatar"></th>
+          <th>Usuario</th>
+          <th class="ds-td-mid">Estado</th>
+          <th class="ds-td-mid">Tiempo</th>
+          <th class="ds-td-mid">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in requests %}
+          <tr class="aar-tr aar-tr--{{ req.status }}"
+              data-modal-target="arr-detail-{{ req.id }}"
+              onclick="arrOpenDetail(this)"
+              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();arrOpenDetail(this);}"
+              tabindex="0"
+              role="button"
+              aria-label="Abrir solicitud de {{ req.user.email }}">
+            <td class="ds-td-center"><span class="ds-mini-avatar">{{ req.user.email|first|upper }}</span></td>
+            <td>
+              <div class="aar-tr-name">{{ req.user.get_full_name|default:req.user.username }}</div>
+              <div class="aar-tr-email">{{ req.user.email }}</div>
+            </td>
+            <td class="ds-td-mid">
+              {% if req.status == 'pending' %}
+                <span class="ds-pill ds-pill-warning">
+                  <span class="aar-pulse"></span> Pendiente
+                </span>
+              {% elif req.status == 'approved' %}
+                <span class="ds-pill ds-pill-success">Aprobada</span>
+              {% else %}
+                <span class="ds-pill ds-pill-danger">Rechazada</span>
+              {% endif %}
+            </td>
+            <td class="ds-cell-mono ds-td-mid"
+                title="{% if req.resolved_at %}{{ req.resolved_at|date:'d/m/Y H:i' }}{% else %}{{ req.created_at|date:'d/m/Y H:i' }}{% endif %}">
+              {{ req.time_short|default_if_none:"—" }}
+            </td>
+            <td class="ds-td-mid">
+              {% if req.status == 'pending' %}
+                <span class="ds-pill ds-pill-purple">Resolver →</span>
+              {% else %}
+                <span class="ds-pill ds-pill-muted">Ver →</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        {% if not requests %}
+          <tr class="ds-empty-row">
+            <td colspan="5">
+              {% if status_filter == 'pending' %}Sin solicitudes pendientes.
+              {% elif status_filter == 'approved' %}Aún no has aprobado ninguna.
+              {% elif status_filter == 'rejected' %}No has rechazado ninguna.
+              {% elif q %}Ninguna solicitud coincide con tu búsqueda.
+              {% else %}Sin solicitudes — aparecen aquí cuando un usuario con cuenta bloqueada pide reactivarla.
+              {% endif %}
+              {% if q or status_filter != 'all' %}
+                <a href="{% url 'admin_account_recovery_requests' %}" style="color:var(--accent-hover);text-decoration:underline;margin-left:.5rem">Limpiar filtros</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include 'core/_pagination.html' with page_obj=page_obj qs_params=qs_params %}
+</div>
+
+{% comment %}
+Un <template> por cada solicitud — al hacer click en su fila el JS
+clona el contenido al modal global. Espejan al pixel los modales de
+Solicitudes de alias (.aar-mb-*) para mantener consistencia visual.
+{% endcomment %}
+{% for req in requests %}
+<template id="arr-detail-{{ req.id }}">
+  {% if req.status == 'pending' %}
+    {# ─── PENDING: form de aprobación / rechazo ─── #}
+    <div class="aar-mb-strip aar-mb-strip--pending"></div>
+
+    <div class="aar-mb-head">
+      <div class="aar-mb-avatar">{{ req.user.email|first|upper }}</div>
+      <div class="aar-mb-titles">
+        <div class="aar-mb-name">{{ req.user.get_full_name|default:req.user.username }}</div>
+        <div class="aar-mb-email">{{ req.user.email }}</div>
+        <span class="aar-mb-badge aar-mb-badge--pending">
+          <span class="aar-pulse"></span>
+          Pendiente · pide reactivar su cuenta
+        </span>
+      </div>
+    </div>
+
+    <div class="aar-mb-block aar-mb-block--user">
+      <div class="aar-mb-block-head">
+        <svg class="aar-mb-block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span class="aar-mb-block-title">Motivo del bloqueo de la cuenta</span>
+      </div>
+      <div class="aar-mb-quote">
+        <div class="aar-mb-quote-text arr-lock-reason">{{ req.user.profile.permanent_lock_reason|default:"(sin motivo registrado)" }}</div>
+      </div>
+    </div>
+
+    <div class="aar-mb-block aar-mb-block--user">
+      <div class="aar-mb-block-head">
+        <svg class="aar-mb-block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+        </svg>
+        <span class="aar-mb-block-title">Lo que dice el usuario</span>
+      </div>
+      <div class="aar-mb-quote">
+        <svg class="aar-mb-quote-mark" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-3.983v-10h9.983z"/>
+        </svg>
+        <div class="aar-mb-quote-text">{{ req.reason }}</div>
+      </div>
+    </div>
+
+    <form method="post" action="{% url 'admin_account_recovery_request_resolve' req.pk %}"
+          class="aar-action-form">
+      {% csrf_token %}
+
+      <div class="aar-action-section">
+        <div class="aar-action-section-head">
+          <svg class="aar-action-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span class="aar-action-section-title">Nota para el usuario</span>
+          <span class="aar-action-section-meta">opcional · le llegará por notificación</span>
+        </div>
+        <div class="aar-note-wrap">
+          <textarea name="admin_note" rows="3" maxlength="2000"
+                    class="aar-note-textarea"
+                    placeholder="Ej: 'Identidad confirmada. Cambia tu contraseña inmediatamente.' o 'No pudimos verificar que sos el dueño de esta cuenta.'"></textarea>
+        </div>
+      </div>
+
+      <div class="aar-action-buttons">
+        <button type="submit" name="action" value="reject" class="aar-btn-reject"
+                data-user-email="{{ req.user.email }}"
+                onclick="return arrConfirmReject(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Rechazar
+        </button>
+        <button type="submit" name="action" value="approve" class="aar-btn-approve"
+                data-user-email="{{ req.user.email }}"
+                onclick="return arrConfirmApprove(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Reactivar cuenta
+        </button>
+      </div>
+    </form>
+
+  {% else %}
+    {# ─── RESOLVED: detalle (approved / rejected) ─── #}
+    <div class="aar-mb-strip aar-mb-strip--{{ req.status }}"></div>
+
+    <div class="aar-mb-head">
+      <div class="aar-mb-avatar">{{ req.user.email|first|upper }}</div>
+      <div class="aar-mb-titles">
+        <div class="aar-mb-name">{{ req.user.get_full_name|default:req.user.username }}</div>
+        <div class="aar-mb-email">{{ req.user.email }}</div>
+        {% if req.status == 'approved' %}
+          <span class="aar-mb-badge aar-mb-badge--approved">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Cuenta reactivada
+          </span>
+        {% else %}
+          <span class="aar-mb-badge aar-mb-badge--rejected">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Recuperación rechazada
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Decisión: "Pidió recuperar" → "Reactivada / Sigue bloqueada" — mismo layout de dos columnas del modal de Solicitudes de alias. #}
+    <div class="aar-mb-decision">
+      <div class="aar-mb-side aar-mb-side--ask">
+        <div class="aar-mb-side-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div class="aar-mb-side-lbl">Pidió</div>
+        <div class="aar-mb-side-num arr-decision-text">recuperar</div>
+        <div class="aar-mb-side-sub">su cuenta</div>
+      </div>
+
+      <svg class="aar-mb-decision-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+
+      <div class="aar-mb-side aar-mb-side--{{ req.status }}">
+        <div class="aar-mb-side-icon">
+          {% if req.status == 'approved' %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          {% else %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          {% endif %}
+        </div>
+        <div class="aar-mb-side-lbl">{% if req.status == 'approved' %}Le diste{% else %}Le diste{% endif %}</div>
+        <div class="aar-mb-side-num arr-decision-text">
+          {% if req.status == 'approved' %}acceso{% else %}nada{% endif %}
+        </div>
+        <div class="aar-mb-side-sub">
+          {% if req.status == 'approved' %}cuenta activa{% else %}sigue bloqueada{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="aar-mb-block aar-mb-block--user">
+      <div class="aar-mb-block-head">
+        <svg class="aar-mb-block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+        </svg>
+        <span class="aar-mb-block-title">Lo que dijo el usuario</span>
+      </div>
+      <div class="aar-mb-quote">
+        <svg class="aar-mb-quote-mark" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-3.983v-10h9.983z"/>
+        </svg>
+        <div class="aar-mb-quote-text">{{ req.reason }}</div>
+      </div>
+    </div>
+
+    {% if req.admin_note %}
+    <div class="aar-mb-block aar-mb-block--mine">
+      <div class="aar-mb-block-head">
+        <svg class="aar-mb-block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 2L11 13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+        <span class="aar-mb-block-title">Tu respuesta{% if req.resolved_by %} <span class="aar-mb-block-meta">como {{ req.resolved_by.username }}</span>{% endif %}</span>
+      </div>
+      <div class="aar-mb-mynote">{{ req.admin_note }}</div>
+    </div>
+    {% endif %}
+
+    <footer class="aar-mb-foot">
+      <div class="aar-mb-timeline aar-mb-timeline--{{ req.status }}">
+        <div class="aar-mb-tl-step">
+          <div class="aar-mb-tl-dot aar-mb-tl-dot--start">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="aar-mb-tl-content">
+            <div class="aar-mb-tl-label">Solicitada</div>
+            <div class="aar-mb-tl-time"><strong>{{ req.created_at|timesince }}</strong> atrás</div>
+          </div>
+        </div>
+
+        <div class="aar-mb-tl-line" aria-hidden="true"></div>
+
+        <div class="aar-mb-tl-step aar-mb-tl-step--end">
+          <div class="aar-mb-tl-dot aar-mb-tl-dot--{{ req.status }}">
+            {% if req.status == 'approved' %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            {% else %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            {% endif %}
+          </div>
+          <div class="aar-mb-tl-content">
+            <div class="aar-mb-tl-label">{% if req.status == 'approved' %}Reactivada{% else %}Rechazada{% endif %}</div>
+            <div class="aar-mb-tl-time">
+              {% if req.resolved_at %}<strong>{{ req.resolved_at|timesince }}</strong> atrás{% endif %}
+              {% if req.resolved_by %} · <strong>{{ req.resolved_by.username }}</strong>{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  {% endif %}
+</template>
+{% endfor %}
+
+<div class="aar-modal-overlay" id="arrModalOverlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="aar-modal" id="arrModal">
+    <button type="button" class="aar-modal-close" onclick="arrCloseDetail()" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <div class="aar-modal-body" id="arrModalBody"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* Búsqueda con debounce 350ms */
+(function () {
+  const form  = document.getElementById('arr-search-form');
+  const input = document.getElementById('arr-search-input');
+  if (!form || !input) return;
+  function syncHasValue() { form.classList.toggle('has-value', !!input.value); }
+  syncHasValue();
+  let timer = null;
+  function go() {
+    const q = input.value.trim();
+    const url = new URL(window.location.href);
+    if (q) url.searchParams.set('q', q); else url.searchParams.delete('q');
+    url.searchParams.delete('page');
+    if (url.toString() !== window.location.href) window.location.href = url.toString();
+  }
+  input.addEventListener('input', function () {
+    syncHasValue();
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(go, 350);
+  });
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (timer) clearTimeout(timer);
+    go();
+  });
+})();
+function arrClearSearch() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('q');
+  url.searchParams.delete('page');
+  window.location.href = url.toString();
+}
+
+/* Modal de detalle */
+function arrOpenDetail(rowEl) {
+  var targetId = rowEl && rowEl.dataset.modalTarget;
+  if (!targetId) return;
+  var tpl = document.getElementById(targetId);
+  var modal  = document.getElementById('arrModalOverlay');
+  var bodyEl = document.getElementById('arrModalBody');
+  if (!tpl || !modal || !bodyEl) return;
+  bodyEl.innerHTML = '';
+  bodyEl.appendChild(tpl.content.cloneNode(true));
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+function arrCloseDetail() {
+  var modal = document.getElementById('arrModalOverlay');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+(function () {
+  var modal = document.getElementById('arrModalOverlay');
+  if (!modal) return;
+  modal.addEventListener('click', function (e) { if (e.target === modal) arrCloseDetail(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.classList.contains('open')) arrCloseDetail();
+  });
+})();
+
+/* Confirm aprobar / rechazar.
+
+   Importante: NO usamos `window.confirmDialog` acá porque la card vive
+   dentro del overlay del modal (.aar-modal-overlay con z-index máximo),
+   y la card de confirmDialog (.cd-overlay) tiene el mismo z-index pero
+   está antes en el DOM — quedaría debajo y el admin no la vería. Usamos
+   `window.confirm` nativo (modal a nivel del navegador, sin conflictos
+   de z-index) solo para la acción destructiva. Aprobar va directo. */
+function arrConfirmApprove(ev, btn) {
+  // No interceptamos: el click submitea el form normalmente y manda
+  // name="action" value="approve". El propio modal + nota ya son el
+  // "are-you-sure" suficiente para reactivar.
+  return true;
+}
+function arrConfirmReject(ev, btn) {
+  var email = btn.dataset.userEmail || 'este usuario';
+  if (!window.confirm('¿Rechazar la recuperación de ' + email + '?\n\n'
+                    + 'La cuenta quedará bloqueada y el usuario recibirá tu nota.')) {
+    ev.preventDefault();
+    return false;
+  }
+  return true;
+}
+
+/* Deep-link ?open=ID — abre la fila directo (desde notif del admin) */
+(function () {
+  var openId = new URLSearchParams(window.location.search).get('open');
+  if (!openId) return;
+  var row = document.querySelector('.aar-tr[data-modal-target="arr-detail-' + openId + '"]');
+  if (row) {
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(function () { arrOpenDetail(row); }, 360);
+  }
+  if (window.history && window.history.replaceState) {
+    var params = new URLSearchParams(window.location.search);
+    params.delete('open');
+    var clean = window.location.pathname +
+                (params.toString() ? '?' + params.toString() : '') +
+                window.location.hash;
+    window.history.replaceState({}, '', clean);
+  }
+})();
+</script>
+{% endblock %}

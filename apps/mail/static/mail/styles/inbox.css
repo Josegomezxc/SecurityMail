@@ -1140,3 +1140,67 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
     transform: translateY(-50%);
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   TABLA DE BANDEJA — comportamiento responsive.
+   Los anchos base están inline en cada <col> dentro del template; aquí
+   solo ajustamos qué columnas se ocultan en cada breakpoint.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Tablet: ocultamos "Alias" (col 5) */
+@media (max-width: 1024px) {
+  .inbox-table col.col-alias,
+  .inbox-table th:nth-child(5),
+  .inbox-table td:nth-child(5) { display: none; }
+}
+
+/* Mobile: ocultamos "De" (3) y "Recibido" (7).
+   Quedan: dot · avatar · asunto · riesgo · acciones. */
+@media (max-width: 720px) {
+  .inbox-table col.col-from,
+  .inbox-table col.col-time,
+  .inbox-table th:nth-child(3),
+  .inbox-table td:nth-child(3),
+  .inbox-table th:nth-child(7),
+  .inbox-table td:nth-child(7) { display: none; }
+
+  /* Sin scroll horizontal en mobile */
+  .ds-table.inbox-table { min-width: 0; }
+
+  /* Stats compactos para que no aprieten al hero en mobile */
+  .ds-table.inbox-table thead th,
+  .ds-table.inbox-table td { padding: 0.5rem 0.5rem; }
+}
+
+/* Pantallas muy estrechas (≤420px): ocultamos también "Riesgo" para
+   dejar respiración al asunto */
+@media (max-width: 420px) {
+  .inbox-table col.col-risk,
+  .inbox-table th:nth-child(6),
+  .inbox-table td:nth-child(6) { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   OVERRIDES TEMA CARBON — Bandeja
+   Pisa los morados hardcoded (filas unread, focus rings, contadores)
+   por los rosas del tema carbon (--accent = #ff4f7a).
+   ══════════════════════════════════════════════════════════════════════ */
+html[data-theme="carbon"] .email-row.unread { background: rgba(255, 79, 122, 0.04); }
+html[data-theme="carbon"] .email-row.unread:hover { background: rgba(255, 79, 122, 0.08); }
+html[data-theme="carbon"] .email-row.unread::before { background: var(--accent, #ff4f7a); }
+html[data-theme="carbon"] .unread-dot {
+    background: var(--accent, #ff4f7a);
+    box-shadow: 0 0 0.375rem rgba(255, 79, 122, 0.6);
+}
+html[data-theme="carbon"] .qfilter-btn.active {
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.1);
+}
+html[data-theme="carbon"] .qbadge {
+    background: rgba(255, 79, 122, 0.18);
+    color: var(--accent-hover, #ff6b8e);
+}
+html[data-theme="carbon"] .alias-tag {
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.08);
+}

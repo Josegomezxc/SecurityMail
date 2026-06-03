@@ -11,8 +11,11 @@ Incluye:
   - Promover/degradar a admin.
   - Vista global de amenazas y alias.
 """
+from urllib.parse import urlencode
+
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -25,6 +28,17 @@ from apps.mail.models import EmailMessage
 from apps.notifications.models import Notification
 from apps.accounts.services.auth_service import admin_required
 from apps.core.services.stats_service import admin_global_stats
+
+
+# Items por página en las listas paginadas del admin.
+ADMIN_PAGE_SIZE  = 6
+ADMIN_REQ_BATCH  = 6   # solicitudes de cupo (load-more)
+
+
+def _admin_qs_params(request, exclude=('page',)):
+    """Preserva los query params actuales (excepto los excluidos) al paginar."""
+    params = {k: v for k, v in request.GET.items() if k not in exclude and v}
+    return urlencode(params)
 
 
 @admin_required
@@ -55,21 +69,69 @@ def admin_dashboard_view(request):
 
 @admin_required
 def admin_users_view(request):
-    """Lista de todos los usuarios con contadores anotados."""
-    users = (
-        User.objects
-            .annotate(
-                aliases_count = Count('aliases', distinct=True),
-                emails_count  = Count('aliases__emails', distinct=True),
-                threats_count = Count(
-                    'aliases__emails',
-                    filter=Q(aliases__emails__risk_score__gte=61),
-                    distinct=True,
-                ),
-            )
-            .order_by('-date_joined')
+    """
+    Lista de usuarios paginada server-side.
+
+    Query params:
+      ?q=<texto>     busca en email / first_name / username
+      ?role=<r>      all | admin | user | threats
+      ?page=<n>      paginación (ADMIN_PAGE_SIZE)
+    """
+    base_qs = (
+        User.objects.annotate(
+            aliases_count = Count('aliases', distinct=True),
+            emails_count  = Count('aliases__emails', distinct=True),
+            threats_count = Count(
+                'aliases__emails',
+                filter=Q(aliases__emails__risk_score__gte=61),
+                distinct=True,
+            ),
+        )
     )
-    return render(request, 'core/admin_users.html', {'users': users})
+
+    # Contadores GLOBALES (sobre todo el universo de usuarios)
+    counts = {
+        'all':     base_qs.count(),
+        'admin':   base_qs.filter(is_staff=True).count(),
+        'user':    base_qs.filter(is_staff=False).count(),
+        'threats': base_qs.filter(threats_count__gt=0).count(),
+    }
+
+    qs = base_qs
+
+    # ── Filtro por rol ─────────────────────────────────────────────────
+    role = (request.GET.get('role') or 'all').strip().lower()
+    if role == 'admin':
+        qs = qs.filter(is_staff=True)
+    elif role == 'user':
+        qs = qs.filter(is_staff=False)
+    elif role == 'threats':
+        qs = qs.filter(threats_count__gt=0)
+    else:
+        role = 'all'
+
+    # ── Búsqueda libre ─────────────────────────────────────────────────
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(
+            Q(email__icontains=q) |
+            Q(first_name__icontains=q) |
+            Q(username__icontains=q)
+        )
+
+    qs = qs.order_by('-date_joined')
+
+    paginator = Paginator(qs, ADMIN_PAGE_SIZE)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'core/admin_users.html', {
+        'page_obj':   page_obj,
+        'users':      page_obj.object_list,
+        'counts':     counts,
+        'q':          q,
+        'role':       role,
+        'qs_params':  _admin_qs_params(request),
+    })
 
 
 @admin_required
@@ -125,21 +187,23 @@ def admin_toggle_alias(request, pk):
 @admin_required
 def admin_threats_view(request):
     """
-    Vista global de TODAS las amenazas detectadas en el sistema.
-    Soporta búsqueda y filtros por nivel de score.
+    Vista global de amenazas (score ≥ 61) paginada server-side.
+
+    Query params:
+      ?q=<texto>     busca en remitente / asunto / alias / email del usuario
+      ?level=<l>     all | critical (≥81) | high (61-80)
+      ?page=<n>      paginación (ADMIN_PAGE_SIZE)
     """
     qs = EmailMessage.objects.filter(risk_score__gte=61).select_related(
         'alias', 'alias__user', 'analysis',
     ).order_by('-received_at')
 
-    # Filtro por nivel
     level = (request.GET.get('level') or '').strip()
     if level == 'critical':
         qs = qs.filter(risk_score__gte=81)
     elif level == 'high':
         qs = qs.filter(risk_score__gte=61, risk_score__lt=81)
 
-    # Búsqueda
     q = (request.GET.get('q') or '').strip()
     if q:
         qs = qs.filter(
@@ -149,7 +213,7 @@ def admin_threats_view(request):
             Q(alias__user__email__icontains=q)
         )
 
-    # Stats del header (sin aplicar filtros, totales reales)
+    # Stats del hero (sobre el base sin filtros, totales reales)
     from datetime import timedelta
     base = EmailMessage.objects.filter(risk_score__gte=61)
     total_threats   = base.count()
@@ -159,15 +223,36 @@ def admin_threats_view(request):
         received_at__gte=timezone.now() - timedelta(days=1),
     ).count()
 
+    paginator = Paginator(qs, ADMIN_PAGE_SIZE)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+
+    # Formato compacto para la columna "Recibido" — "23m", "23h", "1d", "4sem".
+    # Usamos UNA sola unidad (la mayor que aplique), sin combinar h+m ni d+h.
+    _now = timezone.now()
+    for t in page_obj.object_list:
+        delta = _now - t.received_at
+        secs  = int(delta.total_seconds())
+        if secs < 60:
+            t.time_short = 'ahora'
+        elif secs < 3600:                       # < 1 h  → "23m"
+            t.time_short = f'{secs // 60}m'
+        elif secs < 86400:                      # < 1 d  → "23h"
+            t.time_short = f'{secs // 3600}h'
+        elif secs < 86400 * 7:                  # < 1 sem → "6d"
+            t.time_short = f'{secs // 86400}d'
+        else:                                    # ≥ 1 sem → "4sem"
+            t.time_short = f'{secs // (86400 * 7)}sem'
+
     return render(request, 'core/admin_threats.html', {
-        'threats':         qs[:200],   # tope de 200 para no reventar el render
+        'page_obj':        page_obj,
+        'threats':         page_obj.object_list,
         'total_threats':   total_threats,
         'critical_count':  critical_count,
         'high_count':      high_count,
         'today_count':     today_count,
-        'shown_count':     min(qs.count(), 200),
         'current_level':   level or 'all',
         'current_q':       q,
+        'qs_params':       _admin_qs_params(request),
     })
 
 
@@ -401,40 +486,77 @@ def server_error_view(request):
 @admin_required
 def admin_alias_requests_view(request):
     """
-    Lista todas las solicitudes de cupo de alias. Por defecto muestra las
-    `pending` arriba; las `approved`/`rejected` se muestran más abajo como
-    histórico. Permite filtrar via `?status=`.
+    Lista de solicitudes de cupo paginada server-side (estilo bandeja).
+
+    Query params:
+      ?q=<texto>     busca en email / nombre / razón del usuario
+      ?status=<s>    all | pending | approved | rejected
+      ?page=<n>      número de página (ADMIN_PAGE_SIZE items)
     """
-    status_filter = request.GET.get('status', 'all')
-    qs = AliasQuotaRequest.objects.select_related('user', 'user__profile', 'resolved_by')
+    base_qs = AliasQuotaRequest.objects.select_related(
+        'user', 'user__profile', 'resolved_by',
+    )
 
-    if status_filter in ('pending', 'approved', 'rejected'):
-        qs = qs.filter(status=status_filter)
-
-    requests_list = list(qs.order_by(
-        # Las pending arriba, luego histórico por fecha descendente.
-        '-status',  # pending > approved > rejected lexicograficamente NO sirve
-        '-created_at',
-    ))
-    # Reordenamos manualmente: pending primero, luego por created_at desc.
-    pending  = [r for r in requests_list if r.status == 'pending']
-    resolved = [r for r in requests_list if r.status != 'pending']
-    pending.sort(key=lambda r: r.created_at, reverse=True)
-    resolved.sort(key=lambda r: (r.resolved_at or r.created_at), reverse=True)
-    requests_list = pending + resolved
-
-    # Contadores para las pills de filtro
+    # Contadores GLOBALES (no dependen del filtro actual)
     counts = {
-        'all':      AliasQuotaRequest.objects.count(),
-        'pending':  AliasQuotaRequest.objects.filter(status='pending').count(),
-        'approved': AliasQuotaRequest.objects.filter(status='approved').count(),
-        'rejected': AliasQuotaRequest.objects.filter(status='rejected').count(),
+        'all':      base_qs.count(),
+        'pending':  base_qs.filter(status='pending').count(),
+        'approved': base_qs.filter(status='approved').count(),
+        'rejected': base_qs.filter(status='rejected').count(),
     }
 
+    qs = base_qs
+    status_filter = (request.GET.get('status') or 'all').strip().lower()
+    if status_filter in ('pending', 'approved', 'rejected'):
+        qs = qs.filter(status=status_filter)
+    else:
+        status_filter = 'all'
+
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(
+            Q(user__email__icontains=q) |
+            Q(user__first_name__icontains=q) |
+            Q(user__username__icontains=q) |
+            Q(reason__icontains=q)
+        )
+
+    # Ordenamos: pending arriba (por created_at desc), después resueltas
+    # (por resolved_at o created_at desc). Lo hacemos en Python sobre el
+    # queryset paginado-pre-orden — luego paginamos el resultado.
+    all_rows = list(qs)
+    pending  = sorted(
+        (r for r in all_rows if r.status == 'pending'),
+        key=lambda r: r.created_at, reverse=True,
+    )
+    resolved = sorted(
+        (r for r in all_rows if r.status != 'pending'),
+        key=lambda r: (r.resolved_at or r.created_at), reverse=True,
+    )
+    ordered = pending + resolved
+
+    paginator = Paginator(ordered, ADMIN_PAGE_SIZE)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+
+    # Tiempo corto ("23m", "23h", "1d", "4sem") para la columna "Tiempo"
+    _now = timezone.now()
+    for r in page_obj.object_list:
+        ref = r.resolved_at or r.created_at
+        delta = _now - ref
+        secs  = int(delta.total_seconds())
+        if   secs < 60:           r.time_short = 'ahora'
+        elif secs < 3600:         r.time_short = f'{secs // 60}m'
+        elif secs < 86400:        r.time_short = f'{secs // 3600}h'
+        elif secs < 86400 * 7:    r.time_short = f'{secs // 86400}d'
+        else:                     r.time_short = f'{secs // (86400 * 7)}sem'
+
     return render(request, 'core/admin_alias_requests.html', {
-        'requests':      requests_list,
+        'page_obj':      page_obj,
+        'requests':      page_obj.object_list,
         'counts':        counts,
         'status_filter': status_filter,
+        'q':             q,
+        'qs_params':     _admin_qs_params(request),
     })
 
 
@@ -520,3 +642,169 @@ def admin_alias_request_resolve(request, pk):
         messages.error(request, 'Acción inválida.')
 
     return redirect('admin_alias_requests')
+
+
+# ═════════════════════════════════════════════════════════════════════
+#  SOLICITUDES DE RECUPERACIÓN DE CUENTA BLOQUEADA — admin
+# ═════════════════════════════════════════════════════════════════════
+
+@admin_required
+def admin_account_recovery_requests_view(request):
+    """
+    Lista de solicitudes de recuperación de cuenta paginada server-side.
+    Mismo patrón visual y de filtros que admin_alias_requests.
+    """
+    from apps.accounts.models import AccountRecoveryRequest
+
+    base_qs = AccountRecoveryRequest.objects.select_related(
+        'user', 'user__profile', 'resolved_by',
+    )
+
+    counts = {
+        'all':      base_qs.count(),
+        'pending':  base_qs.filter(status='pending').count(),
+        'approved': base_qs.filter(status='approved').count(),
+        'rejected': base_qs.filter(status='rejected').count(),
+    }
+
+    qs = base_qs
+    status_filter = (request.GET.get('status') or 'all').strip().lower()
+    if status_filter in ('pending', 'approved', 'rejected'):
+        qs = qs.filter(status=status_filter)
+    else:
+        status_filter = 'all'
+
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(
+            Q(user__email__icontains=q) |
+            Q(user__first_name__icontains=q) |
+            Q(user__username__icontains=q) |
+            Q(reason__icontains=q)
+        )
+
+    all_rows = list(qs)
+    pending  = sorted(
+        (r for r in all_rows if r.status == 'pending'),
+        key=lambda r: r.created_at, reverse=True,
+    )
+    resolved = sorted(
+        (r for r in all_rows if r.status != 'pending'),
+        key=lambda r: (r.resolved_at or r.created_at), reverse=True,
+    )
+    ordered = pending + resolved
+
+    paginator = Paginator(ordered, ADMIN_PAGE_SIZE)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+
+    _now = timezone.now()
+    for r in page_obj.object_list:
+        ref = r.resolved_at or r.created_at
+        delta = _now - ref
+        secs  = int(delta.total_seconds())
+        if   secs < 60:           r.time_short = 'ahora'
+        elif secs < 3600:         r.time_short = f'{secs // 60}m'
+        elif secs < 86400:        r.time_short = f'{secs // 3600}h'
+        elif secs < 86400 * 7:    r.time_short = f'{secs // 86400}d'
+        else:                     r.time_short = f'{secs // (86400 * 7)}sem'
+
+    return render(request, 'core/admin_account_recovery_requests.html', {
+        'page_obj':      page_obj,
+        'requests':      page_obj.object_list,
+        'counts':        counts,
+        'status_filter': status_filter,
+        'q':             q,
+        'qs_params':     _admin_qs_params(request),
+    })
+
+
+@admin_required
+@require_POST
+def admin_account_recovery_request_resolve(request, pk):
+    """
+    Aprueba o rechaza una solicitud de recuperación de cuenta. Form params:
+        action      = 'approve' | 'reject'
+        admin_note  = texto opcional (notificación al usuario)
+
+    Al APROBAR: User.is_active = True, se limpian todos los campos de lock
+    del profile (failed attempts, temp lock, permanent lock).
+    Al RECHAZAR: la cuenta queda bloqueada. El usuario recibe notificación.
+    """
+    from apps.accounts.models import AccountRecoveryRequest
+    from apps.accounts.services.login_lock_service import unlock_user_after_recovery
+
+    req = get_object_or_404(AccountRecoveryRequest, pk=pk)
+
+    if req.status != 'pending':
+        messages.error(request, 'Esta solicitud ya fue resuelta.')
+        return redirect('admin_account_recovery_requests')
+
+    action     = request.POST.get('action', '').strip()
+    admin_note = (request.POST.get('admin_note') or '').strip()[:2000]
+
+    if action == 'approve':
+        unlock_user_after_recovery(req.user, request.user)
+
+        req.status      = 'approved'
+        req.admin_note  = admin_note
+        req.resolved_by = request.user
+        req.resolved_at = timezone.now()
+        req.save()
+
+        msg_user = ("Tu solicitud de recuperación fue aprobada. "
+                    "Ya podés iniciar sesión normalmente.")
+        if admin_note:
+            msg_user += f"\n\n{admin_note}"
+        Notification.objects.create(
+            user=req.user,
+            type='system',
+            title='Cuenta recuperada',
+            message=msg_user,
+            status='done',
+        )
+
+        # Email al usuario avisando que su cuenta fue reactivada — no rompe
+        # el flujo si falla (la cuenta ya fue desbloqueada en BD).
+        try:
+            from apps.accounts.services.recovery_email_service import (
+                send_account_reactivated_email,
+            )
+            display_name = (req.user.get_full_name() or req.user.email
+                            or req.user.username)
+            admin_username = (request.user.get_full_name()
+                              or request.user.username)
+            send_account_reactivated_email(
+                to_email       = req.user.email,
+                display_name   = display_name,
+                admin_note     = admin_note,
+                admin_username = admin_username,
+            )
+        except Exception as e:
+            print(f"[admin_account_recovery_request_resolve] No se pudo enviar el email de reactivación: {e}")
+
+        messages.success(request, f"Cuenta de {req.user.email} reactivada.")
+
+    elif action == 'reject':
+        req.status      = 'rejected'
+        req.admin_note  = admin_note
+        req.resolved_by = request.user
+        req.resolved_at = timezone.now()
+        req.save()
+
+        msg_user = ("Tu solicitud de recuperación de cuenta fue rechazada. "
+                    "La cuenta sigue bloqueada.")
+        if admin_note:
+            msg_user += f"\n\n{admin_note}"
+        Notification.objects.create(
+            user=req.user,
+            type='system',
+            title='Solicitud de recuperación rechazada',
+            message=msg_user,
+            status='done',
+        )
+        messages.success(request, f"Rechazada la recuperación de {req.user.email}.")
+
+    else:
+        messages.error(request, 'Acción inválida.')
+
+    return redirect('admin_account_recovery_requests')

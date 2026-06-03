@@ -1,0 +1,82 @@
+{% comment %}
+Partial reusable para paginación server-side.
+
+Variables esperadas:
+  - page_obj   : objeto Page de Django (de paginator.get_page(...))
+  - qs_params  : (opcional) string con los query params a preservar al
+                 navegar entre páginas, ej: "q=foo&filter=unread".
+                 NO incluir 'page=' ni '?' inicial — se concatena con &.
+
+Ejemplo de uso en template:
+  {% include 'core/_pagination.html' with page_obj=page_obj qs_params=qs_params %}
+{% endcomment %}
+
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="ds-pagination" aria-label="Paginación" role="navigation">
+  <div class="ds-pag-info">
+    Mostrando <strong>{{ page_obj.start_index }}</strong>–<strong>{{ page_obj.end_index }}</strong>
+    de <strong>{{ page_obj.paginator.count }}</strong>
+  </div>
+
+  <ul class="ds-pag-list">
+    {# « primera #}
+    {% if page_obj.has_previous %}
+      <li>
+        <a class="ds-pag-link" href="?page=1{% if qs_params %}&{{ qs_params }}{% endif %}" aria-label="Primera página">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+        </a>
+      </li>
+      <li>
+        <a class="ds-pag-link" href="?page={{ page_obj.previous_page_number }}{% if qs_params %}&{{ qs_params }}{% endif %}" aria-label="Página anterior">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </a>
+      </li>
+    {% else %}
+      <li><span class="ds-pag-link disabled" aria-hidden="true">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+      </span></li>
+      <li><span class="ds-pag-link disabled" aria-hidden="true">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </span></li>
+    {% endif %}
+
+    {# Números: ventana de ±2 alrededor de la página actual, con elipsis #}
+    {% for n in page_obj.paginator.page_range %}
+      {% if n == page_obj.number %}
+        <li><span class="ds-pag-link current" aria-current="page">{{ n }}</span></li>
+      {% elif n == 1 or n == page_obj.paginator.num_pages or n >= page_obj.number|add:-2 and n <= page_obj.number|add:2 %}
+        <li><a class="ds-pag-link" href="?page={{ n }}{% if qs_params %}&{{ qs_params }}{% endif %}">{{ n }}</a></li>
+      {% elif n == page_obj.number|add:-3 or n == page_obj.number|add:3 %}
+        <li><span class="ds-pag-ellipsis">…</span></li>
+      {% endif %}
+    {% endfor %}
+
+    {# › última #}
+    {% if page_obj.has_next %}
+      <li>
+        <a class="ds-pag-link" href="?page={{ page_obj.next_page_number }}{% if qs_params %}&{{ qs_params }}{% endif %}" aria-label="Página siguiente">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      <li>
+        <a class="ds-pag-link" href="?page={{ page_obj.paginator.num_pages }}{% if qs_params %}&{{ qs_params }}{% endif %}" aria-label="Última página">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+        </a>
+      </li>
+    {% else %}
+      <li><span class="ds-pag-link disabled" aria-hidden="true">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </span></li>
+      <li><span class="ds-pag-link disabled" aria-hidden="true">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+      </span></li>
+    {% endif %}
+  </ul>
+</nav>
+{% elif page_obj.paginator.count > 0 %}
+<nav class="ds-pagination ds-pagination-single" aria-label="Paginación">
+  <div class="ds-pag-info">
+    Mostrando <strong>{{ page_obj.paginator.count }}</strong> resultado{{ page_obj.paginator.count|pluralize:'s,s' }}
+  </div>
+</nav>
+{% endif %}

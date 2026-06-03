@@ -1,0 +1,62 @@
+{% load timeshort %}
+{% comment %}
+Filas de la tabla de solicitudes (`<tr>`). Reusable entre el render
+inicial server-side y futuros AJAX. Cada fila acepta click:
+  - Pending → abre modal con form de aprobación/rechazo
+  - Resuelta → abre modal con detalle de la decisión
+
+Los <template> con el contenido del modal van en bloque aparte (después
+de la tabla) para no contaminar la lista. Cada fila guarda el id del
+template a clonar en data-modal-target.
+{% endcomment %}
+{% for req in requests %}
+  <tr class="aar-tr aar-tr--{{ req.status }}"
+      data-modal-target="aar-detail-{{ req.id }}"
+      onclick="aarOpenDetail(this)"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();aarOpenDetail(this);}"
+      tabindex="0"
+      role="button"
+      aria-label="Abrir solicitud de {{ req.user.email }}">
+
+    <td class="ds-td-center"><span class="ds-mini-avatar">{{ req.user.email|first|upper }}</span></td>
+
+    <td>
+      <div class="aar-tr-name">{{ req.user.get_full_name|default:req.user.username }}</div>
+      <div class="aar-tr-email">{{ req.user.email }}</div>
+    </td>
+
+    <td class="ds-td-mid">
+      <strong class="aar-tr-amount">+{{ req.requested_amount }}</strong>
+      {% if req.status == 'approved' %}
+        <span class="aar-tr-arrow" aria-hidden="true">→</span>
+        <strong class="aar-tr-given">+{{ req.granted_amount }}</strong>
+      {% endif %}
+    </td>
+
+    <td class="ds-td-mid">
+      {% if req.status == 'pending' %}
+        <span class="ds-pill ds-pill-warning">
+          <span class="aar-pulse"></span>
+          Pendiente
+        </span>
+      {% elif req.status == 'approved' %}
+        <span class="ds-pill ds-pill-success">Aprobada</span>
+      {% else %}
+        <span class="ds-pill ds-pill-danger">Rechazada</span>
+      {% endif %}
+    </td>
+
+    <td class="ds-cell-mono ds-td-mid"
+        title="{% if req.resolved_at %}{{ req.resolved_at|date:'d/m/Y H:i' }}{% else %}{{ req.created_at|date:'d/m/Y H:i' }}{% endif %}">
+      {{ req.time_short|default_if_none:"—" }}
+    </td>
+
+    <td class="ds-td-mid">
+      {% if req.status == 'pending' %}
+        <span class="ds-pill ds-pill-purple">Resolver →</span>
+      {% else %}
+        <span class="ds-pill ds-pill-muted">Ver →</span>
+      {% endif %}
+    </td>
+  </tr>
+{% endfor %}

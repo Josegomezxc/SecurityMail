@@ -1,0 +1,6 @@
+{% comment %}
+Lote de filas para el endpoint AJAX `drafts_more_api`. Reusa _drafts_row.html.
+{% endcomment %}
+{% for d in drafts %}
+  {% include 'mail/_drafts_row.html' with d=d %}
+{% endfor %}

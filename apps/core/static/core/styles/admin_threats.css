@@ -287,7 +287,7 @@
     text-overflow: ellipsis;
 }
 .th-time {
-    text-align: right;
+    text-align: center;
     font-family: var(--font-mono);
     font-size: 0.6875rem;
     color: var(--text-muted);
@@ -331,4 +331,18 @@
     .adm-hero-th-text h1  { font-size: var(--at-h1-desk); word-break: normal; }
     .adm-hero-th-text p   { font-size: 0.78125rem; word-break: normal; }
     .th-row               { padding: var(--at-row-pad-desk); gap: 0.875rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   OVERRIDES TEMA CARBON — Admin: Amenazas
+   ══════════════════════════════════════════════════════════════════════ */
+html[data-theme="carbon"] .th-filter.all.active {
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.1);
+}
+html[data-theme="carbon"] .th-user {
+    color: var(--accent-hover, #ff6b8e);
+}
+html[data-theme="carbon"] .th-user-avatar {
+    background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
 }

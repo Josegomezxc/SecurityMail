@@ -1,364 +1,319 @@
 {% extends 'core/base.html' %}
 {% load static %}
-{% block title %}Panel de administración — DockerShield{% endblock %}
+{% block title %}Panel global — DockerShield{% endblock %}
 {% block page_title %}Panel global{% endblock %}
 {% block nav_admin_dash %}active{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'core/styles/admin_dashboard.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap"
+  rel="stylesheet">
+<link rel="stylesheet" href="{% static 'mail/styles/dashboard.css' %}?v=users-card">
+<link rel="stylesheet" href="{% static 'core/styles/admin_dashboard.css' %}?v=users-card">
 {% endblock %}
 
 {% block body %}
 
-<header class="adm-hero">
-  <div class="adm-hero-icon" aria-hidden="true">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
-      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-      <path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+<!-- ══════════════════════════════════════════════════════════
+     WELCOME BANNER ADMIN
+     ════════════════════════════════════════════════════════ -->
+<section class="dash-welcome">
+  <div class="dash-welcome-text">
+    <div class="dash-welcome-eyebrow">
+      <span class="dash-welcome-dot"></span>
+      Panel de administración
+    </div>
+    <h1 class="dash-welcome-title">
+      Hola, <span>{{ request.user.get_full_name|default:request.user.email }}</span> 
+    </h1>
+    <p class="dash-welcome-sub">
+      Tienes <strong>{{ users_total }}</strong> usuario{{ users_total|pluralize:"s" }} registrado{{ users_total|pluralize:"s" }},
+      con <strong>{{ threats_total }}</strong> amenaza{{ threats_total|pluralize:"s" }} bloqueada{{ threats_total|pluralize:"s" }} en total.
+    </p>
+    <div class="dash-welcome-actions">
+      <a href="{% url 'admin_users' %}" class="dash-cta-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        Gestionar usuarios
+      </a>
+      <a href="{% url 'admin_threats' %}" class="dash-cta-ghost">
+        Ver amenazas
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <div class="dash-welcome-art" aria-hidden="true">
+    <svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="adShield" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" class="dash-grad-start"/>
+          <stop offset="1" class="dash-grad-end"/>
+        </linearGradient>
+        <linearGradient id="adGlow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" class="dash-grad-glow" stop-opacity="0.35"/>
+          <stop offset="1" class="dash-grad-glow" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <ellipse cx="120" cy="180" rx="100" ry="14" fill="url(#adGlow)"/>
+      <circle cx="120" cy="95" r="62" fill="url(#adShield)" opacity="0.9"/>
+      <ellipse cx="120" cy="95" rx="62" ry="22" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.2"/>
+      <ellipse cx="120" cy="95" rx="40" ry="62" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
+      <ellipse cx="120" cy="95" rx="20" ry="62" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+      <line x1="58" y1="95" x2="182" y2="95" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+      <line x1="120" y1="33" x2="120" y2="157" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+      <!-- Pin del globo (color cambia con tema vía CSS) -->
+      <path d="M120 60 C112 60 105 67 105 75 C105 85 120 102 120 102 C120 102 135 85 135 75 C135 67 128 60 120 60 Z"
+            fill="#ffffff" class="dash-svg-stroke" stroke-width="2"/>
+      <circle cx="120" cy="75" r="4" class="dash-svg-fill"/>
     </svg>
   </div>
-  <div class="adm-hero-text">
-    <h1>Panel de administración</h1>
-    <p>visión global del sistema · usuarios, alias, correos y amenazas</p>
-  </div>
-  <span class="adm-badge">
-    <span class="dot" aria-hidden="true"></span>
-    ADMINISTRADOR
-  </span>
-</header>
-
-<!-- ─── STATS GLOBALES ─── -->
-<section class="adm-stats" aria-label="Estadísticas globales del sistema">
-
-  <a href="{% url 'admin_users' %}" style="text-decoration:none;color:inherit">
-  <article class="adm-stat users" style="animation-delay:60ms;cursor:pointer">
-    <h2 class="adm-stat-label">
-      <span class="adm-stat-icon" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/></svg>
-      </span>
-      Usuarios
-    </h2>
-    <div class="adm-stat-value">{{ users_total }}</div>
-    <div class="adm-stat-sub">
-      <strong>{{ users_staff }}</strong> administrador{{ users_staff|pluralize:"es" }}
-    </div>
-  </article>
-  </a>
-
-  <article class="adm-stat aliases" style="animation-delay:100ms">
-    <h2 class="adm-stat-label">
-      <span class="adm-stat-icon" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
-      </span>
-      Aliases
-    </h2>
-    <div class="adm-stat-value">{{ aliases_total }}</div>
-    <div class="adm-stat-sub">
-      <strong>{{ aliases_active }}</strong> activos
-    </div>
-  </article>
-
-  <article class="adm-stat emails" style="animation-delay:140ms">
-    <h2 class="adm-stat-label">
-      <span class="adm-stat-icon" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-      </span>
-      Correos totales
-    </h2>
-    <div class="adm-stat-value">{{ emails_total }}</div>
-    <div class="adm-stat-sub">
-      <strong>+{{ emails_24h }}</strong> en 24 h · {{ emails_7d }} en 7 días
-    </div>
-  </article>
-
-  <article class="adm-stat threats" style="animation-delay:180ms">
-    <h2 class="adm-stat-label">
-      <span class="adm-stat-icon" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
-      </span>
-      Amenazas bloqueadas
-    </h2>
-    <div class="adm-stat-value">{{ threats_total }}</div>
-    <div class="adm-stat-sub">
-      <strong>+{{ threats_24h }}</strong> en 24 h · {{ sandbox_blocked }} malware
-    </div>
-  </article>
-
 </section>
 
-<div class="adm-two-col">
-
-  <!-- ─── TOP USUARIOS ─── -->
-  <section class="adm-panel" style="animation-delay:220ms" aria-labelledby="panel-top-users">
-    <header class="adm-panel-head">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2" aria-hidden="true"><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-      <h2 class="adm-panel-title" id="panel-top-users">Usuarios más activos</h2>
-      <a href="{% url 'admin_users' %}" class="adm-panel-link">ver todos →</a>
-    </header>
-    <div class="top-users">
-      {% for u in top_users %}
-        <a href="{% url 'admin_user_detail' u.pk %}" class="top-user">
-          <div class="top-user-avatar" aria-hidden="true">
-            {{ u.email|first|upper }}{{ u.email|slice:"1:2"|upper }}
-          </div>
-          <div class="top-user-info">
-            <div class="top-user-email">
-              {{ u.email }}
-              {% if u.is_staff %}<span class="staff-pill">ADMIN</span>{% endif %}
-            </div>
-            <div class="top-user-sub">Registrado {{ u.date_joined|timesince }} atrás</div>
-          </div>
-          <div class="top-user-count">{{ u.emails_count }} correo{{ u.emails_count|pluralize:"s" }}</div>
-        </a>
-      {% empty %}
-        <div class="adm-empty">Aún no hay actividad de usuarios</div>
-      {% endfor %}
+<!-- ══════════════════════════════════════════════════════════
+     STAT CARDS — 4 métricas globales
+     ════════════════════════════════════════════════════════ -->
+<section class="dash-stats" aria-label="Resumen global">
+  <article class="dash-stat dash-stat--accent">
+    <div class="dash-stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
     </div>
-  </section>
+    <div class="dash-stat-meta">
+      <span class="dash-stat-lbl">Usuarios</span>
+      <span class="dash-stat-val">{{ users_total }}</span>
+      <span class="dash-stat-trend">{{ users_staff }} admin · {{ users_active }} activos</span>
+    </div>
+  </article>
 
-  <!-- ─── AMENAZAS RECIENTES ─── -->
-  <section class="adm-panel" style="animation-delay:260ms" aria-labelledby="panel-recent-threats">
-    <header class="adm-panel-head">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
-      <h2 class="adm-panel-title" id="panel-recent-threats">Amenazas recientes del sistema</h2>
-      <a href="{% url 'admin_threats' %}" class="adm-panel-link">ver todas →</a>
-    </header>
-    {% for t in recent_threats %}
-      <a class="threat-item" href="{% url 'admin_user_detail' t.alias.user.pk %}">
-        <div class="threat-icon" aria-hidden="true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-        </div>
-        <div class="threat-info">
-          <div class="threat-subject">{{ t.subject|truncatechars:50 }}</div>
-          <div class="threat-sub">{{ t.alias.user.email }} · {{ t.from_email|truncatechars:24 }} · {{ t.received_at|timesince }} atrás</div>
-        </div>
-        <div class="threat-score" aria-label="Score {{ t.risk_score }}">{{ t.risk_score }}</div>
-      </a>
-    {% empty %}
-      <div class="adm-empty">Sin amenazas registradas aún</div>
-    {% endfor %}
-  </section>
-</div>
+  <article class="dash-stat dash-stat--info">
+    <div class="dash-stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+      </svg>
+    </div>
+    <div class="dash-stat-meta">
+      <span class="dash-stat-lbl">Aliases</span>
+      <span class="dash-stat-val">{{ aliases_total }}</span>
+      <span class="dash-stat-trend">{{ aliases_active }} activos · {{ aliases_active_pct }}%</span>
+    </div>
+  </article>
 
-<!-- ═══ Distribución de riesgo + actividad 7 días ═══ -->
-<div class="adm-two-col" style="margin-top:1.125rem">
+  <article class="dash-stat dash-stat--success">
+    <div class="dash-stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+      </svg>
+    </div>
+    <div class="dash-stat-meta">
+      <span class="dash-stat-lbl">Correos procesados</span>
+      <span class="dash-stat-val">{{ emails_total }}</span>
+      {% if emails_trend > 0 %}
+        <span class="dash-stat-trend up">↑ {{ emails_trend }}% 7d</span>
+      {% elif emails_trend < 0 %}
+        <span class="dash-stat-trend down">↓ {{ emails_trend }}% 7d</span>
+      {% else %}
+        <span class="dash-stat-trend flat">{{ emails_24h }} en 24h</span>
+      {% endif %}
+    </div>
+  </article>
 
-  <section class="adm-panel" style="animation-delay:300ms" aria-labelledby="panel-risk-dist">
-    <header class="adm-panel-head">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      <h2 class="adm-panel-title" id="panel-risk-dist">Distribución por nivel de riesgo</h2>
-      <span class="adm-panel-link" style="cursor:default">{{ emails_total }} total</span>
-    </header>
-    <div class="risk-dist">
+  <article class="dash-stat dash-stat--danger">
+    <div class="dash-stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+      </svg>
+    </div>
+    <div class="dash-stat-meta">
+      <span class="dash-stat-lbl">Amenazas bloqueadas</span>
+      <span class="dash-stat-val">{{ threats_total }}</span>
+      {% if threats_trend > 0 %}
+        <span class="dash-stat-trend down">↑ {{ threats_trend }}% 7d</span>
+      {% elif threats_trend < 0 %}
+        <span class="dash-stat-trend up">↓ {{ threats_trend }}% 7d</span>
+      {% else %}
+        <span class="dash-stat-trend flat">{{ threats_24h }} en 24h</span>
+      {% endif %}
+    </div>
+  </article>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     USUARIOS REGISTRADOS — diagrama de total + desglose
+     ════════════════════════════════════════════════════════ -->
+<section class="dash-row dash-row--users">
+  <article class="dash-card dash-users-card">
+    <header class="dash-card-head">
       <div>
-        <div class="risk-row">
-          <div class="risk-row-head">
-            <span class="risk-label safe">
-              <span class="risk-dot" aria-hidden="true"></span>SEGUROS
-            </span>
-            <span class="risk-count"><strong>{{ safe_count }}</strong> · {{ safe_pct }}%</span>
-          </div>
-          <div class="risk-bar" role="progressbar" aria-valuenow="{{ safe_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Correos seguros"><div class="risk-fill safe" style="width:{{ safe_pct }}%"></div></div>
-        </div>
+        <h3 class="dash-card-title">Usuarios registrados</h3>
+        <p class="dash-card-sub">Total de cuentas en DockerShield · desglose por tipo</p>
+      </div>
+      <span class="dash-pill dash-pill-accent">{{ users_total }} usuario{{ users_total|pluralize:"s" }}</span>
+    </header>
 
-        <div class="risk-row">
-          <div class="risk-row-head">
-            <span class="risk-label susp">
-              <span class="risk-dot" aria-hidden="true"></span>SOSPECHOSOS
-            </span>
-            <span class="risk-count"><strong>{{ susp_count }}</strong> · {{ susp_pct }}%</span>
-          </div>
-          <div class="risk-bar" role="progressbar" aria-valuenow="{{ susp_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Correos sospechosos"><div class="risk-fill susp" style="width:{{ susp_pct }}%"></div></div>
-        </div>
-
-        <div class="risk-row">
-          <div class="risk-row-head">
-            <span class="risk-label danger">
-              <span class="risk-dot" aria-hidden="true"></span>AMENAZAS
-            </span>
-            <span class="risk-count"><strong>{{ threats_total }}</strong> · {{ threats_pct }}%</span>
-          </div>
-          <div class="risk-bar" role="progressbar" aria-valuenow="{{ threats_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Amenazas"><div class="risk-fill danger" style="width:{{ threats_pct }}%"></div></div>
+    <div class="dash-users-body">
+      <div class="dash-users-chart-wrap">
+        <canvas id="admUsersChart" height="220"></canvas>
+        <div class="dash-users-center">
+          <div class="dash-users-center-num">{{ users_total }}</div>
+          <div class="dash-users-center-lbl">totales</div>
         </div>
       </div>
 
-      <!-- Donut summary -->
-      <div class="risk-summary" aria-hidden="true">
-        <div class="risk-summary-circle"
-             style="background: conic-gradient(var(--success) 0% {{ safe_pct }}%, #fbbf24 {{ safe_pct }}% {% widthratio safe_pct|add:susp_pct 1 1 %}%, var(--danger) {% widthratio safe_pct|add:susp_pct 1 1 %}% 100%);">
-          <div class="risk-summary-inner">
-            {% if emails_total %}
-              <span class="risk-summary-num">{{ safe_pct }}<small>%</small></span>
-              <span class="risk-summary-lbl">seguros</span>
-            {% else %}
-              <span class="risk-summary-num" style="font-size:1.125rem">—</span>
-              <span class="risk-summary-lbl">sin datos</span>
-            {% endif %}
+      <ul class="dash-users-breakdown">
+        <li class="dash-users-row">
+          <span class="dash-users-dot dash-users-dot--active"></span>
+          <div class="dash-users-meta">
+            <div class="dash-users-name">Activos (regulares)</div>
+            <div class="dash-users-sub">Cuentas verificadas y no bloqueadas</div>
           </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="adm-panel" style="animation-delay:340ms" aria-labelledby="panel-activity-7d">
-    <header class="adm-panel-head">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-      <h2 class="adm-panel-title" id="panel-activity-7d">Actividad de los últimos 7 días</h2>
-      <span class="adm-panel-link" style="cursor:default">{{ emails_7d }} correos</span>
-    </header>
-    <div class="activity-chart" role="img" aria-label="Gráfico de actividad de correos recibidos en los últimos 7 días">
-      {% for d in activity_7d %}
-        <div class="activity-bar-wrap" title="{{ d.label }}: {{ d.count }} correo{{ d.count|pluralize:'s' }}">
-          <div class="activity-count">{{ d.count }}</div>
-          <div class="activity-bar"
-               style="height:{% if d.bar_pct < 6 and d.count > 0 %}6{% else %}{{ d.bar_pct }}{% endif %}%"></div>
-          <div class="activity-day">{{ d.label }}</div>
-        </div>
-      {% endfor %}
-    </div>
-    {% if max_in_day == 0 %}
-      <div class="adm-empty" style="margin-top:0.625rem">Sin actividad registrada esta semana</div>
-    {% endif %}
-  </section>
-</div>
-
-<!-- ═══ Top dominios + tendencia ═══ -->
-<div class="adm-two-col" style="margin-top:1.125rem">
-
-  <section class="adm-panel" style="animation-delay:360ms" aria-labelledby="panel-attackers">
-    <header class="adm-panel-head">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <h2 class="adm-panel-title" id="panel-attackers">Dominios atacantes más frecuentes</h2>
-      <a href="{% url 'admin_threats' %}" class="adm-panel-link">ver amenazas →</a>
-    </header>
-    <ol class="attacker-list" style="list-style:none;padding:0.875rem 1.125rem;margin:0">
-      {% for d in top_attacker_domains %}
-        <li class="attacker-row">
-          <div class="attacker-rank {% if forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}" aria-hidden="true">
-            {{ forloop.counter }}
-          </div>
-          <div class="attacker-domain">{{ d.domain|truncatechars:38 }}</div>
-          <div class="attacker-count">{{ d.count }}<small>amenaza{{ d.count|pluralize:"s" }}</small></div>
+          <strong class="dash-users-val">{{ users_active_regular }}</strong>
         </li>
-      {% empty %}
-        <li class="adm-empty" style="list-style:none">Sin dominios atacantes registrados aún</li>
-      {% endfor %}
-    </ol>
-  </section>
-
-  <section class="adm-panel" style="animation-delay:380ms" aria-labelledby="panel-trend">
-    <header class="adm-panel-head">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      <h2 class="adm-panel-title" id="panel-trend">Tendencia semanal</h2>
-      <span class="adm-panel-link" style="cursor:default">vs. 7 días previos</span>
-    </header>
-    <div style="padding:0.5rem 0.25rem;display:flex;flex-direction:column;gap:0.875rem">
-      <!-- Correos 7d -->
-      <div style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:rgba(96,165,250,0.05);border:1px solid rgba(96,165,250,0.18);border-radius:0.75rem">
-        <div style="width:2.5rem;height:2.5rem;border-radius:0.625rem;background:rgba(96,165,250,0.12);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        </div>
-        <div style="flex:1;min-width:0">
-          <div style="font-family:var(--mono);font-size:0.65625rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.1875rem">Correos · últimos 7 días</div>
-          <div style="font-family:var(--display);font-size:1.375rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;line-height:1">
-            {{ emails_7d }}
-            {% if emails_trend > 0 %}
-              <span class="trend-pill up">↑ {{ emails_trend }}%</span>
-            {% elif emails_trend < 0 %}
-              <span class="trend-pill down">↓ {{ emails_trend|stringformat:"d"|cut:"-" }}%</span>
-            {% else %}
-              <span class="trend-pill flat">— 0%</span>
-            {% endif %}
+        <li class="dash-users-row">
+          <span class="dash-users-dot dash-users-dot--staff"></span>
+          <div class="dash-users-meta">
+            <div class="dash-users-name">Administradores</div>
+            <div class="dash-users-sub">Con acceso al panel global</div>
           </div>
-        </div>
-      </div>
-
-      <!-- Amenazas 7d -->
-      <div style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:rgba(232,64,64,0.05);border:1px solid rgba(232,64,64,0.18);border-radius:0.75rem">
-        <div style="width:2.5rem;height:2.5rem;border-radius:0.625rem;background:rgba(232,64,64,0.12);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
-        </div>
-        <div style="flex:1;min-width:0">
-          <div style="font-family:var(--mono);font-size:0.65625rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.1875rem">Amenazas · últimos 7 días</div>
-          <div style="font-family:var(--display);font-size:1.375rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;line-height:1">
-            {{ threats_7d }}
-            {% if threats_trend > 0 %}
-              <span class="trend-pill up">↑ {{ threats_trend }}%</span>
-            {% elif threats_trend < 0 %}
-              <span class="trend-pill down">↓ {{ threats_trend|stringformat:"d"|cut:"-" }}%</span>
-            {% else %}
-              <span class="trend-pill flat">— 0%</span>
-            {% endif %}
+          <strong class="dash-users-val">{{ users_staff }}</strong>
+        </li>
+        <li class="dash-users-row">
+          <span class="dash-users-dot dash-users-dot--inactive"></span>
+          <div class="dash-users-meta">
+            <div class="dash-users-name">Inactivos</div>
+            <div class="dash-users-sub">Bloqueadas o eliminadas</div>
           </div>
-        </div>
-      </div>
-
-      <!-- Sandbox bloqueados -->
-      <div style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:rgba(155,109,255,0.05);border:1px solid rgba(155,109,255,0.18);border-radius:0.75rem">
-        <div style="width:2.5rem;height:2.5rem;border-radius:0.625rem;background:rgba(155,109,255,0.12);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
-        </div>
-        <div style="flex:1;min-width:0">
-          <div style="font-family:var(--mono);font-size:0.65625rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.1875rem">Análisis sandbox totales</div>
-          <div style="font-family:var(--display);font-size:1.375rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;line-height:1">
-            {{ sandbox_total }}
-            <span class="trend-pill up" style="background:rgba(155,109,255,0.12);color:#a78bfa">{{ sandbox_blocked }} bloq.</span>
-          </div>
-        </div>
-      </div>
+          <strong class="dash-users-val">{{ users_inactive }}</strong>
+        </li>
+      </ul>
     </div>
-  </section>
-</div>
-
-<!-- ─── ESTADO DEL SISTEMA ─── -->
-<section class="adm-panel" style="margin-top:1.125rem;animation-delay:400ms" aria-labelledby="panel-health">
-  <header class="adm-panel-head">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    <h2 class="adm-panel-title" id="panel-health">Estado del sistema</h2>
-    <span class="adm-panel-link" style="cursor:default;color:#4ade80">● operativo</span>
-  </header>
-  <div class="health-grid">
-    <div class="health-cell">
-      <div class="health-icon" style="background:rgba(46,204,113,0.1);color:#4ade80" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-      </div>
-      <div>
-        <div class="health-val">{{ aliases_active_pct }}%</div>
-        <div class="health-lbl">alias activos</div>
-      </div>
-    </div>
-
-    <div class="health-cell">
-      <div class="health-icon" style="background:rgba(251,191,36,0.1);color:#fbbf24" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
-      </div>
-      <div>
-        <div class="health-val">{{ sandbox_total }}</div>
-        <div class="health-lbl">análisis sandbox</div>
-      </div>
-    </div>
-
-    <div class="health-cell">
-      <div class="health-icon" style="background:rgba(232,64,64,0.1);color:#f87171" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-      </div>
-      <div>
-        <div class="health-val">{{ sandbox_blocked }}</div>
-        <div class="health-lbl">malware bloqueado</div>
-      </div>
-    </div>
-
-    <div class="health-cell">
-      <div class="health-icon" style="background:rgba(96,165,250,0.1);color:#60a5fa" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/></svg>
-      </div>
-      <div>
-        <div class="health-val">{{ users_active }}/{{ users_total }}</div>
-        <div class="health-lbl">cuentas activas</div>
-      </div>
-    </div>
-  </div>
+  </article>
 </section>
 
+<!-- ══════════════════════════════════════════════════════════
+     ROW: Actividad 7d + Distribución riesgo
+     ════════════════════════════════════════════════════════ -->
+<section class="dash-row dash-row--2col">
+  <article class="dash-card">
+    <header class="dash-card-head">
+      <div>
+        <h3 class="dash-card-title">Actividad global</h3>
+        <p class="dash-card-sub">Correos procesados por día — últimos 7 días</p>
+      </div>
+      <span class="dash-pill dash-pill-accent">{{ emails_7d }} en 7d</span>
+    </header>
+    <div class="dash-chart-wrap">
+      <canvas id="admActivityChart" height="220"></canvas>
+    </div>
+  </article>
+
+  <article class="dash-card dash-donut-card">
+    <header class="dash-card-head">
+      <div>
+        <h3 class="dash-card-title">Distribución global</h3>
+        <p class="dash-card-sub">Clasificación de todos los correos</p>
+      </div>
+    </header>
+    <div class="dash-donut-wrap">
+      <canvas id="admRiskDonut" height="180"></canvas>
+      <div class="dash-donut-center">
+        <span class="dash-donut-num">{{ emails_total }}</span>
+        <span class="dash-donut-lbl">total</span>
+      </div>
+    </div>
+    <ul class="dash-donut-legend">
+      <li><span class="dash-legend-dot" style="background:var(--success)"></span><span class="dash-legend-lbl">Seguros</span><strong>{{ safe_pct }}%</strong></li>
+      <li><span class="dash-legend-dot" style="background:var(--warning)"></span><span class="dash-legend-lbl">Sospechosos</span><strong>{{ susp_pct }}%</strong></li>
+      <li><span class="dash-legend-dot" style="background:var(--danger)"></span><span class="dash-legend-lbl">Amenazas</span><strong>{{ threats_pct }}%</strong></li>
+    </ul>
+  </article>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     ROW: Top users + Recent threats
+     ════════════════════════════════════════════════════════ -->
+<section class="dash-row dash-row--6-6">
+  <article class="dash-card">
+    <header class="dash-card-head">
+      <div>
+        <h3 class="dash-card-title">Top usuarios</h3>
+        <p class="dash-card-sub">Con más correos procesados</p>
+      </div>
+      <a href="{% url 'admin_users' %}" class="dash-link-tiny">
+        Ver todos
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </header>
+    {% if top_users %}
+    <ul class="adm-user-list">
+      {% for u in top_users %}
+      <li class="adm-user-item">
+        <div class="adm-user-avatar">{{ u.email|first|upper }}{{ u.email|slice:"1:2"|upper }}</div>
+        <div class="adm-user-body">
+          <div class="adm-user-email">{{ u.email|truncatechars:30 }}</div>
+          <div class="adm-user-meta">{{ u.emails_count }} correo{{ u.emails_count|pluralize:"s" }}</div>
+        </div>
+        <a href="{% url 'admin_user_detail' u.pk %}" class="adm-user-link" aria-label="Ver detalle">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="dash-empty"><div class="dash-empty-title">Sin actividad aún</div></div>
+    {% endif %}
+  </article>
+
+  <article class="dash-card">
+    <header class="dash-card-head">
+      <div>
+        <h3 class="dash-card-title">Amenazas recientes</h3>
+        <p class="dash-card-sub">Detectadas en todo el sistema</p>
+      </div>
+      <a href="{% url 'admin_threats' %}" class="dash-link-tiny">
+        Ver todas
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </header>
+    {% if recent_threats %}
+    <ul class="dash-threat-list">
+      {% for t in recent_threats %}
+      <li class="dash-threat-item">
+        <div class="dash-threat-avatar">{{ t.from_email|first|upper }}</div>
+        <div class="dash-threat-body">
+          <div class="dash-threat-top">
+            <span class="dash-threat-from">{{ t.alias.user.email|truncatechars:24 }}</span>
+            <span class="dash-threat-time">{{ t.received_at|timesince }} atrás</span>
+          </div>
+          <div class="dash-threat-subj">{{ t.subject|default:"(sin asunto)"|truncatechars:54 }}</div>
+        </div>
+        <span class="dash-threat-score" style="
+            color: {% if t.risk_score >= 81 %}#fca5a5{% else %}#fbbf24{% endif %};
+            background: {% if t.risk_score >= 81 %}rgba(239,68,68,0.15){% else %}rgba(245,158,11,0.15){% endif %};
+            border-color: {% if t.risk_score >= 81 %}rgba(239,68,68,0.35){% else %}rgba(245,158,11,0.35){% endif %};">
+          {{ t.risk_score }}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="dash-empty"><div class="dash-empty-title">Sin amenazas todavía</div></div>
+    {% endif %}
+  </article>
+</section>
+
+<!-- Datos serializados para Chart.js (bar 7d + donut riesgo + donut usuarios) -->
+{{ activity_7d|json_script:"admActivityData" }}
+<script id="admRiskData" type="application/json">{"safe": {{ safe_count }}, "susp": {{ susp_count }}, "threats": {{ threats_total }}}</script>
+<script id="admUsersData" type="application/json">{"active": {{ users_active_regular }}, "staff": {{ users_staff }}, "inactive": {{ users_inactive }}}</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{% static 'core/js/admin_dashboard.js' %}?v=users-card"></script>
 {% endblock %}

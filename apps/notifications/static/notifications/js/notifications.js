@@ -228,4 +228,90 @@
       }
     });
   });
+
+  /* ══════════════════════════════════════════
+     VER MÁS / VER MENOS (load-more con toggle)
+  ══════════════════════════════════════════ */
+  let notifLoadingMore = false;
+
+  window.loadMoreNotif = function () {
+    if (notifLoadingMore) return;
+    const btn      = document.getElementById('notif-loadmore-btn');
+    const collapse = document.getElementById('notif-collapse-btn');
+    const list     = document.getElementById('notif-list-container');
+    if (!btn || !list) return;
+
+    const offset = parseInt(list.dataset.nextOffset || '0', 10) || 0;
+    notifLoadingMore = true;
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    fetch('/notificaciones/mas/?offset=' + encodeURIComponent(offset), {
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => {
+        if (!data || !data.ok) throw new Error('bad response');
+
+        if (data.count > 0) {
+          // Append antes del empty-state si existe
+          const emptyState = document.getElementById('notif-empty-state');
+          const tmp = document.createElement('div');
+          tmp.innerHTML = data.html.trim();
+          while (tmp.firstChild) {
+            const node = tmp.firstChild;
+            if (node.nodeType === 1 && node.classList && node.classList.contains('notif-row')) {
+              node.dataset.loaded = '1';
+            }
+            if (emptyState) list.insertBefore(node, emptyState);
+            else            list.appendChild(node);
+          }
+        }
+
+        list.dataset.nextOffset = String(data.next_offset);
+        list.dataset.hasMore    = data.has_more ? '1' : '0';
+
+        if (!data.has_more) btn.style.display = 'none';
+        if (collapse)       collapse.style.display = '';
+
+        // Re-aplicar el filtro activo a las filas recién insertadas
+        applyFilter(activeFilter);
+      })
+      .catch(() => {
+        if (window.showToast) {
+          showToast({
+            type: 'danger',
+            title: 'No se pudieron cargar más',
+            message: 'Intenta de nuevo en unos segundos.',
+            duration: 4000,
+          });
+        }
+      })
+      .finally(() => {
+        notifLoadingMore = false;
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      });
+  };
+
+  window.collapseNotif = function () {
+    const btn      = document.getElementById('notif-loadmore-btn');
+    const collapse = document.getElementById('notif-collapse-btn');
+    const wrap     = document.getElementById('notif-loadmore-wrap');
+    const list     = document.getElementById('notif-list-container');
+    if (!list || !wrap) return;
+
+    list.querySelectorAll('.notif-row[data-loaded="1"]').forEach(r => r.remove());
+
+    const initial = parseInt(wrap.dataset.initialCount || '0', 10) || 0;
+    list.dataset.nextOffset = String(initial);
+    list.dataset.hasMore    = '1';
+
+    if (btn)      btn.style.display = '';
+    if (collapse) collapse.style.display = 'none';
+
+    applyFilter(activeFilter);
+    list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 })();

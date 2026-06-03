@@ -85,4 +85,13 @@ html[data-theme="carbon"] {
     --text-muted:    #65637a;
     --border:        rgba(255,255,255,0.06);
     --border-soft:   rgba(255,255,255,0.03);
+
+    /* "AI purple" en carbon = mismo rosa coral del acento.
+       Muchos módulos usan estas vars en lugar de --accent (chips, pills,
+       links, etc.). Re-mapearlas acá hace que TODO el proyecto cambie a
+       la paleta carbon sin tocar cada CSS individual. */
+    --ai-purple:         #ff4f7a;
+    --ai-purple-light:   #ff8aa6;
+    --ai-purple-soft:    rgba(255,79,122,0.08);
+    --ai-purple-border:  rgba(255,79,122,0.22);
 }

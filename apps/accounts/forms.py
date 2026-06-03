@@ -1,6 +1,9 @@
 from django import forms
-from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+
+# Usamos el MISMO validador que el registro (apps/core/validators.py)
+# para que las reglas y mensajes sean idénticos en ambos flujos.
+from apps.core.validators import validate_password as ds_validate_password
 
 
 class CambiarPasswordForm(forms.Form):
@@ -42,7 +45,18 @@ class CambiarPasswordForm(forms.Form):
     def clean_password_nueva(self):
         password_nueva = self.cleaned_data.get("password_nueva")
         if password_nueva:
-            validate_password(password_nueva, self.user)
+            # Mismas reglas que el registro: mayúscula, minúscula, número,
+            # símbolo, longitud, blacklists, secuencias del teclado, etc.
+            errors = ds_validate_password(
+                password_nueva,
+                email=getattr(self.user, 'email', '') or '',
+                name=(getattr(self.user, 'first_name', '') or
+                      getattr(self.user, 'username', '') or ''),
+            )
+            if errors:
+                # Lanzamos TODOS los errores juntos para que el form muestre
+                # qué requisitos faltan (consistente con el feedback del JS).
+                raise ValidationError(errors)
         return password_nueva
 
     def clean(self):

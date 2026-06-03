@@ -5,390 +5,369 @@
 {% block nav_dashboard %}active{% endblock %}
 
 {% block extra_css %}
-<link
-  href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
   rel="stylesheet">
-<link rel="stylesheet" href="{% static 'mail/styles/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'mail/styles/dashboard.css' %}?v=pill-nowrap">
 {% endblock %}
 
 {% block body %}
-{% comment %}
-Los `messages` de Django se procesan AHORA en base.html (toasts globales).
-Antes vivía aquí — eso causaba que toasts de acciones en otras páginas no
-aparecieran hasta llegar al dashboard.
-{% endcomment %}
 
-
-<!-- ── WELCOME BANNER ── -->
-<section class="welcome-banner" style="animation-delay:0ms" aria-labelledby="welcome-greeting">
-  <div class="welcome-inner">
-    <div class="welcome-eyebrow">Panel de control</div>
-    <h2 id="welcome-greeting"><span>Hola, {{ user.get_full_name|default:user.email }}</span></h2>
-    <p>Sesión activa · correo real <strong>{{ user.email }}</strong> nunca expuesto</p>
+<!-- ══════════════════════════════════════════════════════════
+     WELCOME BANNER — saludo grande + ilustración SVG + CTA
+     ════════════════════════════════════════════════════════ -->
+<section class="dash-welcome">
+  <div class="dash-welcome-text">
+    <div class="dash-welcome-eyebrow">
+      <span class="dash-welcome-dot"></span>
+      Panel de control
+    </div>
+    <h1 class="dash-welcome-title">
+      Hola, <span>{{ user.get_full_name|default:user.first_name|default:user.email }}</span>
+    </h1>
+    <p class="dash-welcome-sub">
+      Tienes <strong>{{ unread_count }}</strong> correo{{ unread_count|pluralize:"s" }} sin leer
+      {% if today_threats %}y bloqueamos <strong>{{ today_threats }}</strong> amenaza{{ today_threats|pluralize:"s" }} hoy{% endif %}.
+      Tu correo real <code>{{ user.email }}</code> nunca queda expuesto.
+    </p>
+    <div class="dash-welcome-actions">
+      <a href="{% url 'alias_create' %}" class="dash-cta-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Crear alias
+      </a>
+      <a href="{% url 'inbox' %}" class="dash-cta-ghost">
+        Ver bandeja
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </a>
+    </div>
   </div>
-  <div class="welcome-actions">
-    <a href="{% url 'alias_create' %}" class="btn-new-alias">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-        stroke-linecap="round">
-        <line x1="12" y1="5" x2="12" y2="19" />
-        <line x1="5" y1="12" x2="19" y2="12" />
+
+  <div class="dash-welcome-art" aria-hidden="true">
+    <svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="dwShield" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" class="dash-grad-start"/>
+          <stop offset="1" class="dash-grad-end"/>
+        </linearGradient>
+        <linearGradient id="dwGlow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" class="dash-grad-glow" stop-opacity="0.35"/>
+          <stop offset="1" class="dash-grad-glow" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <!-- Halo -->
+      <ellipse cx="120" cy="180" rx="100" ry="14" fill="url(#dwGlow)"/>
+      <!-- Shield body -->
+      <path d="M120 30 L195 60 V110 C195 145 162 175 120 185 C78 175 45 145 45 110 V60 Z"
+            fill="url(#dwShield)" opacity="0.92"/>
+      <!-- Inner shield highlight -->
+      <path d="M120 50 L175 75 V108 C175 134 152 156 120 165 C88 156 65 134 65 108 V75 Z"
+            fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+      <!-- Check mark -->
+      <path d="M92 110 L113 130 L155 88" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Decorative dots (color cambia con tema vía CSS) -->
+      <circle cx="40"  cy="50"  r="3"   class="dash-svg-dot"      opacity="0.7"/>
+      <circle cx="210" cy="40"  r="4"   class="dash-svg-dot"      opacity="0.5"/>
+      <circle cx="220" cy="110" r="2.5" class="dash-svg-dot--alt" opacity="0.6"/>
+      <circle cx="30"  cy="130" r="2"   class="dash-svg-dot--alt" opacity="0.5"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     STAT CARDS — 4 métricas principales en grid
+     ════════════════════════════════════════════════════════ -->
+<section class="dash-stats" aria-label="Resumen rápido">
+  <article class="dash-stat dash-stat--accent">
+    <div class="dash-stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
       </svg>
-      Nuevo alias
-    </a>
-  </div>
-</section>
-
-<!-- ── STAT CARDS ── -->
-<section class="stat-grid" aria-label="Estadísticas de la cuenta">
-
-  <article class="stat-card accent" style="animation-delay:60ms">
-    <div class="stat-card-glow"></div>
-    <div class="stat-card-header">
-      <div class="stat-icon">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="1.8"
-          stroke-linecap="round">
-          <path d="M20 12V22H4V12" />
-          <path d="M22 7H2v5h20V7z" />
-          <path d="M12 22V7" />
-          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
-        </svg>
-      </div>
-      <div class="stat-label">Alias activos</div>
     </div>
-    <div class="stat-body">
-      <div class="stat-value" data-stat="alias_count">{{ alias_count|default:"0" }}</div>
-      <div class="stat-sub">correos reales protegidos</div>
-    </div>
-  </article>
-
-  <article class="stat-card neutral" style="animation-delay:100ms">
-    <div class="stat-card-header">
-      <div class="stat-icon">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.8"
-          stroke-linecap="round">
-          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-          <polyline points="22,6 12,13 2,6" />
-        </svg>
-      </div>
-      <div class="stat-label">Correos recibidos</div>
-    </div>
-    <div class="stat-body">
-      <div class="stat-value" data-stat="total_emails">{{ total_emails|default:"0" }}</div>
-      <div class="stat-sub" data-sub="total_emails">
-        {% if today_emails %}
-        +{{ today_emails }} en las últimas 24 h
-        {% else %}
-        histórico total
-        {% endif %}
-      </div>
-      {% if today_emails > yday_emails %}
-      <span class="stat-trend up" data-trend="total_emails">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-          <polyline points="17 6 23 6 23 12" />
-        </svg>
-        +{{ today_emails|add:"-"|add:yday_emails }} vs ayer
-      </span>
-      {% elif today_emails == yday_emails %}
-      <span class="stat-trend flat" data-trend="total_emails">sin cambios vs ayer</span>
+    <div class="dash-stat-meta">
+      <span class="dash-stat-lbl">Correos recibidos</span>
+      <span class="dash-stat-val">{{ total_emails }}</span>
+      {% if emails_trend > 0 %}
+        <span class="dash-stat-trend up">↑ {{ emails_trend }}% vs ayer</span>
+      {% elif emails_trend < 0 %}
+        <span class="dash-stat-trend down">↓ {{ emails_trend }}% vs ayer</span>
       {% else %}
-      <span class="stat-trend down" data-trend="total_emails">menos que ayer</span>
+        <span class="dash-stat-trend flat">sin cambios</span>
       {% endif %}
     </div>
   </article>
 
-  <article class="stat-card danger" style="animation-delay:140ms">
-    <div class="stat-card-glow"></div>
-    <div class="stat-card-header">
-      <div class="stat-icon">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.8"
-          stroke-linecap="round">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-      </div>
-      <div class="stat-label">Amenazas bloqueadas</div>
+  <article class="dash-stat dash-stat--info">
+    <div class="dash-stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor"/>
+      </svg>
     </div>
-    <div class="stat-body">
-      <div class="stat-value" data-stat="threats_count">{{ threats_count|default:"0" }}</div>
-      <div class="stat-sub" data-sub="threats_count">
-        {% if today_threats %}
-        {{ today_threats }} en las últimas 24 h
-        {% else %}
-        tu PC nunca las vio
-        {% endif %}
-      </div>
-      <span class="stat-trend {% if block_rate >= 50 %}up{% elif block_rate > 0 %}flat{% else %}down{% endif %}"
-        data-trend="block_rate">
-        tasa de bloqueo: <strong style="margin-left:3px" data-stat="block_rate">{{ block_rate|default:"0" }}</strong>%
+    <div class="dash-stat-meta">
+      <span class="dash-stat-lbl">Sin leer</span>
+      <span class="dash-stat-val">{{ unread_count }}</span>
+      <span class="dash-stat-trend">
+        {% if unread_count > 0 %}requiere tu atención{% else %}al día{% endif %}
       </span>
     </div>
   </article>
 
-  <article class="stat-card success" style="animation-delay:180ms">
-    <div class="stat-card-glow"></div>
-    <div class="stat-card-header">
-      <div class="stat-icon">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.8"
-          stroke-linecap="round">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
-      </div>
-      <div class="stat-label">Correos seguros</div>
+  <article class="dash-stat dash-stat--danger">
+    <div class="dash-stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
     </div>
-    <div class="stat-body">
-      <div class="stat-value" data-stat="safe_count">{{ safe_count|default:"0" }}</div>
-      <div class="stat-sub">verificados por sandbox</div>
+    <div class="dash-stat-meta">
+      <span class="dash-stat-lbl">Amenazas bloqueadas</span>
+      <span class="dash-stat-val">{{ threats_count }}</span>
+      <span class="dash-stat-trend">
+        {% if block_rate %}{{ block_rate }}% del total{% else %}sin amenazas{% endif %}
+      </span>
     </div>
   </article>
 
+  <article class="dash-stat dash-stat--success">
+    <div class="dash-stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+      </svg>
+    </div>
+    <div class="dash-stat-meta">
+      <span class="dash-stat-lbl">Alias activos</span>
+      <span class="dash-stat-val">{{ alias_count }}</span>
+      <span class="dash-stat-trend">protegiendo tu correo</span>
+    </div>
+  </article>
 </section>
 
-<!-- ── AMENAZAS RECIENTES (solo aparece si hay) ── -->
-{% if recent_threats %}
-<section class="threats-row" id="threatsRow" aria-label="Amenazas recientes">
-  {% for t in recent_threats %}
-  <a href="{% if t.analysis %}{% url 'sandbox_report' t.analysis.pk %}{% else %}{% url 'inbox' %}{% endif %}"
-    class="threat-card">
-    <div class="threat-head">
-      <span class="dot"></span>
-      Amenaza bloqueada
-      <span style="margin-left:auto">{{ t.received_at|timesince }} atrás</span>
-    </div>
-    <div class="threat-subject">{{ t.subject|truncatechars:60 }}</div>
-    <div class="threat-meta">
-      <span>{{ t.from_email|truncatechars:28 }}</span>
-      <span>→ {{ t.alias.address|truncatechars:22 }}</span>
-    </div>
-    <div class="threat-score-row">
-      <span class="threat-score">{{ t.risk_score }}<small>/100</small></span>
-      {% if t.risk_score >= 81 %}
-      <span class="risk-badge danger"><span class="badge-dot"></span>Malware</span>
-      {% else %}
-      <span class="risk-badge danger"><span class="badge-dot"></span>Alto riesgo</span>
-      {% endif %}
-    </div>
-  </a>
-  {% endfor %}
-</section>
-{% endif %}
-
-<!-- ── DOS COLUMNAS ── -->
-<div class="two-col">
-
-  <!-- ACTIVIDAD RECIENTE -->
-  <section class="panel" style="animation-delay:220ms" aria-labelledby="panel-activity-title">
-    <header class="panel-header">
-      <h2 class="panel-title" id="panel-activity-title">
-        <span class="panel-title-dot" style="background:var(--pl);box-shadow:0 0 6px rgba(167,139,250,0.5)"></span>
-        Actividad reciente
-      </h2>
-      <a href="{% url 'inbox' %}" class="panel-link">Ver bandeja →</a>
+<!-- ══════════════════════════════════════════════════════════
+     ROW: Actividad (bar chart) + Distribución (donut)
+     ════════════════════════════════════════════════════════ -->
+<section class="dash-row dash-row--2col">
+  <article class="dash-card dash-chart-card">
+    <header class="dash-card-head">
+      <div>
+        <h3 class="dash-card-title">Actividad de correos</h3>
+        <p class="dash-card-sub">Últimos 14 días — correos recibidos por día</p>
+      </div>
+      <span class="dash-pill dash-pill-accent">14 días</span>
     </header>
-    <div class="panel-body">
-      <table class="activity-table">
-        <thead>
-          <tr>
-            <th>Remitente</th>
-            <th>Alias destino</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for email in recent_emails %}
-          <tr>
-            <td>
-              <div class="sender-info">
-                <div class="sender-avatar" style="background:{% cycle 'rgba(124,92,255,0.12)' 'rgba(34,197,94,0.1)' 'rgba(245,158,11,0.1)' 'rgba(59,130,246,0.1)' %};
-                            color:{% cycle 'var(--pl)' '#4ade80' '#fbbf24' '#60a5fa' %}">
-                  {{ email.from_email|first|upper }}
-                </div>
-                <div>
-                  <div class="sender-name">{{ email.subject|truncatechars:30 }}</div>
-                  <div class="sender-email">{{ email.from_email }}</div>
-                </div>
-              </div>
-            </td>
-            <td><span class="mono-tag">{{ email.alias.address|truncatechars:24 }}</span></td>
-            <td>
-              {% if email.risk_score >= 61 %}
-              <span class="risk-badge danger">
-                <span class="badge-dot"></span>
-                Bloqueado
-              </span>
-              {% elif email.risk_score >= 31 %}
-              <span class="risk-badge warning">
-                <span class="badge-dot"></span>
-                Sospechoso
-              </span>
-              {% else %}
-              <span class="risk-badge success">
-                <span class="badge-dot"></span>
-                Seguro
-              </span>
-              {% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="3">
-              <div class="empty-table">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
-                Aún no hay correos recibidos en tus alias
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="dash-chart-wrap">
+      <canvas id="dashActivityChart" height="220"></canvas>
     </div>
-  </section>
+  </article>
 
-  <!-- COLUMNA DERECHA -->
-  <div class="panel-stack">
+  <article class="dash-card dash-donut-card">
+    <header class="dash-card-head">
+      <div>
+        <h3 class="dash-card-title">Distribución de riesgo</h3>
+        <p class="dash-card-sub">Cómo se clasifican tus correos</p>
+      </div>
+    </header>
+    <div class="dash-donut-wrap">
+      <canvas id="dashRiskDonut" height="180"></canvas>
+      <div class="dash-donut-center">
+        <span class="dash-donut-num">{{ total_emails }}</span>
+        <span class="dash-donut-lbl">total</span>
+      </div>
+    </div>
+    <ul class="dash-donut-legend">
+      <li>
+        <span class="dash-legend-dot" style="background:var(--success)"></span>
+        <span class="dash-legend-lbl">Seguros</span>
+        <strong>{{ risk_distribution.safe }}</strong>
+      </li>
+      <li>
+        <span class="dash-legend-dot" style="background:var(--warning)"></span>
+        <span class="dash-legend-lbl">Sospechosos</span>
+        <strong>{{ risk_distribution.susp }}</strong>
+      </li>
+      <li>
+        <span class="dash-legend-dot" style="background:var(--danger)"></span>
+        <span class="dash-legend-lbl">Amenazas</span>
+        <strong>{{ risk_distribution.threats }}</strong>
+      </li>
+    </ul>
+  </article>
+</section>
 
-    <!-- MIS ALIAS -->
-    <section class="panel" style="animation-delay:260ms" aria-labelledby="panel-aliases-title">
-      <header class="panel-header">
-        <h2 class="panel-title" id="panel-aliases-title">
-          <span class="panel-title-dot" style="background:var(--p);box-shadow:0 0 6px rgba(124,92,255,0.5)"></span>
-          Mis alias
-        </h2>
-        <a href="{% url 'alias_list' %}" class="panel-link">Ver todos →</a>
-      </header>
-      <div class="panel-body">
-        {% for alias in aliases %}
-        <div class="alias-item">
-          <div style="min-width:0;flex:1">
-            <div class="alias-addr">{{ alias.address }}</div>
-            <div class="alias-meta">{{ alias.label }} · {{ alias.email_count }} correos</div>
+<!-- ══════════════════════════════════════════════════════════
+     ROW: Profile report + Amenazas recientes
+     ════════════════════════════════════════════════════════ -->
+<section class="dash-row dash-row--3-7">
+  <article class="dash-card dash-profile-card">
+    <header class="dash-card-head">
+      <h3 class="dash-card-title">Mi perfil</h3>
+      <span class="dash-pill dash-pill-success">{{ block_rate }}% bloqueado</span>
+    </header>
+    <div class="dash-profile-body">
+      <div class="dash-avatar-circle">
+        {{ user.email|first|upper }}{{ user.email|slice:"1:2"|upper }}
+      </div>
+      <div class="dash-profile-meta">
+        <div class="dash-profile-name">{{ user.get_full_name|default:user.first_name|default:user.username }}</div>
+        <div class="dash-profile-email">{{ user.email }}</div>
+      </div>
+    </div>
+    <div class="dash-mini-stats">
+      <div class="dash-mini-stat">
+        <span class="dash-mini-val">{{ alias_count }}</span>
+        <span class="dash-mini-lbl">alias</span>
+      </div>
+      <div class="dash-mini-stat">
+        <span class="dash-mini-val">{{ total_emails }}</span>
+        <span class="dash-mini-lbl">correos</span>
+      </div>
+      <div class="dash-mini-stat">
+        <span class="dash-mini-val" style="color:var(--danger)">{{ threats_count }}</span>
+        <span class="dash-mini-lbl">amenazas</span>
+      </div>
+    </div>
+    <a href="{% url 'perfil' %}" class="dash-profile-link">
+      Ir a mi perfil
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+  </article>
+
+  <article class="dash-card dash-threats-card">
+    <header class="dash-card-head">
+      <div>
+        <h3 class="dash-card-title">Amenazas recientes</h3>
+        <p class="dash-card-sub">Correos con score ≥ 61 — bloqueados automáticamente</p>
+      </div>
+      <a href="{% url 'inbox' %}?filter=danger" class="dash-link-tiny">
+        Ver todas
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </header>
+
+    {% if recent_threats %}
+    <ul class="dash-threat-list">
+      {% for t in recent_threats %}
+      <li class="dash-threat-item">
+        <div class="dash-threat-avatar">{{ t.from_email|first|upper }}</div>
+        <div class="dash-threat-body">
+          <div class="dash-threat-top">
+            <span class="dash-threat-from">{{ t.from_email|truncatechars:32 }}</span>
+            <span class="dash-threat-time">{{ t.received_at|timesince }} atrás</span>
           </div>
-          {% if alias.is_active %}
-          <span class="alias-status active">
-            <span class="status-dot"></span>
-            Activo
-          </span>
-          {% else %}
-          <span class="alias-status inactive">Destruido</span>
-          {% endif %}
+          <div class="dash-threat-subj">{{ t.subject|default:"(sin asunto)"|truncatechars:60 }}</div>
         </div>
-        {% empty %}
-        <div class="empty-table">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-            <path d="M20 12V22H4V12" />
-            <path d="M22 7H2v5h20V7z" />
-          </svg>
-          No tienes alias aún.
-          <a href="{% url 'alias_create' %}"
-            style="color:var(--pl);text-decoration:none;margin-left:4px;font-family:var(--mono)">Crear uno →</a>
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-
-    <!-- SANDBOX -->
-    <section class="panel" style="animation-delay:300ms" aria-labelledby="panel-sandbox-title">
-      <header class="panel-header">
-        <h2 class="panel-title" id="panel-sandbox-title">
-          <span class="panel-title-dot" style="background:var(--success);box-shadow:0 0 6px rgba(34,197,94,0.5)"></span>
-          Estado del sandbox
-        </h2>
-        <a href="{% url 'sandbox_list' %}" class="panel-link">Ver análisis →</a>
-      </header>
-
-      <div class="sandbox-status">
-        <div class="sandbox-dot"></div>
-        <span class="sandbox-label">Contenedor <strong>activo y listo</strong></span>
-      </div>
-
-      <div class="panel-body">
-        {% for analysis in recent_analyses %}
-        <div class="sandbox-analysis">
-          <span class="sandbox-filename">{{ analysis.filename }}</span>
-          <div class="risk-bar-wrap">
-            <div class="risk-bar"
-              style="width:{{ analysis.risk_score }}%;
-                        background:{% if analysis.risk_score >= 61 %}linear-gradient(90deg,#ef4444,#f87171){% elif analysis.risk_score >= 31 %}linear-gradient(90deg,#f59e0b,#fbbf24){% else %}linear-gradient(90deg,#22c55e,#4ade80){% endif %}">
-            </div>
-          </div>
-          <span class="risk-score-num"
-            style="color:{% if analysis.risk_score >= 61 %}#f87171{% elif analysis.risk_score >= 31 %}#fbbf24{% else %}#4ade80{% endif %}">
-            {{ analysis.risk_score }}
-          </span>
-        </div>
-        {% empty %}
-        <div class="empty-table" style="padding:24px 20px">Sin análisis recientes</div>
-        {% endfor %}
-      </div>
-    </section>
-
-  </div>
-</div>
-
-
-<!-- ── MODAL BIENVENIDA ── -->
-<div id="welcome-overlay">
-  <div id="welcome-modal">
-    <div class="wm-logo">
-      <span class="wm-logo-text">Docker<span>Shield</span></span>
+        <span class="dash-threat-score" style="
+            color: {% if t.risk_score >= 81 %}#fca5a5{% else %}#fbbf24{% endif %};
+            background: {% if t.risk_score >= 81 %}rgba(239,68,68,0.15){% else %}rgba(245,158,11,0.15){% endif %};
+            border-color: {% if t.risk_score >= 81 %}rgba(239,68,68,0.35){% else %}rgba(245,158,11,0.35){% endif %};">
+          {{ t.risk_score }}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="dash-empty">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="1.5">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+      <div class="dash-empty-title">Sin amenazas todavía</div>
+      <div class="dash-empty-sub">Cuando llegue una amenaza, la verás aquí.</div>
     </div>
-    <div class="wm-title">¡Bienvenido!</div>
-    <div class="wm-sub">Donde la privacidad es por defecto.</div>
-    <div class="wm-features">
-      <div class="wm-feature">
-        <div class="wm-feature-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2"
-            stroke-linecap="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-        </div>
-        <div>
-          <strong>Alias desechables</strong>
-          Nunca expones tu correo real en sitios externos.
-        </div>
+    {% endif %}
+  </article>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     ROW: Mis alias + Análisis sandbox recientes
+     ════════════════════════════════════════════════════════ -->
+<section class="dash-row dash-row--6-6">
+  <article class="dash-card">
+    <header class="dash-card-head">
+      <div>
+        <h3 class="dash-card-title">Mis alias activos</h3>
+        <p class="dash-card-sub">Direcciones que recibiendo correos por ti</p>
       </div>
-      <div class="wm-feature">
-        <div class="wm-feature-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2"
-            stroke-linecap="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
+      <a href="{% url 'alias_list' %}" class="dash-link-tiny">
+        Gestionar
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </header>
+    {% if aliases %}
+    <ul class="dash-alias-list">
+      {% for a in aliases %}
+      <li class="dash-alias-item">
+        <div class="dash-alias-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>
         </div>
-        <div>
-          <strong>Sandbox de adjuntos</strong>
-          Los archivos se analizan en contenedores aislados.
+        <div class="dash-alias-body">
+          <div class="dash-alias-addr">{{ a.address|truncatechars:38 }}</div>
+          <div class="dash-alias-label">{{ a.label|default:"(sin etiqueta)" }}</div>
         </div>
-      </div>
-      <div class="wm-feature">
-        <div class="wm-feature-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pl)" stroke-width="2"
-            stroke-linecap="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 8v4l3 3" />
-          </svg>
-        </div>
-        <div>
-          <strong>Análisis en tiempo real</strong>
-          Detección de malware antes de que llegue a tu PC.
-        </div>
-      </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="dash-empty">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5">
+        <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+      </svg>
+      <div class="dash-empty-title">Aún no tienes alias</div>
+      <a href="{% url 'alias_create' %}" class="dash-empty-cta">Crear el primero</a>
     </div>
-    <button class="btn-welcome" onclick="closeWelcome()">¡Comencemos! →</button>
-  </div>
-</div>
+    {% endif %}
+  </article>
 
-<script>
-  window.__DASHBOARD_CTX__ = {
-    welcomeKey: 'welcome_shown_{{ request.user.id }}'
-  };
-</script>
-<script src="{% static 'mail/js/dashboard.js' %}"></script>
+  <article class="dash-card">
+    <header class="dash-card-head">
+      <div>
+        <h3 class="dash-card-title">Análisis sandbox</h3>
+        <p class="dash-card-sub">Adjuntos analizados en contenedor aislado</p>
+      </div>
+      <a href="{% url 'sandbox_list' %}" class="dash-link-tiny">
+        Ver todos
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </header>
+    {% if recent_analyses %}
+    <ul class="dash-sandbox-list">
+      {% for an in recent_analyses %}
+      <li class="dash-sandbox-item">
+        <div class="dash-sandbox-score
+                    {% if an.risk_score >= 61 %}sd-bad{% elif an.risk_score >= 31 %}sd-mid{% else %}sd-ok{% endif %}">
+          {{ an.risk_score }}
+        </div>
+        <div class="dash-sandbox-body">
+          <div class="dash-sandbox-file">{{ an.filename|truncatechars:34 }}</div>
+          <div class="dash-sandbox-meta">{{ an.analyzed_at|timesince }} atrás · {{ an.email.from_email|truncatechars:24 }}</div>
+        </div>
+        <a href="{% url 'sandbox_report' an.pk %}" class="dash-sandbox-link" aria-label="Ver reporte">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="dash-empty">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <div class="dash-empty-title">Sin análisis aún</div>
+      <div class="dash-empty-sub">Cuando recibas adjuntos, sus análisis aparecen aquí.</div>
+    </div>
+    {% endif %}
+  </article>
+</section>
 
+<!-- ══════════════════════════════════════════════════════════
+     Datos para Chart.js inyectados como JSON
+     ════════════════════════════════════════════════════════ -->
+{{ activity_14d|json_script:"dashActivityData" }}
+{{ risk_distribution|json_script:"dashRiskData" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{% static 'mail/js/dashboard.js' %}?v=v2-themed"></script>
 {% endblock %}

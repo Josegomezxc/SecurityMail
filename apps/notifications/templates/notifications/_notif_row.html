@@ -1,0 +1,30 @@
+{% comment %}
+Una fila .notif-row — partial reusable.
+Se espera `n` (Notification) en el contexto.
+{% endcomment %}
+<a href="{% url 'notification_detail' n.id %}"
+   class="notif-row {% if not n.read %}unread{% endif %}"
+   data-id="{{ n.id }}" data-type="{{ n.type }}" data-status="{{ n.status }}"
+   data-read="{{ n.read|yesno:'1,0' }}"
+   {% if n.related_email %}data-risk="{{ n.related_email.risk_score|default:0 }}"{% endif %}>
+  {# Icono: si hay correo asociado el color va por risk_score, sino por tipo #}
+  <div class="notif-row-icon {% if n.related_email %}{% if n.related_email.risk_score >= 61 %}r-danger{% elif n.related_email.risk_score >= 31 %}r-warn{% else %}r-safe{% endif %}{% else %}t-{{ n.type }}{% endif %}">
+    {% if n.type == 'forward_request' %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    {% elif n.type == 'forwarded' %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    {% elif n.type == 'threat_alert' %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+    {% else %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+    {% endif %}
+  </div>
+  <div class="notif-row-body">
+    <div class="notif-row-title">{{ n.title }}</div>
+    {% if n.message %}<div class="notif-row-msg">{{ n.message }}</div>{% endif %}
+  </div>
+  <div class="notif-row-meta">
+    <span class="notif-status-pill ns-{{ n.status }}">{{ n.get_status_display }}</span>
+    <span>{{ n.created_at|date:"d M, H:i" }}</span>
+  </div>
+</a>

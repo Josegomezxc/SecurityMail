@@ -6,7 +6,7 @@
 {% block nav_admin_aliases %}active{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/styles/admin_aliases.css' %}?v=mobile-table-scroll">
+<link rel="stylesheet" href="{% static 'core/styles/admin_aliases.css' %}?v=carbon-fix-1">
 {% endblock %}
 
 {% block body %}
@@ -88,7 +88,7 @@
     <div class="col-center">Estado</div>
     <div class="col-center">Correos</div>
     <div class="col-center">Amenazas</div>
-    <div class="col-right">Creado</div>
+    <div class="col-center">Creado</div>
   </div>
   {% for a in aliases %}
     <a href="{% url 'admin_user_detail' pk=a.user.pk %}" class="al-row">
@@ -109,7 +109,7 @@
       </div>
       <div class="al-num col-center {% if a.emails_total == 0 %}zero{% endif %}">{{ a.emails_total }}</div>
       <div class="al-num col-center {% if a.threats_total > 0 %}threats{% else %}zero{% endif %}">{{ a.threats_total }}</div>
-      <div class="al-time col-right">{{ a.created_at|timeshort }} atrás</div>
+      <div class="al-time col-center">{{ a.created_at|timeshort }} atrás</div>
     </a>
   {% empty %}
     <div class="al-empty">

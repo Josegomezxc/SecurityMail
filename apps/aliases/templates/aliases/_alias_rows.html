@@ -1,0 +1,7 @@
+{% comment %}
+Lote de tarjetas para el endpoint AJAX `alias_more_api`.
+Pasa `offset` para que el animation-delay continúe la secuencia visual.
+{% endcomment %}
+{% for alias in aliases %}
+  {% include 'aliases/_alias_row.html' with alias=alias row_index=forloop.counter0|add:offset %}
+{% endfor %}

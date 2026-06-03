@@ -1,18 +1,19 @@
 """
-Lógica de verificación de correo electrónico al registrarse:
-  - create_verification_code(user)  → genera código de 6 dígitos + token URL
-  - get_valid_code_by_token(token)  → busca un código vigente
-  - verify_code(token, code_input)  → valida e invalida tras el uso
-  - send_verification_email(...)    → envía el correo HTML con el código
-  - can_resend(user)                → rate limit para reenvíos
+Códigos de verificación por correo para flujos sobre Users que YA EXISTEN.
 
-Flujo:
-  1. Usuario se registra → User(is_active=False) + UserProfile(email_verified=False)
-  2. Llamamos a create_verification_code(user) que genera código y token
-  3. send_verification_email() manda el correo vía SendGrid
-  4. Redirigimos a /verificar-correo/<token>/ con el form
-  5. El form usa verify_code() para validar
-  6. Si OK: marcamos email_verified=True, is_active=True, login automático
+NOTA IMPORTANTE: este módulo NO se usa para verificar el registro.
+El registro usa `pending_registration_service` (los datos viven en
+`PendingRegistration` y el User se crea recién al verificar el código,
+para evitar llenar `auth_user` con cuentas inactivas).
+
+Acá viven los códigos para acciones sensibles sobre usuarios reales:
+  - create_verification_code(user, purpose='delete_account')
+  - verify_deletion_code(user, code) → eliminar cuenta
+  - can_resend(user, purpose=...)    → cooldown
+
+Las helpers `cleanup_abandoned_registrations`, `verify_code` y
+`get_valid_code_by_token` quedan disponibles solo por retro-compat con
+datos legacy y NO se usan en las vistas actuales.
 """
 import secrets
 from datetime import timedelta
@@ -32,35 +33,46 @@ MAX_CODES_PER_HOUR      = 6    # rate limit anti spam
 ABANDONED_AFTER_MINUTES = 30   # tras esto, borramos la cuenta no verificada
 
 
-def _generate_six_digit_code() -> str:
+def _generate_code() -> str:
     """Devuelve un string de 6 dígitos aleatorios usando RNG criptográfico."""
     # secrets.randbelow es uniforme y criptográficamente seguro
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
-def create_verification_code(user: User) -> Optional[EmailVerificationCode]:
+# Alias retro-compat: código viejo importa `_generate_six_digit_code`.
+_generate_six_digit_code = _generate_code
+
+
+def create_verification_code(user: User, purpose: str = 'register') -> Optional[EmailVerificationCode]:
     """
     Genera un código nuevo y lo guarda. Invalida códigos anteriores del mismo
-    usuario para que solo el último sea válido. Devuelve None si excede el
-    rate limit (anti spam de "reenviar" mil veces).
+    usuario PARA EL MISMO PURPOSE (los códigos de registro no se mezclan con
+    los de eliminación de cuenta). Devuelve None si excede el rate limit.
+
+    `purpose`: 'register' (default) o 'delete_account'.
     """
     last_hour = timezone.now() - timedelta(hours=1)
     recent_count = EmailVerificationCode.objects.filter(
-        user=user, created_at__gte=last_hour,
+        user=user, purpose=purpose, created_at__gte=last_hour,
     ).count()
     if recent_count >= MAX_CODES_PER_HOUR:
         return None
 
-    # Marcamos los códigos previos no usados como "usados" para invalidarlos.
+    # Marcamos los códigos previos no usados como "usados" para invalidarlos
+    # (solo del mismo purpose — no afectamos códigos de otro flujo).
     EmailVerificationCode.objects.filter(
-        user=user, used_at__isnull=True,
+        user=user, purpose=purpose, used_at__isnull=True,
     ).update(used_at=timezone.now())
+
+    # Los códigos de eliminación expiran más rápido (más sensible)
+    validity = 10 if purpose == 'delete_account' else CODE_VALIDITY_MINUTES
 
     return EmailVerificationCode.objects.create(
         user=user,
-        code=_generate_six_digit_code(),
+        purpose=purpose,
+        code=_generate_code(),
         token=secrets.token_urlsafe(TOKEN_BYTES),
-        expires_at=timezone.now() + timedelta(minutes=CODE_VALIDITY_MINUTES),
+        expires_at=timezone.now() + timedelta(minutes=validity),
     )
 
 
@@ -145,14 +157,16 @@ def cleanup_abandoned_registrations() -> int:
     return count
 
 
-def can_resend(user: User) -> Tuple[bool, int]:
+def can_resend(user: User, purpose: str = 'register') -> Tuple[bool, int]:
     """
     Devuelve (puede_reenviar, segundos_para_proximo_envio).
     Implementa el cooldown de RESEND_COOLDOWN_SECS entre reenvíos.
+    El cooldown es por (user, purpose), así que pedir un código de
+    eliminación no afecta el cooldown de un código de registro.
     """
     last = (
         EmailVerificationCode.objects
-        .filter(user=user)
+        .filter(user=user, purpose=purpose)
         .order_by('-created_at')
         .first()
     )
@@ -162,6 +176,54 @@ def can_resend(user: User) -> Tuple[bool, int]:
     if elapsed >= RESEND_COOLDOWN_SECS:
         return True, 0
     return False, int(RESEND_COOLDOWN_SECS - elapsed)
+
+
+# ─────────────────────────────────────────────────────────────────────
+#  Helpers específicos para CONFIRMAR ELIMINACIÓN DE CUENTA
+#  Reusa la misma tabla EmailVerificationCode pero con purpose='delete_account'.
+# ─────────────────────────────────────────────────────────────────────
+
+def create_deletion_code(user: User) -> Optional[EmailVerificationCode]:
+    """Genera un código de 6 dígitos para confirmar la eliminación de cuenta."""
+    return create_verification_code(user, purpose='delete_account')
+
+
+def verify_deletion_code(user: User, code_input: str) -> Tuple[bool, str]:
+    """
+    Verifica un código de eliminación contra el ÚLTIMO código vigente
+    del usuario con purpose='delete_account'.
+
+    Devuelve (ok, mensaje_error):
+      • (True,  '')             → código válido, listo para borrar cuenta
+      • (False, 'no_encontrado') → no hay código activo (expiró o nunca se generó)
+      • (False, 'expirado')      → el código existe pero ya expiró
+      • (False, 'demasiados')    → demasiados intentos fallidos
+      • (False, 'incorrecto')    → código mal escrito (incrementa attempts)
+    """
+    if not code_input:
+        return False, 'no_encontrado'
+
+    ev = (
+        EmailVerificationCode.objects
+        .filter(user=user, purpose='delete_account', used_at__isnull=True)
+        .order_by('-created_at')
+        .first()
+    )
+    if ev is None:
+        return False, 'no_encontrado'
+    if ev.is_expired:
+        return False, 'expirado'
+    if ev.attempts >= 5:
+        return False, 'demasiados'
+
+    code_clean = (code_input or '').strip().replace(' ', '').replace('-', '')
+    if code_clean != ev.code:
+        ev.attempts += 1
+        ev.save(update_fields=['attempts'])
+        return False, 'incorrecto'
+
+    ev.mark_used()
+    return True, ''
 
 
 # ─────────────────────────────────────────────────────────────────────

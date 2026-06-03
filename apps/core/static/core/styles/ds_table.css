@@ -1,0 +1,590 @@
+/* ══════════════════════════════════════════════════════════════════════
+   DS_TABLE — Tabla compacta + paginación compartida.
+   Se importa desde los CSS de cada módulo (mail, aliases, sandbox, etc.)
+   que necesite listar registros paginados server-side.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Wrapper de la tabla ────────────────────────────────────────────── */
+.ds-table-wrap {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow:
+        0 0.125rem 0.5rem rgba(0, 0, 0, 0.18),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    margin-bottom: 1rem;
+}
+
+.ds-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ── Tabla ──────────────────────────────────────────────────────────── */
+.ds-table {
+    width: 100%;
+    /* fixed → respeta los widths de <colgroup>/<th> sin reasignar al
+       contenido. Es lo que evita que un asunto largo "estire" su columna
+       y empuje las otras (lo que se veía como tabla deforme). */
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    min-width: 720px;
+}
+
+.ds-table thead th {
+    text-align: left;
+    padding: 0.625rem 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ds-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s ease;
+    cursor: pointer;
+}
+
+.ds-table tbody tr:last-child {
+    border-bottom: 0;
+}
+
+.ds-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.ds-table tbody tr.unread {
+    background: rgba(109, 74, 255, 0.04);
+}
+
+.ds-table tbody tr.unread:hover {
+    background: rgba(109, 74, 255, 0.08);
+}
+
+.ds-table tbody tr.threat {
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.ds-table tbody tr.threat:hover {
+    background: rgba(239, 68, 68, 0.09);
+}
+
+.ds-table td {
+    padding: 1.125rem 0.75rem;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Columna que puede crecer y envolver texto (la principal — asunto, etc.) */
+.ds-table td.ds-td-grow,
+.ds-table th.ds-td-grow {
+    white-space: nowrap;
+    /* Si queremos truncado en una línea: con table-layout:fixed y width
+       en el <col> esta celda respeta su slot y aplica ellipsis sin
+       desbordarse. */
+}
+
+.ds-table td.ds-td-actions,
+.ds-table th.ds-td-actions {
+    text-align: right;
+    white-space: nowrap;
+    overflow: visible;
+}
+
+/* Acciones inline (varios botones en línea) */
+.ds-table .ds-actions-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    justify-content: flex-end;
+}
+
+/* Para celdas estrechas que solo contienen un icono/avatar centrado.
+   Aplica tanto a <th> como a <td>. */
+.ds-table td.ds-td-center,
+.ds-table th.ds-td-center {
+    text-align: center;
+}
+
+/* Variante: centrado SIN reducir el padding (para columnas normales que
+   solo queremos centradas, no compactas). */
+.ds-table td.ds-td-mid,
+.ds-table th.ds-td-mid {
+    text-align: center;
+}
+
+/* Fila "vacío" cuando no hay datos */
+.ds-table tbody tr.ds-empty-row {
+    cursor: default;
+}
+.ds-table tbody tr.ds-empty-row:hover {
+    background: transparent;
+}
+.ds-table tbody tr.ds-empty-row td {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2.5rem 1rem;
+    font-style: italic;
+}
+
+/* ── Mini badges / pills dentro de celdas ────────────────────────────── */
+.ds-cell-mono {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.ds-cell-muted {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.ds-cell-strong {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ds-cell-unread {
+    color: var(--accent-hover);
+    font-weight: 600;
+}
+
+/* Punto de "no leído" */
+.ds-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0.375rem rgba(109, 74, 255, 0.6);
+    flex-shrink: 0;
+}
+
+/* Avatar pequeñito */
+.ds-mini-avatar {
+    width: 1.625rem;
+    height: 1.625rem;
+    border-radius: 50%;
+    background: rgba(109, 74, 255, 0.1);
+    color: var(--accent-hover);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+/* Badges / pills */
+.ds-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1875rem 0.4375rem;
+    border-radius: 0.375rem;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ds-pill-danger {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.ds-pill-warning {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.ds-pill-success {
+    color: #6ee7b7;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.ds-pill-info {
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.ds-pill-muted {
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+}
+
+.ds-pill-purple {
+    color: var(--accent-hover);
+    background: rgba(109, 74, 255, 0.12);
+    border: 1px solid rgba(109, 74, 255, 0.3);
+}
+
+/* Botón mini de acción dentro de la fila */
+.ds-row-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.3125rem 0.5625rem;
+    border-radius: 0.4375rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.14s ease;
+    text-decoration: none;
+}
+
+.ds-row-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent-hover);
+    background: rgba(109, 74, 255, 0.08);
+}
+
+.ds-row-btn-danger {
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.06);
+}
+
+.ds-row-btn-danger:hover {
+    border-color: rgba(239, 68, 68, 0.7);
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.16);
+}
+
+.ds-row-btn:disabled,
+.ds-row-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PAGINACIÓN
+   ══════════════════════════════════════════════════════════════════════ */
+.ds-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ds-pagination-single {
+    justify-content: flex-end;
+}
+
+.ds-pag-info {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+
+.ds-pag-info strong {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.ds-pag-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.ds-pag-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.875rem;
+    height: 1.875rem;
+    padding: 0 0.5rem;
+    border-radius: 0.4375rem;
+    color: var(--text-muted);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.14s ease;
+    user-select: none;
+}
+
+.ds-pag-link:hover {
+    color: var(--accent-hover);
+    border-color: var(--accent);
+    background: rgba(109, 74, 255, 0.06);
+}
+
+.ds-pag-link.current {
+    color: var(--ai-purple-light, #a78bfa);
+    background: var(--ai-purple-soft, rgba(124, 58, 237, 0.1));
+    border-color: rgba(124, 58, 237, 0.35);
+    cursor: default;
+}
+
+.ds-pag-link.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.ds-pag-ellipsis {
+    color: var(--text-muted);
+    padding: 0 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   FORM DE FILTROS / BÚSQUEDA SERVER-SIDE
+   ══════════════════════════════════════════════════════════════════════ */
+.ds-filterbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.875rem;
+    align-items: center;
+}
+
+.ds-filterbar-search {
+    flex: 1 1 220px;
+    min-width: 200px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.ds-filterbar-search svg.lupa {
+    position: absolute;
+    left: 0.6875rem;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.ds-filterbar-search input {
+    width: 100%;
+    padding: 0.5rem 2.25rem 0.5rem 2rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+.ds-filterbar-search input:focus {
+    border-color: var(--accent);
+    background: var(--bg-elevated);
+}
+
+/* Ocultar la "X" nativa del input[type=search] — solo usamos la custom */
+.ds-filterbar-search input[type="search"]::-webkit-search-cancel-button,
+.ds-filterbar-search input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+}
+.ds-filterbar-search input[type="search"] {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.ds-filterbar-search button[type="reset"],
+.ds-filterbar-search .ds-search-clear {
+    position: absolute;
+    right: 0.375rem;
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    display: none;
+}
+
+.ds-filterbar-search.has-value .ds-search-clear {
+    display: inline-flex;
+}
+
+.ds-filterbar-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.1875rem;
+}
+
+/* Mobile: tabs en UNA SOLA fila con scroll horizontal en lugar de
+   agruparse en varias filas (queda más limpio y se nota mejor que
+   son tabs). */
+@media (max-width: 720px) {
+    .ds-filterbar-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;       /* Firefox */
+        width: 100%;                 /* fila propia: search arriba, tabs aquí */
+        min-width: 0;
+    }
+    .ds-filterbar-tabs::-webkit-scrollbar {
+        display: none;               /* Chrome/Safari */
+    }
+    .ds-filterbar-tab {
+        flex-shrink: 0;              /* tabs nunca se comprimen */
+    }
+    /* La búsqueda toma su fila completa */
+    .ds-filterbar-search {
+        flex: 1 1 100%;
+    }
+}
+
+.ds-filterbar-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    border: 0;
+    cursor: pointer;
+    transition: all 0.14s ease;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ds-filterbar-tab:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.ds-filterbar-tab.active {
+    color: var(--ai-purple-light, #a78bfa);
+    background: var(--ai-purple-soft, rgba(124, 58, 237, 0.1));
+}
+
+.ds-filterbar-tab .ds-tab-count {
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    padding: 0.0625rem 0.3125rem;
+    border-radius: 0.25rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+}
+
+.ds-filterbar-tab.active .ds-tab-count {
+    background: rgba(124, 58, 237, 0.18);
+    color: var(--ai-purple-light, #a78bfa);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .ds-pagination {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ds-pag-info {
+        text-align: center;
+    }
+
+    .ds-pag-list {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   OVERRIDES TEMA CARBON
+   Cambia los morados hardcoded (filas unread, focus rings, pills, etc.)
+   por los rosas/corales del tema carbon. Este archivo es compartido por
+   TODOS los módulos que usan .ds-table — así con un solo override aquí
+   afectamos bandeja, enviados, sandbox, alias requests, etc.
+   ══════════════════════════════════════════════════════════════════════ */
+html[data-theme="carbon"] .ds-table tbody tr.unread {
+    background: rgba(255, 79, 122, 0.04);
+}
+html[data-theme="carbon"] .ds-table tbody tr.unread:hover {
+    background: rgba(255, 79, 122, 0.08);
+}
+html[data-theme="carbon"] .ds-dot {
+    background: var(--accent, #ff4f7a);
+    box-shadow: 0 0 0.375rem rgba(255, 79, 122, 0.6);
+}
+html[data-theme="carbon"] .ds-mini-avatar {
+    background: rgba(255, 79, 122, 0.1);
+    color: var(--accent-hover, #ff6b8e);
+}
+html[data-theme="carbon"] .ds-pill-purple {
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.12);
+    border-color: rgba(255, 79, 122, 0.3);
+}
+html[data-theme="carbon"] .ds-row-btn:hover {
+    border-color: var(--accent, #ff4f7a);
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.08);
+}
+html[data-theme="carbon"] .ds-pag-link:hover {
+    color: var(--accent-hover, #ff6b8e);
+    border-color: var(--accent, #ff4f7a);
+    background: rgba(255, 79, 122, 0.06);
+}
+html[data-theme="carbon"] .ds-pag-link.current {
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.1);
+    border-color: rgba(255, 79, 122, 0.35);
+}
+html[data-theme="carbon"] .ds-filterbar-search input:focus {
+    border-color: var(--accent, #ff4f7a);
+}
+html[data-theme="carbon"] .ds-filterbar-tab.active {
+    color: var(--accent-hover, #ff6b8e);
+    background: rgba(255, 79, 122, 0.1);
+}
+html[data-theme="carbon"] .ds-filterbar-tab.active .ds-tab-count {
+    background: rgba(255, 79, 122, 0.18);
+    color: var(--accent-hover, #ff6b8e);
+}

@@ -22,27 +22,70 @@ from .models import Notification
 #  Render: lista completa
 # ─────────────────────────────────────────────────────────────────────
 
-@login_required(login_url='login')
-def notification_list_view(request):
-    """Página con todas las notificaciones del usuario."""
-    notifs = Notification.objects.filter(user=request.user).select_related(
+NOTIF_BATCH = 6   # notificaciones por "página" en el load-more
+
+
+def _notifs_qs(user):
+    """QuerySet base de notificaciones del usuario."""
+    return Notification.objects.filter(user=user).select_related(
         'related_email', 'related_email__alias',
     )
-    # Counts por categoría para los pills de filtro
-    # "Reenviadas" cubre tanto auto-forwarded (type=forwarded) como aprobadas
-    # manualmente desde una forward_request (status=approved).
+
+
+@login_required(login_url='login')
+def notification_list_view(request):
+    """Página con notificaciones — carga diferida."""
     from django.db.models import Q
+    full_qs = _notifs_qs(request.user)
+
     counts = {
-        'all':       notifs.count(),
-        'unread':    notifs.filter(read=False).count(),
-        'pending':   notifs.filter(status='pending').count(),
-        'forwarded': notifs.filter(Q(type='forwarded') | Q(status='approved')).count(),
-        'discarded': notifs.filter(status='discarded').count(),
+        'all':       full_qs.count(),
+        'unread':    full_qs.filter(read=False).count(),
+        'pending':   full_qs.filter(status='pending').count(),
+        'forwarded': full_qs.filter(Q(type='forwarded') | Q(status='approved')).count(),
+        'discarded': full_qs.filter(status='discarded').count(),
     }
+
+    notifs   = list(full_qs[:NOTIF_BATCH])
+    has_more = counts['all'] > NOTIF_BATCH
+
     return render(request, 'notifications/notifications.html', {
         'notifications': notifs,
         'pending_count': counts['pending'],
         'counts':        counts,
+        'has_more':      has_more,
+        'next_offset':   len(notifs),
+        'batch_size':    NOTIF_BATCH,
+    })
+
+
+@login_required(login_url='login')
+def notification_more_api(request):
+    """Siguiente lote de notificaciones como HTML parcial. Espera `?offset=N`."""
+    try:
+        offset = int(request.GET.get('offset') or 0)
+    except ValueError:
+        offset = 0
+    offset = max(0, offset)
+
+    qs = _notifs_qs(request.user)
+    total = qs.count()
+    batch = list(qs[offset:offset + NOTIF_BATCH])
+
+    from django.template.loader import render_to_string
+    html = render_to_string(
+        'notifications/_notif_rows.html',
+        {'notifications': batch},
+        request=request,
+    )
+
+    new_offset = offset + len(batch)
+    return JsonResponse({
+        'ok':          True,
+        'html':        html,
+        'count':       len(batch),
+        'next_offset': new_offset,
+        'has_more':    new_offset < total,
     })
 
 

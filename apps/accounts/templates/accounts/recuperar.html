@@ -3,7 +3,7 @@
 {% block title %}Recuperar contraseña — DockerShield{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'accounts/styles/recuperar.css' %}">
+<link rel="stylesheet" href="{% static 'accounts/styles/recuperar.css' %}?v=logo-match">
 {% endblock %}
 
 {% block body_outer %}
@@ -70,9 +70,8 @@
 
       <header class="login-logo">
         <span class="login-logo-icon">
-          <img src="{% static 'core/img/logo.png' %}" alt="" width="56" height="56">
+          <img src="{% static 'core/img/logo.png' %}" alt="DockerShield" width="220" height="90">
         </span>
-        <span class="login-logo-text">Docker<span>Shield</span></span>
       </header>
 
       <div id="form-state" {% if submitted %}style="display:none"{% endif %}>

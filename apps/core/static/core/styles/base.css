@@ -28,10 +28,20 @@
 
 /* ──────────────────────────────────────────────────────────────────────
    OVERRIDES POR TEMA (carbon)
-   Las paletas como tal viven en properties/base.css. Aquí solo quedan
-   los detalles estilísticos hard-coded: gradientes, sombras y filtros
-   que dependen de imágenes o colores no parametrizables.
+   Las paletas viven en properties/base.css, PERO duplicamos acá las
+   re-asignaciones de los aliases "ai-purple" porque:
+     - properties/base.css se carga vía @import sin cache-bust
+     - Mobile cachea agresivamente y no detectaba la versión nueva
+   Al ponerlas acá (en base.css que sí tiene ?v=...), mobile las
+   recibe frescas en cada bump. Si las dos definiciones difieren,
+   gana esta por cascada (se aplica después que el @import).
    ────────────────────────────────────────────────────────────────────── */
+html[data-theme="carbon"] {
+    --ai-purple:         #ff4f7a;
+    --ai-purple-light:   #ff8aa6;
+    --ai-purple-soft:    rgba(255,79,122,0.08);
+    --ai-purple-border:  rgba(255,79,122,0.22);
+}
 html[data-theme="carbon"] .logo-text span {
     background: linear-gradient(90deg, #ff6b8e, #ff9ab2);
     -webkit-background-clip: text;
@@ -470,6 +480,12 @@ img, iframe, video, canvas { max-width: 100%; }
     text-overflow: ellipsis;
     letter-spacing: -0.005em;
     margin-bottom: 0.125rem;
+    /* line-height generoso: el `overflow: hidden` recorta el alto del
+       cuadro de cada línea, y con line-height bajo los descendentes y
+       ascendentes de letras como `c`, `g`, `p`, `y`, `j` quedan cortados
+       (la `c` parecía una `o` por eso). 1.4 da aire vertical suficiente. */
+    line-height: 1.4;
+    padding-block: 0.0625rem;
 }
 .user-email {
     font-size: 0.71875rem;
@@ -1424,10 +1440,18 @@ select:-webkit-autofill {
 }
 
 .theme-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    /* Flex centrado en lugar de grid para que con N temas (2 ahora, más
+       en el futuro) las cards queden siempre centradas y nunca pegadas
+       a la izquierda por columnas vacías. */
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 0.875rem;
     margin-bottom: 1.375rem;
+}
+.theme-grid .theme-card {
+    flex: 0 1 12rem;     /* ancho fijo razonable, encoge en mobile */
+    min-width: 9rem;
 }
 
 .theme-card {
@@ -1844,7 +1868,9 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
 
     .content-area { padding: 1.25rem 1.125rem; }
 
-    .theme-grid { grid-template-columns: repeat(3, 1fr); }
+    /* En desktop el flex centrado ya hace su trabajo — solo agrandamos
+       ligeramente las cards para llenar el modal más amplio. */
+    .theme-grid .theme-card { flex-basis: 13rem; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════

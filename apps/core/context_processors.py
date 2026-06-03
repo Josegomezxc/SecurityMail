@@ -4,6 +4,7 @@ from apps.aliases.models import Alias, AliasQuotaRequest
 from apps.mail.models import EmailMessage, SentEmail, Draft
 from apps.notifications.models import Notification
 from apps.sandbox.models import SandboxAnalysis
+from apps.accounts.models import AccountRecoveryRequest
 from apps.accounts.services.profile_service import get_user_initials, get_user_color
 
 
@@ -24,6 +25,7 @@ def sidebar_counts(request):
             'trash_count':         0,
             'active_aliases':      [],
             'alias_requests_pending_count': 0,
+            'account_recovery_pending_count': 0,
             'avatar_initials':     '',
             'avatar_color':        '#7c5cff',
         }
@@ -76,6 +78,12 @@ def sidebar_counts(request):
         if user.is_staff else 0
     )
 
+    # Solicitudes de recuperación de cuenta — solo admin (badge en sidebar).
+    account_recovery_pending_count = (
+        AccountRecoveryRequest.objects.filter(status='pending').count()
+        if user.is_staff else 0
+    )
+
     return {
         'alias_count':         alias_count,
         'active_aliases':      active_aliases,
@@ -87,6 +95,7 @@ def sidebar_counts(request):
         'drafts_count':        drafts_count,
         'trash_count':         trash_count,
         'alias_requests_pending_count': alias_requests_pending_count,
+        'account_recovery_pending_count': account_recovery_pending_count,
         # Iniciales y color del avatar — disponibles en TODAS las páginas
         # para que el sidebar y el perfil muestren lo mismo (ej. "JG" para
         # un usuario "Jose Gomez", siempre con el mismo color).

@@ -1,0 +1,9 @@
+{% comment %}
+Lote de filas para el endpoint AJAX `sent_more_api` ("Cargar más").
+Itera `sent_emails` e inserta cada fila usando el mismo partial que el
+render inicial server-side (_sent_row.html) — así HTML y comportamiento
+quedan idénticos.
+{% endcomment %}
+{% for em in sent_emails %}
+  {% include 'mail/_sent_row.html' with em=em %}
+{% endfor %}

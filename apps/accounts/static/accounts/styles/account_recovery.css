@@ -1,0 +1,103 @@
+/* ════════════════════════════════════════════════════════════════════
+   RECUPERACIÓN DE CUENTA BLOQUEADA
+   La card reusa los estilos .aliasreq-* del modal "Pedir más cupo de
+   alias". Acá solo definimos el wrapper full-screen centrado y unos
+   overrides puntuales (la card vive como página, no como modal).
+   ════════════════════════════════════════════════════════════════════ */
+
+.recovery-wrapper {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+    background:
+        radial-gradient(ellipse at top left, rgba(109, 74, 255, 0.18), transparent 55%),
+        radial-gradient(ellipse at bottom right, rgba(155, 109, 255, 0.12), transparent 55%),
+        var(--bg-base);
+}
+
+.recovery-shell {
+    width: 100%;
+    /* La card puede crecer mucho cuando muestra historial completo
+       (decisión + quote + admin note + timeline) — ampliamos el ancho
+       para que la sección de decisión a dos columnas respire. */
+    max-width: 34rem;
+}
+
+/* La .aliasreq-modal originalmente vive DENTRO de .aliasreq-overlay
+   (position: relative, anim de entrada). Acá la usamos suelta: la
+   re-encuadramos para que se vea como una card normal de página. */
+.recovery-card.aliasreq-modal {
+    position: relative;
+    max-width: none;
+    margin: 0;
+    animation: recoveryCardIn 0.32s cubic-bezier(.22, 1, .36, 1) both;
+}
+@keyframes recoveryCardIn {
+    from { opacity: 0; transform: translateY(0.75rem); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* El botón secundario lo usamos como <a> también — match visual */
+a.aliasreq-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+/* Error inline (cuando el motivo es muy corto, etc.) */
+.aliasreq-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    margin: 0 0 1rem;
+    background: rgba(239, 68, 68, 0.10);
+    border: 1px solid rgba(239, 68, 68, 0.32);
+    border-radius: 0.5rem;
+    color: #fecaca;
+    font-size: 0.78125rem;
+}
+.aliasreq-error svg { color: #f87171; flex-shrink: 0; }
+
+/* ── Bloques del detalle resuelto en POV del usuario ──────────────────
+   Los .aar-mb-* del modal admin viven en padding 0 (heredan del modal).
+   Acá los re-cuadramos para que respiren en la card de la página. */
+.recovery-card .aar-mb-decision,
+.recovery-card .aar-mb-block,
+.recovery-card .aar-mb-foot {
+    margin-top: 1rem;
+}
+.recovery-card .aar-mb-block:first-of-type { margin-top: 1.25rem; }
+
+/* Si el último estado fue rechazo + sigue bloqueado, mostramos un form
+   de reintento abajo con un divider claro entre el detalle y el form. */
+.rec-retry { margin-top: 1.5rem; }
+.rec-retry-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.25rem 0 1rem;
+    color: var(--text-muted, #8b89a3);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+.rec-retry-divider::before,
+.rec-retry-divider::after {
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+    background: var(--border, rgba(255, 255, 255, 0.08));
+}
+
+.rec-actions { margin-top: 1.25rem; justify-content: center; }
+.rec-actions .aliasreq-btn-primary,
+.rec-actions .aliasreq-btn-secondary {
+    min-width: 12rem;
+    text-align: center;
+}

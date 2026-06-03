@@ -1,0 +1,6 @@
+{% comment %}
+Lote de filas para el endpoint AJAX `trash_more_api`. Reusa _trash_row.html.
+{% endcomment %}
+{% for it in all_trash %}
+  {% include 'mail/_trash_row.html' with it=it %}
+{% endfor %}

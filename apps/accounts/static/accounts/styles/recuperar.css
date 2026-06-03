@@ -154,27 +154,29 @@ body { background: var(--bg-base); }
     flex-direction: column;
     justify-content: center;
 }
+/* Logo: mismo tamaño/centrado que login.css para que ambas pantallas
+   compartan el mismo header visual (logo PNG grande, sin texto al lado). */
 .login-logo {
     display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    margin-bottom: 1.75rem;
+    justify-content: center;
+    margin: -0.25rem 0 0.5rem;
 }
 .login-logo-icon {
-    width: var(--rc-logo-size);
-    height: var(--rc-logo-size);
+    width: 100%;
+    max-width: 13.75rem;
+    height: auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 .login-logo-icon img {
     width: 100%;
-    height: 100%;
+    height: auto;
+    max-height: 8.625rem;
     object-fit: contain;
     display: block;
+    filter: drop-shadow(0 0.5rem 1.375rem rgba(124, 92, 255, 0.35));
 }
-.login-logo-text { font-size: 1.125rem; font-weight: 600; }
-.login-logo-text span { color: var(--accent); }
 
 .login-title {
     font-size: 1.5rem;

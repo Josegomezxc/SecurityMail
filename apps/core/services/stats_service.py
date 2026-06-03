@@ -20,7 +20,9 @@ from apps.sandbox.models import SandboxAnalysis
 def dashboard_stats(user) -> dict:
     """
     Devuelve todas las métricas que el dashboard del usuario necesita:
-    contadores principales, tendencia 24h y tasa de bloqueo.
+    contadores principales, tendencia 24h, tasa de bloqueo, serie de
+    actividad diaria (últimos 14 días, para el gráfico de barras) y
+    distribución por nivel de riesgo (para el donut).
     """
     now       = timezone.now()
     cutoff_1d = now - timedelta(days=1)
@@ -31,6 +33,8 @@ def dashboard_stats(user) -> dict:
 
     total_emails  = emails_qs.count()
     threats_count = emails_qs.filter(risk_score__gte=61).count()
+    susp_count    = emails_qs.filter(risk_score__gt=30, risk_score__lt=61).count()
+    safe_emails   = emails_qs.filter(risk_score__lte=30).count()
     safe_count    = sandbox_qs.filter(risk_score__lte=30).count()
     alias_count   = Alias.objects.filter(user=user, is_active=True).count()
     unread_count  = emails_qs.filter(read=False).count()
@@ -45,17 +49,51 @@ def dashboard_stats(user) -> dict:
     if total_emails > 0:
         block_rate = round((threats_count / total_emails) * 100)
 
-    return {
-        "alias_count":   alias_count,
-        "total_emails":  total_emails,
-        "threats_count": threats_count,
-        "safe_count":    safe_count,
-        "unread_count":  unread_count,
-        "today_emails":  today_emails,
-        "yday_emails":   yday_emails,
-        "today_threats": today_threats,
-        "block_rate":    block_rate,
+    # ── Actividad: correos recibidos por día (últimos 14) ──
+    activity_14d = []
+    for i in range(13, -1, -1):
+        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end   = day_start + timedelta(days=1)
+        count = emails_qs.filter(received_at__gte=day_start, received_at__lt=day_end).count()
+        activity_14d.append({
+            'label': day_start.strftime('%d/%m'),
+            'count': count,
+        })
+
+    # ── Distribución por nivel de riesgo (para el donut) ──
+    risk_distribution = {
+        'safe':    safe_emails,
+        'susp':    susp_count,
+        'threats': threats_count,
     }
+
+    # ── Tendencia 24h vs 24h previas (para mostrar +X% en el card) ──
+    emails_trend = _trend_pct(today_emails, yday_emails)
+
+    return {
+        "alias_count":       alias_count,
+        "total_emails":      total_emails,
+        "threats_count":     threats_count,
+        "safe_count":        safe_count,
+        "unread_count":      unread_count,
+        "today_emails":      today_emails,
+        "yday_emails":       yday_emails,
+        "today_threats":     today_threats,
+        "block_rate":        block_rate,
+        # Para el gráfico de barras (Chart.js bar)
+        "activity_14d":      activity_14d,
+        # Para el donut (Chart.js doughnut)
+        "risk_distribution": risk_distribution,
+        # Para el +X% del stat card de correos
+        "emails_trend":      emails_trend,
+    }
+
+
+def _trend_pct(current: int, previous: int) -> int:
+    """% de cambio current vs previous. Maneja división por cero."""
+    if previous == 0:
+        return 100 if current > 0 else 0
+    return round((current - previous) / previous * 100)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -159,10 +197,20 @@ def admin_global_stats() -> dict:
     emails_trend  = _trend_pct(received_qs.filter(received_at__gte=cutoff_7d).count(), emails_prev_7d)
     threats_trend = _trend_pct(threats_7d, threats_prev_7d)
 
+    # ── Desglose de usuarios para el donut del panel admin ────────────
+    # Tres slices:
+    #   - regulares activos = activos y NO staff
+    #   - staff (admins, todos cuentan activos para esta visualización)
+    #   - inactivos = no activos (bloqueados por intentos o soft-deleted)
+    users_active_regular = max(0, users_active - users_staff)
+    users_inactive       = max(0, users_total  - users_active)
+
     return {
-        "users_total":     users_total,
-        "users_staff":     users_staff,
-        "users_active":    users_active,
+        "users_total":          users_total,
+        "users_staff":          users_staff,
+        "users_active":         users_active,
+        "users_active_regular": users_active_regular,
+        "users_inactive":       users_inactive,
         "aliases_total":   aliases_total,
         "aliases_active":  aliases_active,
         "aliases_active_pct": aliases_active_pct,
@@ -175,7 +223,7 @@ def admin_global_stats() -> dict:
         "threats_7d":      threats_7d,
         "sandbox_total":   SandboxAnalysis.objects.count(),
         "sandbox_blocked": SandboxAnalysis.objects.filter(risk_score__gte=81).count(),
-        # Distribución
+        # Distribución de riesgo
         "safe_count":      safe_count,
         "susp_count":      susp_count,
         "safe_pct":        safe_pct,

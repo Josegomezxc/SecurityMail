@@ -79,6 +79,55 @@ class UserProfile(models.Model):
         default=0,
         help_text="ID máximo de notificación cuyo toast ya se mostró.",
     )
+    # ── Soft delete (borrado lógico) ──────────────────────────────────
+    # En lugar de borrar físicamente el User (que arrastra alias, correos,
+    # análisis, etc. en cascada), marcamos el perfil como eliminado.
+    # Beneficios:
+    #   - Auditoría: queda quién/cuándo se "borró"
+    #   - El usuario puede pedir recuperar la cuenta dentro de N días
+    #   - No se rompen FKs ni se pierden correos analizados
+    # Un management command puede purgar físicamente los profile.is_deleted
+    # más viejos de cierta antigüedad si se quiere limpiar la BD.
+    is_deleted   = models.BooleanField(
+        default=False,
+        help_text="Soft delete: marca la cuenta como eliminada sin borrar los datos.",
+    )
+    deleted_at   = models.DateTimeField(null=True, blank=True,
+                                        help_text="Cuándo se marcó la cuenta como eliminada.")
+    deletion_ip  = models.GenericIPAddressField(null=True, blank=True,
+                                                help_text="IP desde donde se solicitó la eliminación.")
+    # ── Bloqueo por intentos fallidos de login ────────────────────────
+    # Tracking PER-USER (separado del rate-limit por IP de auth_service).
+    # Flujo:
+    #   1) Cada contraseña incorrecta sube failed_login_attempts.
+    #   2) Al llegar a LOGIN_MAX_USER_FAILS → temp_locked_until = +3 min
+    #      y temp_lock_triggered = True (la siguiente falla será permanente).
+    #   3) Si vuelve a fallar después de que expira el temp lock →
+    #      User.is_active = False + permanent_lock_at + permanent_lock_reason.
+    #   4) Login correcto resetea el contador y limpia ambos campos de lock.
+    # `permanent_lock_at` se usa para distinguir bloqueo por intentos vs
+    # soft delete (is_deleted). Ambos ponen User.is_active=False, pero
+    # tienen UI y recuperación distintas.
+    failed_login_attempts = models.PositiveIntegerField(
+        default=0,
+        help_text="Intentos consecutivos de password incorrecta. Se resetea al login exitoso.",
+    )
+    temp_locked_until = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Si > now, la cuenta está bloqueada temporalmente.",
+    )
+    temp_lock_triggered = models.BooleanField(
+        default=False,
+        help_text="True una vez que se disparó el temp lock. La siguiente falla = bloqueo permanente.",
+    )
+    permanent_lock_reason = models.TextField(
+        blank=True, default='',
+        help_text="Motivos que se muestran al usuario en la card de cuenta bloqueada.",
+    )
+    permanent_lock_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Cuándo se bloqueó permanentemente la cuenta por intentos fallidos.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -159,19 +208,37 @@ class PasswordResetToken(models.Model):
 
 class EmailVerificationCode(models.Model):
     """
-    Código de 6 dígitos enviado al correo del usuario al registrarse,
-    más un token único para identificar el flujo en la URL sin exponer
-    el id del User.
+    Código de 6 dígitos enviado al correo del usuario. Originalmente
+    sirve para verificar email al registrarse, pero también se reusa
+    para confirmar acciones destructivas (eliminar cuenta).
 
-    Flujo:
+    El campo `purpose` distingue el propósito del código, para que
+    códigos de registro no se puedan usar para borrar la cuenta y
+    viceversa.
+
+    Flujo registro:
       1. Usuario se registra → creamos User con is_active=False y un
-         EmailVerificationCode con código aleatorio.
-      2. Enviamos correo con el código + redirigimos a /verificar-correo/<token>/
-      3. Usuario pega el código → verificamos → marcamos email_verified=True,
-         is_active=True y hacemos login automático.
+         EmailVerificationCode con purpose='register'.
+      2. Enviamos correo con el código.
+      3. Usuario pega el código → verificamos → activamos cuenta.
+
+    Flujo eliminación:
+      1. Usuario confirma contraseña + texto "ELIMINAR" en perfil.
+      2. Generamos EmailVerificationCode con purpose='delete_account'.
+      3. Enviamos correo con el código (template rojo de alerta).
+      4. Usuario ingresa código → marcamos profile.is_deleted=True.
     """
+    PURPOSE_CHOICES = [
+        ('register',       'Verificación de registro'),
+        ('delete_account', 'Confirmar eliminación de cuenta'),
+    ]
+
     user       = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='email_verification_codes',
+    )
+    purpose    = models.CharField(
+        max_length=20, choices=PURPOSE_CHOICES, default='register', db_index=True,
+        help_text='Para qué acción se usa este código.',
     )
     code       = models.CharField(max_length=6, db_index=True)
     token      = models.CharField(max_length=64, unique=True, db_index=True)
@@ -208,3 +275,126 @@ class EmailVerificationCode(models.Model):
 
     def __str__(self):
         return f"VerifyCode {self.code} → {self.user.email}"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  REGISTRO PENDIENTE DE VERIFICACIÓN
+# ═══════════════════════════════════════════════════════════════════════
+
+class PendingRegistration(models.Model):
+    """
+    Datos de un registro a la espera de verificación de correo.
+    El User real NO se crea en `auth_user` hasta que el dueño del correo
+    pruebe que tiene acceso al buzón ingresando el código de 6 dígitos.
+
+    Por qué esto y no `User(is_active=False)` como antes:
+      - Antes la BD se llenaba de cuentas inactivas cuando alguien
+        abandonaba el flujo (cerró pestaña, no llegó el correo, error
+        de tipeo, etc.). Eso ensuciaba el panel de admin y abría la
+        puerta a "cuadrar" correos ajenos para reservar el username.
+      - Ahora la cuenta NO existe hasta que se demuestre control del
+        buzón → si el flujo se abandona, basta con borrar este row,
+        nada que limpiar en cascada.
+
+    Campos:
+      - password_hash: la contraseña ya hasheada con make_password().
+        Nunca guardamos texto plano.
+      - code/token/expires_at/attempts: igual que EmailVerificationCode.
+      - email NO es unique: permitimos varios pendientes del mismo
+        correo (typos consecutivos, reintentos). Cuando uno se verifica,
+        los demás del mismo email se invalidan.
+    """
+    email         = models.EmailField(db_index=True)
+    first_name    = models.CharField(max_length=150)
+    password_hash = models.CharField(
+        max_length=128,
+        help_text="Contraseña hasheada con django.contrib.auth.hashers.make_password.",
+    )
+    code          = models.CharField(max_length=6, db_index=True)
+    token         = models.CharField(max_length=64, unique=True, db_index=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+    expires_at    = models.DateTimeField()
+    used_at       = models.DateTimeField(null=True, blank=True)
+    attempts      = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Cuántas veces se intentó verificar (anti brute-force).",
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Registro pendiente'
+        verbose_name_plural = 'Registros pendientes'
+
+    @property
+    def is_expired(self) -> bool:
+        from django.utils import timezone
+        return timezone.now() >= self.expires_at
+
+    @property
+    def is_used(self) -> bool:
+        return self.used_at is not None
+
+    @property
+    def is_valid(self) -> bool:
+        return not self.is_used and not self.is_expired and self.attempts < 5
+
+    def mark_used(self):
+        from django.utils import timezone
+        self.used_at = timezone.now()
+        self.save(update_fields=['used_at'])
+
+    def __str__(self):
+        return f"PendingRegistration {self.email} (code={self.code})"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  SOLICITUD DE RECUPERACIÓN DE CUENTA BLOQUEADA
+# ═══════════════════════════════════════════════════════════════════════
+
+class AccountRecoveryRequest(models.Model):
+    """
+    Solicitud que un usuario envía al admin para reactivar su cuenta
+    después de un bloqueo PERMANENTE por intentos fallidos de login.
+
+    Espeja la estructura de AliasQuotaRequest (aliases.models). Al
+    aprobar: User.is_active=True, se limpian los campos de lock del
+    profile. Al rechazar: la cuenta queda bloqueada y el usuario recibe
+    una notificación con la nota del admin.
+
+    Por usuario solo puede haber UNA pendiente — enforced en la vista.
+    """
+    STATUS = [
+        ('pending',  'Pendiente'),
+        ('approved', 'Aprobada'),
+        ('rejected', 'Rechazada'),
+    ]
+
+    user        = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='account_recovery_requests',
+    )
+    reason      = models.TextField(
+        help_text="Explicación del usuario de por qué quiere recuperar la cuenta.",
+    )
+    status      = models.CharField(max_length=10, choices=STATUS, default='pending')
+    admin_note  = models.TextField(
+        blank=True,
+        help_text="Nota del admin al aprobar/rechazar (opcional).",
+    )
+    resolved_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='resolved_account_recovery_requests',
+    )
+    created_at  = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Solicitud de recuperación de cuenta'
+        verbose_name_plural = 'Solicitudes de recuperación de cuenta'
+        indexes = [
+            models.Index(fields=['status', '-created_at']),
+            models.Index(fields=['user', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f"Recovery {self.user.email} ({self.status})"

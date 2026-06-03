@@ -1719,3 +1719,31 @@
     gap: 0.75rem 1rem;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   OVERRIDES TEMA CARBON — Sandbox reporte
+   ══════════════════════════════════════════════════════════════════════ */
+html[data-theme="carbon"] .sbr-hero {
+    background: linear-gradient(135deg,
+        rgba(255, 79, 122, 0.18) 0%,
+        var(--bg-surface) 100%);
+}
+html[data-theme="carbon"] .sbr-hero-icon {
+    background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
+}
+html[data-theme="carbon"] .sbr-card-title svg,
+html[data-theme="carbon"] .sbr-section-icon {
+    color: var(--accent-hover, #ff6b8e);
+    stroke: var(--accent-hover, #ff6b8e);
+}
+html[data-theme="carbon"] .sbr-score-circle.purple,
+html[data-theme="carbon"] .ai-badge {
+    background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
+}
+html[data-theme="carbon"] .ai-analysis-card {
+    border-color: rgba(255, 79, 122, 0.25);
+}
+html[data-theme="carbon"] .ai-verdict-pill {
+    background: rgba(255, 79, 122, 0.1);
+    color: var(--accent-hover, #ff6b8e);
+}

@@ -7,7 +7,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'accounts/styles/perfil.css' %}">
+<link rel="stylesheet" href="{% static 'accounts/styles/perfil.css' %}?v=soft-delete-code">
 {% endblock %}
 
 {% block body %}
@@ -298,9 +298,10 @@
         <h2 class="panel-header-title" id="panel-pwd-title">Cambiar contraseña</h2>
       </header>
       <div class="panel-body">
-        <form method="post">
+        <form method="post" id="pwForm" novalidate>
           {% csrf_token %}
           <input type="hidden" name="form_type" value="password">
+
           <div class="form-group">
             <label class="form-label" for="pwd1">Nueva contraseña</label>
             <div class="input-eye-wrap">
@@ -310,7 +311,57 @@
                 <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
               </button>
             </div>
+
+            <!-- Caps Lock warning -->
+            <div class="caps-warning" id="capsWarning" role="status" aria-live="polite">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              Bloq Mayús está activado
+            </div>
+
+            <!-- Barra de fortaleza (4 segmentos) -->
+            <div class="strength-wrap" aria-live="polite">
+              <div class="strength-bar" id="strengthBar" role="presentation">
+                <span></span><span></span><span></span><span></span>
+              </div>
+              <div class="strength-label">
+                <span>Fortaleza</span>
+                <span class="level" id="strengthLevel">—</span>
+              </div>
+            </div>
+
+            <!-- Requisitos -->
+            <ul class="req-list" id="reqList" aria-label="Requisitos de la contraseña">
+              <li class="req" data-req="len">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                8+ caracteres
+              </li>
+              <li class="req" data-req="upper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Una mayúscula
+              </li>
+              <li class="req" data-req="num">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Un número
+              </li>
+              <li class="req" data-req="sym">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Un símbolo
+              </li>
+            </ul>
           </div>
+
           <div class="form-group">
             <label class="form-label" for="pwd2">Confirmar nueva contraseña</label>
             <div class="input-eye-wrap">
@@ -320,8 +371,15 @@
                 <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
               </button>
             </div>
+            <div class="match-hint" id="matchHint" aria-live="polite">
+              <svg id="matchIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span id="matchText">Las contraseñas coinciden</span>
+            </div>
           </div>
-          <button type="submit" class="btn-primary">
+
+          <button type="submit" class="btn-primary" id="pwSubmitBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/>
               <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
@@ -446,7 +504,8 @@
       </div>
       <div class="da-head-text">
         <h2 id="da-title" class="da-title">Eliminar tu cuenta</h2>
-        <p class="da-sub">Esta acción es <strong style="color:#fca5a5">permanente</strong> y no se puede deshacer. Todos tus datos serán borrados de forma inmediata.</p>
+        <p class="da-sub" id="da-sub-step1">Esta acción cierra tu cuenta y deja de procesar tus correos. Confirma con tu contraseña y te enviaremos un código al correo.</p>
+        <p class="da-sub" id="da-sub-step2" style="display:none">Ingresa el código de 6 dígitos que te enviamos a tu correo. Expira en 10 minutos.</p>
       </div>
       <button type="button" class="da-close" id="deleteAccountClose" aria-label="Cerrar diálogo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
@@ -455,7 +514,7 @@
       </button>
     </header>
 
-    <dl class="da-impact" aria-label="Datos que se borrarán">
+    <dl class="da-impact" id="da-impact" aria-label="Datos que se borrarán">
       <div class="da-impact-item">
         <dt class="da-impact-lbl" style="order:2">Alias</dt>
         <dd class="da-impact-num" style="order:1;margin:0">{{ alias_count|default:0 }}</dd>
@@ -470,6 +529,7 @@
       </div>
     </dl>
 
+    <!-- ── PASO 1: password + ELIMINAR ── -->
     <form id="deleteAccountForm" class="da-form" autocomplete="off">
       {% csrf_token %}
 
@@ -501,7 +561,41 @@
         <button type="button" class="da-btn da-btn-cancel" id="deleteAccountCancel">Cancelar</button>
         <button type="submit" class="da-btn da-btn-confirm" id="deleteAccountSubmit" disabled>
           <span class="da-spinner" aria-hidden="true"></span>
-          <span class="da-btn-text">Eliminar mi cuenta</span>
+          <span class="da-btn-text">Enviarme el código</span>
+        </button>
+      </div>
+    </form>
+
+    <!-- ── PASO 2: código de 6 dígitos ── (oculto al inicio) -->
+    <form id="deleteAccountCodeForm" class="da-form" autocomplete="off" style="display:none">
+      {% csrf_token %}
+
+      <div class="da-code-info" role="status" aria-live="polite">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        <span>Te enviamos un código a tu correo. Revisa también la carpeta de spam.</span>
+      </div>
+
+      <label for="deleteAccountCode" class="da-field-label">Código de 6 dígitos</label>
+      <div class="da-input-wrap">
+        <input id="deleteAccountCode" name="code" type="text"
+               class="da-input da-input-mono"
+               inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               placeholder="000000"
+               autocomplete="one-time-code" autocorrect="off" spellcheck="false"
+               required>
+      </div>
+      <p class="da-field-hint">El código expira en 10 minutos. Solo se usa una vez.</p>
+
+      <div id="deleteAccountCodeError" class="da-error" role="alert" aria-live="polite"></div>
+
+      <div class="da-actions">
+        <button type="button" class="da-btn da-btn-cancel" id="deleteAccountResend">Reenviar código</button>
+        <button type="submit" class="da-btn da-btn-confirm" id="deleteAccountConfirmFinal" disabled>
+          <span class="da-spinner" aria-hidden="true"></span>
+          <span class="da-btn-text">Confirmar eliminación</span>
         </button>
       </div>
     </form>
@@ -526,8 +620,9 @@
 
 <script>
 window.__PERFIL_CTX__ = {
-  deleteAccountUrl: "{% url 'eliminar_cuenta' %}"
+  deleteAccountUrl:        "{% url 'eliminar_cuenta' %}",
+  deleteAccountConfirmUrl: "{% url 'eliminar_cuenta_confirmar' %}"
 };
 </script>
-<script src="{% static 'accounts/js/perfil.js' %}"></script>
+<script src="{% static 'accounts/js/perfil.js' %}?v=soft-delete-code"></script>
 {% endblock %}

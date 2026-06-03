@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="{% static 'core/js/base.js' %}?v=loader-14"></script>
-    <link rel="stylesheet" href="{% static 'core/styles/base.css' %}?v=loader-14">
+    <link rel="stylesheet" href="{% static 'core/styles/base.css' %}?v=carbon-vars-2026-05-19">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -284,6 +284,17 @@
                 Solicitudes
                 {% if alias_requests_pending_count %}
                     <span class="badge-warning-pill">{{ alias_requests_pending_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'admin_account_recovery_requests' %}" class="sidebar-link {% block nav_admin_account_recovery_requests %}{% endblock %}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                </svg>
+                Recuperación cuentas
+                {% if account_recovery_pending_count %}
+                    <span class="badge-warning-pill">{{ account_recovery_pending_count }}</span>
                 {% endif %}
             </a>
         </nav>

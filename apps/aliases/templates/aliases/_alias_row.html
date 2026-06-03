@@ -1,0 +1,80 @@
+{% comment %}
+Una tarjeta .alias-card — partial reusable.
+Se espera `alias` y opcionalmente `row_index` (para animation-delay).
+{% endcomment %}
+<article class="alias-card {% if not alias.is_active %}destroyed{% endif %}"
+     data-active="{{ alias.is_active|yesno:'true,false' }}"
+     data-label="{{ alias.label|lower }}"
+     data-address="{{ alias.address|lower }}"
+     aria-label="Alias {{ alias.address }}"
+     style="animation-delay:{{ row_index|default:0 }}00ms">
+
+  <div class="alias-icon-box" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.8" stroke-linecap="round">
+      <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+    </svg>
+  </div>
+
+  <div class="alias-body">
+    <div class="alias-address">{{ alias.address }}</div>
+    <div class="alias-meta">
+      <span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        {{ alias.label }}
+      </span>
+      <span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Creado {{ alias.created_at|timesince }} atrás
+      </span>
+    </div>
+    <div class="alias-mini-stats">
+      <span class="alias-mini-stat {% if alias.emails_total %}traffic{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        {{ alias.emails_total|default:0 }} correo{{ alias.emails_total|pluralize:"s" }}
+      </span>
+      {% if alias.threats_total %}
+        <span class="alias-mini-stat threat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          {{ alias.threats_total }} amenaza{{ alias.threats_total|pluralize:"s" }}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="alias-actions" role="group" aria-label="Acciones del alias">
+    {% if alias.is_active %}
+      <span class="alias-badge-active"><span class="dot" aria-hidden="true"></span>Activo</span>
+      <button type="button" class="btn-send"
+              data-alias-id="{{ alias.id }}"
+              data-alias-address="{{ alias.address }}"
+              data-alias-label="{{ alias.label }}"
+              onclick="aliasOpenCompose(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+        Enviar
+      </button>
+      <button type="button" class="btn-copy" onclick="copyAlias(this, '{{ alias.address }}')">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        Copiar
+      </button>
+      <form method="post" action="{% url 'alias_destroy' alias.id %}" style="display:inline" class="js-destroy-alias" data-alias="{{ alias.address }}">
+        {% csrf_token %}
+        <button type="submit" class="btn-destroy">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+          Destruir
+        </button>
+      </form>
+    {% else %}
+      <span class="alias-badge-dead">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Destruido
+      </span>
+    {% endif %}
+  </div>
+
+</article>

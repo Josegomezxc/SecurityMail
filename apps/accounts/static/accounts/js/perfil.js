@@ -78,6 +78,7 @@
     var btn = document.getElementById('deleteAccountBtn');
     if (!btn) return;
     var overlay  = document.getElementById('deleteAccountOverlay');
+    // Paso 1
     var formEl   = document.getElementById('deleteAccountForm');
     var pwdEl    = document.getElementById('deleteAccountPwd');
     var pwdEye   = document.getElementById('deleteAccountPwdEye');
@@ -86,15 +87,52 @@
     var cancelEl = document.getElementById('deleteAccountCancel');
     var closeEl  = document.getElementById('deleteAccountClose');
     var errorEl  = document.getElementById('deleteAccountError');
-    if (!overlay || !formEl) return;
+    // Paso 2
+    var codeFormEl  = document.getElementById('deleteAccountCodeForm');
+    var codeInputEl = document.getElementById('deleteAccountCode');
+    var codeSubmitEl = document.getElementById('deleteAccountConfirmFinal');
+    var codeResendEl = document.getElementById('deleteAccountResend');
+    var codeErrorEl  = document.getElementById('deleteAccountCodeError');
+    // Textos del header
+    var sub1 = document.getElementById('da-sub-step1');
+    var sub2 = document.getElementById('da-sub-step2');
+    var impactEl = document.getElementById('da-impact');
+    if (!overlay || !formEl || !codeFormEl) return;
+
+    function clearErrors() {
+      errorEl.textContent = '';     errorEl.classList.remove('show');
+      codeErrorEl.textContent = ''; codeErrorEl.classList.remove('show');
+    }
+
+    function showStep1() {
+      formEl.style.display = '';
+      codeFormEl.style.display = 'none';
+      if (sub1) sub1.style.display = '';
+      if (sub2) sub2.style.display = 'none';
+      if (impactEl) impactEl.style.display = '';
+      clearErrors();
+    }
+
+    function showStep2() {
+      formEl.style.display = 'none';
+      codeFormEl.style.display = '';
+      if (sub1) sub1.style.display = 'none';
+      if (sub2) sub2.style.display = '';
+      // En el paso 2 ocultamos el bloque de stats — distrae del foco (código).
+      if (impactEl) impactEl.style.display = 'none';
+      clearErrors();
+      codeInputEl.value = '';
+      codeSubmitEl.disabled = true;
+      codeSubmitEl.classList.remove('loading');
+      setTimeout(function () { codeInputEl.focus(); }, 180);
+    }
 
     function openModal() {
       pwdEl.value = '';
       confirmEl.value = '';
-      errorEl.textContent = '';
-      errorEl.classList.remove('show');
       submitEl.disabled = true;
       submitEl.classList.remove('loading');
+      showStep1();
       overlay.classList.add('visible');
       document.body.style.overflow = 'hidden';
       setTimeout(function () { pwdEl.focus(); }, 180);
@@ -108,6 +146,9 @@
                   confirmEl.value.trim().toUpperCase() === 'ELIMINAR';
       submitEl.disabled = !ready;
     }
+    function refreshCodeSubmit() {
+      codeSubmitEl.disabled = !/^\d{6}$/.test(codeInputEl.value);
+    }
 
     btn.addEventListener('click', openModal);
     cancelEl.addEventListener('click', closeModal);
@@ -120,18 +161,13 @@
     });
     pwdEl.addEventListener('input', refreshSubmit);
 
-    // El input de confirmación SOLO acepta letras (A-Z). Bloqueamos en 3
-    // capas para que sea imposible meter espacios, números o símbolos:
-    //   1) keydown → cancela el evento antes de que se inserte el char
-    //   2) input  → limpia paste / IME / autocomplete que escapen del 1
-    //   3) beforeinput → fallback para navegadores móviles
+    // ── Input de confirmación: solo letras ──────────────────────────
     function isLetter(ch) { return /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]$/.test(ch); }
     function sanitizeConfirm(s) { return (s || '').replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g, ''); }
 
     confirmEl.addEventListener('keydown', function (e) {
-      // Permite teclas de control (backspace, flechas, tab, etc.)
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key.length !== 1) return;        // teclas como ArrowLeft, Backspace
+      if (e.key.length !== 1) return;
       if (!isLetter(e.key)) e.preventDefault();
     });
     confirmEl.addEventListener('input', function () {
@@ -143,14 +179,13 @@
       e.preventDefault();
       var pasted = (e.clipboardData || window.clipboardData).getData('text');
       var clean  = sanitizeConfirm(pasted);
-      // Inserta el texto limpiado en la posición del cursor
       var start = confirmEl.selectionStart, end = confirmEl.selectionEnd;
       confirmEl.value = confirmEl.value.slice(0, start) + clean + confirmEl.value.slice(end);
       confirmEl.setSelectionRange(start + clean.length, start + clean.length);
       refreshSubmit();
     });
 
-    // Toggle ojo de la password
+    // ── Toggle ojo de la password ──────────────────────────────────
     pwdEye.addEventListener('click', function () {
       var hidden = pwdEl.type === 'password';
       pwdEl.type = hidden ? 'text' : 'password';
@@ -158,11 +193,65 @@
       pwdEye.querySelector('.eye-closed').style.display = hidden ? ''     : 'none';
     });
 
+    // ── Input código: solo dígitos, 6 chars ────────────────────────
+    function sanitizeCode(s) { return (s || '').replace(/\D/g, '').slice(0, 6); }
+    codeInputEl.addEventListener('input', function () {
+      var clean = sanitizeCode(codeInputEl.value);
+      if (clean !== codeInputEl.value) codeInputEl.value = clean;
+      refreshCodeSubmit();
+    });
+    codeInputEl.addEventListener('paste', function (e) {
+      e.preventDefault();
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      codeInputEl.value = sanitizeCode(pasted);
+      refreshCodeSubmit();
+    });
+
+    // ── Helper genérico para fetch JSON con timeout ────────────────
+    function postForm(url, fd, onResp, onErr, errorTarget, retryBtn) {
+      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timeoutId = setTimeout(function () { if (ctrl) ctrl.abort(); }, 20000);
+
+      fetch(url, {
+        method:      'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken':      getCsrf(),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body:   fd,
+        signal: ctrl ? ctrl.signal : undefined,
+      })
+      .then(function (r) {
+        clearTimeout(timeoutId);
+        return r.json().then(
+          function (data) { return { status: r.status, data: data }; },
+          function ()     { return { status: r.status, data: { ok: false, error: 'Respuesta inválida del servidor (HTTP ' + r.status + ').' } }; }
+        );
+      })
+      .then(onResp)
+      .catch(function (err) {
+        clearTimeout(timeoutId);
+        var msg = (err && err.name === 'AbortError')
+          ? 'El servidor tardó demasiado en responder. Recarga la página.'
+          : 'Error de red. Comprueba tu conexión.';
+        if (errorTarget) {
+          errorTarget.textContent = msg;
+          errorTarget.classList.add('show');
+        }
+        if (retryBtn) {
+          retryBtn.classList.remove('loading');
+          retryBtn.disabled = false;
+        }
+        if (onErr) onErr(err);
+      });
+    }
+
+    // ── PASO 1: enviar password + confirm_text → recibe código por email ──
     formEl.addEventListener('submit', function (e) {
       e.preventDefault();
       if (submitEl.disabled) return;
-      errorEl.textContent = '';
-      errorEl.classList.remove('show');
+      clearErrors();
       submitEl.classList.add('loading');
       submitEl.disabled = true;
 
@@ -170,60 +259,99 @@
       fd.append('password',     pwdEl.value);
       fd.append('confirm_text', confirmEl.value);
 
-      // Salvavidas: si el servidor se cuelga (red, proxy, lo que sea) abortamos
-      // a los 15s para que el usuario NUNCA quede con el spinner eterno.
-      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-      var timeoutId = setTimeout(function () { if (ctrl) ctrl.abort(); }, 15000);
-
-      fetch(window.__PERFIL_CTX__.deleteAccountUrl, {
-        method:      'POST',
-        credentials: 'same-origin',
-        headers: {
-          'X-CSRFToken':       getCsrf(),
-          'X-Requested-With':  'XMLHttpRequest',
+      postForm(
+        window.__PERFIL_CTX__.deleteAccountUrl,
+        fd,
+        function (resp) {
+          if (resp.data && resp.data.ok) {
+            // Código enviado → pasamos al paso 2
+            showStep2();
+            submitEl.classList.remove('loading');
+            if (window.showToast) {
+              window.showToast({
+                type: 'info',
+                title: 'Código enviado',
+                message: resp.data.message || 'Revisa tu correo.',
+                duration: 4000,
+              });
+            }
+          } else {
+            var msg = (resp.data && resp.data.error) || 'No se pudo iniciar la eliminación. Intenta de nuevo.';
+            errorEl.textContent = msg;
+            errorEl.classList.add('show');
+            submitEl.classList.remove('loading');
+            refreshSubmit();
+            if (resp.status === 401) { pwdEl.value = ''; pwdEl.focus(); }
+          }
         },
-        body:   fd,
-        signal: ctrl ? ctrl.signal : undefined,
-      })
-      .then(function (r) { clearTimeout(timeoutId); return r.json().then(function (data) { return { status: r.status, data: data }; }, function () { return { status: r.status, data: { ok: false, error: 'Respuesta inválida del servidor (HTTP ' + r.status + ').' } }; }); })
-      .then(function (resp) {
-        if (resp.data && resp.data.ok) {
-          // Cuenta borrada → redirige al login con un toast efímero
-          if (window.showToast) {
-            window.showToast({
-              type: 'success',
-              title: 'Cuenta eliminada',
-              message: 'Tu cuenta y todos tus datos se han borrado.',
-              duration: 4000,
-            });
+        function () { /* onErr — manejado en postForm */ },
+        errorEl,
+        submitEl
+      );
+    });
+
+    // ── PASO 2: enviar el código → backend hace soft delete ────────
+    codeFormEl.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (codeSubmitEl.disabled) return;
+      clearErrors();
+      codeSubmitEl.classList.add('loading');
+      codeSubmitEl.disabled = true;
+
+      var fd = new FormData();
+      fd.append('code', codeInputEl.value);
+
+      postForm(
+        window.__PERFIL_CTX__.deleteAccountConfirmUrl,
+        fd,
+        function (resp) {
+          if (resp.data && resp.data.ok) {
+            if (window.showToast) {
+              window.showToast({
+                type: 'success',
+                title: 'Cuenta eliminada',
+                message: 'Tu cuenta ha sido cerrada.',
+                duration: 4000,
+              });
+            }
+            setTimeout(function () {
+              window.location.href = resp.data.redirect || '/';
+            }, 600);
+          } else {
+            var msg = (resp.data && resp.data.error) || 'No pudimos confirmar la eliminación.';
+            codeErrorEl.textContent = msg;
+            codeErrorEl.classList.add('show');
+            codeSubmitEl.classList.remove('loading');
+            refreshCodeSubmit();
+            // Si el código expiró o no existe, lo más útil es que vuelva al paso 1
+            var state = resp.data && resp.data.code_state;
+            if (state === 'no_encontrado' || state === 'expirado' || state === 'demasiados') {
+              setTimeout(function () { showStep1(); }, 1500);
+            } else {
+              codeInputEl.value = '';
+              codeInputEl.focus();
+            }
           }
-          // Pequeño delay para que el usuario vea el toast antes de redirigir
-          setTimeout(function () {
-            window.location.href = resp.data.redirect || '/';
-          }, 600);
-        } else {
-          var msg = (resp.data && resp.data.error) || 'No pudimos eliminar la cuenta. Intenta de nuevo.';
-          errorEl.textContent = msg;
-          errorEl.classList.add('show');
-          submitEl.classList.remove('loading');
-          refreshSubmit();
-          // Si la password fue incorrecta, el usuario suele querer reescribirla
-          if (resp.status === 401) {
-            pwdEl.value = '';
-            pwdEl.focus();
-          }
-        }
-      })
-      .catch(function (err) {
-        clearTimeout(timeoutId);
-        var msg = (err && err.name === 'AbortError')
-          ? 'El servidor tardó demasiado en responder. Recarga la página y vuelve a intentar.'
-          : 'Error de red. Comprueba tu conexión y vuelve a intentar.';
-        errorEl.textContent = msg;
-        errorEl.classList.add('show');
-        submitEl.classList.remove('loading');
-        refreshSubmit();
-      });
+        },
+        function () {},
+        codeErrorEl,
+        codeSubmitEl
+      );
+    });
+
+    // ── Reenviar código (vuelve a pegarle al endpoint del paso 1) ──
+    codeResendEl.addEventListener('click', function () {
+      // El password ya no está en el form, pero el endpoint paso 1 lo
+      // requiere. Volvemos al paso 1 para que el usuario re-confirme.
+      showStep1();
+      if (window.showToast) {
+        window.showToast({
+          type: 'info',
+          title: 'Reenviar código',
+          message: 'Confirma tu contraseña otra vez para que te enviemos uno nuevo.',
+          duration: 4000,
+        });
+      }
     });
   })();
 
@@ -289,6 +417,116 @@
         if (!validate()) {
           e.preventDefault();
           input.focus();
+        }
+      });
+    }
+  })();
+
+  /* ══════════════════════════════════════════════
+     CAMBIAR CONTRASEÑA — mismas métricas que register:
+     barra de fortaleza (4 segmentos), checklist con
+     check verde, hint de coincidencia con icono
+     dinámico, caps lock detection.
+     ══════════════════════════════════════════════ */
+  (function () {
+    const pwd1 = document.getElementById('pwd1');
+    const pwd2 = document.getElementById('pwd2');
+    if (!pwd1 || !pwd2) return;
+
+    const capsWarn   = document.getElementById('capsWarning');
+    const bars       = document.querySelectorAll('#strengthBar span');
+    const levelLabel = document.getElementById('strengthLevel');
+    const reqList    = document.getElementById('reqList');
+    const matchHint  = document.getElementById('matchHint');
+    const matchText  = document.getElementById('matchText');
+    const matchIcon  = document.getElementById('matchIcon');
+    const submitBtn  = document.getElementById('pwSubmitBtn');
+
+    const colors = ['var(--danger)', 'var(--warning)', '#facc15', 'var(--success)'];
+    const labels = ['Débil', 'Aceptable', 'Buena', 'Fuerte'];
+    const okIconSvg  = '<polyline points="20 6 9 17 4 12"/>';
+    const badIconSvg = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
+
+    function checkCaps(e) {
+      if (!capsWarn) return;
+      if (e.getModifierState && e.getModifierState('CapsLock')) {
+        capsWarn.classList.add('show');
+      } else {
+        capsWarn.classList.remove('show');
+      }
+    }
+    pwd1.addEventListener('keydown', checkCaps);
+    pwd1.addEventListener('keyup', checkCaps);
+    pwd1.addEventListener('blur', () => capsWarn && capsWarn.classList.remove('show'));
+
+    function evaluatePwd() {
+      const v = pwd1.value;
+      const checks = {
+        len:   v.length >= 8,
+        upper: /[A-Z]/.test(v),
+        num:   /\d/.test(v),
+        sym:   /[^A-Za-z0-9]/.test(v),
+      };
+
+      if (reqList) {
+        Object.keys(checks).forEach(k => {
+          const el = reqList.querySelector('[data-req="' + k + '"]');
+          if (el) el.classList.toggle('ok', checks[k]);
+        });
+      }
+
+      const score = Object.values(checks).filter(Boolean).length;
+      bars.forEach((b, i) => {
+        b.style.background = i < score ? colors[score - 1] : 'var(--bg-hover)';
+      });
+
+      if (levelLabel) {
+        if (v.length === 0) {
+          levelLabel.textContent = '—';
+          levelLabel.style.color = 'var(--text-muted)';
+        } else {
+          levelLabel.textContent = labels[score - 1] || 'Débil';
+          levelLabel.style.color = colors[Math.max(score - 1, 0)];
+        }
+      }
+    }
+
+    function updateMatch() {
+      if (!matchHint) return;
+      if (!pwd2.value) { matchHint.classList.remove('show'); return; }
+      matchHint.classList.add('show');
+      if (pwd1.value === pwd2.value) {
+        matchHint.classList.add('ok');
+        matchHint.classList.remove('bad');
+        if (matchIcon) matchIcon.innerHTML = okIconSvg;
+        if (matchText) matchText.textContent = 'Las contraseñas coinciden';
+      } else {
+        matchHint.classList.add('bad');
+        matchHint.classList.remove('ok');
+        if (matchIcon) matchIcon.innerHTML = badIconSvg;
+        if (matchText) matchText.textContent = 'Las contraseñas no coinciden';
+      }
+    }
+
+    function checkSubmit() {
+      if (!submitBtn) return;
+      const pwdOk = pwd1.value.length >= 8 && pwd1.value === pwd2.value;
+      submitBtn.disabled = !pwdOk;
+    }
+
+    pwd1.addEventListener('input', () => { evaluatePwd(); updateMatch(); checkSubmit(); });
+    pwd2.addEventListener('input', () => { updateMatch(); checkSubmit(); });
+
+    const pwForm = document.getElementById('pwForm');
+    if (pwForm) {
+      pwForm.addEventListener('submit', function (e) {
+        if (pwd1.value !== pwd2.value) {
+          e.preventDefault();
+          if (matchHint) matchHint.classList.add('show', 'bad');
+          if (matchHint) matchHint.classList.remove('ok');
+          if (matchIcon) matchIcon.innerHTML = badIconSvg;
+          if (matchText) matchText.textContent = 'Las contraseñas no coinciden';
+          pwd2.focus();
         }
       });
     }
