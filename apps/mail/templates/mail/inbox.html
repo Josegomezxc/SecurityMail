@@ -152,7 +152,7 @@
           <tr class="inbox-row {% if not email.read %}unread{% endif %} {% if email.risk_score >= 61 %}threat{% endif %}"
               data-id="{{ email.id }}"
               data-read="{{ email.read|yesno:'true,false' }}"
-              data-attachment="{{ email.has_attachment|yesno:'true,false' }}"
+              data-attachment="{{ email.attachment.has_attachment|yesno:'true,false' }}"
               data-risk="{{ email.risk_score|default:0 }}"
               data-from="{{ email.from_email|lower }}"
               data-subject="{{ email.subject|lower }}"
@@ -171,7 +171,7 @@
 
             <td class="{% if not email.read %}ds-cell-unread{% endif %}"
                 title="{{ email.subject }}">
-              {{ email.subject }}{% if email.has_attachment %} <span aria-hidden="true" style="opacity:.7">📎</span>{% endif %}
+              {{ email.subject }}{% if email.attachment.has_attachment %} <span aria-hidden="true" style="opacity:.7">📎</span>{% endif %}
             </td>
 
             <td class="ds-cell-mono" title="{{ email.alias.address }}">{{ email.alias.address }}</td>

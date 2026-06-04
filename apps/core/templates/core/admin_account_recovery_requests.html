@@ -196,7 +196,7 @@ Solicitudes de alias (.aar-mb-*) para mantener consistencia visual.
         <span class="aar-mb-block-title">Motivo del bloqueo de la cuenta</span>
       </div>
       <div class="aar-mb-quote">
-        <div class="aar-mb-quote-text arr-lock-reason">{{ req.user.profile.permanent_lock_reason|default:"(sin motivo registrado)" }}</div>
+        <div class="aar-mb-quote-text arr-lock-reason">{{ req.user.profile.lock.permanent_lock_reason|default:"(sin motivo registrado)" }}</div>
       </div>
     </div>
 

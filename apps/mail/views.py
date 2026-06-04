@@ -121,7 +121,7 @@ def inbox_view(request):
     counts = {
         'all':        base_qs.count(),
         'unread':     base_qs.filter(read=False).count(),
-        'attachment': base_qs.filter(has_attachment=True).count(),
+        'attachment': base_qs.filter(attachment__has_attachment=True).count(),
         'danger':     base_qs.filter(risk_score__gte=61).count(),
         'safe':       base_qs.filter(risk_score__gt=0, risk_score__lte=30).count(),
     }
@@ -133,7 +133,7 @@ def inbox_view(request):
     if filter_ == 'unread':
         qs = qs.filter(read=False)
     elif filter_ == 'attachment':
-        qs = qs.filter(has_attachment=True)
+        qs = qs.filter(attachment__has_attachment=True)
     elif filter_ == 'danger':
         qs = qs.filter(risk_score__gte=61)
     elif filter_ == 'safe':

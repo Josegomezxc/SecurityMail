@@ -135,12 +135,12 @@
       <div class="nd-field-label">Recibido:</div>
       <div class="nd-field-value">{{ email.received_at|date:"d M Y · H:i" }}</div>
 
-      {% if email.has_attachment %}
+      {% if email.attachment.has_attachment %}
       <div class="nd-field-label">Adjunto:</div>
       <div class="nd-field-value mono">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;color:var(--text-muted)">
           <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-        </svg>{{ email.attachment_name }}
+        </svg>{{ email.attachment.attachment_name }}
       </div>
       {% endif %}
 

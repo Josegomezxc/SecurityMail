@@ -338,7 +338,7 @@
           {{ an.risk_score }}
         </div>
         <div class="dash-sandbox-body">
-          <div class="dash-sandbox-file">{{ an.filename|truncatechars:34 }}</div>
+           <div class="dash-sandbox-file">{{ an.file_info.filename|truncatechars:34 }}</div>
           <div class="dash-sandbox-meta">{{ an.analyzed_at|timesince }} atrás · {{ an.email.from_email|truncatechars:24 }}</div>
         </div>
         <a href="{% url 'sandbox_report' an.pk %}" class="dash-sandbox-link" aria-label="Ver reporte">

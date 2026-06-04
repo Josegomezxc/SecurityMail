@@ -2,15 +2,38 @@ from django.db import models
 
 
 class SandboxAnalysis(models.Model):
-    """Resultado del análisis sandbox para un adjunto."""
-
     RISK_LEVELS = [
-        ('safe',     'Seguro (0–30)'),
-        ('warning',  'Sospechoso (31–60)'),
-        ('danger',   'Alto riesgo (61–80)'),
-        ('malware',  'Malware (81–100)'),
+        ('safe',     'Seguro (0-30)'),
+        ('warning',  'Sospechoso (31-60)'),
+        ('danger',   'Alto riesgo (61-80)'),
+        ('malware',  'Malware (81-100)'),
     ]
 
+    id = models.AutoField(primary_key=True, db_column='id_analisis_sandbox')
+    email = models.OneToOneField(
+        'mail.EmailMessage', on_delete=models.CASCADE, related_name='analysis',
+        db_column='id_correo',
+    )
+    analyzed_at = models.DateTimeField(auto_now_add=True, db_column='analizado_en')
+    risk_score = models.IntegerField(default=0, db_column='puntaje_riesgo')
+    risk_level = models.CharField(
+        max_length=10, choices=RISK_LEVELS, default='safe', db_column='nivel_riesgo',
+    )
+    threat_name = models.CharField(max_length=200, blank=True, db_column='nombre_amenaza')
+    blocked = models.BooleanField(default=False, db_column='bloqueado')
+    is_active = models.BooleanField(default=True, db_column='activo')
+
+    def __str__(self):
+        return f"{self.file_info.filename if hasattr(self, 'file_info') else '?'} - {self.risk_score}/100"
+
+    class Meta:
+        db_table = 'tbl_analisis_sandbox'
+        ordering = ['-analyzed_at']
+        verbose_name = 'Análisis sandbox'
+        verbose_name_plural = 'Análisis sandbox'
+
+
+class FileInfo(models.Model):
     CATEGORIES = [
         ('executable', 'Ejecutable'),
         ('office',     'Documento Office'),
@@ -23,89 +46,110 @@ class SandboxAnalysis(models.Model):
         ('unknown',    'Desconocido'),
     ]
 
-    email       = models.OneToOneField(
-        'mail.EmailMessage', on_delete=models.CASCADE, related_name='analysis',
+    id = models.AutoField(primary_key=True, db_column='id_info_archivo')
+    analysis = models.OneToOneField(
+        SandboxAnalysis, on_delete=models.CASCADE, related_name='file_info',
+        db_column='id_analisis_sandbox',
     )
-    filename    = models.CharField(max_length=255)
-    analyzed_at = models.DateTimeField(auto_now_add=True)
-
-    # Identificación del archivo
-    real_mime_type   = models.CharField(max_length=100, blank=True)
-    sha256_hash      = models.CharField(max_length=64,  blank=True)
-    md5_hash         = models.CharField(max_length=32,  blank=True)
-    file_size        = models.BigIntegerField(default=0)
-    extension        = models.CharField(max_length=20,  blank=True)
-    extension_spoof  = models.BooleanField(default=False, help_text="La extensión no coincide con el MIME real")
-
-    # Análisis estático
-    yara_matches     = models.JSONField(default=list, blank=True)
-    category         = models.CharField(max_length=20, choices=CATEGORIES, default='unknown')
-
-    # Análisis dinámico (mantenidos por compatibilidad con el reporte legacy)
-    network_connections = models.JSONField(default=list, blank=True)
-    child_processes     = models.JSONField(default=list, blank=True)
-    file_writes         = models.JSONField(default=list, blank=True)
-
-    # Reporte estructurado nuevo
-    evidence       = models.JSONField(default=list, blank=True,
-                                      help_text="Lista de indicadores con type, detail y severity")
-    iocs           = models.JSONField(default=dict, blank=True,
-                                      help_text="URLs, IPs, dominios y hashes detectados")
-    analyzers_run  = models.JSONField(default=list, blank=True,
-                                      help_text="Analizadores que se ejecutaron")
-
-    # Análisis del cuerpo del correo (no del adjunto)
-    body_score     = models.IntegerField(default=0,
-                                         help_text="Puntuación del análisis del cuerpo del correo")
-    body_evidence  = models.JSONField(default=list, blank=True,
-                                      help_text="Evidencia del análisis del cuerpo")
-    body_threat    = models.CharField(max_length=200, blank=True)
-
-    # Si el correo traía varios adjuntos, aquí van los reportes individuales
-    # de cada uno. El `risk_score` y el `threat_name` arriba son el veredicto
-    # AGREGADO (peor caso + evidencia fusionada).
-    attachments_reports = models.JSONField(default=list, blank=True,
-                                           help_text="Lista de reportes por cada adjunto "
-                                                     "[{filename, size, mime, sha256, score, "
-                                                     " level, threat, evidence[], iocs{}}, ...]")
-
-    # Resultado final
-    risk_score  = models.IntegerField(default=0)
-    risk_level  = models.CharField(max_length=10, choices=RISK_LEVELS, default='safe')
-    threat_name = models.CharField(max_length=200, blank=True)
-    blocked     = models.BooleanField(default=False)
-
-    # ── Cache del análisis IA (Groq) ────────────────────────────────────
-    # La sección "Análisis IA" del reporte llama al modelo SOLO una vez
-    # por reporte. Una vez generada la respuesta, se guarda acá y futuras
-    # visitas al mismo reporte reusan el cache sin tocar la API. Esto
-    # ahorra cuota diaria de tokens drásticamente.
-    ai_verdict      = models.CharField(max_length=20, blank=True,
-                                       help_text='MALICIOSO / SOSPECHOSO / SEGURO')
-    ai_threat_type  = models.CharField(max_length=100, blank=True,
-                                       help_text='Tipo de amenaza (Phishing, Malware, etc.)')
-    ai_explanation  = models.TextField(blank=True,
-                                       help_text='Respuesta de la IA en Markdown (EXPLICACION)')
-    ai_recommendation = models.TextField(blank=True,
-                                         help_text='Respuesta de la IA en Markdown (RECOMENDACION)')
-    ai_generated_at = models.DateTimeField(null=True, blank=True,
-                                           help_text='Cuándo se generó el análisis IA por última vez')
-
-    def set_risk_level(self):
-        if self.risk_score <= 30:
-            self.risk_level = 'safe'
-        elif self.risk_score <= 60:
-            self.risk_level = 'warning'
-        elif self.risk_score <= 80:
-            self.risk_level = 'danger'
-        else:
-            self.risk_level = 'malware'
-            self.blocked = True
-
-    def __str__(self):
-        return f"{self.filename} — {self.risk_score}/100"
+    filename = models.CharField(max_length=255, db_column='nombre_archivo')
+    real_mime_type = models.CharField(max_length=100, blank=True, db_column='tipo_mime_real')
+    sha256_hash = models.CharField(max_length=64, blank=True, db_column='hash_sha256')
+    md5_hash = models.CharField(max_length=32, blank=True, db_column='hash_md5')
+    file_size = models.BigIntegerField(default=0, db_column='tamano_archivo')
+    extension = models.CharField(max_length=20, blank=True, db_column='extension')
+    extension_spoof = models.BooleanField(
+        default=False, db_column='extension_falsificada',
+        help_text="La extensión no coincide con el MIME real",
+    )
+    is_active = models.BooleanField(default=True, db_column='activo')
 
     class Meta:
-        ordering = ['-analyzed_at']
-        verbose_name = 'Análisis sandbox'
-        verbose_name_plural = 'Análisis sandbox'
+        db_table = 'tbl_info_archivo'
+
+
+class DynamicAnalysis(models.Model):
+    id = models.AutoField(primary_key=True, db_column='id_analisis_dinamico')
+    analysis = models.OneToOneField(
+        SandboxAnalysis, on_delete=models.CASCADE, related_name='dynamic',
+        db_column='id_analisis_sandbox',
+    )
+    category = models.CharField(
+        max_length=20, choices=FileInfo.CATEGORIES, default='unknown', db_column='categoria',
+    )
+    yara_matches = models.JSONField(default=list, blank=True, db_column='coincidencias_yara')
+    network_connections = models.JSONField(default=list, blank=True, db_column='conexiones_red')
+    child_processes = models.JSONField(default=list, blank=True, db_column='procesos_hijos')
+    file_writes = models.JSONField(default=list, blank=True, db_column='archivos_escritos')
+    evidence = models.JSONField(
+        default=list, blank=True, db_column='evidencia',
+        help_text="Lista de indicadores con type, detail y severity",
+    )
+    iocs = models.JSONField(
+        default=dict, blank=True, db_column='iocs',
+        help_text="URLs, IPs, dominios y hashes detectados",
+    )
+    analyzers_run = models.JSONField(
+        default=list, blank=True, db_column='analizadores_ejecutados',
+        help_text="Analizadores que se ejecutaron",
+    )
+    is_active = models.BooleanField(default=True, db_column='activo')
+
+    class Meta:
+        db_table = 'tbl_analisis_dinamico'
+
+
+class BodyAnalysis(models.Model):
+    id = models.AutoField(primary_key=True, db_column='id_analisis_cuerpo')
+    analysis = models.OneToOneField(
+        SandboxAnalysis, on_delete=models.CASCADE, related_name='body_analysis',
+        db_column='id_analisis_sandbox',
+    )
+    body_score = models.IntegerField(
+        default=0, db_column='puntaje_cuerpo',
+        help_text="Puntuación del análisis del cuerpo del correo",
+    )
+    body_evidence = models.JSONField(
+        default=list, blank=True, db_column='evidencia_cuerpo',
+        help_text="Evidencia del análisis del cuerpo",
+    )
+    body_threat = models.CharField(max_length=200, blank=True, db_column='amenaza_cuerpo')
+    attachments_reports = models.JSONField(
+        default=list, blank=True, db_column='reportes_adjuntos',
+        help_text="Lista de reportes por cada adjunto",
+    )
+    is_active = models.BooleanField(default=True, db_column='activo')
+
+    class Meta:
+        db_table = 'tbl_analisis_cuerpo'
+
+
+class IAResult(models.Model):
+    id = models.AutoField(primary_key=True, db_column='id_resultado_ia')
+    analysis = models.OneToOneField(
+        SandboxAnalysis, on_delete=models.CASCADE, related_name='ai_result',
+        db_column='id_analisis_sandbox',
+    )
+    ai_verdict = models.CharField(
+        max_length=20, blank=True, db_column='veredicto_ia',
+        help_text='MALICIOSO / SOSPECHOSO / SEGURO',
+    )
+    ai_threat_type = models.CharField(
+        max_length=100, blank=True, db_column='tipo_amenaza_ia',
+        help_text='Tipo de amenaza (Phishing, Malware, etc.)',
+    )
+    ai_explanation = models.TextField(
+        blank=True, db_column='explicacion_ia',
+        help_text='Respuesta de la IA en Markdown (EXPLICACION)',
+    )
+    ai_recommendation = models.TextField(
+        blank=True, db_column='recomendacion_ia',
+        help_text='Respuesta de la IA en Markdown (RECOMENDACION)',
+    )
+    ai_generated_at = models.DateTimeField(
+        null=True, blank=True, db_column='generado_ia_en',
+        help_text='Cuándo se generó el análisis IA por última vez',
+    )
+    is_active = models.BooleanField(default=True, db_column='activo')
+
+    class Meta:
+        db_table = 'tbl_resultado_ia'

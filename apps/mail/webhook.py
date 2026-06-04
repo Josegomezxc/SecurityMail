@@ -23,7 +23,8 @@ from apps.sandbox.models import SandboxAnalysis
 from apps.sandbox.service import run_sandbox_analysis
 from apps.sandbox import body_analyzer
 from apps.sandbox import auth_check
-from .models import EmailMessage
+from .models import EmailMessage, EmailAuthVerdict, EmailAttachment
+from apps.sandbox.models import FileInfo, DynamicAnalysis, BodyAnalysis, IAResult
 
 
 @csrf_exempt
@@ -460,6 +461,9 @@ def _handle_inbound(request):
         body=body,
         body_html=body_html_safe,
         body_html_raw=body_html_original,
+    )
+    EmailAuthVerdict.objects.create(
+        email=email_obj,
         auth_verdict=auth_result.get('verdict', 'unverified'),
         auth_spf=auth_result.get('spf', '')[:10],
         auth_dkim=auth_result.get('dkim', '')[:10],
@@ -486,12 +490,16 @@ def _handle_inbound(request):
             saved_name = default_storage.save(save_path, ContentFile(att_bytes))
             full_path  = default_storage.path(saved_name)
 
-            # En el 1er adjunto llenamos los campos planos para retrocompat
+            # En el 1er adjunto llenamos los campos en EmailAttachment
             if i == 1:
-                email_obj.has_attachment  = True
-                email_obj.attachment_name = att_name
-                email_obj.attachment_path = full_path
-                email_obj.save()
+                EmailAttachment.objects.update_or_create(
+                    email=email_obj,
+                    defaults={
+                        'has_attachment': True,
+                        'attachment_name': att_name,
+                        'attachment_path': full_path,
+                    },
+                )
 
             # Punto clave: damos un EmailMessage "proxy" al sandbox con la ruta
             # correcta para este adjunto (sin romper al 1er adjunto).
@@ -593,6 +601,13 @@ def _handle_inbound(request):
     # ── 5. Persistir el análisis ───────────────────────────────────────
     sandbox = SandboxAnalysis.objects.create(
         email=email_obj,
+        risk_score=final_score,
+        risk_level=_to_level(final_score),
+        threat_name=threat_name,
+        blocked=final_score >= 81,
+    )
+    FileInfo.objects.create(
+        analysis=sandbox,
         filename=(
             attachments_summary[0]["filename"] if attachments_summary
             else "(sin adjunto)"
@@ -603,6 +618,9 @@ def _handle_inbound(request):
         file_size=first.get('size', 0),
         extension=first.get('extension', ''),
         extension_spoof=extension_spoof,
+    )
+    DynamicAnalysis.objects.create(
+        analysis=sandbox,
         category=category,
         yara_matches=first.get('yara_matches', []),
         network_connections=_merge_lists(attachment_reports, 'network_connections'),
@@ -611,14 +629,13 @@ def _handle_inbound(request):
         evidence=evidence_list,
         iocs=iocs,
         analyzers_run=analyzers_run,
+    )
+    BodyAnalysis.objects.create(
+        analysis=sandbox,
         body_score=body_report.get('score', 0),
         body_evidence=body_report.get('evidence', []),
         body_threat=body_report.get('threat', ''),
         attachments_reports=attachments_summary,
-        risk_score=final_score,
-        risk_level=_to_level(final_score),
-        threat_name=threat_name,
-        blocked=final_score >= 81,
     )
 
     email_obj.risk_score = final_score
@@ -1033,7 +1050,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
     try:
         risk_score  = result.get('risk_score', 0)
         threat_name = result.get('threat_name', 'Amenaza desconocida')
-        filename    = result.get('filename', email_obj.attachment_name)
+        filename    = result.get('filename', getattr(getattr(email_obj, 'attachment', None), 'attachment_name', ''))
         alias_addr  = email_obj.alias.address
         sender      = email_obj.from_email
         subject_txt = email_obj.subject
@@ -1350,7 +1367,8 @@ def send_safe_email_forward(email_obj, force=False):
         # 1) Adjuntos del análisis (cubre múltiples adjuntos)
         att_paths = []
         try:
-            reports = email_obj.analysis.attachments_reports or []
+            body_analysis = getattr(email_obj.analysis, 'body_analysis', None)
+            reports = body_analysis.attachments_reports if body_analysis else []
             for r in reports:
                 fpath = r.get('filepath') if isinstance(r, dict) else None
                 fname = r.get('filename') if isinstance(r, dict) else None
@@ -1359,9 +1377,10 @@ def send_safe_email_forward(email_obj, force=False):
         except Exception:
             pass
 
-        # 2) Fallback: el campo plano del modelo (1er adjunto)
-        if not att_paths and email_obj.has_attachment and email_obj.attachment_path:
-            att_paths.append((email_obj.attachment_name or 'attachment', email_obj.attachment_path))
+        # 2) Fallback: el campo del modelo EmailAttachment (1er adjunto)
+        att = getattr(email_obj, 'attachment', None)
+        if not att_paths and att and att.has_attachment and att.attachment_path:
+            att_paths.append((att.attachment_name or 'attachment', att.attachment_path))
 
         # Leer y encodear cada uno
         for fname, fpath in att_paths:

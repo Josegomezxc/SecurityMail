@@ -1,6 +1,6 @@
 {% extends 'core/base.html' %}
 {% load static %}
-{% block title %}Reporte sandbox — {{ analysis.filename }}{% endblock %}
+{% block title %}Reporte sandbox — {{ analysis.file_info.filename }}{% endblock %}
 {% block nav_sandbox %}active{% endblock %}
 
 {% block extra_css %}
@@ -15,7 +15,7 @@
     sandbox
   </a>
   <span style="color:var(--border);font-size:13px;margin:0 4px">/</span>
-  <span style="font-family:'JetBrains Mono',monospace;font-size:13px">{{ analysis.filename|truncatechars:35 }}</span>
+  <span style="font-family:'JetBrains Mono',monospace;font-size:13px">{{ analysis.file_info.filename|truncatechars:35 }}</span>
 {% endblock %}
 
 {% block body %}
@@ -77,7 +77,7 @@
   </div>
 
   <div class="score-info">
-    <div class="score-filename">{{ analysis.filename }}</div>
+    <div class="score-filename">{{ analysis.file_info.filename }}</div>
     <div class="score-meta">{{ analysis.analyzed_at|date:"d/m/Y" }} · {{ analysis.analyzed_at|date:"H:i" }} · {{ analysis.email.subject|truncatechars:45 }}</div>
     <div class="score-bar">
       <div class="score-bar-fill"
@@ -109,7 +109,7 @@
      Solo se muestra si el correo realmente trajo un adjunto. Si no,
      mostramos un panel informativo que aclara que solo se analizó el
      cuerpo del correo. -->
-{% if analysis.email.has_attachment or analysis.attachments_reports or analysis.sha256_hash %}
+{% if analysis.email.attachment.has_attachment or analysis.body_analysis.attachments_reports or analysis.file_info.sha256_hash %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.1s both">
   <header class="section-head">
     <div class="section-icon-box" style="background:rgba(59,130,246,0.1)">
@@ -119,8 +119,8 @@
     </div>
     <h2 class="section-head-title">Identificación del archivo</h2>
     <div class="section-head-tag">
-      {% if analysis.category and analysis.category != 'unknown' %}
-        <span class="tag tag-blue">{{ analysis.get_category_display }}</span>
+      {% if analysis.dynamic.category and analysis.dynamic.category != 'unknown' %}
+        <span class="tag tag-blue">{{ analysis.dynamic.get_category_display }}</span>
       {% endif %}
     </div>
   </header>
@@ -128,10 +128,10 @@
   <div class="facts-grid">
     <div class="fact">
       <div class="fact-label">Tipo MIME real</div>
-      <div class="fact-value {% if analysis.extension_spoof %}danger{% endif %}">
-        {{ analysis.real_mime_type|default:"desconocido" }}
+      <div class="fact-value {% if analysis.file_info.extension_spoof %}danger{% endif %}">
+        {{ analysis.file_info.real_mime_type|default:"desconocido" }}
       </div>
-      {% if analysis.extension_spoof %}
+      {% if analysis.file_info.extension_spoof %}
         <div class="fact-flag">
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
           EXTENSIÓN ENGAÑOSA
@@ -141,14 +141,14 @@
 
     <div class="fact">
       <div class="fact-label">Extensión</div>
-      <div class="fact-value">{{ analysis.extension|default:"—" }}</div>
+      <div class="fact-value">{{ analysis.file_info.extension|default:"—" }}</div>
     </div>
 
     <div class="fact">
       <div class="fact-label">Tamaño</div>
       <div class="fact-value">
-        {% if analysis.file_size %}
-          {{ analysis.file_size|filesizeformat }}
+        {% if analysis.file_info.file_size %}
+          {{ analysis.file_info.file_size|filesizeformat }}
         {% else %}—{% endif %}
       </div>
     </div>
@@ -156,14 +156,14 @@
     <div class="fact" style="grid-column:1/-1">
       <div class="fact-label">Hash SHA-256</div>
       <div class="fact-value" style="font-size:11px;color:var(--text-secondary)">
-        {{ analysis.sha256_hash|default:"—" }}
+        {{ analysis.file_info.sha256_hash|default:"—" }}
       </div>
     </div>
 
-    {% if analysis.md5_hash %}
+    {% if analysis.file_info.md5_hash %}
     <div class="fact" style="grid-column:1/-1">
       <div class="fact-label">Hash MD5</div>
-      <div class="fact-value" style="font-size:11px;color:var(--text-secondary)">{{ analysis.md5_hash }}</div>
+      <div class="fact-value" style="font-size:11px;color:var(--text-secondary)">{{ analysis.file_info.md5_hash }}</div>
     </div>
     {% endif %}
   </div>
@@ -191,7 +191,7 @@
 {% endif %}
 
 <!-- ── TODOS LOS ADJUNTOS (si el correo traía varios) ── -->
-{% if analysis.attachments_reports and analysis.attachments_reports|length > 1 %}
+{% if analysis.body_analysis.attachments_reports and analysis.body_analysis.attachments_reports|length > 1 %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.11s both">
   <header class="section-head">
     <div class="section-icon-box" style="background:rgba(245,158,11,0.1)">
@@ -200,11 +200,11 @@
       </svg>
     </div>
     <h2 class="section-head-title">Adjuntos del correo</h2>
-    <div class="section-head-tag"><span class="tag tag-yellow">{{ analysis.attachments_reports|length }} archivos analizados</span></div>
+    <div class="section-head-tag"><span class="tag tag-yellow">{{ analysis.body_analysis.attachments_reports|length }} archivos analizados</span></div>
   </header>
 
   <div class="att-list">
-    {% for att in analysis.attachments_reports %}
+    {% for att in analysis.body_analysis.attachments_reports %}
       {% with s=att.risk_score %}
       <div class="att-item">
         <div class="att-score-wrap">
@@ -259,17 +259,17 @@
     </div>
     <h2 class="section-head-title">Evidencia detectada</h2>
     <div class="section-head-tag">
-      {% if analysis.evidence %}
-        <span class="tag tag-red">{{ analysis.evidence|length }} indicador{{ analysis.evidence|length|pluralize:"es" }}</span>
+      {% if analysis.dynamic.evidence %}
+        <span class="tag tag-red">{{ analysis.dynamic.evidence|length }} indicador{{ analysis.dynamic.evidence|length|pluralize:"es" }}</span>
       {% else %}
         <span class="tag tag-green">Sin hallazgos</span>
       {% endif %}
     </div>
   </header>
 
-  {% if analysis.evidence %}
+  {% if analysis.dynamic.evidence %}
     <div class="evidence-list collapsible-list" data-show="5" data-label="indicadores">
-      {% for ev in analysis.evidence %}
+      {% for ev in analysis.dynamic.evidence %}
         {% with sev=ev.severity %}
           {% if sev >= 81 %}
             {% with cls="sev-critical" label="CRÍTICO" %}
@@ -348,7 +348,7 @@
 </section>
 
 <!-- ── YARA MATCHES (si hay) ── -->
-{% if analysis.yara_matches %}
+{% if analysis.dynamic.yara_matches %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.16s both">
   <header class="section-head">
     <div class="section-icon-box" style="background:rgba(124,58,237,0.1)">
@@ -358,11 +358,11 @@
     </div>
     <h2 class="section-head-title">Reglas YARA coincidentes</h2>
     <div class="section-head-tag">
-      <span class="tag tag-purple">{{ analysis.yara_matches|length }} match{{ analysis.yara_matches|length|pluralize:"es" }}</span>
+      <span class="tag tag-purple">{{ analysis.dynamic.yara_matches|length }} match{{ analysis.dynamic.yara_matches|length|pluralize:"es" }}</span>
     </div>
   </header>
   <div class="yara-list collapsible-list" data-show="3" data-label="reglas">
-    {% for match in analysis.yara_matches %}
+    {% for match in analysis.dynamic.yara_matches %}
       <div class="yara-rule">
         <div class="yara-rule-name">
           {% if match.rule %}{{ match.rule }}{% else %}{{ match }}{% endif %}
@@ -377,7 +377,7 @@
 {% endif %}
 
 <!-- ── IOCs (URLs, IPs, dominios) ── -->
-{% if analysis.iocs.urls or analysis.iocs.ips or analysis.iocs.domains %}
+{% if analysis.dynamic.iocs.urls or analysis.dynamic.iocs.ips or analysis.dynamic.iocs.domains %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.18s both">
   <header class="section-head">
     <div class="section-icon-box" style="background:rgba(59,130,246,0.1)">
@@ -389,14 +389,14 @@
     <div class="section-head-tag"><span class="tag tag-blue">extraídos del análisis</span></div>
   </header>
 
-  {% if analysis.iocs.urls %}
+  {% if analysis.dynamic.iocs.urls %}
   <div class="ioc-group">
     <div class="ioc-group-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      URLs ({{ analysis.iocs.urls|length }})
+      URLs ({{ analysis.dynamic.iocs.urls|length }})
     </div>
     <div class="ioc-list collapsible-list" data-show="5" data-label="URLs">
-      {% for url in analysis.iocs.urls %}
+      {% for url in analysis.dynamic.iocs.urls %}
         <div class="ioc-row">
           <span class="ioc-text">{{ url }}</span>
           <button class="ioc-copy-btn" data-copy="{{ url }}">copiar</button>
@@ -406,14 +406,14 @@
   </div>
   {% endif %}
 
-  {% if analysis.iocs.ips %}
+  {% if analysis.dynamic.iocs.ips %}
   <div class="ioc-group">
     <div class="ioc-group-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      Direcciones IP ({{ analysis.iocs.ips|length }})
+      Direcciones IP ({{ analysis.dynamic.iocs.ips|length }})
     </div>
     <div class="ioc-list collapsible-list" data-show="5" data-label="IPs">
-      {% for ip in analysis.iocs.ips %}
+      {% for ip in analysis.dynamic.iocs.ips %}
         <div class="ioc-row">
           <span class="ioc-text">{{ ip }}</span>
           <button class="ioc-copy-btn" data-copy="{{ ip }}">copiar</button>
@@ -423,14 +423,14 @@
   </div>
   {% endif %}
 
-  {% if analysis.iocs.domains %}
+  {% if analysis.dynamic.iocs.domains %}
   <div class="ioc-group">
     <div class="ioc-group-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
-      Dominios ({{ analysis.iocs.domains|length }})
+      Dominios ({{ analysis.dynamic.iocs.domains|length }})
     </div>
     <div class="ioc-list collapsible-list" data-show="5" data-label="dominios">
-      {% for d in analysis.iocs.domains %}
+      {% for d in analysis.dynamic.iocs.domains %}
         <div class="ioc-row">
           <span class="ioc-text">{{ d }}</span>
           <button class="ioc-copy-btn" data-copy="{{ d }}">copiar</button>
@@ -443,7 +443,7 @@
 {% endif %}
 
 <!-- ── ANÁLISIS DEL CUERPO DEL CORREO ── -->
-{% if analysis.body_score > 0 or analysis.body_evidence %}
+{% if analysis.body_analysis.body_score > 0 or analysis.body_analysis.body_evidence %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.2s both">
   <header class="section-head body-card-head">
     <div class="section-icon-box" style="background:rgba(245,158,11,0.1)">
@@ -453,32 +453,32 @@
     </div>
     <h2 class="section-head-title">Análisis del cuerpo del correo</h2>
     <div class="section-head-tag">
-      {% if analysis.body_score >= 61 %}
-        <span class="tag tag-red">Score {{ analysis.body_score }}</span>
-      {% elif analysis.body_score >= 31 %}
-        <span class="tag tag-yellow">Score {{ analysis.body_score }}</span>
+      {% if analysis.body_analysis.body_score >= 61 %}
+        <span class="tag tag-red">Score {{ analysis.body_analysis.body_score }}</span>
+      {% elif analysis.body_analysis.body_score >= 31 %}
+        <span class="tag tag-yellow">Score {{ analysis.body_analysis.body_score }}</span>
       {% else %}
-        <span class="tag tag-blue">Score {{ analysis.body_score }}</span>
+        <span class="tag tag-blue">Score {{ analysis.body_analysis.body_score }}</span>
       {% endif %}
     </div>
   </header>
 
   <div class="body-summary">
     <div class="body-score-num"
-      style="color:{% if analysis.body_score >= 61 %}var(--danger){% elif analysis.body_score >= 31 %}var(--warning){% else %}var(--success){% endif %}">
-      {{ analysis.body_score }}
+      style="color:{% if analysis.body_analysis.body_score >= 61 %}var(--danger){% elif analysis.body_analysis.body_score >= 31 %}var(--warning){% else %}var(--success){% endif %}">
+      {{ analysis.body_analysis.body_score }}
     </div>
     <div class="body-summary-text">
       <div class="body-summary-title">
-        {% if analysis.body_threat %}{{ analysis.body_threat }}{% else %}Cuerpo del correo analizado{% endif %}
+        {% if analysis.body_analysis.body_threat %}{{ analysis.body_analysis.body_threat }}{% else %}Cuerpo del correo analizado{% endif %}
       </div>
       <div class="body-summary-sub">URLs, lenguaje de phishing, HTML peligroso y headers</div>
     </div>
   </div>
 
-  {% if analysis.body_evidence %}
+  {% if analysis.body_analysis.body_evidence %}
     <div class="evidence-list">
-      {% for ev in analysis.body_evidence %}
+      {% for ev in analysis.body_analysis.body_evidence %}
         {% with sev=ev.severity %}
           {% if sev >= 81 %}{% with cls="sev-critical" label="CRÍTICO" %}
             <div class="evidence-item {{ cls }}">
@@ -537,7 +537,7 @@
 {% endif %}
 
 <!-- ── ANALIZADORES EJECUTADOS ── -->
-{% if analysis.analyzers_run %}
+{% if analysis.dynamic.analyzers_run %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.22s both">
   <header class="section-head">
     <div class="section-icon-box" style="background:rgba(46,204,113,0.1)">
@@ -553,7 +553,7 @@
     </div>
   </header>
   <div class="analyzer-chips">
-    {% for a in analysis.analyzers_run %}
+    {% for a in analysis.dynamic.analyzers_run %}
       <span class="analyzer-chip">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
         {{ a }}
@@ -845,23 +845,23 @@
 <script>
 window.__SANDBOX_CTX__ = {
   analysisId:   {{ analysis.id }},
-  filename:     "{{ analysis.filename|escapejs }}",
-  fileSize:     {{ analysis.file_size|default:0 }},
-  md5:          "{{ analysis.md5_hash|escapejs }}",
-  sha256:       "{{ analysis.sha256_hash|escapejs }}",
-  mimeType:     "{{ analysis.real_mime_type|escapejs }}",
-  extension:    "{{ analysis.extension|escapejs }}",
-  extSpoof:     {% if analysis.extension_spoof %}true{% else %}false{% endif %},
-  category:     "{{ analysis.category|escapejs }}",
+  filename:     "{{ analysis.file_info.filename|escapejs }}",
+  fileSize:     {{ analysis.file_info.file_size|default:0 }},
+  md5:          "{{ analysis.file_info.md5_hash|escapejs }}",
+  sha256:       "{{ analysis.file_info.sha256_hash|escapejs }}",
+  mimeType:     "{{ analysis.file_info.real_mime_type|escapejs }}",
+  extension:    "{{ analysis.file_info.extension|escapejs }}",
+  extSpoof:     {% if analysis.file_info.extension_spoof %}true{% else %}false{% endif %},
+  category:     "{{ analysis.dynamic.category|escapejs }}",
   riskScore:    {{ analysis.risk_score }},
   threatName:   "{{ analysis.threat_name|escapejs }}",
-  evidence:     {{ analysis.evidence|safe }},
-  iocs:         {{ analysis.iocs|safe }},
-  yaraMatches:  {{ analysis.yara_matches|safe }},
+  evidence:     {{ analysis.dynamic.evidence|safe }},
+  iocs:         {{ analysis.dynamic.iocs|safe }},
+  yaraMatches:  {{ analysis.dynamic.yara_matches|safe }},
   yaraContext:  {{ yara_context_json|default:"[]"|safe }},
-  bodyScore:    {{ analysis.body_score|default:0 }},
-  bodyThreat:   "{{ analysis.body_threat|escapejs }}",
-  analyzersRun: {{ analysis.analyzers_run|safe }}
+  bodyScore:    {{ analysis.body_analysis.body_score|default:0 }},
+  bodyThreat:   "{{ analysis.body_analysis.body_threat|escapejs }}",
+  analyzersRun: {{ analysis.dynamic.analyzers_run|safe }}
 };
 </script>
 <script src="{% static 'sandbox/js/sandbox_report.js' %}?v=odd-min3"></script>

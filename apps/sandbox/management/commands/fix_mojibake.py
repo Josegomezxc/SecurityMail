@@ -99,13 +99,19 @@ def fix_recursive(obj):
     return obj, 0
 
 
-# Campos del modelo a revisar
-TEXT_FIELDS = ['filename', 'threat_name', 'body_threat']
-JSON_FIELDS = [
-    'yara_matches', 'evidence', 'iocs', 'body_evidence',
-    'attachments_reports', 'network_connections',
-    'child_processes', 'file_writes',
-]
+# Campos del modelo a revisar (mapeados a related models)
+TEXT_RELATIONS = {
+    'file_info': ['filename'],
+    'body_analysis': ['body_threat'],
+}
+# threat_name se queda en SandboxAnalysis
+TEXT_FIELDS = ['threat_name']
+
+JSON_RELATIONS = {
+    'dynamic': ['yara_matches', 'evidence', 'iocs', 'network_connections',
+                'child_processes', 'file_writes'],
+    'body_analysis': ['body_evidence', 'attachments_reports'],
+}
 
 
 class Command(BaseCommand):
@@ -133,8 +139,10 @@ class Command(BaseCommand):
         for sa in SandboxAnalysis.objects.iterator(chunk_size=200):
             updates = {}
             changes_here = 0
+            # Track which related objects need saving
+            relations_to_save = {}
 
-            # Campos de texto
+            # Campos de texto directos (threat_name)
             for f in TEXT_FIELDS:
                 val = getattr(sa, f, '')
                 new_val, changed = fix_text(val or '')
@@ -142,27 +150,51 @@ class Command(BaseCommand):
                     updates[f] = new_val
                     changes_here += 1
 
-            # Campos JSON
-            for f in JSON_FIELDS:
-                val = getattr(sa, f, None)
-                if val is None:
+            # Campos de texto en related models
+            for rel_name, fields in TEXT_RELATIONS.items():
+                rel_obj = getattr(sa, rel_name, None)
+                if rel_obj is None:
                     continue
-                new_val, n = fix_recursive(val)
-                if n > 0:
-                    updates[f] = new_val
-                    changes_here += n
+                for f in fields:
+                    val = getattr(rel_obj, f, '')
+                    new_val, changed = fix_text(val or '')
+                    if changed:
+                        setattr(rel_obj, f, new_val)
+                        relations_to_save.setdefault(rel_name, set()).add(f)
+                        changes_here += 1
 
-            if updates:
+            # Campos JSON en related models
+            for rel_name, fields in JSON_RELATIONS.items():
+                rel_obj = getattr(sa, rel_name, None)
+                if rel_obj is None:
+                    continue
+                for f in fields:
+                    val = getattr(rel_obj, f, None)
+                    if val is None:
+                        continue
+                    new_val, n = fix_recursive(val)
+                    if n > 0:
+                        setattr(rel_obj, f, new_val)
+                        relations_to_save.setdefault(rel_name, set()).add(f)
+                        changes_here += n
+
+            if updates or relations_to_save:
                 affected += 1
                 total_replacements += changes_here
+                fname = getattr(getattr(sa, 'file_info', None), 'filename', '?')
                 self.stdout.write(
-                    f'  ID {sa.id:>5} — {sa.filename[:50]:50s} → '
+                    f'  ID {sa.id:>5} — {str(fname)[:50]:50s} → '
                     f'{changes_here} reemplazo(s) en {", ".join(updates.keys())}'
                 )
                 if not dry_run:
                     for f, v in updates.items():
                         setattr(sa, f, v)
-                    sa.save(update_fields=list(updates.keys()))
+                    if updates:
+                        sa.save(update_fields=list(updates.keys()))
+                    for rel_name, fields in relations_to_save.items():
+                        rel_obj = getattr(sa, rel_name, None)
+                        if rel_obj is not None:
+                            rel_obj.save(update_fields=list(fields))
 
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS(

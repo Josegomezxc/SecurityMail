@@ -22,7 +22,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.mail.models import EmailMessage
-from .models import SandboxAnalysis
+from .models import SandboxAnalysis, IAResult
 
 
 # Items por página — coincide con el resto del proyecto (bandeja, etc.)
@@ -79,7 +79,7 @@ def sandbox_list_view(request):
     q = (request.GET.get('q') or '').strip()
     if q:
         qs = qs.filter(
-            Q(filename__icontains=q) |
+            Q(file_info__filename__icontains=q) |
             Q(email__subject__icontains=q) |
             Q(email__from_email__icontains=q) |
             Q(threat_name__icontains=q)
@@ -148,7 +148,9 @@ def sandbox_report_view(request, pk):
     # prompt del análisis IA del cliente para que pueda explicar cada
     # regla en lenguaje claro sin pegarle a Groq por cada `?`.
     yara_context = []
-    for match in (analysis.yara_matches or [])[:10]:
+    dynamic = getattr(analysis, 'dynamic', None)
+    yara_matches = dynamic.yara_matches if dynamic else []
+    for match in (yara_matches or [])[:10]:
         if isinstance(match, dict):
             rule_name = match.get('rule', '')
         else:
@@ -247,13 +249,14 @@ def ai_analysis_view(request):
         except Exception:
             cached_obj = None
 
-        if cached_obj and cached_obj.ai_explanation:
+        ai_result = getattr(cached_obj, 'ai_result', None) if cached_obj else None
+        if ai_result and ai_result.ai_explanation:
             # Reconstruimos el texto en el formato que espera el frontend
             parts = [
-                f'VEREDICTO: {cached_obj.ai_verdict or "SEGURO"}',
-                f'TIPO DE AMENAZA: {cached_obj.ai_threat_type or "No aplica"}',
-                f'EXPLICACION: {cached_obj.ai_explanation}',
-                f'RECOMENDACION: {cached_obj.ai_recommendation or ""}',
+                f'VEREDICTO: {ai_result.ai_verdict or "SEGURO"}',
+                f'TIPO DE AMENAZA: {ai_result.ai_threat_type or "No aplica"}',
+                f'EXPLICACION: {ai_result.ai_explanation}',
+                f'RECOMENDACION: {ai_result.ai_recommendation or ""}',
             ]
             return JsonResponse({
                 'result': '\n\n'.join(parts),
@@ -298,13 +301,14 @@ def ai_analysis_view(request):
     if cached_obj is not None:
         try:
             from django.utils import timezone
+            ai_result, _ = IAResult.objects.get_or_create(analysis=cached_obj)
             blocks = _parse_ai_blocks(raw)
-            cached_obj.ai_verdict       = (blocks.get('VEREDICTO') or '')[:20]
-            cached_obj.ai_threat_type   = (blocks.get('TIPO DE AMENAZA') or '')[:100]
-            cached_obj.ai_explanation   = blocks.get('EXPLICACION') or ''
-            cached_obj.ai_recommendation = blocks.get('RECOMENDACION') or ''
-            cached_obj.ai_generated_at  = timezone.now()
-            cached_obj.save(update_fields=[
+            ai_result.ai_verdict       = (blocks.get('VEREDICTO') or '')[:20]
+            ai_result.ai_threat_type   = (blocks.get('TIPO DE AMENAZA') or '')[:100]
+            ai_result.ai_explanation   = blocks.get('EXPLICACION') or ''
+            ai_result.ai_recommendation = blocks.get('RECOMENDACION') or ''
+            ai_result.ai_generated_at  = timezone.now()
+            ai_result.save(update_fields=[
                 'ai_verdict', 'ai_threat_type', 'ai_explanation',
                 'ai_recommendation', 'ai_generated_at',
             ])

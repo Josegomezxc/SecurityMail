@@ -171,8 +171,8 @@
           {% with score=analysis.risk_score %}
           <tr class="sandbox-row {% if score >= 61 %}threat{% endif %}"
               data-score="{{ score }}"
-              data-category="{{ analysis.category|default:'unknown' }}"
-              data-filename="{{ analysis.filename|lower }}"
+              data-category="{{ analysis.dynamic.category|default:'unknown' }}"
+              data-filename="{{ analysis.file_info.filename|lower }}"
               data-subject="{{ analysis.email.subject|lower }}"
               data-sender="{{ analysis.email.from_email|lower }}"
               data-threat="{{ analysis.threat_name|lower }}"
@@ -195,9 +195,9 @@
               </div>
             </td>
 
-            <td class="ds-cell-strong" title="{{ analysis.filename }}">
-              {{ analysis.filename }}
-              {% if analysis.extension_spoof %}
+            <td class="ds-cell-strong" title="{{ analysis.file_info.filename }}">
+              {{ analysis.file_info.filename }}
+              {% if analysis.file_info.extension_spoof %}
                 <span class="ds-pill ds-pill-danger" style="margin-left:.375rem" title="Extensión spoofeada — el MIME real no coincide">SPOOF</span>
               {% endif %}
             </td>
@@ -211,8 +211,8 @@
             </td>
 
             <td class="ds-td-mid">
-              {% if analysis.category and analysis.category != 'unknown' %}
-                <span class="ds-pill ds-pill-purple">{{ analysis.get_category_display }}</span>
+              {% if analysis.dynamic.category and analysis.dynamic.category != 'unknown' %}
+                <span class="ds-pill ds-pill-purple">{{ analysis.dynamic.get_category_display }}</span>
               {% else %}
                 <span class="ds-cell-muted">—</span>
               {% endif %}

@@ -19,6 +19,8 @@ from django.contrib import messages
 from django.shortcuts import redirect
 from django.utils import timezone
 
+from apps.accounts.models import UserSession
+
 
 class SingleSessionMiddleware:
 
@@ -35,7 +37,8 @@ class SingleSessionMiddleware:
                 profile = None
 
             if profile is not None:
-                stored_key = (profile.current_session_key or '').strip()
+                session = getattr(profile, 'session', None)
+                stored_key = (session.current_session_key or '').strip() if session else ''
                 current_key = request.session.session_key or ''
 
                 # ── 1) Red de seguridad: si hay dos sesiones simultáneas,
@@ -52,10 +55,13 @@ class SingleSessionMiddleware:
                 # ── 2) Marcar actividad: tu sesión está VIVA ──
                 # Throttle a 60s para no escribir BD en cada request.
                 now = timezone.now()
-                last = profile.session_last_activity
+                session = getattr(profile, 'session', None)
+                if session is None:
+                    session = UserSession.objects.create(profile=profile)
+                last = session.session_last_activity
                 if last is None or (now - last).total_seconds() > 60:
-                    profile.session_last_activity = now
-                    profile.save(update_fields=['session_last_activity'])
+                    session.session_last_activity = now
+                    session.save(update_fields=['session_last_activity'])
 
         return self.get_response(request)
 

@@ -15,6 +15,8 @@ from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils import timezone
 
+from apps.accounts.models import UserSession
+
 
 # Tiempo de inactividad después del cual una sesión se considera "abandonada"
 # y se permite que otra persona haga login con la misma cuenta. Si quieres
@@ -38,7 +40,10 @@ def is_session_active(user) -> bool:
     except Exception:
         return False
 
-    key = (profile.current_session_key or '').strip()
+    session = getattr(profile, 'session', None)
+    if session is None:
+        return False
+    key = (session.current_session_key or '').strip()
     if not key:
         return False
 
@@ -47,7 +52,7 @@ def is_session_active(user) -> bool:
         return False
 
     # ¿Hubo actividad reciente?
-    last = profile.session_last_activity
+    last = session.session_last_activity
     if last is None:
         return False
     idle = (timezone.now() - last).total_seconds()
@@ -73,11 +78,10 @@ def login_single_session(request, user):
     """
     # 1) Borrar la sesión anterior si la teníamos registrada
     try:
-        old_key = (user.profile.current_session_key or '').strip()
+        session = getattr(user.profile, 'session', None)
+        old_key = (session.current_session_key or '').strip() if session else ''
     except Exception:
         old_key = ''
-    if old_key:
-        Session.objects.filter(session_key=old_key).delete()
 
     # 2) Crear la sesión nueva (Django genera el session_key)
     django_login(request, user)
@@ -86,11 +90,12 @@ def login_single_session(request, user):
     if not request.session.session_key:
         request.session.save()
 
-    # 3) Persistir la nueva session_key en el perfil
+    # 3) Persistir la nueva session_key en la sesión del perfil
     try:
         profile = user.profile
-        profile.current_session_key = request.session.session_key or ''
-        profile.save(update_fields=['current_session_key'])
+        session, _ = UserSession.objects.get_or_create(profile=profile)
+        session.current_session_key = request.session.session_key or ''
+        session.save(update_fields=['current_session_key'])
     except Exception:
         pass
 
