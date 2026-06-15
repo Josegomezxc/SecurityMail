@@ -214,16 +214,16 @@ def cleanup_expired_pending_registrations() -> int:
 def send_pending_registration_email(pr: PendingRegistration) -> bool:
     """
     Envía el correo HTML con el código al `pr.email`. Reusa la misma
-    plantilla y proveedor (SendGrid) del flujo anterior.
+    plantilla y proveedor (Resend) del flujo anterior.
     """
     from django.conf import settings
-    from apps.mail.webhook import _send_via_sendgrid
+    from apps.mail.webhook import _send_via_resend
 
     domain = getattr(settings, 'MAIL_DOMAIN', 'dockershield.lat')
     from_addr = f"DockerShield <noreply@{domain}>"
 
     html = _build_verification_html(pr)
-    return _send_via_sendgrid(
+    return _send_via_resend(
         from_addr = from_addr,
         to_email  = pr.email,
         subject   = f"Tu código de verificación: {pr.code}",

@@ -13,11 +13,12 @@
     result.className = 'nd-result show ' + cls;
     result.textContent = msg;
   }
+  const userEmail = btnFw.dataset.userEmail || '';
   function disable() {
     btnFw.disabled = true;
     btnDc.disabled = true;
   }
-  function action(btn, url, okMsg, statusLabel, statusClass) {
+  function action(btn, url, okMsg, statusLabel, statusClass, toastType, toastTitle) {
     btn.disabled = true;
     fetch(url, {
       method: 'POST', credentials: 'same-origin',
@@ -33,7 +34,7 @@
       .then(({ ok, status, data }) => {
         if (ok && data && data.ok) {
           disable();
-          show('ok', okMsg);
+          window.showToast({ type: toastType || 'success', title: toastTitle || '¡Listo!', message: okMsg, duration:5000 });
           if (statusEl) {
             statusEl.textContent = statusLabel;
             statusEl.className = 'nd-status-pill ' + statusClass;
@@ -85,17 +86,21 @@
     action(
       btnFw,
       fwUrl,
-      '✓ Listo. El correo está en camino a tu Gmail.',
+      'Correo reenviado con éxito a tu correo principal ' + userEmail,
       'Aprobada — reenviada',
-      'nd-status-pill nd-status-approved'
+      'nd-status-pill nd-status-approved',
+      'success',
+      'Reenviado'
     );
   });
 
   btnDc.addEventListener('click', () => action(
     btnDc,
     dcUrl,
-    '✓ Descartado. El correo sigue en tu bandeja pero no se reenvió.',
+    'Notificación descartada correctamente',
     'Descartada',
-    'nd-status-pill nd-status-discarded'
+    'nd-status-pill nd-status-discarded',
+    'danger',
+    'Descartado'
   ));
 })();

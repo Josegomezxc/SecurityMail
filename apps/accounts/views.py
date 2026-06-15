@@ -7,6 +7,9 @@ Vistas del módulo accounts:
   - perfil del usuario
   - eliminar cuenta (con confirmación de password)
 """
+import os
+import shutil
+from django.conf import settings
 from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -477,11 +480,7 @@ def registro_view(request):
         if password and password != password2:
             field_errors['password2'] = 'Las dos contraseñas no coinciden.'
 
-        # Unicidad del email (solo si lo anterior es válido).
-        # IMPORTANTE: Ya NO creamos User(is_active=False) durante el registro.
-        # Los datos se guardan en PendingRegistration hasta que se verifique
-        # el código. Por eso aquí solo bloqueamos si existe un User REAL con
-        # ese email (cuenta ya verificada o creada por createsuperuser).
+        # Unicidad del email.
         if (not field_errors['name'] and not field_errors['email']
                 and not field_errors['password'] and not field_errors['password2']):
             if User.objects.filter(email__iexact=email).exists():
@@ -695,9 +694,8 @@ def logout_view(request):
 def recuperar_view(request):
     """
     GET  → muestra el formulario.
-    POST → valida el email, genera token y envía el correo.
-           SIEMPRE responde con el mismo mensaje, exista o no el usuario
-           (no revelamos qué emails están registrados).
+    POST → valida el email, busca al usuario en BD y envía el correo
+           si existe. Si no existe, muestra error.
     """
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -713,17 +711,15 @@ def recuperar_view(request):
             messages.error(request, email_err)
             return render(request, 'accounts/recuperar.html', {'form_values': form_values})
 
-        # Buscar el usuario. Si no existe, igual respondemos "OK" para no
-        # filtrar qué correos están registrados.
         try:
             user = User.objects.get(email__iexact=email_clean)
-            token = create_token(user, ip=get_client_ip(request))
-            if token is not None:
-                send_reset_email(user, token)
-                # Ignoramos errores de envío a propósito: no queremos revelar
-                # fallos del proveedor al atacante. El log del server los captura.
         except User.DoesNotExist:
-            pass
+            messages.error(request, "No encontramos una cuenta registrada con ese correo.")
+            return render(request, 'accounts/recuperar.html', {'form_values': form_values})
+
+        token = create_token(user, ip=get_client_ip(request))
+        if token is not None:
+            send_reset_email(user, token)
 
         return render(request, 'accounts/recuperar.html', {
             'form_values': {'email': ''},
@@ -1043,49 +1039,46 @@ def eliminar_cuenta_confirmar(request):
         return _err(messages_map.get(err_kind, 'Código inválido.'),
                     status=400, code_state=err_kind)
 
-    # ── Soft delete (NO borra datos, solo marca) ─────────────────────
+    # ── Hard delete físico ───────────────────────────────────────────
     user = request.user
 
-    # Snapshot antes de cerrar sesión
+    # Snapshot antes de eliminar
     snapshot_email   = user.email
     snapshot_display = (user.first_name or user.email or 'Usuario').strip()
     stats_snapshot   = profile_stats(user)
     deleted_at_str   = timezone.localtime().strftime('%d/%m/%Y · %H:%M')
     client_ip        = get_client_ip(request)
 
-    # Marcamos el perfil como eliminado
+    # Enviar email de resumen ANTES de borrar (si falla, no se borra nada)
+    ok, _ = send_account_deleted_email(
+        to_email       = snapshot_email,
+        display_name   = snapshot_display,
+        alias_count    = stats_snapshot.get('alias_count', 0),
+        total_emails   = stats_snapshot.get('total_emails', 0),
+        threats_count  = stats_snapshot.get('threats_count', 0),
+        deleted_at_str = deleted_at_str,
+        ip             = client_ip,
+    )
+    if not ok:
+        return _err('No se pudo enviar el correo de confirmación. Intenta de nuevo.')
+
+    # Borrar archivos físicos
     try:
         profile = user.profile
-        profile.is_deleted   = True
-        profile.deleted_at   = timezone.now()
-        profile.deletion_ip  = client_ip
-        profile.save(update_fields=['is_deleted', 'deleted_at', 'deletion_ip', 'updated_at'])
-    except Exception as e:
-        print(f'[eliminar_cuenta_confirmar] no se pudo marcar profile.is_deleted: {e}')
+        if profile.avatar and os.path.exists(profile.avatar.path):
+            os.remove(profile.avatar.path)
+    except Exception:
+        pass
 
-    # Deshabilitamos el User para que no pueda hacer login mientras está
-    # marcado como eliminado (el backend de Django auth filtra is_active).
-    user.is_active = False
-    user.save(update_fields=['is_active'])
+    att_dir = os.path.join(settings.MEDIA_ROOT, 'attachments', str(user.id))
+    if os.path.exists(att_dir):
+        shutil.rmtree(att_dir)
 
-    # Cerramos la sesión actual
+    # Hard-delete (cascade borra todo: UserProfile, Alias, EmailMessage,
+    # Notification, Draft, SentEmail, UserSession, AccountLock, etc.)
+    user_id = user.id
+    user.delete()
     logout(request)
-
-    # Mandamos el correo "Tu cuenta fue eliminada" en background
-    import threading
-    threading.Thread(
-        target=send_account_deleted_email,
-        kwargs=dict(
-            to_email       = snapshot_email,
-            display_name   = snapshot_display,
-            alias_count    = stats_snapshot.get('alias_count', 0),
-            total_emails   = stats_snapshot.get('total_emails', 0),
-            threats_count  = stats_snapshot.get('threats_count', 0),
-            deleted_at_str = deleted_at_str,
-            ip             = client_ip,
-        ),
-        daemon=True,
-    ).start()
 
     if is_ajax:
         return JsonResponse({'ok': True, 'redirect': '/'})

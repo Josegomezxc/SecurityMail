@@ -3,7 +3,7 @@ app/sandbox/auth_check.py
 ──────────────────────────────────────────────────────────────────────
 Verificación de autenticidad criptográfica del remitente.
 
-Lee los resultados de SPF / DKIM / DMARC que SendGrid Inbound Parse
+    Lee los resultados de SPF / DKIM / DMARC que Resend Inbound
 ya calcula automáticamente y los entrega en el POST del webhook.
 
   • SPF:   ¿El servidor que envió el correo está autorizado por el
@@ -45,7 +45,7 @@ SPOOFED    = 'spoofed'
 
 def check_authentication(post_data, sender_email: str) -> dict:
     """
-    Lee los campos de SendGrid Inbound Parse y devuelve un veredicto.
+    Lee los campos de Resend Inbound y devuelve un veredicto.
 
     Args:
         post_data: request.POST (QueryDict) del webhook
@@ -121,7 +121,7 @@ def _extract_domain(email: str) -> str:
 
 def _parse_spf(value: str) -> str:
     """
-    SendGrid manda SPF como 'pass' / 'fail' / 'softfail' / 'neutral' / 'none'.
+    Resend manda SPF como 'pass' / 'fail' / 'softfail' / 'neutral' / 'none'.
     A veces viene con paréntesis: 'pass (sender IP is X)'.
     """
     if not value:
@@ -134,7 +134,7 @@ def _parse_spf(value: str) -> str:
 
 def _parse_dkim(value: str) -> tuple:
     """
-    SendGrid manda DKIM como '{@netflix.com : pass}' o '{none}'.
+    Resend manda DKIM como '{@netflix.com : pass}' o '{none}'.
     También puede venir como 'pass' a secas.
 
     Devuelve (resultado, dominio_que_firmo).
@@ -175,7 +175,7 @@ def _parse_dmarc_from_headers(headers: str) -> str:
     Busca el resultado DMARC dentro del Authentication-Results.
 
     Formato típico:
-      Authentication-Results: mx.sendgrid.net;
+      Authentication-Results: mx.resend.com;
         spf=pass smtp.mailfrom=netflix.com;
         dkim=pass header.d=netflix.com;
         dmarc=pass action=none header.from=netflix.com;
@@ -212,7 +212,7 @@ def _domains_align(dkim_domain: str, sender_domain: str) -> bool:
 
     netflix.com firmó por accounts.netflix.com → align ✓
     netflix.com firmó por netflix.com          → align ✓
-    sendgrid.net firmó por netflix.com         → NO align ✗ (spoof potencial)
+    attacker.com firmó por netflix.com         → NO align ✗ (spoof potencial)
     """
     if not dkim_domain or not sender_domain:
         return False

@@ -1,14 +1,17 @@
 """
 apps/mail/webhook.py
-Endpoint para recibir correos entrantes vía SendGrid Inbound Parse.
+Endpoint para recibir correos entrantes vía Resend Inbound.
 
-SendGrid recibe los correos en el dominio dockershield.lat y los reenvía
-a /webhook/inbound/ como POST multipart/form-data.
+Resend recibe los correos en el dominio dockershield.lat y los reenvía
+a /webhook/inbound/ como POST JSON.
 
-Para enviar (alertas + reenvíos) usamos también SendGrid (Mail Send API).
+Para enviar (alertas + reenvíos) usamos también Resend (Email API).
 """
 
 import os
+import json
+import re
+import base64
 import traceback
 from datetime import datetime, timezone
 
@@ -32,14 +35,11 @@ from apps.sandbox.models import FileInfo, DynamicAnalysis, BodyAnalysis, IAResul
 def inbound_email_webhook(request):
     """
     Wrapper que captura cualquier excepción del pipeline y loguea con detalle.
-    Siempre devuelve 200 para que SendGrid no reintente en bucle por un bug
+    Siempre devuelve 200 para que Resend no reintente en bucle por un bug
     transitorio.
 
-    Nota de seguridad: SendGrid Inbound Parse no firma los POST por defecto.
-    La autenticidad se garantiza usando una URL pública secreta (ngrok / dominio
-    no adivinable) y, en producción, restringiendo por IP a los rangos de
-    SendGrid: https://sendgrid.com/blog/sendgrid-ip-addresses/
     """
+
     try:
         return _handle_inbound(request)
     except Exception as e:
@@ -78,7 +78,7 @@ def _save_minimal_email(request, reason=""):
 
 
 # ──────────────────────────────────────────────────────────────────────
-#  Parser del payload de SendGrid Inbound Parse (multipart/form-data)
+#  Parser del payload de Resend Inbound (JSON)
 # ──────────────────────────────────────────────────────────────────────
 
 def _extract_payload(request):
@@ -90,163 +90,111 @@ def _extract_payload(request):
     }
     attachments_list = [(filename, bytes), ...]
     """
-    return _extract_sendgrid(request)
+    try:
+        raw = request.body
+        if isinstance(raw, bytes):
+            raw = raw.decode('utf-8', errors='replace')
+        envelope = json.loads(raw)
+        # Resend envía el payload envuelto en { type, created_at, data: { ... } }
+        webhook_data = envelope.get('data', envelope)
+    except Exception as e:
+        print(f"[webhook] error parseando JSON de Resend: {e}")
+        return {}, []
 
+    email_id = webhook_data.get('email_id', '')
 
-def _extract_sendgrid(request):
-    """Parser del POST que SendGrid Inbound Parse manda al webhook.
+    # Resend webhooks solo traen metadata — hay que llamar a la API
+    # para obtener el cuerpo completo (html, text, headers).
+    # Documentación: https://resend.com/docs/dashboard/receiving/get-email-content
+    api_key = os.environ.get('RESEND_API_KEY', '').strip()
+    if email_id and api_key:
+        try:
+            import resend
+            resend.api_key = api_key
+            full = resend.Emails.Receiving.get(email_id)
+            data = {
+                'from':          full.get('from', webhook_data.get('from', '')),
+                'to':            full.get('to', webhook_data.get('to', [])),
+                'subject':       full.get('subject', webhook_data.get('subject', 'Sin asunto')),
+                'html':          full.get('html', '') or '',
+                'text':          full.get('text', '') or '',
+                'reply_to':      full.get('reply_to', webhook_data.get('reply_to', '')) or '',
+                'headers':       full.get('headers', webhook_data.get('headers', {})),
+                'attachments':   full.get('attachments', webhook_data.get('attachments', [])),
+                'dkim':          full.get('dkim', webhook_data.get('dkim', '')),
+                'spf':           full.get('spf', webhook_data.get('spf', '')),
+                'spam_score':    full.get('spam_score', webhook_data.get('spam_score', 0.0)),
+                'sender_ip':     full.get('sender_ip', webhook_data.get('sender_ip', '')),
+            }
+        except Exception as e:
+            print(f"[webhook] error obteniendo contenido de API Resend: {e}")
+            data = webhook_data
+    else:
+        data = webhook_data
 
-    Soporta los DOS modos de SendGrid Inbound Parse:
+    request._resend_payload = data
 
-    1) MODO PARSEADO (default): SendGrid pre-extrae text, html, headers,
-       y los adjuntos vienen en request.FILES como attachment1, attachment2…
-
-    2) MODO RAW (cuando "POST the raw, full MIME message" está activado):
-       SendGrid solo manda el campo `email` con el MIME RFC822 completo.
-       text/html/adjuntos NO vienen separados — los parseamos nosotros.
-       Los campos auxiliares (dkim, SPF, sender_ip…) sí se siguen mandando.
-    """
-    # ── Detectar si SendGrid mandó el correo crudo (modo raw) ──
-    raw_email = request.POST.get('email', '')
-
-    # Empezamos con lo que pueda venir parseado (modo legacy / fallback)
     fields = {
-        'recipient': request.POST.get('recipient', '') or request.POST.get('to', ''),
-        'sender':    request.POST.get('sender', '')    or request.POST.get('from', ''),
-        'subject':   request.POST.get('subject', 'Sin asunto'),
-        'body':      request.POST.get('body-plain', '') or request.POST.get('text', ''),
-        'body_html': request.POST.get('body-html', '')  or request.POST.get('html', ''),
-        'reply_to':  request.POST.get('reply-to', '')   or request.POST.get('Reply-To', ''),
+        'recipient': '',
+        'sender':    data.get('from', ''),
+        'subject':   data.get('subject', 'Sin asunto'),
+        'body':      data.get('text', '') or '',
+        'body_html': data.get('html', '') or '',
+        'reply_to':  '',
     }
+
+    reply_to = data.get('reply_to', '')
+    if isinstance(reply_to, list) and reply_to:
+        fields['reply_to'] = reply_to[0] or ''
+    elif isinstance(reply_to, str):
+        fields['reply_to'] = reply_to
+
+    to_list = data.get('to', [])
+    if isinstance(to_list, list) and to_list:
+        fields['recipient'] = to_list[0]
+    elif isinstance(to_list, str):
+        fields['recipient'] = to_list
+
+    # Descargar adjuntos desde Resend si tienen download_url
     attachments = []
+    if email_id and api_key:
+        for att in data.get('attachments', []):
+            att_id = att.get('id', '') if isinstance(att, dict) else getattr(att, 'id', '')
+            if not att_id:
+                continue
+            try:
+                import resend
+                resend.api_key = api_key
+                details = resend.Emails.Receiving.Attachments.get(email_id, att_id)
+                download_url = details.get('download_url', '') if isinstance(details, dict) else getattr(details, 'download_url', '')
+                if download_url:
+                    import requests as _req
+                    resp = _req.get(download_url, timeout=30)
+                    if resp.status_code == 200:
+                        fname = att.get('filename', 'attachment') if isinstance(att, dict) else getattr(att, 'filename', 'attachment')
+                        attachments.append((fname or 'attachment', resp.content))
+            except Exception as e:
+                print(f"[webhook] error descargando adjunto {att_id}: {e}")
 
-    # Primero leemos los adjuntos del modo parseado (request.FILES)
-    for upload in _collect_attachments(request):
-        try:
-            content = upload.read()
-            attachments.append((upload.name, content))
-        except Exception as e:
-            print(f"[webhook] no se pudo leer adjunto {upload.name}: {e}")
-
-    # ── Si vino MIME crudo y nos falta body/HTML/adjuntos, parseamos ──
-    needs_raw = bool(raw_email) and (
-        not fields['body'] or not fields['body_html'] or not attachments
-    )
-    if needs_raw:
-        try:
-            parsed = _parse_raw_mime(raw_email)
-            # Llenamos solo lo que estaba vacío (no pisamos lo que ya vino parseado)
-            if not fields['body']      and parsed.get('body'):      fields['body']      = parsed['body']
-            if not fields['body_html'] and parsed.get('body_html'): fields['body_html'] = parsed['body_html']
-            if not fields['subject'] or fields['subject'] == 'Sin asunto':
-                if parsed.get('subject'):
-                    fields['subject'] = parsed['subject']
-            if not fields['sender']   and parsed.get('from'):       fields['sender']    = parsed['from']
-            if not fields['reply_to'] and parsed.get('reply_to'):   fields['reply_to']  = parsed['reply_to']
-            # Solo añadimos adjuntos del MIME si no vinieron en request.FILES
-            if not attachments and parsed.get('attachments'):
-                attachments.extend(parsed['attachments'])
-        except Exception as e:
-            print(f"[webhook] error parseando MIME crudo: {e}")
+    # Fallback: si algún attachment trae content base64 directo
+    # (Resend nunca lo envía así — útil para test_webhook)
+    for att in data.get('attachments', []):
+        content_b64 = att.get('content', '') if isinstance(att, dict) else ''
+        if content_b64:
+            try:
+                fname = att.get('filename', 'attachment') or 'attachment'
+                file_bytes = base64.b64decode(content_b64)
+                if not any(f == fname for f, _ in attachments):
+                    attachments.append((fname, file_bytes))
+            except Exception as e:
+                print(f"[webhook] error decodificando attachment base64: {e}")
 
     return fields, attachments[:15]
 
 
 # ──────────────────────────────────────────────────────────────────────
-#  Parser de MIME crudo (cuando "POST raw" está activado en SendGrid)
-# ──────────────────────────────────────────────────────────────────────
-
-def _parse_raw_mime(raw_email: str) -> dict:
-    """
-    Parsea un correo en formato RFC822 (MIME crudo) y extrae:
-      - subject, from, reply_to
-      - body (text/plain)
-      - body_html (text/html)
-      - attachments [(filename, bytes), ...]
-
-    Usa la librería estándar `email` de Python (sin dependencias externas).
-    """
-    from email import message_from_string
-    from email.policy import default as default_policy
-    from email.utils import getaddresses
-
-    msg = message_from_string(raw_email, policy=default_policy)
-
-    def _get_addr(header_name):
-        val = msg.get(header_name, '')
-        if not val:
-            return ''
-        addrs = getaddresses([str(val)])
-        if addrs:
-            name, addr = addrs[0]
-            if name and addr:
-                return f"{name} <{addr}>"
-            return addr or str(val)
-        return str(val)
-
-    subject  = str(msg.get('Subject', '') or '').strip()
-    from_v   = _get_addr('From')
-    reply_to = _get_addr('Reply-To')
-
-    body      = ''
-    body_html = ''
-    attachments = []
-
-    if msg.is_multipart():
-        for part in msg.walk():
-            ctype = part.get_content_type()
-            cdisp = (part.get('Content-Disposition') or '').lower()
-
-            # ── Adjunto (Content-Disposition: attachment) ──
-            if 'attachment' in cdisp or part.get_filename():
-                try:
-                    payload = part.get_payload(decode=True)
-                    fname   = part.get_filename() or 'attachment'
-                    if payload:
-                        attachments.append((fname, payload))
-                except Exception as e:
-                    print(f"[mime] no se pudo extraer adjunto: {e}")
-                continue
-
-            # ── Cuerpo: nos quedamos con el primer text/plain y text/html ──
-            if ctype == 'text/plain' and not body:
-                body = _decode_part(part)
-            elif ctype == 'text/html' and not body_html:
-                body_html = _decode_part(part)
-    else:
-        # Correo de una sola parte
-        ctype = msg.get_content_type()
-        decoded = _decode_part(msg)
-        if ctype == 'text/html':
-            body_html = decoded
-        else:
-            body = decoded
-
-    return {
-        'subject':     subject,
-        'from':        from_v,
-        'reply_to':    reply_to,
-        'body':        body,
-        'body_html':   body_html,
-        'attachments': attachments,
-    }
-
-
-def _decode_part(part) -> str:
-    """Decodifica el payload de una MIME part respetando charset declarado."""
-    try:
-        payload = part.get_payload(decode=True)
-        if payload is None:
-            return ''
-        if isinstance(payload, bytes):
-            charset = part.get_content_charset() or 'utf-8'
-            try:
-                return payload.decode(charset, errors='replace')
-            except (LookupError, TypeError):
-                return payload.decode('utf-8', errors='replace')
-        return str(payload)
-    except Exception:
-        return ''
+# _parse_raw_mime y _decode_part fueron eliminadas — Resend entrega
+# todos los campos parseados directamente en JSON.
 
 
 def _bare_email(value: str) -> str:
@@ -256,6 +204,23 @@ def _bare_email(value: str) -> str:
     if '<' in value and '>' in value:
         value = value.split('<')[-1].split('>')[0]
     return value.strip().lower()
+
+
+def _extract_auth_status(headers):
+    """Extrae dkim/spf del header Authentication-Results que Resend incluye en headers."""
+    if not isinstance(headers, dict):
+        return '', ''
+    auth = ''
+    for k, v in headers.items():
+        if k.lower() == 'authentication-results':
+            auth = v or ''
+            break
+    dkim_match = re.search(r'dkim\s*=\s*(pass|fail|neutral|none|softfail|hardfail)', auth, re.I)
+    spf_match = re.search(r'spf\s*=\s*(pass|fail|neutral|none|softfail|hardfail)', auth, re.I)
+    return (
+        (dkim_match.group(1) if dkim_match else ''),
+        (spf_match.group(1) if spf_match else ''),
+    )
 
 
 def _neutralize_links_html(html: str) -> str:
@@ -353,7 +318,7 @@ def _decode_unicode_escapes(text: str) -> str:
 def _html_to_text(html: str) -> str:
     """
     Convierte HTML a texto plano legible. Útil para mostrar en la bandeja
-    cuando el correo viene solo en HTML (caso típico de Reddit, SendGrid…).
+    cuando el correo viene solo en HTML (caso típico de Reddit, newsletters…).
     Limpia <style>, <script>, comentarios, y colapsa whitespace agresivamente
     para evitar bloques masivos de líneas vacías de tablas anidadas.
     """
@@ -397,19 +362,30 @@ def _html_to_text(html: str) -> str:
 
 def _handle_inbound(request):
 
-    # ── 1. Parsear payload del POST de SendGrid Inbound Parse ──────────
+    # ── 1. Parsear payload del POST de Resend Inbound ──────────────────
     fields, raw_attachments = _extract_payload(request)
 
     if not fields['recipient'] or not fields['sender']:
         return HttpResponseBadRequest("Faltan campos requeridos")
 
     # ── 1.b Verificar autenticidad criptográfica (SPF/DKIM/DMARC) ──────
-    # SendGrid ya hace estos chequeos y nos entrega los resultados en el
-    # POST. Los usamos para distinguir correos legítimos (Netflix, Google,
+    # Resend ya hace estos chequeos y los entrega en el JSON del webhook.
+    # Los usamos para distinguir correos legítimos (Netflix, Google,
     # etc.) de phishers que solo escriben un From falso.
     try:
+        resend_data = getattr(request, '_resend_payload', {})
+        raw_dkim_auth, raw_spf_auth = _extract_auth_status(resend_data.get('headers', {}))
+        auth_post_data = {
+            'SPF': raw_spf_auth or resend_data.get('spf', ''),
+            'dkim': raw_dkim_auth or resend_data.get('dkim', ''),
+            'headers': (
+                json.dumps(resend_data.get('headers', {}))
+                if isinstance(resend_data.get('headers'), dict)
+                else (resend_data.get('headers', '') or '')
+            ),
+        }
         auth_result = auth_check.check_authentication(
-            request.POST, sender_email=fields['sender'],
+            auth_post_data, sender_email=fields['sender'],
         )
     except Exception as e:
         print(f"[webhook] auth_check falló (continuando sin auth): {e}")
@@ -436,10 +412,8 @@ def _handle_inbound(request):
         body = _html_to_text(body_html)
 
     # ── 2. Buscar el alias destino ─────────────────────────────────────
-    # Los MTAs (Gmail, Outlook, SendGrid) normalizan el destinatario a
-    # minúsculas en el transporte. Si el alias se guardó con mayúsculas
-    # (ej. "TigreNublado_lezara@..."), una búsqueda case-sensitive lo
-    # rechazaba. Usamos __iexact para que coincida sin importar el case.
+    # Los MTAs normalizan el destinatario a minúsculas en el transporte.
+    # Usamos __iexact para que coincida sin importar el case.
     alias_address = _bare_email(fields['recipient'])
     try:
         alias = Alias.objects.get(address__iexact=alias_address, is_active=True)
@@ -472,19 +446,28 @@ def _handle_inbound(request):
     )
 
     # ── 1. Analizar el CUERPO del correo (siempre) ─────────────────────
-    body_report = body_analyzer.analyze(
-        body_text=body,
-        body_html=body_html,
-        from_addr=sender,
-        reply_to=reply_to,
-        subject=subject,
-    )
+    try:
+        resend_data = getattr(request, '_resend_payload', {})
+        raw_dkim, raw_spf = _extract_auth_status(resend_data.get('headers', {}))
+        body_report = body_analyzer.analyze(
+            body_text=body,
+            body_html=body_html,
+            from_addr=sender,
+            reply_to=reply_to,
+            subject=subject,
+            dkim_status=raw_dkim,
+            spf_status=raw_spf,
+        )
+    except Exception as e:
+        print(f"[webhook] body_analyzer falló: {e}")
+        body_report = {"score": 0, "evidence": [], "threat": ""}
 
     # ── 2. Procesar TODOS los adjuntos (ya extraídos como (nombre, bytes)) ─
     attachment_reports = []    # uno por adjunto
     attachments_summary = []   # lo que se guarda en SandboxAnalysis.attachments_reports
 
     for i, (att_name, att_bytes) in enumerate(raw_attachments, start=1):
+        print(f"[sandbox] adjunto {i}/{len(raw_attachments)}: {att_name}", flush=True)
         try:
             save_path  = f"attachments/{alias.user.id}/{email_obj.id}_{i}_{att_name}"
             saved_name = default_storage.save(save_path, ContentFile(att_bytes))
@@ -505,6 +488,7 @@ def _handle_inbound(request):
             # correcta para este adjunto (sin romper al 1er adjunto).
             proxy = _AttachmentProxy(full_path)
             report = run_sandbox_analysis(proxy)
+            print(f"[sandbox] → score:{report['risk_score']} amenaza:{report.get('threat_name','')[:40]}", flush=True)
             report["_filename"] = att_name
             report["_filepath"] = full_path
             attachment_reports.append(report)
@@ -539,7 +523,7 @@ def _handle_inbound(request):
     url_report = None
     if all_urls:
         try:
-            from .sandbox.analyzers import url_analyzer
+            from apps.sandbox.analyzers import url_analyzer
             url_report = url_analyzer.analyze_urls(all_urls)
         except Exception as e:
             print("URL analyzer error:", e)
@@ -622,7 +606,7 @@ def _handle_inbound(request):
     DynamicAnalysis.objects.create(
         analysis=sandbox,
         category=category,
-        yara_matches=first.get('yara_matches', []),
+        yara_matches=_merge_lists(attachment_reports, 'yara_matches'),
         network_connections=_merge_lists(attachment_reports, 'network_connections'),
         child_processes=_merge_lists(attachment_reports, 'child_processes'),
         file_writes=_merge_lists(attachment_reports, 'file_writes'),
@@ -715,46 +699,8 @@ def _create_notification(user, ntype, title, message, email=None, status='done')
         print(f"[webhook] no se pudo crear notificación ({ntype}): {e}")
 
 
-# ──────────────────────────────────────────────────────────────────────
-#  Helpers para múltiples adjuntos
-# ──────────────────────────────────────────────────────────────────────
-
-def _collect_attachments(request):
-    """
-    Reúne TODOS los adjuntos del POST inbound (request.FILES).
-
-    SendGrid Inbound Parse usa las convenciones:
-      attachment1, attachment2, attachment3 …   (sin guion)
-      attachment-info  (JSON con metadatos)
-
-    También soporta formatos alternativos por compatibilidad:
-      attachment-1, attachment-2 …  (Mailgun-style)
-      files[] / attachments[]       (genérico)
-    """
-    collected = []
-    seen_keys = set()
-
-    # Orden estricto: attachment1..20 y attachment-1..20
-    for i in range(1, 21):
-        for key in (f'attachment-{i}', f'attachment{i}'):
-            if key in request.FILES:
-                collected.append(request.FILES[key])
-                seen_keys.add(key)
-
-    # Arrays tipo files[] / attachments[]
-    for key in ('attachments', 'attachments[]', 'files', 'files[]'):
-        if key in request.FILES:
-            for f in request.FILES.getlist(key):
-                collected.append(f)
-            seen_keys.add(key)
-
-    # Cualquier otro archivo suelto
-    for key, f in request.FILES.items():
-        if key not in seen_keys and f not in collected:
-            collected.append(f)
-
-    # Tope de seguridad: máximo 15 adjuntos por correo
-    return collected[:15]
+# _collect_attachments fue eliminada — los adjuntos ahora vienen como
+# base64 dentro del JSON de Resend.
 
 
 class _AttachmentProxy:
@@ -953,13 +899,13 @@ def _to_level(score: int) -> str:
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  HELPER CENTRALIZADO DE ENVÍO POR SENDGRID
+#  HELPER CENTRALIZADO DE ENVÍO POR RESEND
 # ══════════════════════════════════════════════════════════════════════
 
-def _send_via_sendgrid(from_addr, to_email, subject, html_body,
-                       reply_to=None, attachments=None, send_at=None):
+def _send_via_resend(from_addr, to_email, subject, html_body,
+                     reply_to=None, attachments=None, send_at=None):
     """
-    Envía un correo HTML usando la API REST de SendGrid (v3).
+    Envía un correo HTML usando la API de Resend.
 
     Parámetros:
         from_addr   : "Nombre <correo@dominio>" o solo "correo@dominio"
@@ -967,75 +913,60 @@ def _send_via_sendgrid(from_addr, to_email, subject, html_body,
         subject     : str
         html_body   : str con HTML completo del correo
         reply_to    : str opcional con el correo de respuesta
-        attachments : lista opcional de {filename, content (base64 str)}
+        attachments : lista opcional de {filename, content (base64 str), type}
         send_at     : Unix timestamp opcional para envío programado.
-                      SendGrid acepta hasta ~72h en el futuro. Debe ser int.
+                      Se convierte a ISO 8601 para Resend.
 
     Devuelve True si se envió, False si falló.
     """
-    api_key = os.environ.get('SENDGRID_API_KEY', '').strip()
+    api_key = os.environ.get('RESEND_API_KEY', '').strip()
     if not api_key:
-        print('[webhook] SENDGRID_API_KEY no configurada — correo no enviado.')
+        print('[webhook] RESEND_API_KEY no configurada — correo no enviado.')
         return False
 
     try:
-        from sendgrid import SendGridAPIClient
-        from sendgrid.helpers.mail import (
-            Mail, Attachment, FileContent, FileName, FileType,
-            Disposition, ReplyTo, Email, SendAt,
-        )
+        import resend
+        resend.api_key = api_key
 
-        # Parsear "Nombre <correo>" → email + name si viene así
-        if '<' in from_addr and '>' in from_addr:
-            name = from_addr.split('<')[0].strip().strip('"')
-            addr = from_addr.split('<')[1].split('>')[0].strip()
-            sender = Email(email=addr, name=name)
-        else:
-            sender = Email(email=from_addr)
-
-        message = Mail(
-            from_email=sender,
-            to_emails=to_email,
-            subject=subject,
-            html_content=html_body,
-        )
+        params = {
+            'from':    from_addr,
+            'to':      [to_email] if isinstance(to_email, str) else to_email,
+            'subject': subject,
+            'html':    html_body,
+        }
 
         if reply_to:
-            message.reply_to = ReplyTo(reply_to)
+            params['reply_to'] = reply_to
 
-        # Envío programado: SendGrid acepta `send_at` como timestamp Unix.
-        # Si la fecha está en el pasado o demasiado lejana, SendGrid lo
-        # rechaza con 400 — por eso validamos antes de llegar aquí.
+        # Envío programado: convertir Unix timestamp a ISO 8601
         if send_at:
             try:
-                message.send_at = SendAt(int(send_at))
+                dt = datetime.fromtimestamp(int(send_at), tz=timezone.utc)
+                params['scheduled_at'] = dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
             except Exception as e:
                 print(f'[webhook] send_at inválido ({send_at}): {e}')
 
-        for att in (attachments or []):
-            attachment = Attachment(
-                FileContent(att['content']),
-                FileName(att['filename']),
-                FileType(att.get('type', 'application/octet-stream')),
-                Disposition('attachment'),
-            )
-            message.add_attachment(attachment)
+        if attachments:
+            params['attachments'] = []
+            for att in attachments:
+                resend_att = {
+                    'filename': att['filename'],
+                    'content':  att['content'],
+                }
+                if 'type' in att:
+                    resend_att['content_type'] = att['type']
+                params['attachments'].append(resend_att)
 
-        sg = SendGridAPIClient(api_key)
-        resp = sg.send(message)
-        # SendGrid devuelve 202 Accepted cuando el envío es exitoso
-        if 200 <= resp.status_code < 300:
-            return True
-        print(f'[webhook] SendGrid devolvió status {resp.status_code}: {resp.body}')
-        return False
+        resp = resend.Emails.send(params)
+        return True
 
     except Exception as e:
-        print(f'[webhook] error enviando vía SendGrid: {e}')
+        print(f'[webhook] error enviando vía Resend: {e}')
         return False
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  ALERTA DE AMENAZA VÍA SENDGRID
+#  ALERTA DE AMENAZA VÍA RESEND
 # ══════════════════════════════════════════════════════════════════════
 
 def send_threat_alert(email_obj, result, sandbox_id=None):
@@ -1290,12 +1221,12 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
 </body>
 </html>"""
 
-        # Remitente: usa tu dominio verificado en SendGrid (MAIL_DOMAIN del .env)
+        # Remitente: usa tu dominio verificado en Resend (MAIL_DOMAIN del .env)
         from django.conf import settings
         domain = settings.MAIL_DOMAIN or 'dockershield.lat'
         from_addr = f"DockerShield <alerts@{domain}>"
 
-        ok = _send_via_sendgrid(
+        ok = _send_via_resend(
             from_addr = from_addr,
             to_email  = user_email,   # ← Correo REAL del dueño del alias
             subject   = f"Amenaza bloqueada en tu alias — {filename}",
@@ -1309,7 +1240,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  REENVÍO DE CORREOS SEGUROS (opt-in del usuario)
+#  REENVÍO DE CORREOS SEGUROS (opt-in del usuario) — VÍA RESEND
 # ══════════════════════════════════════════════════════════════════════
 
 def send_safe_email_forward(email_obj, force=False):
@@ -1355,7 +1286,7 @@ def send_safe_email_forward(email_obj, force=False):
         # wrapper minimalista no usa timestamp ni reabre estos campos.
 
         # ── Recolectar TODOS los adjuntos del correo ─────────────────────
-        # SendGrid acepta adjuntos con {filename, content (base64), type}.
+        # Resend acepta adjuntos con {filename, content (base64), type}.
         # Limite total recomendado: ~25 MB por correo.
         import base64 as _b64
 
@@ -1671,7 +1602,7 @@ def send_safe_email_forward(email_obj, force=False):
 </body>
 </html>"""
 
-        ok = _send_via_sendgrid(
+        ok = _send_via_resend(
             from_addr   = from_addr,
             to_email    = user_email,
             subject     = f"[via {alias_address.split('@')[0]}] {original_subject}",

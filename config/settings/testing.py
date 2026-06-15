@@ -4,7 +4,7 @@ config/settings/testing.py
 Configuración para correr tests automatizados.
 
   - BD SQLite en memoria (rápida, no persistente)
-  - Email backend en memoria (no envía correos reales)
+  - No envía correos reales (se mockea resend en los tests)
   - Hashers de contraseña rápidos (no bcrypt)
   - Cache en memoria local
 """
@@ -27,9 +27,6 @@ DATABASES = {
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',
 ]
-
-# Email no se envía realmente — queda en outbox para asserts
-EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 
 # Cache en memoria local (no Redis)
 CACHES = {

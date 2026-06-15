@@ -1,34 +1,34 @@
 """
-Envío centralizado de correos usando el backend de Django (Gmail SMTP).
-
-La configuración vive en `settings.py` (EMAIL_BACKEND, EMAIL_HOST_USER, etc.)
-y se lee desde el .env. Si no hay credenciales de Gmail, Django cae al
-backend de consola automáticamente, así que en desarrollo el correo
-aparece impreso en el terminal.
+Envío centralizado de correos usando la API de Resend.
 """
+import os
 from typing import Tuple
 
 from django.conf import settings
-from django.core.mail import EmailMessage
 
 
 def send_email(to: str, subject: str, html: str) -> Tuple[bool, str]:
     """
-    Envía un correo HTML. Devuelve (exito, mensaje_info).
-    El remitente se toma de settings.DEFAULT_FROM_EMAIL.
+    Envía un correo HTML vía Resend. Devuelve (exito, mensaje_info).
     """
     if not to:
         return False, "Destinatario vacío."
 
+    api_key = os.environ.get('RESEND_API_KEY', '').strip()
+    if not api_key:
+        return False, 'RESEND_API_KEY no configurada'
+
     try:
-        msg = EmailMessage(
-            subject=subject,
-            body=html,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[to],
-        )
-        msg.content_subtype = 'html'   # Indica que el body es HTML
-        msg.send(fail_silently=False)
+        import resend
+        resend.api_key = api_key
+        domain = getattr(settings, 'MAIL_DOMAIN', 'dockershield.lat')
+        params = {
+            'from': f"DockerShield <noreply@{domain}>",
+            'to': [to],
+            'subject': subject,
+            'html': html,
+        }
+        resend.Emails.send(params)
         return True, 'sent'
     except Exception as e:
         return False, f'error: {e}'

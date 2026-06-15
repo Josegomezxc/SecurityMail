@@ -80,7 +80,8 @@ PHISHING_KEYWORDS = [
 
 def analyze(body_text: str = "", body_html: str = "",
             from_addr: str = "", reply_to: str = "",
-            subject: str = "") -> dict:
+            subject: str = "",
+            dkim_status: str = "", spf_status: str = "") -> dict:
     """Punto de entrada principal."""
     result = _empty()
 
@@ -126,12 +127,25 @@ def analyze(body_text: str = "", body_html: str = "",
                 href_host = (urlparse(href).hostname or "").lower()
                 text_host = (urlparse(text).hostname or "").lower()
                 if href_host and text_host and href_host != text_host:
-                    result["evidence"].append(_ev(
-                        "link_spoofing",
-                        f"El enlace dice '{text_host}' pero apunta a '{href_host}' — phishing clásico",
-                        90,
-                    ))
-                    result["score"] = max(result["score"], 90)
+                    # Tracking legítimo: si el dominio visible coincide con el
+                    # del remitente Y Resend verificó DKIM+SPF, es un servicio
+                    # de tracking (SES, SendGrid, etc.), no phishing.
+                    sender_domain = _email_domain(from_addr) if from_addr else ""
+                    text_primary = ".".join(text_host.split(".")[-2:])
+                    sender_primary = ".".join(sender_domain.split(".")[-2:]) if sender_domain else ""
+                    is_legit_tracking = (
+                        text_primary and sender_primary
+                        and text_primary == sender_primary
+                        and dkim_status.upper() == "PASS"
+                        and spf_status.upper() == "PASS"
+                    )
+                    if not is_legit_tracking:
+                        result["evidence"].append(_ev(
+                            "link_spoofing",
+                            f"El enlace dice '{text_host}' pero apunta a '{href_host}' — phishing clásico",
+                            90,
+                        ))
+                        result["score"] = max(result["score"], 90)
 
     # 3. HTML peligroso
     if body_html:
@@ -167,7 +181,7 @@ def analyze(body_text: str = "", body_html: str = "",
             result["evidence"].append(_ev(
                 "html_tracking_pixel",
                 "Pixel de seguimiento (1×1) — el remitente sabrá si abriste el correo",
-                30,
+                10,
             ))
 
     # 4. Lenguaje típico de phishing
@@ -199,7 +213,7 @@ def analyze(body_text: str = "", body_html: str = "",
     if from_addr and reply_to:
         from_dom = _email_domain(from_addr)
         reply_dom = _email_domain(reply_to)
-        if from_dom and reply_dom and from_dom != reply_dom:
+        if from_dom and reply_dom and not _domains_align(from_dom, reply_dom):
             result["evidence"].append(_ev(
                 "header_mismatch",
                 f"Reply-To ({reply_dom}) en dominio distinto al From ({from_dom})",
@@ -254,6 +268,16 @@ def _email_domain(addr: str) -> str:
     m = re.search(r'<([^>]+)>', addr or "")
     email = m.group(1) if m else addr
     return (email or "").split("@")[-1].strip().lower()
+
+
+def _domains_align(d1: str, d2: str) -> bool:
+    """True si ambos dominios pertenecen a la misma organización
+    (comparten el dominio registrado)."""
+    if d1 == d2:
+        return True
+    p1 = d1.lower().split(".")
+    p2 = d2.lower().split(".")
+    return len(p1) >= 2 and len(p2) >= 2 and p1[-2:] == p2[-2:]
 
 
 def _analyze_url(url: str) -> dict:
@@ -330,16 +354,16 @@ def _analyze_url(url: str) -> dict:
         result["evidence"].append(_ev(
             "url_excessive_length",
             f"URL muy larga ({len(url)} chars) — posible ofuscación",
-            40,
+            20,
         ))
-        result["score"] = max(result["score"], 40)
+        result["score"] = max(result["score"], 20)
 
     if host.count(".") >= 4:
         result["evidence"].append(_ev(
             "url_many_subdomains",
             f"{host.count('.')} niveles de subdominio en {host}",
-            50,
+            30,
         ))
-        result["score"] = max(result["score"], 50)
+        result["score"] = max(result["score"], 30)
 
     return result

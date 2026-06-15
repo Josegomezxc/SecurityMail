@@ -72,7 +72,7 @@ for h in ALLOWED_HOSTS:
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Dominio que se usa para generar las direcciones de los alias.
-# Tiene que coincidir con el dominio cuyo MX apunta al Inbound Parse de SendGrid.
+# Tiene que coincidir con el dominio verificado en Resend.
 MAIL_DOMAIN = os.environ.get('MAIL_DOMAIN', 'dockershield.lat').strip()
 
 
@@ -108,6 +108,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     # Una sesión por usuario: si alguien hace login en otro navegador,
     # la sesión anterior queda inválida y se desloguea en su próximo request.
     'apps.core.middleware.SingleSessionMiddleware',
@@ -115,7 +116,6 @@ MIDDLEWARE = [
     # presionar "atrás" tras logout/eliminar cuenta NO se muestra la página
     # vieja, sino que se redirige a /login/.
     'apps.core.middleware.NoCacheAuthMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -203,45 +203,6 @@ MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
-# ═══════════════════════════════════════════════════════════════════
-#  ENVÍO DE CORREOS (Gmail SMTP)
-# ═══════════════════════════════════════════════════════════════════
-#
-# Para que Gmail acepte el envío necesitas una "Contraseña de aplicación"
-# (NO tu contraseña normal de Gmail):
-#   1. Ve a  https://myaccount.google.com/security
-#   2. Activa la verificación en 2 pasos (si no la tienes).
-#   3. Entra en "Contraseñas de aplicaciones" y crea una para "Correo".
-#   4. Copia la contraseña de 16 caracteres y ponla en .env como
-#      EMAIL_HOST_PASSWORD (sin espacios).
-#
-# Si EMAIL_HOST_USER o EMAIL_HOST_PASSWORD están vacíos, Django usará
-# el backend de consola: los correos se imprimen en el terminal (útil
-# para desarrollo sin tener que configurar Gmail).
-#
-EMAIL_HOST          = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT          = int(os.environ.get('EMAIL_PORT', '587'))
-EMAIL_USE_TLS       = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('1', 'true', 'yes')
-EMAIL_HOST_USER     = os.environ.get('EMAIL_HOST_USER', '').strip()
-# Google muestra la contraseña de aplicación con espacios por legibilidad.
-# Los eliminamos para que da igual si el usuario los copia o no.
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '').replace(' ', '')
-EMAIL_TIMEOUT       = 20  # segundos
-
-# Remitente por defecto (aparece en "De:" en el correo recibido)
-DEFAULT_FROM_EMAIL = os.environ.get(
-    'DEFAULT_FROM_EMAIL',
-    f'DockerShield <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER
-    else 'DockerShield <no-reply@localhost>',
-)
-
-# Backend: SMTP si hay credenciales, consola si no
-if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 
 # URL pública del sitio (para construir links en correos)

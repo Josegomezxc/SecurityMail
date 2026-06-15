@@ -57,6 +57,7 @@ def run_sandbox_analysis(email_message) -> dict:
     container_path = "/tmp/" + os.path.basename(filepath)
 
     try:
+        print(f"[sandbox] docker run — {os.path.basename(filepath)} ({os.path.getsize(filepath)//1024} KB)", flush=True)
         result = subprocess.run(
             [
                 "docker", "run", "--rm",
@@ -91,11 +92,15 @@ def run_sandbox_analysis(email_message) -> dict:
         if "risk_score" not in report and "score" in report:
             report["risk_score"] = report["score"]
 
-        return _normalize(report)
+        report = _normalize(report)
+        print(f"[sandbox] → score:{report['risk_score']} yara:{len(report.get('yara_matches',[]))} amenaza:{report.get('threat_name','')[:40]}", flush=True)
+        return report
 
     except subprocess.TimeoutExpired:
+        print(f"[sandbox] ⏱ timeout — {os.path.basename(filepath)}", flush=True)
         return _empty_timeout()
     except FileNotFoundError:
+        print("[sandbox] ❌ Docker no disponible en el sistema", flush=True)
         return _empty("Docker no disponible en el sistema")
     except Exception as e:
         print("SANDBOX EXCEPTION:", e)

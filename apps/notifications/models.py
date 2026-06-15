@@ -22,24 +22,24 @@ class Notification(models.Model):
         User, on_delete=models.CASCADE, related_name='notifications',
         db_column='id_usuario',
     )
-    type = models.CharField(max_length=20, choices=TYPES, default='system', db_column='tipo')
-    title = models.CharField(max_length=200, db_column='titulo')
-    message = models.TextField(blank=True, db_column='mensaje',
+    type = models.CharField(max_length=20, choices=TYPES, default='system', db_column='ntf_tipo')
+    title = models.CharField(max_length=200, db_column='ntf_titulo')
+    message = models.TextField(blank=True, db_column='ntf_mensaje',
                                help_text="Preview corto, opcional")
     related_email = models.ForeignKey(
         'mail.EmailMessage', on_delete=models.CASCADE, null=True, blank=True,
         related_name='notifications', db_column='id_correo_relacionado',
         help_text="Si la notificación es sobre un correo concreto",
     )
-    read = models.BooleanField(default=False, db_column='leido')
-    status = models.CharField(max_length=12, choices=STATUSES, default='done', db_column='estado')
-    created_at = models.DateTimeField(auto_now_add=True, db_column='creado_en')
+    read = models.BooleanField(default=False, db_column='ntf_leido')
+    status = models.CharField(max_length=12, choices=STATUSES, default='done', db_column='ntf_estado')
+    created_at = models.DateTimeField(auto_now_add=True, db_column='ntf_creado_en')
     actioned_at = models.DateTimeField(
-        null=True, blank=True, db_column='accionado_en',
+        null=True, blank=True, db_column='ntf_accionado_en',
         help_text="Cuándo el usuario tomó acción",
     )
-    target_url = models.CharField(max_length=300, blank=True, default='', db_column='url_destino')
-    is_active = models.BooleanField(default=True, db_column='activo')
+    target_url = models.CharField(max_length=300, blank=True, default='', db_column='ntf_url_destino')
+    is_active = models.BooleanField(default=True, db_column='ntf_activo')
 
     class Meta:
         db_table = 'tbl_notificacion'

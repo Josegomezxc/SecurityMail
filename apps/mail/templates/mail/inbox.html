@@ -181,10 +181,8 @@
                 <span class="ds-pill ds-pill-danger">Bloqueado</span>
               {% elif email.risk_score >= 31 %}
                 <span class="ds-pill ds-pill-warning">Sospechoso</span>
-              {% elif email.risk_score > 0 %}
-                <span class="ds-pill ds-pill-success">Seguro</span>
               {% else %}
-                <span class="ds-cell-muted">—</span>
+                <span class="ds-pill ds-pill-success">Seguro</span>
               {% endif %}
             </td>
 

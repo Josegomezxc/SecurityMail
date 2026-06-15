@@ -37,7 +37,11 @@ def analyze(filepath: str, mime: str = "") -> dict:
     result = empty_result("yara")
 
     rules = _load_rules()
-    if not rules:
+    if rules is False:
+        result["evidence"].append(evidence("yara_unavailable", "YARA no está disponible en este entorno", 0))
+        return result
+    if rules is None or rules == []:
+        result["evidence"].append(evidence("yara_no_rules", "No se encontraron reglas YARA", 0))
         return result
 
     try:

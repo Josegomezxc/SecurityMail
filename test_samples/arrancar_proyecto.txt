@@ -11,12 +11,9 @@ python manage.py runserver
 cloudflared tunnel run dockershield
 
 # 5. Listo — abre https://app.dockershield.lat
-#    La URL ya está configurada en SendGrid Inbound Parse,
-#    los correos llegan solos al webhook.
+#    La URL ya está configurada en Resend Inbound,
 
-
-#    Opción B (respaldo) → ngrok con tu dominio fijo
-#    Si usás esta opción, hay que cambiar también la URL en SendGrid
+    #    Si usás esta opción, hay que cambiar también la URL en Resend
 #    Inbound Parse a:  https://twilight-baking-viewing.ngrok-free.dev/webhook/inbound/
 #    y actualizar SITE_URL + ALLOWED_HOSTS en .env
 ngrok http --url=twilight-baking-viewing.ngrok-free.dev 8000

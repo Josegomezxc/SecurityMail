@@ -233,17 +233,17 @@ def verify_deletion_code(user: User, code_input: str) -> Tuple[bool, str]:
 def send_verification_email(user: User, ev: EmailVerificationCode) -> bool:
     """
     Envía el correo HTML con el código de verificación al user.email.
-    Usa SendGrid (a través del helper que ya usa el webhook para alertas).
+    Usa Resend (a través del helper que ya usa el webhook para alertas).
     Devuelve True si se envió, False si falló.
     """
     from django.conf import settings
-    from apps.mail.webhook import _send_via_sendgrid
+    from apps.mail.webhook import _send_via_resend
 
     domain = getattr(settings, 'MAIL_DOMAIN', 'dockershield.lat')
     from_addr = f"DockerShield <noreply@{domain}>"
 
     html = _build_verification_html(user, ev)
-    return _send_via_sendgrid(
+    return _send_via_resend(
         from_addr = from_addr,
         to_email  = user.email,
         subject   = f"Tu código de verificación: {ev.code}",

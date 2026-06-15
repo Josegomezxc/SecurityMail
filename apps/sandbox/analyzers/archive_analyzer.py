@@ -102,7 +102,8 @@ def analyze(filepath: str, mime: str = "", recurse_fn=None, depth: int = 0) -> d
                 try:
                     sub = recurse_fn(inner_path, depth=depth + 1)
                     if sub:
-                        result["score"] = max(result["score"], int(sub.get("score", 0)))
+                        inner_score = int(sub.get("risk_score", sub.get("score", 0)))
+                        result["score"] = max(result["score"], inner_score)
                         for ev in sub.get("evidence", [])[:10]:
                             ev["detail"] = f"[{inner_name}] {ev.get('detail', '')}"
                             result["evidence"].append(ev)

@@ -364,11 +364,11 @@ def alias_compose_view(request, pk):
     )
 
     import base64
-    sendgrid_attachments = []
+    resend_attachments = []
     for upload in uploaded_files:
         try:
             content = upload.read()
-            sendgrid_attachments.append({
+            resend_attachments.append({
                 'filename': _safe_filename(upload.name),
                 'content':  base64.b64encode(content).decode('ascii'),
                 'type':     upload.content_type or 'application/octet-stream',
@@ -376,14 +376,14 @@ def alias_compose_view(request, pk):
         except Exception as e:
             print(f'[compose] no se pudo leer adjunto {upload.name}: {e}')
 
-    from apps.mail.webhook import _send_via_sendgrid
+    from apps.mail.webhook import _send_via_resend
     from_addr = f'"{alias.label}" <{alias.address}>'
-    ok = _send_via_sendgrid(
+    ok = _send_via_resend(
         from_addr   = from_addr,
         to_email    = recipients if len(recipients) > 1 else recipients[0],
         subject     = subject,
         html_body   = body_html,
-        attachments = sendgrid_attachments or None,
+        attachments = resend_attachments or None,
         send_at     = send_at_ts,
     )
 
@@ -410,7 +410,7 @@ def alias_compose_view(request, pk):
         # No guardamos el `content` (base64 del archivo) — ya se envió al
         # destinatario y conservarlo inflaría la BD. Solo nombre/tamaño/tipo.
         attachments_meta = []
-        for att, upload in zip(sendgrid_attachments, uploaded_files):
+        for att, upload in zip(resend_attachments, uploaded_files):
             attachments_meta.append({
                 'filename': att.get('filename', ''),
                 'type':     att.get('type', ''),
@@ -422,7 +422,7 @@ def alias_compose_view(request, pk):
             subject=subject,
             body_html=body_html,
             scheduled_at=scheduled_dt,
-            attachments_count=len(sendgrid_attachments),
+            attachments_count=len(resend_attachments),
             attachments_meta=attachments_meta,
         )
         # Payload completo para que el frontend pueda insertar la fila
@@ -459,7 +459,7 @@ def alias_compose_view(request, pk):
         'ok':               True,
         'message':          msg,
         'from':             alias.address,
-        'attachments_sent': len(sendgrid_attachments),
+        'attachments_sent': len(resend_attachments),
         'scheduled':        bool(send_at_ts),
         'scheduled_ts':     send_at_ts,
         'sent':             sent_payload,

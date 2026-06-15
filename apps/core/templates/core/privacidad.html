@@ -298,7 +298,7 @@
       </h2>
       <p>Tu correo real solo recibe mensajes nuestros en <strong>tres situaciones específicas</strong>:</p>
       <ul>
-        <li><strong>Alerta de amenaza bloqueada</strong>: cuando un correo recibido en uno de tus alias tiene score ≥61, te enviamos un aviso usando <strong>SendGrid</strong>. La alerta incluye el alias atacado, el tipo de amenaza y el score — <em>nunca el contenido ni el adjunto original</em>.</li>
+        <li><strong>Alerta de amenaza bloqueada</strong>: cuando un correo recibido en uno de tus alias tiene score ≥61, te enviamos un aviso usando <strong>Resend</strong>. La alerta incluye el alias atacado, el tipo de amenaza y el score — <em>nunca el contenido ni el adjunto original</em>.</li>
         <li><strong>Reenvío de correos seguros</strong> (opt-in): si activas <em>"Recibir copia en mi correo real"</em>, los correos con score 0–30 se reenvían automáticamente a tu Gmail. Si decides reenviar manualmente un correo sospechoso desde el panel de notificaciones, también pasa por el mismo flujo.</li>
         <li><strong>Recuperación de contraseña</strong>: si pides recuperar tu contraseña, te enviamos un enlace seguro con un token de un solo uso (válido 24h) usando <strong>Gmail SMTP</strong>.</li>
       </ul>
@@ -308,7 +308,7 @@
         </div>
         <div class="callout-body">
           <span class="callout-label">Proveedores de correo</span>
-          Usamos <strong>SendGrid</strong> (recepción + alertas + reenvíos) y <strong>Gmail SMTP</strong> (recuperación de contraseña) como intermediarios para entregar el correo. Ambos solo procesan el sobre del mensaje (asunto + contenido) durante la entrega y no almacenan tu correo a largo plazo.
+          Usamos <strong>Resend</strong> (recepción + alertas + reenvíos) y <strong>Gmail SMTP</strong> (recuperación de contraseña) como intermediarios para entregar el correo. Ambos solo procesan el sobre del mensaje (asunto + contenido) durante la entrega y no almacenan tu correo a largo plazo.
         </div>
       </div>
     </section>

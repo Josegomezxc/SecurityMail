@@ -115,18 +115,18 @@ def analyze_url(url: str) -> dict:
         result["evidence"].append(evidence(
             "url_excessive_length",
             f"URL muy larga ({len(url)} chars) — posible ofuscación",
-            45,
+            20,
         ))
-        result["score"] = max(result["score"], 45)
+        result["score"] = max(result["score"], 20)
 
     # 8. Muchos subdominios (a.b.c.d.e.com)
     if host.count(".") >= 4:
         result["evidence"].append(evidence(
             "url_many_subdomains",
             f"{host.count('.')} niveles de subdominio en {host}",
-            55,
+            30,
         ))
-        result["score"] = max(result["score"], 55)
+        result["score"] = max(result["score"], 30)
 
     # 9. URL con guion bajo en host (no es válido pero técnica de phishing)
     if "_" in host:

@@ -58,3 +58,8 @@
       // de mostrar el loader y disparar el submit programático.
     });
   })();
+
+// Evita "Confirmar reenvío del formulario" al usar atrás/adelante
+if (window.history.replaceState) {
+  window.history.replaceState(null, null, window.location.href);
+}

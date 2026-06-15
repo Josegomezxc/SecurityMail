@@ -260,7 +260,7 @@ def notification_forward_api(request, pk):
 
     # force=True salta el check de opt-in (el usuario está aprobando MANUALMENTE
     # desde el panel de notificaciones, así que su voluntad ya está clara).
-    # Envolvemos en try/except: un fallo de SendGrid (timeout, credenciales,
+    # Envolvemos en try/except: un fallo de Resend (timeout, credenciales,
     # adjunto roto, etc.) NO debe devolver 500 al frontend. Logueamos y
     # respondemos con error legible para que el JS muestre algo útil.
     try:

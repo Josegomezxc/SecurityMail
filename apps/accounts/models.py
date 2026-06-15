@@ -15,42 +15,42 @@ class UserProfile(models.Model):
     )
     avatar = models.ImageField(
         upload_to=_avatar_upload_path, null=True, blank=True,
-        db_column='avatar',
+        db_column='pfu_avatar',
         help_text="Foto de perfil. Si está vacío se usa avatar por defecto (iniciales).",
     )
     forward_safe_emails = models.BooleanField(
-        default=False, db_column='reenviar_correos_seguros',
+        default=False, db_column='pfu_reenviar_correos_seguros',
         help_text="Reenviar correos seguros al correo real del usuario.",
     )
     email_verified = models.BooleanField(
-        default=False, db_column='correo_verificado',
+        default=False, db_column='pfu_correo_verificado',
     )
     alias_quota_extra = models.IntegerField(
-        default=0, db_column='cupo_alias_extra',
+        default=0, db_column='pfu_cupo_alias_extra',
         help_text="Ajuste de cupo de alias (positivo o negativo).",
     )
     alias_unlimited = models.BooleanField(
-        default=False, db_column='alias_ilimitados',
+        default=False, db_column='pfu_alias_ilimitados',
         help_text="Concede al usuario alias ilimitados sin volverlo admin.",
     )
     last_toast_notif_id = models.PositiveBigIntegerField(
-        default=0, db_column='ultimo_toast_id',
+        default=0, db_column='pfu_ultimo_toast_id',
         help_text="ID máximo de notificación cuyo toast ya se mostró.",
     )
     is_deleted = models.BooleanField(
-        default=False, db_column='eliminado',
+        default=False, db_column='pfu_eliminado',
         help_text="Soft delete: marca la cuenta como eliminada sin borrar los datos.",
     )
     deleted_at = models.DateTimeField(
-        null=True, blank=True, db_column='eliminado_en',
+        null=True, blank=True, db_column='pfu_eliminado_en',
         help_text="Cuándo se marcó la cuenta como eliminada.",
     )
     deletion_ip = models.GenericIPAddressField(
-        null=True, blank=True, db_column='ip_eliminacion',
+        null=True, blank=True, db_column='pfu_ip_eliminacion',
         help_text="IP desde donde se solicitó la eliminación.",
     )
-    updated_at = models.DateTimeField(auto_now=True, db_column='actualizado_en')
-    is_active = models.BooleanField(default=True, db_column='activo')
+    updated_at = models.DateTimeField(auto_now=True, db_column='pfu_actualizado_en')
+    is_active = models.BooleanField(default=True, db_column='pfu_activo')
 
     class Meta:
         db_table = 'tbl_perfil_usuario'
@@ -86,13 +86,13 @@ class UserSession(models.Model):
         db_column='id_perfil_usuario',
     )
     current_session_key = models.CharField(
-        max_length=40, blank=True, default='', db_column='sesion_actual',
+        max_length=40, blank=True, default='', db_column='ssu_sesion_actual',
         help_text="Session key activa. Cualquier otra sesión del usuario será cerrada.",
     )
     session_last_activity = models.DateTimeField(
-        null=True, blank=True, db_column='ultima_actividad_sesion',
+        null=True, blank=True, db_column='ssu_ultima_actividad_sesion',
     )
-    is_active = models.BooleanField(default=True, db_column='activo')
+    is_active = models.BooleanField(default=True, db_column='ssu_activo')
 
     class Meta:
         db_table = 'tbl_sesion_usuario'
@@ -105,26 +105,26 @@ class AccountLock(models.Model):
         db_column='id_perfil_usuario',
     )
     failed_login_attempts = models.PositiveIntegerField(
-        default=0, db_column='intentos_fallidos',
+        default=0, db_column='bqc_intentos_fallidos',
         help_text="Intentos consecutivos de password incorrecta. Se resetea al login exitoso.",
     )
     temp_locked_until = models.DateTimeField(
-        null=True, blank=True, db_column='bloqueo_temp_hasta',
+        null=True, blank=True, db_column='bqc_bloqueo_temp_hasta',
         help_text="Si > now, la cuenta está bloqueada temporalmente.",
     )
     temp_lock_triggered = models.BooleanField(
-        default=False, db_column='bloqueo_temp_activado',
+        default=False, db_column='bqc_bloqueo_temp_activado',
         help_text="True una vez que se disparó el temp lock. La siguiente falla = bloqueo permanente.",
     )
     permanent_lock_reason = models.TextField(
-        blank=True, default='', db_column='motivo_bloqueo_perm',
+        blank=True, default='', db_column='bqc_motivo_bloqueo_perm',
         help_text="Motivos que se muestran al usuario en la card de cuenta bloqueada.",
     )
     permanent_lock_at = models.DateTimeField(
-        null=True, blank=True, db_column='bloqueo_perm_en',
+        null=True, blank=True, db_column='bqc_bloqueo_perm_en',
         help_text="Cuándo se bloqueó permanentemente la cuenta por intentos fallidos.",
     )
-    is_active = models.BooleanField(default=True, db_column='activo')
+    is_active = models.BooleanField(default=True, db_column='bqc_activo')
 
     class Meta:
         db_table = 'tbl_bloqueo_cuenta'
@@ -136,12 +136,12 @@ class PasswordResetToken(models.Model):
         User, on_delete=models.CASCADE, related_name='password_reset_tokens',
         db_column='id_usuario',
     )
-    token = models.CharField(max_length=64, unique=True, db_index=True, db_column='token')
-    created_at = models.DateTimeField(auto_now_add=True, db_column='creado_en')
-    expires_at = models.DateTimeField(db_column='expira_en')
-    used_at = models.DateTimeField(null=True, blank=True, db_column='usado_en')
-    ip_address = models.GenericIPAddressField(null=True, blank=True, db_column='direccion_ip')
-    is_active = models.BooleanField(default=True, db_column='activo')
+    token = models.CharField(max_length=64, unique=True, db_index=True, db_column='tkr_token')
+    created_at = models.DateTimeField(auto_now_add=True, db_column='tkr_creado_en')
+    expires_at = models.DateTimeField(db_column='tkr_expira_en')
+    used_at = models.DateTimeField(null=True, blank=True, db_column='tkr_usado_en')
+    ip_address = models.GenericIPAddressField(null=True, blank=True, db_column='tkr_direccion_ip')
+    is_active = models.BooleanField(default=True, db_column='tkr_activo')
 
     class Meta:
         db_table = 'tbl_token_recuperacion'
@@ -184,19 +184,19 @@ class EmailVerificationCode(models.Model):
     )
     purpose = models.CharField(
         max_length=20, choices=PURPOSE_CHOICES, default='register', db_index=True,
-        db_column='proposito',
+        db_column='cdv_proposito',
         help_text='Para qué acción se usa este código.',
     )
-    code = models.CharField(max_length=6, db_index=True, db_column='codigo')
-    token = models.CharField(max_length=64, unique=True, db_index=True, db_column='token')
-    created_at = models.DateTimeField(auto_now_add=True, db_column='creado_en')
-    expires_at = models.DateTimeField(db_column='expira_en')
-    used_at = models.DateTimeField(null=True, blank=True, db_column='usado_en')
+    code = models.CharField(max_length=6, db_index=True, db_column='cdv_codigo')
+    token = models.CharField(max_length=64, unique=True, db_index=True, db_column='cdv_token')
+    created_at = models.DateTimeField(auto_now_add=True, db_column='cdv_creado_en')
+    expires_at = models.DateTimeField(db_column='cdv_expira_en')
+    used_at = models.DateTimeField(null=True, blank=True, db_column='cdv_usado_en')
     attempts = models.PositiveSmallIntegerField(
-        default=0, db_column='intentos',
+        default=0, db_column='cdv_intentos',
         help_text="Cuántas veces se intentó verificar este código (anti brute-force).",
     )
-    is_active = models.BooleanField(default=True, db_column='activo')
+    is_active = models.BooleanField(default=True, db_column='cdv_activo')
 
     class Meta:
         db_table = 'tbl_codigo_verificacion'
@@ -228,22 +228,22 @@ class EmailVerificationCode(models.Model):
 
 class PendingRegistration(models.Model):
     id = models.AutoField(primary_key=True, db_column='id_registro_pendiente')
-    email = models.EmailField(db_index=True, db_column='correo')
-    first_name = models.CharField(max_length=150, db_column='nombre')
+    email = models.EmailField(db_index=True, db_column='rgp_correo')
+    first_name = models.CharField(max_length=150, db_column='rgp_nombre')
     password_hash = models.CharField(
-        max_length=128, db_column='hash_contrasena',
+        max_length=128, db_column='rgp_hash_contrasena',
         help_text="Contraseña hasheada con django.contrib.auth.hashers.make_password.",
     )
-    code = models.CharField(max_length=6, db_index=True, db_column='codigo')
-    token = models.CharField(max_length=64, unique=True, db_index=True, db_column='token')
-    created_at = models.DateTimeField(auto_now_add=True, db_column='creado_en')
-    expires_at = models.DateTimeField(db_column='expira_en')
-    used_at = models.DateTimeField(null=True, blank=True, db_column='usado_en')
+    code = models.CharField(max_length=6, db_index=True, db_column='rgp_codigo')
+    token = models.CharField(max_length=64, unique=True, db_index=True, db_column='rgp_token')
+    created_at = models.DateTimeField(auto_now_add=True, db_column='rgp_creado_en')
+    expires_at = models.DateTimeField(db_column='rgp_expira_en')
+    used_at = models.DateTimeField(null=True, blank=True, db_column='rgp_usado_en')
     attempts = models.PositiveSmallIntegerField(
-        default=0, db_column='intentos',
+        default=0, db_column='rgp_intentos',
         help_text="Cuántas veces se intentó verificar (anti brute-force).",
     )
-    is_active = models.BooleanField(default=True, db_column='activo')
+    is_active = models.BooleanField(default=True, db_column='rgp_activo')
 
     class Meta:
         db_table = 'tbl_registro_pendiente'
@@ -286,23 +286,23 @@ class AccountRecoveryRequest(models.Model):
         db_column='id_usuario',
     )
     reason = models.TextField(
-        db_column='motivo',
+        db_column='sre_motivo',
         help_text="Explicación del usuario de por qué quiere recuperar la cuenta.",
     )
     status = models.CharField(
-        max_length=10, choices=STATUS, default='pending', db_column='estado',
+        max_length=10, choices=STATUS, default='pending', db_column='sre_estado',
     )
     admin_note = models.TextField(
-        blank=True, db_column='nota_admin',
+        blank=True, db_column='sre_nota_admin',
         help_text="Nota del admin al aprobar/rechazar (opcional).",
     )
     resolved_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='resolved_account_recovery_requests', db_column='id_resuelto_por',
     )
-    created_at = models.DateTimeField(auto_now_add=True, db_column='creado_en')
-    resolved_at = models.DateTimeField(null=True, blank=True, db_column='resuelto_en')
-    is_active = models.BooleanField(default=True, db_column='activo')
+    created_at = models.DateTimeField(auto_now_add=True, db_column='sre_creado_en')
+    resolved_at = models.DateTimeField(null=True, blank=True, db_column='sre_resuelto_en')
+    is_active = models.BooleanField(default=True, db_column='sre_activo')
 
     class Meta:
         db_table = 'tbl_solicitud_recuperacion'

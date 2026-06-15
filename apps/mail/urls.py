@@ -37,6 +37,6 @@ urlpatterns = [
     path('borradores/<int:pk>/',         views.draft_get_api,     name='draft_get'),
     path('borradores/<int:pk>/eliminar/',views.draft_delete_api,  name='draft_delete'),
 
-    # Webhook entrante (SendGrid Inbound Parse)
+    # Webhook entrante (Resend Inbound)
     path('webhook/inbound/', inbound_email_webhook, name='inbound_webhook'),
 ]
