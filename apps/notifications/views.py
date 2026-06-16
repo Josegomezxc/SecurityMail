@@ -258,23 +258,15 @@ def notification_forward_api(request, pk):
     if not n.related_email:
         return JsonResponse({'ok': False, 'error': 'no_email'}, status=400)
 
-    # force=True salta el check de opt-in (el usuario está aprobando MANUALMENTE
-    # desde el panel de notificaciones, así que su voluntad ya está clara).
-    # Envolvemos en try/except: un fallo de Resend (timeout, credenciales,
-    # adjunto roto, etc.) NO debe devolver 500 al frontend. Logueamos y
-    # respondemos con error legible para que el JS muestre algo útil.
-    try:
-        from apps.mail.webhook import send_safe_email_forward
-        send_safe_email_forward(n.related_email, force=True)
-    except Exception as e:
-        import traceback
-        print(f"[notification_forward_api] Falló send_safe_email_forward: {e}")
-        print(traceback.format_exc())
-        return JsonResponse({
-            'ok': False,
-            'error': 'send_failed',
-            'detail': str(e),
-        }, status=500)
+    # Disparamos el reenvío en un thread para no bloquear la respuesta HTTP.
+    # Si falla, el error se loguea internamente en send_safe_email_forward.
+    import threading
+    from apps.mail.webhook import send_safe_email_forward
+    threading.Thread(
+        target=send_safe_email_forward,
+        kwargs={'email': n.related_email, 'force': True},
+        daemon=True,
+    ).start()
 
     n.status = 'approved'
     n.actioned_at = timezone.now()

@@ -155,18 +155,19 @@ def authenticate_flexible(request, identifier: str, password: str):
     Intenta autenticar primero por username; si falla y el identificador
     parece email, busca el user y autentica por su username real.
     Esto permite que funcione tanto el login normal como `createsuperuser`.
-    """
-    user = authenticate(request, username=identifier, password=password)
-    if user:
-        return user
 
+    Optimización: si el identifier contiene '@', buscamos primero por email
+    para evitar la llamada inútil a authenticate() con username=email que
+    ejecuta PBKDF2 sobre un hash dummy (doble hash innecesario).
+    """
     if '@' in identifier:
         real_user = User.objects.filter(email__iexact=identifier).first()
-        if real_user:
-            return authenticate(
-                request, username=real_user.username, password=password,
-            )
-    return None
+        if not real_user:
+            return None
+        return authenticate(
+            request, username=real_user.username, password=password,
+        )
+    return authenticate(request, username=identifier, password=password)
 
 
 # ─────────────────────────────────────────────────────────────────────

@@ -138,8 +138,13 @@ TEMPLATES = [
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         # Templates globales viven en la raíz del proyecto (templates/)
         'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,
         'OPTIONS': {
+            'loaders': [
+                ('django.template.loaders.cached.Loader', [
+                    'django.template.loaders.filesystem.Loader',
+                    'django.template.loaders.app_directories.Loader',
+                ]),
+            ],
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
@@ -163,8 +168,24 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD', ''),
         'HOST':     os.environ.get('DB_HOST',     'localhost'),
         'PORT':     os.environ.get('DB_PORT',     '5432'),
+        # Conexiones persistentes: evita abrir/cerrar TCP en cada request
+        'CONN_MAX_AGE': int(os.environ.get('CONN_MAX_AGE', 600)),
     }
 }
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  CACHÉ
+# ═══════════════════════════════════════════════════════════════════
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-default-cache',
+    }
+}
+
+# Sesiones en DB (comportamiento por defecto de Django)
 
 
 # ═══════════════════════════════════════════════════════════════════

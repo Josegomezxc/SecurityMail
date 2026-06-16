@@ -1,12 +1,12 @@
 {% extends 'core/base.html' %}
-{% load static %}
-{% block title %}Reporte sandbox — {{ analysis.file_info.filename }}{% endblock %}
+{% load static sandbox_filters %}
+{% block title %}Reporte sandbox — {{ analysis.file_info.filename|sanitize_text }}{% endblock %}
 {% block nav_sandbox %}active{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_report.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_report.css' %}?v=file-groups">
 {% endblock %}
 
 {% block page_title %}
@@ -15,7 +15,7 @@
     sandbox
   </a>
   <span style="color:var(--border);font-size:13px;margin:0 4px">/</span>
-  <span style="font-family:'JetBrains Mono',monospace;font-size:13px">{{ analysis.file_info.filename|truncatechars:35 }}</span>
+  <span style="font-family:'JetBrains Mono',monospace;font-size:13px">{{ analysis.file_info.filename|sanitize_text|truncatechars:35 }}</span>
 {% endblock %}
 
 {% block body %}
@@ -77,7 +77,7 @@
   </div>
 
   <div class="score-info">
-    <div class="score-filename">{{ analysis.file_info.filename }}</div>
+    <div class="score-filename">{{ analysis.file_info.filename|sanitize_text }}</div>
     <div class="score-meta">{{ analysis.analyzed_at|date:"d/m/Y" }} · {{ analysis.analyzed_at|date:"H:i" }} · {{ analysis.email.subject|truncatechars:45 }}</div>
     <div class="score-bar">
       <div class="score-bar-fill"
@@ -99,7 +99,7 @@
         <span class="score-badge success">Seguro · {{ analysis.risk_score }}/100</span>
       {% endif %}
       {% if analysis.threat_name %}
-        <span class="score-badge danger">{{ analysis.threat_name }}</span>
+        <span class="score-badge danger">{{ analysis.threat_name|sanitize_text }}</span>
       {% endif %}
     </div>
   </div>
@@ -223,14 +223,14 @@
           </div>
         </div>
         <div class="att-body">
-          <div class="att-name">{{ att.filename }}</div>
+          <div class="att-name">{{ att.filename|sanitize_text }}</div>
           <div class="att-meta">
             {% if att.real_mime %}<span>{{ att.real_mime }}</span>{% endif %}
             {% if att.size %}<span>{{ att.size|filesizeformat }}</span>{% endif %}
             {% if att.category and att.category != 'unknown' %}<span>· {{ att.category }}</span>{% endif %}
             {% if att.evidence %}<span>· {{ att.evidence|length }} indicador{{ att.evidence|length|pluralize:"es" }}</span>{% endif %}
             {% if att.extension_spoof %}<span class="att-spoof">EXT ENGAÑOSA</span>{% endif %}
-            {% if att.threat_name %}<span style="color:var(--text-secondary)">— {{ att.threat_name|truncatechars:60 }}</span>{% endif %}
+            {% if att.threat_name %}<span style="color:var(--text-secondary)">— {{ att.threat_name|sanitize_text|truncatechars:60 }}</span>{% endif %}
           </div>
         </div>
         {% if s >= 81 %}
@@ -259,7 +259,7 @@
     </div>
     <h2 class="section-head-title">Evidencia detectada</h2>
     <div class="section-head-tag">
-      {% if analysis.dynamic.evidence %}
+      {% if evidence_groups %}
         <span class="tag tag-red">{{ analysis.dynamic.evidence|length }} indicador{{ analysis.dynamic.evidence|length|pluralize:"es" }}</span>
       {% else %}
         <span class="tag tag-green">Sin hallazgos</span>
@@ -267,78 +267,89 @@
     </div>
   </header>
 
-  {% if analysis.dynamic.evidence %}
-    <div class="evidence-list collapsible-list" data-show="5" data-label="indicadores">
-      {% for ev in analysis.dynamic.evidence %}
-        {% with sev=ev.severity %}
-          {% if sev >= 81 %}
-            {% with cls="sev-critical" label="CRÍTICO" %}
-              <div class="evidence-item {{ cls }}">
-                <span class="severity-pill {{ cls }}">
-                  <span class="sev-label">{{ label }}</span>
-                  <span class="sev-score">{{ sev }}</span>
-                </span>
-                <div class="evidence-body">
-                  <div class="evidence-detail">{{ ev.detail }}</div>
-                  <span class="evidence-type">{{ ev.type }}</span>
-                </div>
-              </div>
+  {% if evidence_groups %}
+    {% for fname, items in evidence_groups %}
+      <div class="file-group">
+        {% if fname != "__general__" %}
+          <div class="file-group-header">
+            <svg class="file-group-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span class="file-group-name">{{ fname }}</span>
+            <span class="file-group-count">{{ items|length }} indicador{{ items|length|pluralize:"es" }}</span>
+          </div>
+        {% endif %}
+        <div class="evidence-list collapsible-list" data-show="{% if fname == '__general__' %}5{% else %}10{% endif %}" data-label="indicadores">
+          {% for ev in items %}
+            {% with sev=ev.severity %}
+              {% if sev >= 81 %}
+                {% with cls="sev-critical" label="CRÍTICO" %}
+                  <div class="evidence-item {{ cls }}">
+                    <span class="severity-pill {{ cls }}">
+                      <span class="sev-label">{{ label }}</span>
+                      <span class="sev-score">{{ sev }}</span>
+                    </span>
+                    <div class="evidence-body">
+                      <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                      <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
+                    </div>
+                  </div>
+                {% endwith %}
+              {% elif sev >= 61 %}
+                {% with cls="sev-high" label="ALTO" %}
+                  <div class="evidence-item {{ cls }}">
+                    <span class="severity-pill {{ cls }}">
+                      <span class="sev-label">{{ label }}</span>
+                      <span class="sev-score">{{ sev }}</span>
+                    </span>
+                    <div class="evidence-body">
+                      <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                      <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
+                    </div>
+                  </div>
+                {% endwith %}
+              {% elif sev >= 31 %}
+                {% with cls="sev-medium" label="MEDIO" %}
+                  <div class="evidence-item {{ cls }}">
+                    <span class="severity-pill {{ cls }}">
+                      <span class="sev-label">{{ label }}</span>
+                      <span class="sev-score">{{ sev }}</span>
+                    </span>
+                    <div class="evidence-body">
+                      <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                      <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
+                    </div>
+                  </div>
+                {% endwith %}
+              {% elif sev > 0 %}
+                {% with cls="sev-low" label="BAJO" %}
+                  <div class="evidence-item {{ cls }}">
+                    <span class="severity-pill {{ cls }}">
+                      <span class="sev-label">{{ label }}</span>
+                      <span class="sev-score">{{ sev }}</span>
+                    </span>
+                    <div class="evidence-body">
+                      <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                      <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
+                    </div>
+                  </div>
+                {% endwith %}
+              {% else %}
+                {% with cls="sev-info" label="INFO" %}
+                  <div class="evidence-item {{ cls }}">
+                    <span class="severity-pill {{ cls }}">
+                      <span class="sev-label">{{ label }}</span>
+                    </span>
+                    <div class="evidence-body">
+                      <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                      <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
+                    </div>
+                  </div>
+                {% endwith %}
+              {% endif %}
             {% endwith %}
-          {% elif sev >= 61 %}
-            {% with cls="sev-high" label="ALTO" %}
-              <div class="evidence-item {{ cls }}">
-                <span class="severity-pill {{ cls }}">
-                  <span class="sev-label">{{ label }}</span>
-                  <span class="sev-score">{{ sev }}</span>
-                </span>
-                <div class="evidence-body">
-                  <div class="evidence-detail">{{ ev.detail }}</div>
-                  <span class="evidence-type">{{ ev.type }}</span>
-                </div>
-              </div>
-            {% endwith %}
-          {% elif sev >= 31 %}
-            {% with cls="sev-medium" label="MEDIO" %}
-              <div class="evidence-item {{ cls }}">
-                <span class="severity-pill {{ cls }}">
-                  <span class="sev-label">{{ label }}</span>
-                  <span class="sev-score">{{ sev }}</span>
-                </span>
-                <div class="evidence-body">
-                  <div class="evidence-detail">{{ ev.detail }}</div>
-                  <span class="evidence-type">{{ ev.type }}</span>
-                </div>
-              </div>
-            {% endwith %}
-          {% elif sev > 0 %}
-            {% with cls="sev-low" label="BAJO" %}
-              <div class="evidence-item {{ cls }}">
-                <span class="severity-pill {{ cls }}">
-                  <span class="sev-label">{{ label }}</span>
-                  <span class="sev-score">{{ sev }}</span>
-                </span>
-                <div class="evidence-body">
-                  <div class="evidence-detail">{{ ev.detail }}</div>
-                  <span class="evidence-type">{{ ev.type }}</span>
-                </div>
-              </div>
-            {% endwith %}
-          {% else %}
-            {% with cls="sev-info" label="INFO" %}
-              <div class="evidence-item {{ cls }}">
-                <span class="severity-pill {{ cls }}">
-                  <span class="sev-label">{{ label }}</span>
-                </span>
-                <div class="evidence-body">
-                  <div class="evidence-detail">{{ ev.detail }}</div>
-                  <span class="evidence-type">{{ ev.type }}</span>
-                </div>
-              </div>
-            {% endwith %}
-          {% endif %}
-        {% endwith %}
-      {% endfor %}
-    </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
   {% else %}
     <div class="evidence-empty">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="margin-bottom:6px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -470,7 +481,7 @@
     </div>
     <div class="body-summary-text">
       <div class="body-summary-title">
-        {% if analysis.body_analysis.body_threat %}{{ analysis.body_analysis.body_threat }}{% else %}Cuerpo del correo analizado{% endif %}
+        {% if analysis.body_analysis.body_threat %}{{ analysis.body_analysis.body_threat|sanitize_text }}{% else %}Cuerpo del correo analizado{% endif %}
       </div>
       <div class="body-summary-sub">URLs, lenguaje de phishing, HTML peligroso y headers</div>
     </div>
@@ -487,8 +498,8 @@
                 <span class="sev-score">{{ sev }}</span>
               </span>
               <div class="evidence-body">
-                <div class="evidence-detail">{{ ev.detail }}</div>
-                <span class="evidence-type">{{ ev.type }}</span>
+                <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
               </div>
             </div>
           {% endwith %}
@@ -499,8 +510,8 @@
                 <span class="sev-score">{{ sev }}</span>
               </span>
               <div class="evidence-body">
-                <div class="evidence-detail">{{ ev.detail }}</div>
-                <span class="evidence-type">{{ ev.type }}</span>
+                <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
               </div>
             </div>
           {% endwith %}
@@ -511,8 +522,8 @@
                 <span class="sev-score">{{ sev }}</span>
               </span>
               <div class="evidence-body">
-                <div class="evidence-detail">{{ ev.detail }}</div>
-                <span class="evidence-type">{{ ev.type }}</span>
+                <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
               </div>
             </div>
           {% endwith %}
@@ -523,8 +534,8 @@
                 <span class="sev-score">{{ sev }}</span>
               </span>
               <div class="evidence-body">
-                <div class="evidence-detail">{{ ev.detail }}</div>
-                <span class="evidence-type">{{ ev.type }}</span>
+                <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
               </div>
             </div>
           {% endwith %}
@@ -650,7 +661,7 @@
         <div class="ai-insight-body">
           <div class="ai-insight-eyebrow">Qué pasó · análisis del sandbox</div>
           <h4 class="ai-insight-title">Esto es lo que detectamos</h4>
-          <div class="ai-text" id="ai-expl-el"></div>
+          <div id="ai-expl-el" class="ai-expl-fluid"></div>
         </div>
       </div>
 
@@ -845,25 +856,25 @@
 <script>
 window.__SANDBOX_CTX__ = {
   analysisId:   {{ analysis.id }},
-  filename:     "{{ analysis.file_info.filename|escapejs }}",
+  filename:     "{{ analysis.file_info.filename|sanitize_text|escapejs }}",
   fileSize:     {{ analysis.file_info.file_size|default:0 }},
-  md5:          "{{ analysis.file_info.md5_hash|escapejs }}",
-  sha256:       "{{ analysis.file_info.sha256_hash|escapejs }}",
-  mimeType:     "{{ analysis.file_info.real_mime_type|escapejs }}",
-  extension:    "{{ analysis.file_info.extension|escapejs }}",
+  md5:          "{{ analysis.file_info.md5_hash|sanitize_text|escapejs }}",
+  sha256:       "{{ analysis.file_info.sha256_hash|sanitize_text|escapejs }}",
+  mimeType:     "{{ analysis.file_info.real_mime_type|sanitize_text|escapejs }}",
+  extension:    "{{ analysis.file_info.extension|sanitize_text|escapejs }}",
   extSpoof:     {% if analysis.file_info.extension_spoof %}true{% else %}false{% endif %},
-  category:     "{{ analysis.dynamic.category|escapejs }}",
+  category:     "{{ analysis.dynamic.category|sanitize_text|escapejs }}",
   riskScore:    {{ analysis.risk_score }},
-  threatName:   "{{ analysis.threat_name|escapejs }}",
+  threatName:   "{{ analysis.threat_name|sanitize_text|escapejs }}",
   evidence:     {{ analysis.dynamic.evidence|safe }},
   iocs:         {{ analysis.dynamic.iocs|safe }},
   yaraMatches:  {{ analysis.dynamic.yara_matches|safe }},
   yaraContext:  {{ yara_context_json|default:"[]"|safe }},
   bodyScore:    {{ analysis.body_analysis.body_score|default:0 }},
-  bodyThreat:   "{{ analysis.body_analysis.body_threat|escapejs }}",
+  bodyThreat:   "{{ analysis.body_analysis.body_threat|sanitize_text|escapejs }}",
   analyzersRun: {{ analysis.dynamic.analyzers_run|safe }}
 };
 </script>
-<script src="{% static 'sandbox/js/sandbox_report.js' %}?v=odd-min3"></script>
+<script src="{% static 'sandbox/js/sandbox_report.js' %}?v=file-groups"></script>
 
 {% endblock %}

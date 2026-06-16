@@ -310,8 +310,8 @@ class AccountRecoveryRequest(models.Model):
         verbose_name = 'Solicitud de recuperación de cuenta'
         verbose_name_plural = 'Solicitudes de recuperación de cuenta'
         indexes = [
-            models.Index(fields=['status', '-created_at']),
-            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['status', '-created_at'], name='accounts_ac_status_7da5c4_idx'),
+            models.Index(fields=['user', '-created_at'], name='accounts_ac_user_id_768d59_idx'),
         ]
 
     def __str__(self):

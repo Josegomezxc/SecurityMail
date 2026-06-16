@@ -13,7 +13,6 @@ services:
       - "8000:8000"
     environment:
       - DJANGO_SETTINGS_MODULE=email_seguro.settings
-      - DATABASE_URL=sqlite:////app/db.sqlite3
     depends_on:
       - sandbox
     networks:

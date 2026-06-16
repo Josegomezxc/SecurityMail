@@ -22,7 +22,7 @@ class Notification(models.Model):
         User, on_delete=models.CASCADE, related_name='notifications',
         db_column='id_usuario',
     )
-    type = models.CharField(max_length=20, choices=TYPES, default='system', db_column='ntf_tipo')
+    type = models.CharField(max_length=20, choices=TYPES, default='system', db_index=True, db_column='ntf_tipo')
     title = models.CharField(max_length=200, db_column='ntf_titulo')
     message = models.TextField(blank=True, db_column='ntf_mensaje',
                                help_text="Preview corto, opcional")
@@ -31,8 +31,8 @@ class Notification(models.Model):
         related_name='notifications', db_column='id_correo_relacionado',
         help_text="Si la notificación es sobre un correo concreto",
     )
-    read = models.BooleanField(default=False, db_column='ntf_leido')
-    status = models.CharField(max_length=12, choices=STATUSES, default='done', db_column='ntf_estado')
+    read = models.BooleanField(default=False, db_index=True, db_column='ntf_leido')
+    status = models.CharField(max_length=12, choices=STATUSES, default='done', db_index=True, db_column='ntf_estado')
     created_at = models.DateTimeField(auto_now_add=True, db_column='ntf_creado_en')
     actioned_at = models.DateTimeField(
         null=True, blank=True, db_column='ntf_accionado_en',
@@ -47,8 +47,8 @@ class Notification(models.Model):
         verbose_name = 'Notificación'
         verbose_name_plural = 'Notificaciones'
         indexes = [
-            models.Index(fields=['user', '-created_at']),
-            models.Index(fields=['user', 'read']),
+            models.Index(fields=['user', '-created_at'], name='notificatio_user_id_05b4bc_idx'),
+            models.Index(fields=['user', 'read'], name='notificatio_user_id_878a13_idx'),
         ]
 
     def __str__(self):

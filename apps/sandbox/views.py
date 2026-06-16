@@ -10,6 +10,7 @@ Estas vistas solo son el controlador que muestra los resultados.
 """
 import json
 import os
+import re
 from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
@@ -23,6 +24,49 @@ from django.views.decorators.http import require_POST
 
 from apps.mail.models import EmailMessage
 from .models import SandboxAnalysis, IAResult
+
+_UNICODE_CONTROL_RE = re.compile(
+    '[\u200b\u200c\u200d\u200e\u200f'
+    '\u202a\u202b\u202c\u202d\u202e'
+    '\u2060\u2061\u2062\u2063\u2064'
+    '\u2066\u2067\u2068\u2069'
+    '\ufffe\uffff]'
+)
+
+_EVI_FILE_RE = re.compile(r'^\[([^\]]+)\]\s*')
+
+
+def _group_evidence(evidence_list):
+    """Agrupa evidencia por nombre de archivo (extraído de [archivo] prefijo)."""
+    groups = {}
+    for ev in evidence_list:
+        detail = ev.get("detail", "")
+        m = _EVI_FILE_RE.match(detail)
+        if m:
+            fname = _UNICODE_CONTROL_RE.sub("", m.group(1))
+            ev_clean = dict(ev, detail=_EVI_FILE_RE.sub("", detail))
+            groups.setdefault(fname, []).append(ev_clean)
+        else:
+            groups.setdefault("__general__", []).append(ev)
+
+    # Ordenar los grupos: primero "general", luego el resto alfabético
+    result = []
+    if "__general__" in groups:
+        result.append(("__general__", groups.pop("__general__")))
+    for fname in sorted(groups):
+        result.append((fname, groups[fname]))
+    return result
+
+
+def _sanitize_value(obj):
+    """Recorre listas/dicts y limpia caracteres de control Unicode de strings."""
+    if isinstance(obj, str):
+        return _UNICODE_CONTROL_RE.sub("", obj)
+    if isinstance(obj, dict):
+        return {k: _sanitize_value(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_value(v) for v in obj]
+    return obj
 
 
 # Items por página — coincide con el resto del proyecto (bandeja, etc.)
@@ -141,7 +185,10 @@ def sandbox_analyze_view(request, email_id):
 def sandbox_report_view(request, pk):
     """Reporte detallado de un análisis sandbox específico."""
     analysis = get_object_or_404(
-        SandboxAnalysis, pk=pk, email__alias__user=request.user,
+        SandboxAnalysis.objects.select_related(
+            'email__alias', 'dynamic', 'file_info', 'body_analysis', 'ai_result',
+        ),
+        pk=pk, email__alias__user=request.user,
     )
 
     # Contexto enriquecido de reglas YARA detectadas — se inyecta al
@@ -167,9 +214,23 @@ def sandbox_report_view(request, pk):
         }
         yara_context.append(entry)
 
+    # Sanitiza evidencia y otros campos JSON para eliminar
+    # caracteres de control Unicode (RTL override, etc.)
+    if dynamic:
+        if dynamic.evidence:
+            dynamic.evidence = _sanitize_value(dynamic.evidence)
+        if dynamic.iocs:
+            dynamic.iocs = _sanitize_value(dynamic.iocs)
+    body = getattr(analysis, 'body_analysis', None)
+    if body and body.body_evidence:
+        body.body_evidence = _sanitize_value(body.body_evidence)
+
+    evidence_groups = _group_evidence(analysis.dynamic.evidence if dynamic else [])
+
     return render(request, 'sandbox/sandbox_report.html', {
         'analysis':          analysis,
         'yara_context_json': json.dumps(yara_context, ensure_ascii=False),
+        'evidence_groups':   evidence_groups,
     })
 
 
@@ -211,18 +272,57 @@ def _parse_ai_blocks(text: str) -> dict:
     return out
 
 
+def _run_groq_analysis_async(prompt: str, analysis):
+    """Ejecuta Groq y cachea el resultado en BD. Corre en un thread separado."""
+    api_key = os.environ.get('GROQ_API_KEY', '').strip()
+    if not api_key:
+        print('[ia] GROQ_API_KEY no configurada')
+        return
+    try:
+        from groq import Groq
+        client = Groq(api_key=api_key)
+        response = client.chat.completions.create(
+            model='llama-3.3-70b-versatile',
+            messages=[{'role': 'user', 'content': prompt}],
+            max_tokens=3500,
+            temperature=0.4,
+        )
+        raw = response.choices[0].message.content
+    except Exception as e:
+        print('[ia] Error Groq:', e)
+        return
+
+    try:
+        from django.utils import timezone
+        ai_result, _ = IAResult.objects.get_or_create(analysis=analysis)
+        blocks = _parse_ai_blocks(raw)
+        ai_result.ai_verdict       = (blocks.get('VEREDICTO') or '')[:20]
+        ai_result.ai_threat_type   = (blocks.get('TIPO DE AMENAZA') or '')[:100]
+        ai_result.ai_explanation   = blocks.get('EXPLICACION') or ''
+        ai_result.ai_recommendation = blocks.get('RECOMENDACION') or ''
+        ai_result.ai_generated_at  = timezone.now()
+        ai_result.save(update_fields=[
+            'ai_verdict', 'ai_threat_type', 'ai_explanation',
+            'ai_recommendation', 'ai_generated_at',
+        ])
+    except Exception as e:
+        print('[ia] Error al cachear resultado:', e)
+
+
 @login_required(login_url='login')
 @require_POST
 def ai_analysis_view(request):
     """
     Entrada:  {
         "prompt":      "texto del prompt construido por el frontend",
-        "analysis_id": <int>            ← opcional: si viene, se cachea
+        "analysis_id": <int>            ← si viene, se cachea y corre async
     }
-    Salida:   {
-        "result": "<respuesta completa>",
-        "cached": false                 ← false si vino de Groq, true si de BD
-    }
+    Salida (cache hit):
+        { "result": "...", "cached": true }
+    Salida (cache miss + analysis_id):
+        { "status": "processing", "analysis_id": <id> }
+    Salida (sin analysis_id, síncrono):
+        { "result": "...", "cached": false }
     Errores:
       - 429 (rate limit): { "error": "...", "retry_after": <minutos>, "code": "rate_limit" }
       - 500 (otros):      { "error": "..." }
@@ -263,7 +363,19 @@ def ai_analysis_view(request):
                 'cached': True,
             })
 
-    # ── 2. Cache miss → pegamos a Groq ────────────────────────────────
+    # ── 2. Cache miss → Groq ──────────────────────────────────────────
+    if cached_obj is not None:
+        # Tenemos un análisis asociado → disparamos Groq en thread y
+        # respondemos inmediatamente. El resultado se cachea en BD.
+        import threading
+        threading.Thread(
+            target=_run_groq_analysis_async,
+            kwargs={'prompt': prompt, 'analysis': cached_obj},
+            daemon=True,
+        ).start()
+        return JsonResponse({'status': 'processing', 'analysis_id': analysis_id})
+
+    # Sin analysis_id → modo síncrono (resultado sin cachear)
     api_key = os.environ.get('GROQ_API_KEY', '').strip()
     if not api_key:
         return JsonResponse(
@@ -284,10 +396,8 @@ def ai_analysis_view(request):
     except Exception as e:
         err_str = str(e)
         print('ERROR IA:', err_str)
-        # Detectar rate limit (429) y extraer el tiempo de espera
         if '429' in err_str or 'rate_limit' in err_str.lower() or 'tokens per day' in err_str.lower():
             import re as _re
-            # Buscar el "try again in Xm" del mensaje de Groq
             m = _re.search(r'try again in\s+(\d+)\s*m', err_str, _re.IGNORECASE)
             wait_min = int(m.group(1)) if m else 60
             return JsonResponse({
@@ -296,25 +406,6 @@ def ai_analysis_view(request):
                 'retry_after_min': wait_min,
             }, status=429)
         return JsonResponse({'error': err_str}, status=500)
-
-    # ── 3. Si vino analysis_id, cacheamos en la BD ────────────────────
-    if cached_obj is not None:
-        try:
-            from django.utils import timezone
-            ai_result, _ = IAResult.objects.get_or_create(analysis=cached_obj)
-            blocks = _parse_ai_blocks(raw)
-            ai_result.ai_verdict       = (blocks.get('VEREDICTO') or '')[:20]
-            ai_result.ai_threat_type   = (blocks.get('TIPO DE AMENAZA') or '')[:100]
-            ai_result.ai_explanation   = blocks.get('EXPLICACION') or ''
-            ai_result.ai_recommendation = blocks.get('RECOMENDACION') or ''
-            ai_result.ai_generated_at  = timezone.now()
-            ai_result.save(update_fields=[
-                'ai_verdict', 'ai_threat_type', 'ai_explanation',
-                'ai_recommendation', 'ai_generated_at',
-            ])
-        except Exception as e:
-            # No crítico: si falla el guardado igual servimos la respuesta
-            print('ai_analysis: cache save failed:', e)
 
     return JsonResponse({'result': raw, 'cached': False})
 

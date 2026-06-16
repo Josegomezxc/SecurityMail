@@ -21,14 +21,14 @@ class EmailMessage(models.Model):
         blank=True, db_column='msc_cuerpo_html_original',
         help_text="HTML ORIGINAL sin neutralizar (se usa al reenviar al correo real)",
     )
-    received_at = models.DateTimeField(auto_now_add=True, db_column='msc_recibido_en')
-    read = models.BooleanField(default=False, db_column='msc_leido')
+    received_at = models.DateTimeField(auto_now_add=True, db_index=True, db_column='msc_recibido_en')
+    read = models.BooleanField(default=False, db_index=True, db_column='msc_leido')
     deleted_at = models.DateTimeField(
         null=True, blank=True, db_index=True, db_column='msc_eliminado_en',
         help_text="Si está seteado, el correo está en papelera",
     )
     risk_score = models.IntegerField(
-        default=0, db_column='msc_puntaje_riesgo',
+        default=0, db_index=True, db_column='msc_puntaje_riesgo',
         help_text="0-100. 0=seguro, 100=malware",
     )
     is_active = models.BooleanField(default=True, db_column='msc_activo')

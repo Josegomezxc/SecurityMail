@@ -129,91 +129,45 @@ document.querySelectorAll('.collapsible-list').forEach(wrap => {
     }
   }, 700);
 
-  const prompt = `Eres un analista senior de ciberseguridad. Tu tarea es realizar un análisis exhaustivo, detallado y desglosado de los resultados del escaneo de malware de un sandbox que analizó un archivo o correo recibido en DockerShield (sistema de alias desechables anti-phishing).
+  const prompt = `Eres analista de seguridad en DockerShield. Redacta el reporte ejecutivo "¿Qué pasó?" del análisis de sandbox.
 
-Tu objetivo es que el usuario (que puede ser tanto un usuario final como un profesional que busca claridad) entienda absolutamente TODO lo que se detectó en el reporte: qué es cada dato de forma individual, qué significa técnicamente, por qué es relevante y qué impacto real tiene.
+REGLA CRÍTICA: Sé ultra-conciso. Elimina redundancias. Cero listas, viñetas o números. Usa un texto narrativo fluido y directo al grano para explicar qué se detectó y su impacto. Usa el mínimo de palabras posible sin perder rigurosidad técnica.
 
-═══ DATOS DEL ANÁLISIS ═══
-Archivo:           ${filename}
-Tamaño y Metadata: ${fileSize || "desconocido"}
-Huellas digitales: MD5: ${md5 || "—"} | SHA256: ${sha256 || "—"}
-Tipo MIME real:    ${mimeType || "desconocido"}
-Extensión:         ${extension || "—"}${extSpoof ? "  ← ¡no coincide con MIME real!" : ""}
-Categoría:         ${category}
-Score de riesgo:   ${riskScore}/100
-Amenaza detectada: ${threatName || "ninguna"}
-Analizadores que corrieron: ${(analyzersRun || []).join(", ") || "ninguno"}
+DATOS:
+Archivo: ${filename}
+Tamaño: ${fileSize || "-"}
+MD5: ${md5 || "-"} | SHA256: ${sha256 || "-"}
+MIME: ${mimeType || "-"}
+Ext: ${extension || "-"}${extSpoof ? " (¡no coincide con MIME!)" : ""}
+Categoría: ${category}
+Score: ${riskScore}/100
+Amenaza: ${threatName || "-"}
+Analizadores: ${(analyzersRun || []).join(", ") || "-"}
 
-═══ EVIDENCIA TOP (por severidad) ═══
-${topEvidence || "Sin indicadores específicos"}
+EVIDENCIA:
+${topEvidence || "-"}
+IOCs: ${iocSummary.join(" | ") || "-"}
+YARA: ${yaraSummary || "-"}
+CONTEXTO YARA: ${yaraDetailedBlock || "-"}
+BODY SCORE: ${bodyScore}/100 ${bodyThreat ? "("+bodyThreat+")" : ""}
 
-═══ IOCs EXTRAÍDOS ═══
-${iocSummary.join("\n") || "Sin IOCs"}
+REGLAS:
+1. VEREDICTO: 81-100=MALICIOSO | 31-80=SOSPECHOSO | 0-30=SEGURO.
+2. EXPLICACION: Un solo párrafo fluido narrando la correlación de hallazgos. ¡Sin relleno! Define tecnicismos en 3 palabras max.
 
-═══ COINCIDENCIAS YARA ═══
-${yaraSummary || "Ninguna"}
-
-═══ CONTEXTO REAL DE LAS REGLAS YARA DETECTADAS ═══
-${yaraDetailedBlock || "Sin contexto adicional (no hubo matches)"}
-
-═══ CUERPO DEL CORREO ═══
-Score body: ${bodyScore}/100${bodyThreat ? "  ·  " + bodyThreat : ""}
-
-═══ REGLAS OBLIGATORIAS DE ANÁLISIS ═══
-
-1. VEREDICTO atado al score técnico (no reinterpretes):
-   · Score 81-100 → MALICIOSO
-   · Score 31-80  → SOSPECHOSO
-   · Score 0-30   → SEGURO
-
-2. Si hay match YARA o analizador que detectó amenaza, RESPETA esa detección aunque el archivo sea inerte por sí solo (ej. archivos de prueba estándar como EICAR).
-
-3. SIEMPRE define los términos técnicos la primera vez que los uses entre paréntesis y en lenguaje sencillo para asegurar que sea accesible (ej. "YARA (un sistema que busca patrones conocidos de código malicioso)", "MIME (tipo real del archivo, distinto de su extensión)").
-
-4. ESTRUCTURA OBLIGATORIA PARA CADA ELEMENTO (Sección EXPLICACION):
-   No hagas resúmenes generales. Debes identificar y desglosar CADA ITEM individual de los datos del análisis, analizadores, evidencias, reglas YARA e IOCs. Para cada concepto, regla o idea individual encontrada, debes presentar la información inmediatamente después de una viñeta, cubriendo:
-   - Identificación del elemento: Nombre claro y técnico del concepto o regla.
-   - Explicación técnica profesional: De 3 a 6 líneas claras, técnicamente fundamentadas y precisas.
-   - Contexto y aplicación: Para qué sirve, dónde se aplica y por qué es relevante en este análisis.
-   - Ejemplos prácticos: Un escenario corto o analogía que ilustre el concepto.
-
-═══ FORMATO DE RESPUESTA ═══
-
-Responde EXACTAMENTE con la siguiente estructura utilizando Markdown (viñetas, negritas y numeración):
-
+FORMATO EXACTO:
 VEREDICTO: [MALICIOSO / SOSPECHOSO / SEGURO]
 
-TIPO DE AMENAZA: [Phishing / Malware / Ransomware / Backdoor / Loader / Spyware / Robo de credenciales / Test de seguridad / No aplica]
+TIPO DE AMENAZA: [Phishing / Malware / Ransomware / Loader / Spyware / Credenciales / Test / No aplica]
 
 EXPLICACION:
-Organiza los elementos encontrados en el reporte agrupados por las siguientes categorías lógicas. Cada elemento individual dentro de su categoría debe estar numerado y llevar una viñeta (•).
-
-### Datos de Identificación del Archivo
-• 1. [Nombre del Elemento o Metadato]: [Explicación técnica de 3-6 líneas] + [Contexto e importancia en este análisis] + [Ejemplo práctico].
-• 2. [Siguiente elemento/Hash/MIME/Spoofing si aplica]...
-
-### Analizadores Ejecutados
-• 3. [Nombre del Analizador 1]: [Explicación técnica de lo que es y hace la herramienta] + [Qué resultado obtuvo específicamente aquí y por qué importa] + [Ejemplo práctico].
-• 4. [Nombre del Analizador 2]...
-
-### Reglas YARA Coincidentes
-(Analizar de forma individual cada regla que aparezca en Coincidencias o Contexto Real)
-• 5. [Nombre exacto de la Regla YARA 1]: [Explicación técnica de qué patrón o código busca de 3-6 líneas] + [Por qué se activó con este archivo y su nivel de peligro] + [Ejemplo práctico].
-
-### Indicadores de Compromiso (IOCs) y Evidencias
-(Analizar individualmente cada IP, Dominio, URL, Ruta de archivo o texto detectado en la Evidencia Top e IOCs Extraídos)
-• 6. [IOC o Evidencia detectada (ej: Dirección IP / URL / Ruta)]: [Explicación técnica de qué es y con quién conecta] + [Por qué es sospechoso y qué impacto causa] + [Ejemplo práctico].
-
-### Análisis del Cuerpo del Correo
-• 7. [Score Body / Texto del correo]: [Explicación técnica del análisis de phishing o enlaces en el texto] + [Relevancia del score obtenido] + [Ejemplo práctico].
+[Un solo párrafo fluido y ultra-conciso explicando qué se detectó y su impacto, conectando datos e IOCs]
 
 RECOMENDACION:
-Presenta las acciones sugeridas de forma numerada y estructurada estrictamente bajo el siguiente bloque al final:
-
-• **Recomendación [número]**: [Título descriptivo de la acción]
-  - **Descripción**: [Explicación detallada de la acción de al menos 2-3 líneas]
-  - **Prioridad**: [Alta/Media/Baja] junto con una justificación breve.
-  - **Acción recomendada**: [Pasos específicos y exactos que el usuario debe seguir ahora mismo].`;
+• **[Acción inmediata corta]**
+  - **Descripción**: [Explicación en 1 línea]
+  - **Prioridad**: [Alta/Media/Baja]
+  - **Acción recomendada**: [Paso exacto en 1 línea]`;
 
   /* ──────────────────────────────────────────────────────────────────
      Mini-renderer de Markdown
@@ -372,7 +326,12 @@ Presenta las acciones sugeridas de forma numerada y estructurada estrictamente b
   const csrfToken = document.cookie.split(';')
     .find(c => c.trim().startsWith('csrftoken='))?.split('=')[1] || '';
 
-  try {
+  /**
+   * Pide el análisis IA al backend. Si está en procesamiento,
+   * reintenta cada 3 segundos hasta 30 veces (90 segundos).
+   */
+  async function _fetchAiResult(retries) {
+    if (retries === undefined) retries = 0;
     const res  = await fetch("/ai-analysis/", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
@@ -380,7 +339,7 @@ Presenta las acciones sugeridas de forma numerada y estructurada estrictamente b
     });
     const data = await res.json().catch(() => ({}));
 
-    // Manejo específico de rate limit (429)
+    // Rate limit (429)
     if (res.status === 429 || data.code === 'rate_limit') {
       const wait = data.retry_after_min || 60;
       throw new Error(
@@ -390,8 +349,22 @@ Presenta las acciones sugeridas de forma numerada y estructurada estrictamente b
     if (!res.ok) {
       throw new Error(data.error || `Error ${res.status} del servidor`);
     }
+
+    // El backend está procesando → poll en 3 segundos
+    if (data.status === 'processing') {
+      if (retries >= 30) {
+        throw new Error("El análisis IA tardó demasiado. Recarga la página para reintentar.");
+      }
+      await new Promise(r => setTimeout(r, 3000));
+      return _fetchAiResult(retries + 1);
+    }
+
+    return data;
+  }
+
+  try {
+    const data = await _fetchAiResult();
     const text = data.result;
-    if (!text) throw new Error("Sin respuesta");
 
     // Log discreto cuando vino del cache (solo en consola)
     if (data.cached) {
@@ -441,9 +414,9 @@ Presenta las acciones sugeridas de forma numerada y estructurada estrictamente b
     // EXPLICACION va con groupBySections=true: cada `### Header` se envuelve
     // en un .ai-md-section, lo que permite layout de grid 2x2 en desktop.
     // RECOMENDACION queda en flujo natural (no es grid).
-    document.getElementById("ai-expl-el").innerHTML = ex
-      ? _renderMarkdown(ex, { groupBySections: true })
-      : '<p>Sin información.</p>';
+    // Forzamos un solo párrafo fluido (limpiando caché antigua que tenía viñetas o saltos)
+    let fluidEx = ex ? ex.replace(/^###.*$/gm, '').replace(/^[•*\-]\s*(?:\d+[\.\)]\s*)?/gm, '').replace(/\n+/g, ' ').trim() : '';
+    document.getElementById("ai-expl-el").innerHTML = fluidEx ? _renderMarkdown(fluidEx) : '<p>Sin información.</p>';
     document.getElementById("ai-rec-el").innerHTML  = rc
       ? _renderMarkdown(rc)
       : '<p>Sin recomendación.</p>';

@@ -50,7 +50,7 @@ def dashboard_view(request):
     # 20 correos = 5 páginas de 4 en la tabla "Actividad reciente".
     # La paginación se hace en el cliente (todas las filas en DOM).
     recent_emails   = list(
-        EmailMessage.objects.filter(
+        EmailMessage.objects.select_related('alias').filter(
             alias__user=request.user, deleted_at__isnull=True,
         ).order_by('-received_at')[:20]
     )
@@ -68,7 +68,7 @@ def dashboard_view(request):
         elif secs < 86400 * 7: em.time_short = f'{secs // 86400} d'
         else:                  em.time_short = f'{secs // (86400*7)} sem'
     recent_analyses = list(
-        SandboxAnalysis.objects.filter(
+        SandboxAnalysis.objects.select_related('email').filter(
             email__alias__user=request.user
         ).order_by('-analyzed_at')[:3]
     )
@@ -80,7 +80,7 @@ def dashboard_view(request):
         elif secs < 86400:     an.time_short = f'{secs // 3600} h'
         elif secs < 86400 * 7: an.time_short = f'{secs // 86400} d'
         else:                  an.time_short = f'{secs // (86400*7)} sem'
-    recent_threats  = EmailMessage.objects.filter(
+    recent_threats  = EmailMessage.objects.select_related('alias').filter(
                           alias__user=request.user, risk_score__gte=61,
                           deleted_at__isnull=True,
                       ).order_by('-received_at')[:3]

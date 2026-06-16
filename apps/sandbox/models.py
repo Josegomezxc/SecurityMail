@@ -15,7 +15,7 @@ class SandboxAnalysis(models.Model):
         db_column='id_correo',
     )
     analyzed_at = models.DateTimeField(auto_now_add=True, db_column='ans_analizado_en')
-    risk_score = models.IntegerField(default=0, db_column='ans_puntaje_riesgo')
+    risk_score = models.IntegerField(default=0, db_index=True, db_column='ans_puntaje_riesgo')
     risk_level = models.CharField(
         max_length=10, choices=RISK_LEVELS, default='safe', db_column='ans_nivel_riesgo',
     )

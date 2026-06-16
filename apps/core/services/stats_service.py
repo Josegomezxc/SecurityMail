@@ -6,6 +6,8 @@ centralizadas para no duplicar lógica.
 """
 from datetime import timedelta
 
+from django.db.models import Count, Q
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from apps.aliases.models import Alias
@@ -27,47 +29,67 @@ def dashboard_stats(user) -> dict:
     now       = timezone.now()
     cutoff_1d = now - timedelta(days=1)
     cutoff_2d = now - timedelta(days=2)
+    cutoff_14d = now - timedelta(days=14)
 
-    emails_qs  = EmailMessage.objects.filter(alias__user=user)
-    sandbox_qs = SandboxAnalysis.objects.filter(email__alias__user=user)
+    # ── Query 1: todos los conteos en UNA consulta ─────────────────
+    agg = EmailMessage.objects.filter(alias__user=user).aggregate(
+        total_emails=Count('id'),
+        threats_count=Count('id', filter=Q(risk_score__gte=61)),
+        susp_count=Count('id', filter=Q(risk_score__gt=30, risk_score__lt=61)),
+        safe_emails=Count('id', filter=Q(risk_score__lte=30)),
+        unread_count=Count('id', filter=Q(read=False)),
+        today_emails=Count('id', filter=Q(received_at__gte=cutoff_1d)),
+        yday_emails=Count('id', filter=Q(
+            received_at__gte=cutoff_2d, received_at__lt=cutoff_1d,
+        )),
+        today_threats=Count('id', filter=Q(
+            received_at__gte=cutoff_1d, risk_score__gte=61,
+        )),
+    )
 
-    total_emails  = emails_qs.count()
-    threats_count = emails_qs.filter(risk_score__gte=61).count()
-    susp_count    = emails_qs.filter(risk_score__gt=30, risk_score__lt=61).count()
-    safe_emails   = emails_qs.filter(risk_score__lte=30).count()
-    safe_count    = sandbox_qs.filter(risk_score__lte=30).count()
-    alias_count   = Alias.objects.filter(user=user, is_active=True).count()
-    unread_count  = emails_qs.filter(read=False).count()
-
-    today_emails  = emails_qs.filter(received_at__gte=cutoff_1d).count()
-    yday_emails   = emails_qs.filter(received_at__gte=cutoff_2d,
-                                     received_at__lt=cutoff_1d).count()
-    today_threats = emails_qs.filter(received_at__gte=cutoff_1d,
-                                     risk_score__gte=61).count()
-
-    block_rate = 0
-    if total_emails > 0:
-        block_rate = round((threats_count / total_emails) * 100)
-
-    # ── Actividad: correos recibidos por día (últimos 14) ──
+    # ── Query 2: actividad diaria (14 días) en UNA consulta ────────
+    activity_qs = (
+        EmailMessage.objects
+        .filter(alias__user=user, received_at__gte=cutoff_14d)
+        .annotate(day=TruncDate('received_at'))
+        .values('day')
+        .annotate(count=Count('id'))
+        .order_by('day')
+    )
+    activity_map = {row['day']: row['count'] for row in activity_qs}
     activity_14d = []
     for i in range(13, -1, -1):
-        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
-        day_end   = day_start + timedelta(days=1)
-        count = emails_qs.filter(received_at__gte=day_start, received_at__lt=day_end).count()
+        day = (now - timedelta(days=i)).date()
         activity_14d.append({
-            'label': day_start.strftime('%d/%m'),
-            'count': count,
+            'label': day.strftime('%d/%m'),
+            'count': activity_map.get(day, 0),
         })
 
-    # ── Distribución por nivel de riesgo (para el donut) ──
+    # ── Query 3: conteo SandboxAnalysis seguro ──────────────────────
+    safe_count = SandboxAnalysis.objects.filter(
+        email__alias__user=user, risk_score__lte=30,
+    ).count()
+
+    # ── Query 4: alias activos ──────────────────────────────────────
+    alias_count = Alias.objects.filter(user=user, is_active=True).count()
+
+    total_emails  = agg['total_emails']
+    threats_count = agg['threats_count']
+    susp_count    = agg['susp_count']
+    safe_emails   = agg['safe_emails']
+    unread_count  = agg['unread_count']
+    today_emails  = agg['today_emails']
+    yday_emails   = agg['yday_emails']
+    today_threats = agg['today_threats']
+
+    block_rate = round(threats_count / total_emails * 100) if total_emails > 0 else 0
+
     risk_distribution = {
         'safe':    safe_emails,
         'susp':    susp_count,
         'threats': threats_count,
     }
 
-    # ── Tendencia 24h vs 24h previas (para mostrar +X% en el card) ──
     emails_trend = _trend_pct(today_emails, yday_emails)
 
     return {
@@ -80,11 +102,8 @@ def dashboard_stats(user) -> dict:
         "yday_emails":       yday_emails,
         "today_threats":     today_threats,
         "block_rate":        block_rate,
-        # Para el gráfico de barras (Chart.js bar)
         "activity_14d":      activity_14d,
-        # Para el donut (Chart.js doughnut)
         "risk_distribution": risk_distribution,
-        # Para el +X% del stat card de correos
         "emails_trend":      emails_trend,
     }
 

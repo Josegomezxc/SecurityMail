@@ -15,7 +15,7 @@ class Alias(models.Model):
         unique=True, db_column='ali_direccion',
         help_text="Dirección generada: amazon_x7k2@dockershield.lat",
     )
-    is_active = models.BooleanField(default=True, db_column='ali_activo')
+    is_active = models.BooleanField(default=True, db_index=True, db_column='ali_activo')
     created_at = models.DateTimeField(auto_now_add=True, db_column='ali_creado_en')
     destroyed_at = models.DateTimeField(null=True, blank=True, db_column='ali_destruido_en')
 
@@ -74,8 +74,8 @@ class AliasQuotaRequest(models.Model):
         verbose_name = 'Solicitud de cupo de alias'
         verbose_name_plural = 'Solicitudes de cupo de alias'
         indexes = [
-            models.Index(fields=['status', '-created_at']),
-            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['status', '-created_at'], name='aliases_ali_status_b36bcd_idx'),
+            models.Index(fields=['user', '-created_at'], name='aliases_ali_user_id_77a675_idx'),
         ]
 
     def __str__(self):
