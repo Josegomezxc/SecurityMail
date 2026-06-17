@@ -27,6 +27,9 @@ class Alias(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Alias'
         verbose_name_plural = 'Alias'
+        indexes = [
+            models.Index(fields=['user', '-created_at'], name='aliases_alias_user_created_idx'),
+        ]
 
 
 class AliasQuotaRequest(models.Model):

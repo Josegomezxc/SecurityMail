@@ -6,7 +6,7 @@
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_report.css' %}?v=file-groups">
+<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_report.css' %}?v=yara-translate">
 {% endblock %}
 
 {% block page_title %}
@@ -288,7 +288,7 @@
                       <span class="sev-score">{{ sev }}</span>
                     </span>
                     <div class="evidence-body">
-                      <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                      <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
                       <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
                     </div>
                   </div>
@@ -301,7 +301,7 @@
                       <span class="sev-score">{{ sev }}</span>
                     </span>
                     <div class="evidence-body">
-                      <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                      <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
                       <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
                     </div>
                   </div>
@@ -314,7 +314,7 @@
                       <span class="sev-score">{{ sev }}</span>
                     </span>
                     <div class="evidence-body">
-                      <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                      <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
                       <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
                     </div>
                   </div>
@@ -327,7 +327,7 @@
                       <span class="sev-score">{{ sev }}</span>
                     </span>
                     <div class="evidence-body">
-                      <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                      <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
                       <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
                     </div>
                   </div>
@@ -339,7 +339,7 @@
                       <span class="sev-label">{{ label }}</span>
                     </span>
                     <div class="evidence-body">
-                      <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                      <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
                       <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
                     </div>
                   </div>
@@ -369,17 +369,20 @@
     </div>
     <h2 class="section-head-title">Reglas YARA coincidentes</h2>
     <div class="section-head-tag">
-      <span class="tag tag-purple">{{ analysis.dynamic.yara_matches|length }} match{{ analysis.dynamic.yara_matches|length|pluralize:"es" }}</span>
+      <span class="tag tag-purple">{{ analysis.dynamic.yara_matches|length }} regla{{ analysis.dynamic.yara_matches|length|pluralize:"s" }}</span>
     </div>
   </header>
   <div class="yara-list collapsible-list" data-show="3" data-label="reglas">
     {% for match in analysis.dynamic.yara_matches %}
       <div class="yara-rule">
         <div class="yara-rule-name">
-          {% if match.rule %}{{ match.rule }}{% else %}{{ match }}{% endif %}
+          {% if match.rule %}{{ match.rule|sanitize_text|translate_yara_rule }}{% else %}{{ match|sanitize_text }}{% endif %}
         </div>
         {% if match.category %}
-          <div class="yara-rule-cat">categoría: {{ match.category }} · severidad: {{ match.severity|default:"?" }}/100</div>
+          <div class="yara-rule-cat">
+            <span class="yara-cat-badge">{{ match.category|sanitize_text|translate_evidence_type }}</span>
+            · severidad: {{ match.severity|default:"?" }}/100
+          </div>
         {% endif %}
       </div>
     {% endfor %}
@@ -498,7 +501,7 @@
                 <span class="sev-score">{{ sev }}</span>
               </span>
               <div class="evidence-body">
-                <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
                 <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
               </div>
             </div>
@@ -510,7 +513,7 @@
                 <span class="sev-score">{{ sev }}</span>
               </span>
               <div class="evidence-body">
-                <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
                 <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
               </div>
             </div>
@@ -522,7 +525,7 @@
                 <span class="sev-score">{{ sev }}</span>
               </span>
               <div class="evidence-body">
-                <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
                 <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
               </div>
             </div>
@@ -534,7 +537,7 @@
                 <span class="sev-score">{{ sev }}</span>
               </span>
               <div class="evidence-body">
-                <div class="evidence-detail">{{ ev.detail|sanitize_text }}</div>
+                <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
                 <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
               </div>
             </div>
@@ -875,6 +878,6 @@ window.__SANDBOX_CTX__ = {
   analyzersRun: {{ analysis.dynamic.analyzers_run|safe }}
 };
 </script>
-<script src="{% static 'sandbox/js/sandbox_report.js' %}?v=file-groups"></script>
+<script src="{% static 'sandbox/js/sandbox_report.js' %}?v=yara-translate"></script>
 
 {% endblock %}

@@ -184,12 +184,13 @@ def sandbox_analyze_view(request, email_id):
 @login_required(login_url='login')
 def sandbox_report_view(request, pk):
     """Reporte detallado de un análisis sandbox específico."""
-    analysis = get_object_or_404(
-        SandboxAnalysis.objects.select_related(
-            'email__alias', 'dynamic', 'file_info', 'body_analysis', 'ai_result',
-        ),
-        pk=pk, email__alias__user=request.user,
+    qs = SandboxAnalysis.objects.select_related(
+        'email__alias', 'dynamic', 'file_info', 'body_analysis', 'ai_result',
     )
+    if request.user.is_staff:
+        analysis = get_object_or_404(qs, pk=pk)
+    else:
+        analysis = get_object_or_404(qs, pk=pk, email__alias__user=request.user)
 
     # Contexto enriquecido de reglas YARA detectadas — se inyecta al
     # prompt del análisis IA del cliente para que pueda explicar cada
@@ -411,76 +412,115 @@ def ai_analysis_view(request):
 
 
 # ─────────────────────────────────────────────────────────────────────
-#  Indexado de reglas YARA — se usa en sandbox_report_view para enriquecer
-#  el contexto que se manda al prompt de análisis IA. Antes había un
-#  endpoint dedicado por click "¿Qué es?", pero consumía demasiada cuota
-#  de Groq. Ahora una sola llamada por reporte cubre todo.
+#  Indexado de reglas YARA — se usa en sandbox_report_view para
+#  enriquecer el contexto del análisis IA solo de las reglas que
+#  hicieron match en el reporte. NO se parsean las 870 reglas
+#  completas, solo se indexa nombre→posición (~50ms) y se extrae
+#  metadata de las 1-5 reglas que realmente aplican.
 # ─────────────────────────────────────────────────────────────────────
 
-# Cache en memoria del índice de reglas YARA (se carga 1 vez por proceso)
-_YARA_INDEX = None
+# {nombre_regla: (nombre_archivo, byte_offset)}
+_NAME_INDEX = None
+# {nombre_archivo: contenido_str}
+_FILE_CACHE = {}
+# {nombre_regla: {description, category, severity, strings, file}}
+_META_CACHE = {}
 
 
-def _build_yara_index() -> dict:
+def _build_name_index() -> dict:
     """
-    Recorre apps/sandbox/analyzers/rules/*.yar y devuelve un dict
-    {rule_name: {description, category, severity, sample_strings}}.
-    Esto se usa para darle CONTEXTO REAL al modelo cuando el usuario
-    pide una explicación de una regla YARA — el modelo ya no inventa,
-    sino que reformula la descripción técnica en lenguaje claro.
+    Escanea todos los .yar y construye un índice liviano
+    nombre_regla → (archivo, offset). Sin parsear meta blocks.
     """
     import re
     import glob
     base = os.path.join(os.path.dirname(__file__), 'analyzers', 'rules')
-    files = glob.glob(os.path.join(base, '*.yar'))
+    files = sorted(glob.glob(os.path.join(base, '*.yar')))
     index = {}
+    rule_re = re.compile(r'\brule\s+([A-Za-z_][A-Za-z0-9_]*)\s*[:{]')
 
-    # Parser regex SIMPLE — no compila YARA, solo extrae los campos
-    # útiles del .yar para nuestro propósito. Tolerante a comillas
-    # simples/dobles y variaciones de whitespace.
-    rule_re = re.compile(
-        r'\brule\s+([A-Za-z_][A-Za-z0-9_]*)\s*[:{]',
-    )
-
-    for path in files:
+    for fpath in files:
         try:
-            with open(path, 'r', encoding='utf-8', errors='replace') as f:
-                src = f.read()
+            with open(fpath, 'r', encoding='utf-8', errors='replace') as f:
+                content = f.read()
         except Exception:
             continue
-
-        # Para cada regla extraída, intentamos buscar su bloque meta
-        for m in rule_re.finditer(src):
-            name = m.group(1)
-            # Buscamos las llaves balanceadas para acotar la regla
-            brace = src.find('{', m.start())
-            if brace < 0:
-                continue
-            depth = 0
-            end = brace
-            for i, ch in enumerate(src[brace:], start=brace):
-                if ch == '{':
-                    depth += 1
-                elif ch == '}':
-                    depth -= 1
-                    if depth == 0:
-                        end = i
-                        break
-            body = src[brace:end + 1]
-
-            desc = _extract_meta_field(body, 'description')
-            cat  = _extract_meta_field(body, 'category')
-            sev  = _extract_meta_field(body, 'severity') or _extract_meta_field(body, 'score')
-            strings_preview = _extract_rule_strings_preview(body)
-
-            index[name] = {
-                'description': desc,
-                'category':    cat,
-                'severity':    sev,
-                'strings':     strings_preview,
-                'file':        os.path.basename(path),
-            }
+        fkey = os.path.basename(fpath)
+        _FILE_CACHE[fkey] = content
+        for m in rule_re.finditer(content):
+            index[m.group(1)] = (fkey, m.start())
     return index
+
+
+def _parse_single_rule_body(body: str, fkey: str) -> dict:
+    """Extrae metadata de UNA sola regla YARA desde su bloque de código."""
+    desc = _extract_meta_field(body, 'description')
+    cat = _extract_meta_field(body, 'category')
+    sev = _extract_meta_field(body, 'severity') or _extract_meta_field(body, 'score')
+    strings_preview = _extract_rule_strings_preview(body)
+    return {
+        'description': desc,
+        'category':    cat,
+        'severity':    sev,
+        'strings':     strings_preview,
+        'file':        fkey,
+    }
+
+
+def _yara_lookup(name: str) -> dict | None:
+    """
+    Busca metadata de UNA regla YARA por nombre sin parsear las 870.
+    Construye el índice de nombres (~50ms) una sola vez y extrae el
+    bloque de la regla solicitada (~1ms).
+    """
+    global _NAME_INDEX, _META_CACHE, _FILE_CACHE
+    if _NAME_INDEX is None:
+        try:
+            _NAME_INDEX = _build_name_index()
+        except Exception as e:
+            print('YARA name index error:', e)
+            _NAME_INDEX = {}
+    if not _NAME_INDEX:
+        return None
+
+    # Cache de metadata ya extraída
+    if name in _META_CACHE:
+        return _META_CACHE[name]
+
+    entry = _NAME_INDEX.get(name)
+    if not entry:
+        low = name.lower()
+        for k, v in _NAME_INDEX.items():
+            if k.lower() == low:
+                entry = v
+                break
+    if not entry:
+        return None
+
+    fkey, start = entry
+    content = _FILE_CACHE.get(fkey)
+    if content is None:
+        return None
+
+    # Encontrar el bloque de la regla con balanceo de llaves
+    brace = content.find('{', start)
+    if brace < 0:
+        return None
+    depth = 0
+    end = brace
+    for i, ch in enumerate(content[brace:], start=brace):
+        if ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    body = content[brace:end + 1]
+
+    meta = _parse_single_rule_body(body, fkey)
+    _META_CACHE[name] = meta
+    return meta
 
 
 def _extract_rule_strings_preview(body: str) -> list:
@@ -490,7 +530,6 @@ def _extract_rule_strings_preview(body: str) -> list:
     intuya QUÉ patrones busca la regla (ej: /Launch, /OpenAction, ...).
     """
     import re
-    # Buscamos la sección strings: ... condition:
     seg = re.search(
         r'\bstrings\s*:\s*(.+?)\bcondition\s*:',
         body, re.DOTALL | re.IGNORECASE,
@@ -500,21 +539,16 @@ def _extract_rule_strings_preview(body: str) -> list:
     section = seg.group(1)
 
     out = []
-    # Patrón 1: strings entre comillas — $foo = "texto"
     for m in re.finditer(r'\$\w+\s*=\s*"([^"\n]{1,120})"', section):
         out.append(m.group(1).strip())
-    # Patrón 2: regex YARA — $foo = /patron/  (acepta \/ como slash escapado)
     for m in re.finditer(r'\$\w+\s*=\s*/((?:[^/\\\n]|\\.){1,80})/[a-z]*', section):
-        # Desescapamos \/ → / para que sea legible
         pat = m.group(1).replace('\\/', '/').replace('\\\\', '\\').strip()
         if pat:
             out.append('regex: ' + pat)
-    # Patrón 3: hex — $foo = { hex }
     for m in re.finditer(r'\$\w+\s*=\s*\{\s*([0-9a-fA-F\s\.\?\[\]\(\)\|]{2,80})\s*\}', section):
         hex_str = m.group(1).strip()
         out.append('hex: ' + hex_str)
 
-    # Limitamos cantidad y largo
     cleaned = []
     seen = set()
     for s in out:
@@ -537,39 +571,15 @@ def _extract_meta_field(body: str, field: str) -> str:
     mm = pat.search(body)
     if mm:
         return mm.group(2).strip()
-    # Caso especial: severity/score numérico sin comillas
     num = re.compile(rf'\b{re.escape(field)}\s*=\s*(\d+)', re.IGNORECASE).search(body)
     if num:
         return num.group(1)
     return ''
 
 
-def _yara_lookup(name: str) -> dict | None:
-    """Busca metadata de una regla YARA por nombre (case-insensitive)."""
-    global _YARA_INDEX
-    if _YARA_INDEX is None:
-        try:
-            _YARA_INDEX = _build_yara_index()
-        except Exception as e:
-            print('YARA index error:', e)
-            _YARA_INDEX = {}
-    if not _YARA_INDEX:
-        return None
-    if name in _YARA_INDEX:
-        return _YARA_INDEX[name]
-    # case-insensitive fallback
-    low = name.lower()
-    for k, v in _YARA_INDEX.items():
-        if k.lower() == low:
-            return v
-    return None
-
-
 def _extract_rule_name_from_detail(detail: str) -> str | None:
-    """
-    Extrae el nombre de la regla YARA del detail si tiene formato
-    "YARA `nombre_regla`: ..." o "Acción /JS (..." (no aplica acá).
-    """
+    """Extrae el nombre de la regla YARA del detail si tiene formato
+    'YARA `nombre_regla`: ...'."""
     import re
     if not detail:
         return None

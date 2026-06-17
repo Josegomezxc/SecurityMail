@@ -41,6 +41,10 @@ class EmailMessage(models.Model):
         ordering = ['-received_at']
         verbose_name = 'Correo recibido'
         verbose_name_plural = 'Correos recibidos'
+        indexes = [
+            models.Index(fields=['alias', 'deleted_at', '-received_at'], name='mail_msg_alias_del_rcv_idx'),
+            models.Index(fields=['alias', 'risk_score'], name='mail_msg_alias_risk_idx'),
+        ]
 
 
 class EmailAuthVerdict(models.Model):
@@ -127,6 +131,10 @@ class SentEmail(models.Model):
         ordering = ['-sent_at']
         verbose_name = 'Correo enviado'
         verbose_name_plural = 'Correos enviados'
+        indexes = [
+            models.Index(fields=['-sent_at'], name='mail_sentemail_sent_at_idx'),
+            models.Index(fields=['alias', '-sent_at'], name='mail_sentemail_alias_sent_idx'),
+        ]
 
 
 class Draft(models.Model):
@@ -156,3 +164,6 @@ class Draft(models.Model):
         ordering = ['-updated_at']
         verbose_name = 'Borrador'
         verbose_name_plural = 'Borradores'
+        indexes = [
+            models.Index(fields=['user', 'deleted_at'], name='mail_draft_user_deleted_idx'),
+        ]

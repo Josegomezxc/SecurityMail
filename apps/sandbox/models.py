@@ -31,6 +31,9 @@ class SandboxAnalysis(models.Model):
         ordering = ['-analyzed_at']
         verbose_name = 'Análisis sandbox'
         verbose_name_plural = 'Análisis sandbox'
+        indexes = [
+            models.Index(fields=['-analyzed_at'], name='sandbox_analyzed_at_idx'),
+        ]
 
 
 class FileInfo(models.Model):
