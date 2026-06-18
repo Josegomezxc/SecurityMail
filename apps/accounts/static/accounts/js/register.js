@@ -237,10 +237,17 @@
       checkConsents();
     });
 
+    function pwdMeetsRequirements(v) {
+      return v.length >= 8
+          && /[A-Z]/.test(v)
+          && /\d/.test(v)
+          && /[^A-Za-z0-9]/.test(v);
+    }
+
     const submitBtn = document.getElementById('submit-btn');
     function checkSubmit() {
       const allConsents = consents.every(c => c.checked);
-      const pwdOk   = pwd1.value.length >= 8 && pwd1.value === pwd2.value;
+      const pwdOk   = pwdMeetsRequirements(pwd1.value) && pwd1.value === pwd2.value;
       const nameOk  = !nameWrap.classList.contains('has-error') &&
                       stripSpaces(nameInput.value).length >= 2;
       const emailOk = !emailWrap.classList.contains('has-error') &&

@@ -95,7 +95,8 @@ def login_single_session(request, user):
         profile = user.profile
         session, _ = UserSession.objects.get_or_create(profile=profile)
         session.current_session_key = request.session.session_key or ''
-        session.save(update_fields=['current_session_key'])
+        session.session_last_activity = timezone.now()
+        session.save(update_fields=['current_session_key', 'session_last_activity'])
     except Exception:
         pass
 

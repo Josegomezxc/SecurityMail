@@ -160,18 +160,12 @@ def verify_pending_code(
     user.password = pr.password_hash
     user.save()
 
-    # signals.py debería crear el UserProfile automáticamente. Lo marcamos
-    # como email_verified=True. Si por algún motivo no se creó por signal,
-    # lo creamos manualmente.
-    try:
-        profile = user.profile
-        profile.email_verified = True
-        profile.save(update_fields=['email_verified'])
-    except Exception:
-        from apps.accounts.models import UserProfile
-        UserProfile.objects.update_or_create(
-            user=user, defaults={'email_verified': True},
-        )
+    # El signal post_save de User ya creó un UserProfile (is_active default).
+    # Lo actualizamos con email_verified=True (1 query en vez de signal + update).
+    from apps.accounts.models import UserProfile
+    UserProfile.objects.update_or_create(
+        user=user, defaults={'email_verified': True},
+    )
 
     # Marca este pending como usado
     pr.mark_used()

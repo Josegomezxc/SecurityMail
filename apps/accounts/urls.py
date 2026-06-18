@@ -27,7 +27,7 @@ urlpatterns = [
     # Recuperación de cuenta bloqueada permanentemente por intentos fallidos
     # (NO requiere login — la cuenta está deshabilitada). El user_id viene
     # del flujo del login cuando se detecta el bloqueo permanente.
-    path('cuenta/recuperar-bloqueada/<int:user_id>/',
+    path('cuenta/recuperar-bloqueada/<sid:user_id>/',
          views.account_recovery_request_view,
          name='account_recovery_request'),
 ]

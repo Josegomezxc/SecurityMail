@@ -30,7 +30,7 @@ from apps.accounts.models import AccountLock
 # ── Configuración ────────────────────────────────────────────────────
 # Fácil de subir en producción (5–10) — 3 es solo para testing rápido.
 MAX_ATTEMPTS       = 3
-TEMP_LOCK_MINUTES  = 3
+TEMP_LOCK_MINUTES  = 1
 
 
 # ── Estados que devuelve check_user_lock_state ───────────────────────

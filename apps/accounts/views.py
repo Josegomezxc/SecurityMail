@@ -359,8 +359,15 @@ def account_recovery_request_view(request, user_id):
     if not is_locked and last_req is None:
         return redirect('login')
 
-    pending = last_req if (last_req and last_req.status == 'pending') else None
+    pending  = last_req if (last_req and last_req.status == 'pending')  else None
     resolved = last_req if (last_req and last_req.status != 'pending') else None
+
+    # Si la cuenta volvió a bloquearse después de una aprobación anterior,
+    # la resolución vieja ya no es relevante — mostramos el form para crear
+    # una solicitud nueva en vez del cartel de "aprobada" con el mensaje
+    # del admin.
+    if is_locked and resolved and resolved.status == 'approved':
+        resolved = None
 
     if request.method == 'POST':
         if not is_locked:
@@ -446,12 +453,6 @@ def registro_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
 
-    # Limpieza oportunista de pendientes expirados (no impacta al usuario)
-    try:
-        cleanup_expired_pending_registrations()
-    except Exception:
-        pass
-
     form_values  = {'name': '', 'email': ''}
     field_errors = {'name': '', 'email': '', 'password': [], 'password2': ''}
 
@@ -517,7 +518,12 @@ def registro_view(request):
                 pending_tokens.append(pr.token)
                 request.session['pending_registration_tokens'] = pending_tokens
 
-            send_pending_registration_email(pr)
+            # Enviar el correo en un hilo separado para no bloquear el request
+            import threading
+            threading.Thread(
+                target=send_pending_registration_email,
+                args=[pr], daemon=True,
+            ).start()
             messages.info(
                 request,
                 f'Te enviamos un código de 6 dígitos a {pr.email}. '
@@ -673,7 +679,11 @@ def reenviar_codigo_view(request, token):
         pending_tokens.append(pr_new.token)
         request.session['pending_registration_tokens'] = pending_tokens
 
-    send_pending_registration_email(pr_new)
+    import threading
+    threading.Thread(
+        target=send_pending_registration_email,
+        args=[pr_new], daemon=True,
+    ).start()
     messages.success(request, 'Te enviamos un código nuevo. Revisa tu correo.')
     return redirect('verificar_correo', token=pr_new.token)
 
