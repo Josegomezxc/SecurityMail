@@ -33,12 +33,7 @@
       })
       .then(({ ok, status, data }) => {
         if (ok && data && data.ok) {
-          disable();
-          window.showToast({ type: toastType || 'success', title: toastTitle || '¡Listo!', message: okMsg, duration:5000 });
-          if (statusEl) {
-            statusEl.textContent = statusLabel;
-            statusEl.className = 'nd-status-pill ' + statusClass;
-          }
+          location.reload();
           return;
         }
         // Hubo error. Mapeamos códigos comunes a mensajes legibles.

@@ -264,7 +264,7 @@ def notification_forward_api(request, pk):
     from apps.mail.webhook import send_safe_email_forward
     threading.Thread(
         target=send_safe_email_forward,
-        kwargs={'email': n.related_email, 'force': True},
+        kwargs={'email_obj': n.related_email, 'force': True},
         daemon=True,
     ).start()
 
