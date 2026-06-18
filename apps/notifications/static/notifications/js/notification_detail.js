@@ -33,6 +33,7 @@
       })
       .then(({ ok, status, data }) => {
         if (ok && data && data.ok) {
+          window.dsShowLoader();
           location.reload();
           return;
         }

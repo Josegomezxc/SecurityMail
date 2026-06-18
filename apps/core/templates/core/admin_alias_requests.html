@@ -444,9 +444,27 @@ function aarCloseDetail() {
 })();
 
 
+/* Inyecta un hidden name=action para que form.submit() programático
+   (data-ds-loader) no se trague el valor del botón clickeado. */
+function injectAction(form, value) {
+  var h = form.querySelector('input[name="action"][data-iar-injected]');
+  if (!h) {
+    h = document.createElement('input');
+    h.type = 'hidden';
+    h.name = 'action';
+    h.setAttribute('data-iar-injected', '');
+    form.appendChild(h);
+  }
+  h.value = value;
+}
+
 /* ════════════════════════════════════════════════════════════════════
    Confirm dialog para Rechazar (usa el modal global del proyecto).
    ════════════════════════════════════════════════════════════════════ */
+function aarConfirmApprove(ev, btn) {
+  injectAction(btn.closest('form'), 'approve');
+  return true;
+}
 function aarConfirmReject(ev, btn) {
   if (btn.dataset.aarConfirmed === '1') return true;  /* ya pasó el confirm — submit real */
   ev.preventDefault();
@@ -454,20 +472,13 @@ function aarConfirmReject(ev, btn) {
   var email = btn.dataset.userEmail || 'este usuario';
   var form  = btn.closest('form');
 
+  /* Cerrar modal primero para que el confirmDialog no quede detrás */
+  aarCloseDetail();
+
   var doSubmit = function () {
     btn.dataset.aarConfirmed = '1';
-    /* El button[type=submit] que dispara form.submit() programáticamente
-       NO se incluye en el FormData — el backend espera name=action. Lo
-       inyectamos como hidden para que llegue. */
-    var hidden = form.querySelector('input[name="action"][data-aar-injected]');
-    if (!hidden) {
-      hidden = document.createElement('input');
-      hidden.type  = 'hidden';
-      hidden.name  = 'action';
-      hidden.value = 'reject';
-      hidden.setAttribute('data-aar-injected', '1');
-      form.appendChild(hidden);
-    }
+    injectAction(form, 'reject');
+    window.dsShowLoader();
     form.submit();
   };
 

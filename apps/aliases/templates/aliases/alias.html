@@ -76,7 +76,7 @@
         único y completamente anónimo — listo para usar en cualquier sitio.
       </p>
 
-      <form method="post" action="{% url 'alias_create' %}" id="alias-create-form" class="ccv2-form">
+      <form method="post" action="{% url 'alias_create' %}" id="alias-create-form" class="ccv2-form" data-ds-loader>
         {% csrf_token %}
         <button type="submit" class="ccv2-btn" id="alias-create-btn"
           {% if alias_remaining == 0 %}disabled aria-label="Has alcanzado el límite de alias activos"{% endif %}>

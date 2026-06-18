@@ -216,7 +216,7 @@ Solicitudes de alias (.aar-mb-*) para mantener consistencia visual.
     </div>
 
     <form method="post" action="{% url 'admin_account_recovery_request_resolve' req.pk %}"
-          class="aar-action-form">
+          class="aar-action-form" data-ds-loader>
       {% csrf_token %}
 
       <div class="aar-action-section">
@@ -453,22 +453,28 @@ function arrCloseDetail() {
   });
 })();
 
-/* Confirm aprobar / rechazar.
+/* Inyecta un hidden name=action para que form.submit() programático
+   (data-ds-loader) no se trague el valor del botón clickeado. */
+function injectAction(form, value) {
+  var h = form.querySelector('input[name="action"][data-iar-injected]');
+  if (!h) {
+    h = document.createElement('input');
+    h.type = 'hidden';
+    h.name = 'action';
+    h.setAttribute('data-iar-injected', '');
+    form.appendChild(h);
+  }
+  h.value = value;
+}
 
-   Importante: NO usamos `window.confirmDialog` acá porque la card vive
-   dentro del overlay del modal (.aar-modal-overlay con z-index máximo),
-   y la card de confirmDialog (.cd-overlay) tiene el mismo z-index pero
-   está antes en el DOM — quedaría debajo y el admin no la vería. Usamos
-   `window.confirm` nativo (modal a nivel del navegador, sin conflictos
-   de z-index) solo para la acción destructiva. Aprobar va directo. */
 function arrConfirmApprove(ev, btn) {
-  // No interceptamos: el click submitea el form normalmente y manda
-  // name="action" value="approve". El propio modal + nota ya son el
-  // "are-you-sure" suficiente para reactivar.
+  injectAction(btn.closest('form'), 'approve');
   return true;
 }
 function arrConfirmReject(ev, btn) {
   var email = btn.dataset.userEmail || 'este usuario';
+  arrCloseDetail();
+  injectAction(btn.closest('form'), 'reject');
   if (!window.confirm('¿Rechazar la recuperación de ' + email + '?\n\n'
                     + 'La cuenta quedará bloqueada y el usuario recibirá tu nota.')) {
     ev.preventDefault();

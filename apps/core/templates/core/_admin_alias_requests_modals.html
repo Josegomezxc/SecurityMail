@@ -34,7 +34,8 @@ a su template, y al hacer click el JS clona el contenido al modal global.
 
     <form method="post" action="{% url 'admin_alias_request_resolve' req.pk %}"
           class="aar-action-form js-aar-form"
-          data-requested="{{ req.requested_amount }}">
+          data-requested="{{ req.requested_amount }}"
+          data-ds-loader>
       {% csrf_token %}
 
       <div class="aar-action-section">
@@ -136,7 +137,8 @@ a su template, y al hacer click el JS clona el contenido al modal global.
           Rechazar
         </button>
         <button type="submit" name="action" value="approve" class="aar-btn-approve"
-                data-user-email="{{ req.user.email }}">
+                data-user-email="{{ req.user.email }}"
+                onclick="return aarConfirmApprove(event, this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Aprobar <strong class="js-aar-btn-amount">+{{ req.requested_amount }}</strong>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>

@@ -65,15 +65,12 @@ class SingleSessionMiddleware:
                         return redirect('login')
 
                 # ── 3) Marcar actividad: tu sesión está VIVA ──
-                # Throttle a 10s para que el auto-logout sea preciso.
-                now = timezone.now()
+                # Cada request resetea el contador de inactividad.
                 session = getattr(profile, 'session', None)
                 if session is None:
                     session = UserSession.objects.create(profile=profile)
-                last = session.session_last_activity
-                if last is None or (now - last).total_seconds() > 10:
-                    session.session_last_activity = now
-                    session.save(update_fields=['session_last_activity'])
+                session.session_last_activity = timezone.now()
+                session.save(update_fields=['session_last_activity'])
 
         return self.get_response(request)
 

@@ -314,6 +314,7 @@
                 duration: 4000,
               });
             }
+            window.dsShowLoader();
             setTimeout(function () {
               window.location.href = resp.data.redirect || '/';
             }, 600);

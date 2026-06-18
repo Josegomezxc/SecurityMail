@@ -298,7 +298,7 @@
         <h2 class="panel-header-title" id="panel-pwd-title">Cambiar contraseña</h2>
       </header>
       <div class="panel-body">
-        <form method="post" id="pwForm" novalidate>
+        <form method="post" id="pwForm" novalidate data-ds-loader>
           {% csrf_token %}
           <input type="hidden" name="form_type" value="password">
 
