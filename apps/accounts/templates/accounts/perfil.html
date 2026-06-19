@@ -7,7 +7,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'accounts/styles/perfil.css' %}?v=soft-delete-code">
+<link rel="stylesheet" href="{% static 'accounts/styles/perfil.css' %}?v={% if debug %}{% now 'U' %}{% else %}soft-delete-code{% endif %}">
 {% endblock %}
 
 {% block body %}
@@ -17,13 +17,6 @@
   <p>Gestiona tu cuenta y configuración de seguridad.</p>
 </header>
 
-{% if messages %}
-  <div role="status" aria-live="polite">
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-    {% endfor %}
-  </div>
-{% endif %}
 
 <div class="profile-grid">
 
@@ -624,5 +617,5 @@ window.__PERFIL_CTX__ = {
   deleteAccountConfirmUrl: "{% url 'eliminar_cuenta_confirmar' %}"
 };
 </script>
-<script src="{% static 'accounts/js/perfil.js' %}?v=soft-delete-code"></script>
+<script src="{% static 'accounts/js/perfil.js' %}?v={% if debug %}{% now 'U' %}{% else %}soft-delete-code{% endif %}"></script>
 {% endblock %}

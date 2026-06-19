@@ -3,7 +3,7 @@
 {% block title %}Iniciar sesión — DockerShield{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'accounts/styles/login.css' %}?v=close-fix">
+<link rel="stylesheet" href="{% static 'accounts/styles/login.css' %}?v={% if debug %}{% now 'U' %}{% else %}close-fix{% endif %}">
 {% endblock %}
 
 {% block body_outer %}
@@ -352,7 +352,7 @@ Tipos:
 </div>
 {% endif %}
 
-<script src="{% static 'accounts/js/login.js' %}?v=loader"></script>
+<script src="{% static 'accounts/js/login.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader{% endif %}"></script>
 
 {% if temp_lock %}
 <script>

@@ -5,8 +5,8 @@
 {% block nav_admin_threats %}active{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/styles/admin_threats.css' %}?v=carbon-fix-1">
-<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'core/styles/admin_threats.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
+<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 {% endblock %}
 
 {% block body %}

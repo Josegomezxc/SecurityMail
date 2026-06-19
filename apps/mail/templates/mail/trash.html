@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'mail/styles/trash.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'mail/styles/trash.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 {% endblock %}
 
 {% block body %}
@@ -162,5 +162,5 @@ window.__TRASH_CTX__ = {
   emptyUrl:   "{% url 'trash_empty' %}"
 };
 </script>
-<script src="{% static 'mail/js/trash.js' %}?v=loadmore"></script>
+<script src="{% static 'mail/js/trash.js' %}?v={% if debug %}{% now 'U' %}{% else %}loadmore{% endif %}"></script>
 {% endblock %}

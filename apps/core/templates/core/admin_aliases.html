@@ -6,7 +6,7 @@
 {% block nav_admin_aliases %}active{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/styles/admin_aliases.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'core/styles/admin_aliases.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 {% endblock %}
 
 {% block body %}

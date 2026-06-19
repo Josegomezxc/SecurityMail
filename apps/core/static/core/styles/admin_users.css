@@ -286,16 +286,15 @@
     flex-shrink: 0;
 }
 .user-name-col { min-width: 0; }
-.user-email {
-    font-family: var(--mono);
-    font-size: 0.78125rem;
-    font-weight: 500;
+.user-name-col .user-email {
+    font-size: 0.9125rem;
+    font-weight: 550;
     color: var(--text-primary);
+    margin-bottom: 0.1875rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 13.75rem;
-    display: block;
+
 }
 .user-joined {
     font-size: 0.65625rem;

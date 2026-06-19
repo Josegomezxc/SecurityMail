@@ -7,7 +7,7 @@
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
   rel="stylesheet">
-<link rel="stylesheet" href="{% static 'mail/styles/dashboard.css' %}?v=pill-nowrap">
+<link rel="stylesheet" href="{% static 'mail/styles/dashboard.css' %}?v={% if debug %}{% now 'U' %}{% else %}pill-nowrap{% endif %}">
 {% endblock %}
 
 {% block body %}
@@ -369,5 +369,5 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="{% static 'mail/js/dashboard.js' %}?v=v2-themed"></script>
+<script src="{% static 'mail/js/dashboard.js' %}?v={% if debug %}{% now 'U' %}{% else %}v2-themed{% endif %}"></script>
 {% endblock %}

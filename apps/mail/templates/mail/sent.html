@@ -8,7 +8,7 @@
 <link
   href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap"
   rel="stylesheet">
-<link rel="stylesheet" href="{% static 'mail/styles/sent.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'mail/styles/sent.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 {% endblock %}
 
 {% block body %}
@@ -203,5 +203,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'mail/js/sent.js' %}?v=loadmore2"></script>
+<script src="{% static 'mail/js/sent.js' %}?v={% if debug %}{% now 'U' %}{% else %}loadmore2{% endif %}"></script>
 {% endblock %}

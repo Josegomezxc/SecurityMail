@@ -6,8 +6,8 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v=carbon-fix-1">
-<link rel="stylesheet" href="{% static 'mail/styles/inbox.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
+<link rel="stylesheet" href="{% static 'mail/styles/inbox.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 {% endblock %}
 
 {% block body %}
@@ -359,5 +359,5 @@ window.__INBOX_CTX__ = {
   clearUrl:  "{% url 'inbox_clear' %}"
 };
 </script>
-<script src="{% static 'mail/js/inbox.js' %}?v=table10"></script>
+<script src="{% static 'mail/js/inbox.js' %}?v={% if debug %}{% now 'U' %}{% else %}table10{% endif %}"></script>
 {% endblock %}

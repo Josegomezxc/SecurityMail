@@ -6,8 +6,8 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'core/styles/admin_users.css' %}?v=carbon-fix-1">
-<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'core/styles/admin_users.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
+<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 {% endblock %}
 
 {% block body %}
@@ -63,20 +63,6 @@
   </nav>
 </div>
 
-{% if messages %}
-  <div role="status" aria-live="polite">
-    {% for message in messages %}
-      <div class="adm-alert {% if message.tags == 'error' %}err{% endif %}" role="alert">
-        {% if message.tags == 'error' %}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
-        {% else %}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        {% endif %}
-        {{ message }}
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
 
 <div class="users-table-wrap">
   <table class="users-table">
@@ -130,16 +116,19 @@
             {% if u == request.user %}
               <span class="self-note">(tú)</span>
             {% else %}
-              <form method="post" action="{% url 'admin_toggle_staff' u.pk %}" style="display:inline"
-                    onsubmit="return confirm('{% if u.is_staff %}¿Quitar permisos de administrador a {{ u.email }}?{% else %}¿Hacer administrador a {{ u.email }}?{% endif %}');">
+              <form method="post" action="{% url 'admin_toggle_staff' u.pk %}" style="display:inline" data-ds-loader>
                 {% csrf_token %}
                 {% if u.is_staff %}
-                  <button type="submit" class="btn-mini demote" title="Quitar rol admin">
+                  <button type="submit" class="btn-mini demote" title="Quitar rol admin"
+                          data-user-email="{{ u.email }}"
+                          onclick="return confirmStaffToggle(event, this)">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     Degradar
                   </button>
                 {% else %}
-                  <button type="submit" class="btn-mini promote" title="Promover a admin">
+                  <button type="submit" class="btn-mini promote" title="Promover a admin"
+                          data-user-email="{{ u.email }}"
+                          onclick="return confirmStaffToggle(event, this)">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
                     Promover
                   </button>
@@ -195,6 +184,40 @@
     go();
   });
 })();
+</script>
+
+<script>
+/* ConfirmDialog personalizado para promover/degradar administradores.
+   Reemplaza el window.confirm() nativo por el cd-modal is-danger. */
+function confirmStaffToggle(ev, btn) {
+  ev.preventDefault();
+  var form  = btn.closest('form');
+  var email = btn.dataset.userEmail || 'este usuario';
+  var isDemote = btn.classList.contains('demote');
+  var title    = isDemote ? 'Degradar usuario' : 'Promover a administrador';
+  var action   = isDemote ? 'quitar permisos de administrador' : 'hacer administrador';
+
+  if (window.confirmDialog) {
+    window.confirmDialog({
+      danger:      true,
+      icon:        'warning',
+      title:       title,
+      message:     '¿' + action + ' a ' + email + '?',
+      confirmText: isDemote ? 'Sí, degradar' : 'Sí, promover',
+      cancelText:  'Cancelar',
+    }).then(function (ok) {
+      if (ok) {
+        window.dsShowLoader();
+        form.submit();
+      }
+    });
+  } else {
+    if (confirm('¿' + action + ' a ' + email + '?')) {
+      form.submit();
+    }
+  }
+  return false;
+}
 </script>
 
 {% endblock %}

@@ -3,7 +3,7 @@
 {% block title %}Verificar correo — DockerShield{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'accounts/styles/verificar_correo.css' %}?v=icon-email">
+<link rel="stylesheet" href="{% static 'accounts/styles/verificar_correo.css' %}?v={% if debug %}{% now 'U' %}{% else %}icon-email{% endif %}">
 {% endblock %}
 
 {% block body_outer %}

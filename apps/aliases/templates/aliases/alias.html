@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'aliases/styles/alias.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'aliases/styles/alias.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 {% endblock %}
 
 {% block body %}
@@ -43,21 +43,8 @@
   </div>
 </header>
 
-<!-- ── MESSAGES ── -->
-{% if messages %}
-  <div role="status" aria-live="polite">
-    {% for message in messages %}
-      <div class="{% if message.tags == 'error' %}msg-error{% else %}msg-success{% endif %}" role="alert">
-        {% if message.tags == 'error' %}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
-        {% else %}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        {% endif %}
-        {{ message }}
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
+<!-- ── MESSAGES ── (manejado por toast en base.html) -->
+
 
 <!-- ── CREATE CARD ── -->
 <section class="create-card-v2" aria-labelledby="ccv2-title">
@@ -505,5 +492,5 @@
 </script>
 {% endif %}
 
-<script src="{% static 'aliases/js/alias.js' %}?v=loadmore-2026-05-19"></script>
+<script src="{% static 'aliases/js/alias.js' %}?v={% if debug %}{% now 'U' %}{% else %}loadmore-2026-05-19{% endif %}"></script>
 {% endblock %}

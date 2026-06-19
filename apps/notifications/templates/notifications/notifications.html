@@ -5,7 +5,7 @@
 {% block nav_notifications %}active{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'notifications/styles/notifications.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'notifications/styles/notifications.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 {% endblock %}
 
 {% block body %}
@@ -139,5 +139,5 @@ window.__NOTIFICATIONS_CTX__ = {
   clearUrl: "{% url 'notification_clear' %}"
 };
 </script>
-<script src="{% static 'notifications/js/notifications.js' %}?v=loadmore-2026-05-19"></script>
+<script src="{% static 'notifications/js/notifications.js' %}?v={% if debug %}{% now 'U' %}{% else %}loadmore-2026-05-19{% endif %}"></script>
 {% endblock %}

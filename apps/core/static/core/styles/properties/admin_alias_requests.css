@@ -48,7 +48,8 @@
     --aar-empty-icon-size:    4rem;        /* 64px */
 
     /* Modal detalle */
-    --aar-modal-max:          33.75rem;    /* 540px */
+    --aar-modal-max:          45rem;       /* 576px */
+    --aar-modal-max-height:   40rem;       /* 576px */
     --aar-modal-radius:       1rem;
     --aar-modal-pad:          1.5rem 1.375rem 1.25rem;
     --aar-modal-close-size:   1.875rem;

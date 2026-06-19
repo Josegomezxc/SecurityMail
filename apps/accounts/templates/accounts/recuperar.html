@@ -3,7 +3,7 @@
 {% block title %}Recuperar contraseña — DockerShield{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'accounts/styles/recuperar.css' %}?v=logo-match">
+<link rel="stylesheet" href="{% static 'accounts/styles/recuperar.css' %}?v={% if debug %}{% now 'U' %}{% else %}logo-match{% endif %}">
 {% endblock %}
 
 {% block body_outer %}

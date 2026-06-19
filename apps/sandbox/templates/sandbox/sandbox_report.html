@@ -6,7 +6,7 @@
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_report.css' %}?v=yara-translate">
+<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_report.css' %}?v={% if debug %}{% now 'U' %}{% else %}yara-translate{% endif %}">
 {% endblock %}
 
 {% block page_title %}
@@ -878,6 +878,6 @@ window.__SANDBOX_CTX__ = {
   analyzersRun: {{ analysis.dynamic.analyzers_run|safe }}
 };
 </script>
-<script src="{% static 'sandbox/js/sandbox_report.js' %}?v=yara-translate"></script>
+<script src="{% static 'sandbox/js/sandbox_report.js' %}?v={% if debug %}{% now 'U' %}{% else %}yara-translate{% endif %}"></script>
 
 {% endblock %}

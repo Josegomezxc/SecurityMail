@@ -614,10 +614,19 @@ def _handle_inbound(request):
         iocs=iocs,
         analyzers_run=analyzers_run,
     )
+    body_evidence_raw = body_report.get('evidence', [])
+    seen = set()
+    body_evidence = []
+    for ev in body_evidence_raw:
+        key = (ev.get("type"), ev.get("detail"))
+        if key not in seen:
+            seen.add(key)
+            body_evidence.append(ev)
+
     BodyAnalysis.objects.create(
         analysis=sandbox,
         body_score=body_report.get('score', 0),
-        body_evidence=body_report.get('evidence', []),
+        body_evidence=body_evidence,
         body_threat=body_report.get('threat', ''),
         attachments_reports=attachments_summary,
     )
@@ -883,6 +892,16 @@ def _combine_many(attachment_reports, body_report, url_report=None):
     n_att = len([r for r in (attachment_reports or []) if r])
     if n_att > 1 and final_score >= 61:
         threat = f"{threat} (en {n_att} adjuntos)"
+
+    # Deduplicar evidence por (type, detail)
+    seen = set()
+    unique = []
+    for ev in evidence:
+        key = (ev.get("type"), ev.get("detail"))
+        if key not in seen:
+            seen.add(key)
+            unique.append(ev)
+    evidence = unique
 
     # threat_name del modelo tiene max_length=200 — truncamos con elipsis
     if len(threat) > 200:

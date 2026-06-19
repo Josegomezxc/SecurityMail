@@ -1031,7 +1031,7 @@
     backdrop-filter: blur(0.375rem);
     -webkit-backdrop-filter: blur(0.375rem);
     display: none;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     /* Z-index máximo — el modal de detalle debe quedar por encima del
        sidebar (2147483600), topbar y todo el contenido de página. Sin
@@ -1050,6 +1050,8 @@
     position: relative;
     width: 100%;
     max-width: var(--aar-modal-max);
+    max-height: var(--aar-modal-max-height);
+    overflow-y: auto;
     background: var(--bg-surface, #1a1828);
     border: 1px solid rgba(124, 58, 237, 0.28);
     border-radius: var(--aar-modal-radius);
@@ -1443,6 +1445,13 @@
     /* Action section meta: alineado a la derecha del head */
     .aar-action-section-meta { margin-left: auto; width: auto; }
 
+    /* Acciones: vuelven a fila horizontal a la derecha */
+    .aar-action-buttons {
+        flex-direction: row;
+        justify-content: flex-end;
+    }
+    .aar-action-buttons button { width: auto; }
+
     /* Grant row: stepper + delta lado a lado */
     .aar-grant-row {
         flex-direction: row;
@@ -1456,13 +1465,6 @@
         width: 10rem;
     }
     .aar-grant-delta { flex: 1 1 auto; width: auto; }
-
-    /* Acciones: vuelven a fila horizontal a la derecha */
-    .aar-action-buttons {
-        flex-direction: row;
-        justify-content: flex-end;
-    }
-    .aar-action-buttons button { width: auto; }
 
     /* Modal decisión: 2 lados + arrow horizontal */
     .aar-mb-decision {
@@ -1610,7 +1612,6 @@
    ══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 720px) {
     .aar-modal-overlay {
-        align-items: flex-start;
         padding: 0.75rem;
     }
     .aar-modal {

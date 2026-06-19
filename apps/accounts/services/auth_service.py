@@ -22,7 +22,7 @@ from apps.accounts.models import UserSession
 # y se permite que otra persona haga login con la misma cuenta. Si quieres
 # que cerrar el navegador desbloquee al instante, baja a 0; si quieres ser
 # más estricto, súbelo. 3 minutos es un buen balance.
-SESSION_IDLE_TIMEOUT_SECONDS = 60
+SESSION_IDLE_TIMEOUT_SECONDS = 600
 
 
 def is_session_active(user) -> bool:

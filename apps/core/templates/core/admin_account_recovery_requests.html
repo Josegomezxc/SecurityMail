@@ -8,9 +8,9 @@
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 {# Reusamos la base de estilos del módulo de alias requests — son del mismo dominio visual (tabla + modal + filtros). #}
-<link rel="stylesheet" href="{% static 'core/styles/admin_alias_requests.css' %}?v=modal-top-align">
-<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v=carbon-fix-1">
-<link rel="stylesheet" href="{% static 'core/styles/admin_account_recovery.css' %}?v=v3-topalign">
+<link rel="stylesheet" href="{% static 'core/styles/admin_alias_requests.css' %}?v={% if debug %}{% now 'U' %}{% else %}modal-top-align{% endif %}">
+<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
+<link rel="stylesheet" href="{% static 'core/styles/admin_account_recovery.css' %}?v={% if debug %}{% now 'U' %}{% else %}v3-topalign{% endif %}">
 {% endblock %}
 
 {% block body %}

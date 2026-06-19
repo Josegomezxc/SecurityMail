@@ -81,18 +81,16 @@ a su template, y al hacer click el JS clona el contenido al modal global.
 
           <span class="js-aar-preview-amount" hidden>+{{ req.requested_amount }}</span>
         </div>
-      </div>
 
-      <div class="aar-action-section">
-        <div class="aar-action-section-head">
-          <svg class="aar-action-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span class="aar-action-section-title">Nota para el usuario</span>
-          <span class="aar-action-section-meta">opcional · le llegará por notificación</span>
-        </div>
+        <div class="aar-note-wrap" style="margin-top: 1rem;">
+          <div class="aar-action-section-head" style="margin-bottom: 0.625rem;">
+            <svg class="aar-action-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="aar-action-section-title">Nota para el usuario</span>
+            <span class="aar-action-section-meta">opcional · le llegará por notificación</span>
+          </div>
 
-        <div class="aar-note-wrap">
           <div class="aar-note-chips" role="group" aria-label="Notas comunes">
             <button type="button" class="aar-note-chip" data-tone="approve"
                     onclick="aarSetNote(this, 'Aprobado. Si necesitás más en el futuro, podés pedir otra vez.')">

@@ -43,7 +43,12 @@ Se espera `alias` y opcionalmente `row_index` (para animation-delay).
 
   <div class="alias-actions" role="group" aria-label="Acciones del alias">
     {% if alias.is_active %}
-      <span class="alias-badge-active"><span class="dot" aria-hidden="true"></span>Activo</span>
+      <button type="button" class="btn-copy" onclick="copyAlias(this, '{{ alias.address }}')">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        Copiar
+      </button>
       <button type="button" class="btn-send"
               data-alias-id="{{ alias.id }}"
               data-alias-address="{{ alias.address }}"
@@ -53,12 +58,6 @@ Se espera `alias` y opcionalmente `row_index` (para animation-delay).
           <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
         </svg>
         Enviar
-      </button>
-      <button type="button" class="btn-copy" onclick="copyAlias(this, '{{ alias.address }}')">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-        </svg>
-        Copiar
       </button>
       <form method="post" action="{% url 'alias_destroy' alias.id %}" style="display:inline" class="js-destroy-alias" data-alias="{{ alias.address }}">
         {% csrf_token %}

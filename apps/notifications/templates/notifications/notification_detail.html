@@ -5,7 +5,7 @@
 {% block nav_notifications %}active{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'notifications/styles/notification_detail.css' %}?v=title-wrap">
+<link rel="stylesheet" href="{% static 'notifications/styles/notification_detail.css' %}?v={% if debug %}{% now 'U' %}{% else %}title-wrap{% endif %}">
 {% endblock %}
 
 {% block body %}
@@ -238,5 +238,5 @@
 
 </div>
 
-<script src="{% static 'notifications/js/notification_detail.js' %}?v=auto-reload"></script>
+<script src="{% static 'notifications/js/notification_detail.js' %}?v={% if debug %}{% now 'U' %}{% else %}auto-reload{% endif %}"></script>
 {% endblock %}

@@ -7,8 +7,8 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'core/styles/admin_alias_requests.css' %}?v=modal-top-align">
-<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'core/styles/admin_alias_requests.css' %}?v={% if debug %}{% now 'U' %}{% else %}modal-top-align{% endif %}">
+<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 {% endblock %}
 
 {% block body %}

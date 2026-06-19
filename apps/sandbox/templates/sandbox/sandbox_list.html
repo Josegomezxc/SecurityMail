@@ -7,8 +7,8 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v=carbon-fix-1">
-<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_list.css' %}?v=carbon-fix-1">
+<link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
+<link rel="stylesheet" href="{% static 'sandbox/styles/sandbox_list.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 {% endblock %}
 
 {% block body %}
@@ -254,6 +254,6 @@
   {% include 'core/_pagination.html' with page_obj=page_obj qs_params=qs_params %}
 </div>
 
-<script src="{% static 'sandbox/js/sandbox_list.js' %}?v=sandbox-table"></script>
+<script src="{% static 'sandbox/js/sandbox_list.js' %}?v={% if debug %}{% now 'U' %}{% else %}sandbox-table{% endif %}"></script>
 
 {% endblock %}
