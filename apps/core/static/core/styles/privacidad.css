@@ -1,12 +1,6 @@
 @import url('properties/privacidad.css');
 
-/* ════════════════════════════════════════════════════════════════════
-   PRIVACIDAD — Mobile-First Strict
-   Página legal con TOC sticky, hero centrado, secciones acordeón.
-   Base: 1 col sin TOC, hero compacto.
-   ≥1024px: TOC sidebar visible, hero generoso, tabla con padding desk.
-   Color de acento: VERDE (privacidad).
-   ════════════════════════════════════════════════════════════════════ */
+
 
 @keyframes fadeUp {
     from { opacity: 0; transform: translateY(0.75rem); }
@@ -15,9 +9,7 @@
 
 body { background: var(--bg-base); }
 
-/* ────────────────────────────────────────────────────────────────────
-   READ PROGRESS BAR
-   ──────────────────────────────────────────────────────────────────── */
+
 .read-progress {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -32,9 +24,7 @@ body { background: var(--bg-base); }
     box-shadow: 0 0 0.5rem rgba(46, 204, 113, 0.4);
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   TOPBAR
-   ──────────────────────────────────────────────────────────────────── */
+
 .legal-topbar {
     position: sticky;
     top: var(--pr-progress-h);
@@ -87,9 +77,7 @@ body { background: var(--bg-base); }
 }
 .topbar-logo-text span { color: var(--accent); }
 
-/* ────────────────────────────────────────────────────────────────────
-   HERO
-   ──────────────────────────────────────────────────────────────────── */
+
 .legal-hero {
     padding: var(--pr-hero-pad-mobile);
     text-align: center;
@@ -169,9 +157,7 @@ body { background: var(--bg-base); }
     color: var(--success);
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   LAYOUT (1 col mobile → TOC sidebar desktop)
-   ──────────────────────────────────────────────────────────────────── */
+
 .legal-layout {
     max-width: var(--pr-content-max);
     margin: 0 auto;
@@ -182,9 +168,7 @@ body { background: var(--bg-base); }
     align-items: start;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   TOC (oculto en mobile)
-   ──────────────────────────────────────────────────────────────────── */
+
 .toc {
     display: none;
     position: sticky;
@@ -260,9 +244,7 @@ body { background: var(--bg-base); }
 
 .legal-content { min-width: 0; }
 
-/* ────────────────────────────────────────────────────────────────────
-   TL;DR BOX
-   ──────────────────────────────────────────────────────────────────── */
+
 .tldr-box {
     background:
         radial-gradient(ellipse at top right, rgba(74, 222, 128, 0.12), transparent 60%),
@@ -331,9 +313,7 @@ body { background: var(--bg-base); }
 .tldr-item .icon svg { width: 0.6875rem; height: 0.6875rem; }
 .tldr-item strong { color: var(--text-primary); font-weight: 600; }
 
-/* ────────────────────────────────────────────────────────────────────
-   SECTIONS
-   ──────────────────────────────────────────────────────────────────── */
+
 .legal-section {
     background: var(--bg-surface);
     border: 1px solid var(--border);
@@ -416,9 +396,7 @@ body { background: var(--bg-base); }
 }
 .legal-section strong { color: var(--text-primary); font-weight: 600; }
 
-/* ────────────────────────────────────────────────────────────────────
-   STEPS LIST (proceso de análisis)
-   ──────────────────────────────────────────────────────────────────── */
+
 .steps-list {
     display: flex;
     flex-direction: column;
@@ -468,9 +446,7 @@ body { background: var(--bg-base); }
     line-height: 1.55;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   CALLOUTS
-   ──────────────────────────────────────────────────────────────────── */
+
 .callout {
     display: flex;
     gap: 0.875rem;
@@ -523,9 +499,7 @@ body { background: var(--bg-base); }
 .callout.warning .callout-icon { background: #f59e0b; color: #fff; }
 .callout.warning .callout-label { color: #fbbf24; }
 
-/* ────────────────────────────────────────────────────────────────────
-   DATA TABLE
-   ──────────────────────────────────────────────────────────────────── */
+
 .data-table-wrap {
     margin: 1rem 0 0.375rem;
     background: var(--bg-elevated);
@@ -585,9 +559,7 @@ body { background: var(--bg-base); }
 }
 .never-tag svg { width: 0.625rem; height: 0.625rem; }
 
-/* ────────────────────────────────────────────────────────────────────
-   CTA SECTION
-   ──────────────────────────────────────────────────────────────────── */
+
 .cta-section {
     background:
         radial-gradient(ellipse at top, rgba(46, 204, 113, 0.15), transparent 60%),
@@ -667,9 +639,7 @@ body { background: var(--bg-base); }
     outline: none;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   DESKTOP (≥ 1024px) — TOC visible, hero generoso, tabla con padding
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
     .legal-layout {
         grid-template-columns: var(--pr-toc-w) 1fr;

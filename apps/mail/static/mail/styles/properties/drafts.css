@@ -1,6 +1,4 @@
-/* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — mail/drafts
-   ════════════════════════════════════════════════════════════════════ */
+
 :root {
   --ai-purple:        #7c3aed;
   --ai-purple-light:  #a78bfa;
@@ -9,24 +7,24 @@
   --mono:    'JetBrains Mono', monospace;
   --display: 'Syne', sans-serif;
 
-  /* Hero */
+  
   --dr-hero-radius:   1rem;
   --dr-hero-pad:      0.875rem;
   --dr-hero-pad-lg:   1.25rem 1.5rem;
-  --dr-hero-icon:     2.875rem;       /* 46px */
-  --dr-hero-h1:       1.125rem;       /* 18px */
-  --dr-hero-h1-lg:    1.1875rem;      /* 19px */
+  --dr-hero-icon:     2.875rem;       
+  --dr-hero-h1:       1.125rem;       
+  --dr-hero-h1-lg:    1.1875rem;      
 
-  /* Stat hero */
-  --dr-stat-val:      1.375rem;       /* 22px */
+  
+  --dr-stat-val:      1.375rem;       
 
-  /* Toolbar */
+  
   --dr-tool-radius:   0.75rem;
 
-  /* Lista */
+  
   --dr-list-radius:   0.875rem;
   --dr-row-radius:    0.875rem;
   --dr-row-pad:       0.75rem 0.875rem;
   --dr-row-pad-lg:    0.875rem 1.125rem;
-  --dr-avatar:        2.375rem;       /* 38px */
+  --dr-avatar:        2.375rem;       
 }

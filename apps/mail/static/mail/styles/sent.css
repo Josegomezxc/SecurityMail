@@ -1,18 +1,13 @@
 @import url('./properties/sent.css');
 
-/* ══════════════════════════════════════════════════════════════════════
-   SENT — Mobile First Strict.
-   Base = móvil (≥320px). Breakpoint único 1024 (desktop).
-   ══════════════════════════════════════════════════════════════════════ */
+
 
 @keyframes fadeUp  { from { opacity: 0; transform: translateY(0.75rem); } to { opacity: 1; transform: translateY(0); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 @keyframes blink   { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 @keyframes pulse   { 0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); } 60% { box-shadow: 0 0 0 0.375rem rgba(124,58,237,0.15); } }
 
-/* ══════════════════════════════════════════════════════════════════════
-   HERO
-   ══════════════════════════════════════════════════════════════════════ */
+
 .sent-hero,
 .sent-card {
   background: var(--bg-surface);
@@ -68,8 +63,7 @@
   font-weight: 700;
 }
 
-/* Stats: mobile en fila propia con borde superior; desktop a la derecha
-   con borde izquierdo. */
+
 .sent-stats {
   display: flex;
   align-items: stretch;
@@ -98,7 +92,7 @@
   font-weight: 800;
   line-height: 1;
   color: var(--ai-purple-light);
-  /* Syne (display font): activamos lining + tabular para alinear cifras */
+  
   font-variant-numeric: lining-nums tabular-nums;
   font-feature-settings: 'lnum' 1, 'tnum' 1;
 }
@@ -112,9 +106,7 @@
   font-family: var(--mono);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   TOOLBAR — search + botón nuevo correo
-   ══════════════════════════════════════════════════════════════════════ */
+
 .toolbar {
   display: flex;
   gap: 0.625rem;
@@ -168,9 +160,7 @@
   font-family: var(--font-sans);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   BOTÓN "NUEVO CORREO" + alias picker
-   ══════════════════════════════════════════════════════════════════════ */
+
 .compose-new-wrap {
   position: relative;
   flex-shrink: 0;
@@ -227,12 +217,11 @@
   background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%);
 }
 
-/* Alias picker — dropdown con scroll interno cuando > 5 alias.
-   Mobile: centrado horizontalmente; desktop: pegado a la derecha. */
+
 .alias-picker {
-  --alias-row-h: 3.4375rem;     /* 55px */
+  --alias-row-h: 3.4375rem;     
   --alias-rows:  5;
-  --alias-head-h: 3.5rem;       /* 56px */
+  --alias-head-h: 3.5rem;       
   display: none;
   position: absolute;
   top: calc(100% + 0.375rem);
@@ -400,7 +389,7 @@
   transform: translateY(-1px);
 }
 
-/* ── FILTROS + BOTÓN VACIAR (segunda fila) ──────────────────────────── */
+
 .sent-filters {
   display: flex;
   flex-direction: column;
@@ -482,12 +471,9 @@
 }
 .sent-empty-btn svg { width: 0.8125rem; height: 0.8125rem; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   LISTA DE ENVIADOS — frame card + límite con scroll interno
-   Variables --sent-row-h y --sent-rows controlan la altura visible.
-   ══════════════════════════════════════════════════════════════════════ */
+
 #sent-list {
-  --sent-row-h: 7.5rem;     /* mobile: fila alta (wrap) */
+  --sent-row-h: 7.5rem;     
   --sent-rows:  4;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -518,7 +504,7 @@
 }
 #sent-list .sent-row:last-child { border-bottom: none; }
 
-/* ── Date dividers ──────────────────────────────────────────────────── */
+
 .date-divider {
   display: flex;
   align-items: center;
@@ -548,9 +534,7 @@
   font-weight: 600;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   SENT EMAIL ROW
-   ══════════════════════════════════════════════════════════════════════ */
+
 .sent-row {
   display: flex;
   align-items: flex-start;
@@ -583,7 +567,7 @@
 }
 .sent-row:hover::before { opacity: 1; }
 
-/* Chevron decorativo: oculto en móvil */
+
 .sent-row > svg { display: none; }
 
 .sent-avatar {
@@ -737,7 +721,7 @@
 }
 .sent-trash-btn svg { width: 0.6875rem; height: 0.6875rem; }
 
-/* ── EMPTY STATE ───────────────────────────────────────────────────── */
+
 .empty-state {
   text-align: center;
   padding: 4.5rem 1.25rem;
@@ -766,10 +750,7 @@
   margin-bottom: 1.125rem;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   PANEL DE DETALLE
-   Mobile: full-viewport. Desktop: lateral 580px.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -873,8 +854,7 @@
 .sd-head-close:hover { background: rgba(255,255,255,0.18); color: #fff; }
 .sd-head-close svg { width: 0.875rem; height: 0.875rem; }
 
-/* Filas DESDE / PARA / ASUNTO. Mobile: label arriba (full), valor abajo.
-   Desktop: label fijo 80px a la izquierda, valor flex a la derecha. */
+
 .sd-row {
   display: flex;
   flex-wrap: wrap;
@@ -960,11 +940,7 @@
 
 #sent-no-results { display: none; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   DESKTOP — ≥ 1024 px
-   Restaura layout horizontal: hero en 3 cols, alias-picker a la derecha,
-   filas en una línea con trash-btn absolute, panel detail lateral 580px.
-   ══════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
   .sent-hero,
   .sent-card { padding: var(--st-hero-pad-lg); }
@@ -991,7 +967,7 @@
   }
   .sent-stat-val { font-size: var(--st-stat-val-lg); }
 
-  /* Toolbar gana z-index para que el alias-picker flote sobre el resto */
+  
   .toolbar { z-index: 100; }
 
   .compose-new-wrap { width: auto; }
@@ -1021,7 +997,7 @@
   .sent-empty-btn { width: auto; }
 
   #sent-list {
-    --sent-row-h: 5.5rem;     /* 88px */
+    --sent-row-h: 5.5rem;     
     --sent-rows:  6;
   }
   #sent-list::-webkit-scrollbar { width: 0.375rem; }
@@ -1100,9 +1076,7 @@
   }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   VER MÁS / VER MENOS — botones que controlan la lista lazy
-   ══════════════════════════════════════════════════════════════════════ */
+
 .sent-loadmore-wrap {
   display: flex;
   justify-content: center;
@@ -1112,7 +1086,7 @@
 }
 
 .sent-collapse-btn {
-  /* hereda casi todo de .sent-loadmore-btn */
+  
   color: var(--text-muted);
 }
 .sent-collapse-btn:hover:not(:disabled) {
@@ -1152,7 +1126,7 @@
   cursor: not-allowed;
 }
 
-/* Spinner aparece SOLO durante la carga; el icono normal se esconde */
+
 .sent-loadmore-spinner {
   display: none;
   animation: sent-spin 0.8s linear infinite;
@@ -1165,9 +1139,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   OVERRIDES TEMA CARBON — Enviados
-   ══════════════════════════════════════════════════════════════════════ */
+
 html[data-theme="carbon"] .sent-row .sent-from-tag,
 html[data-theme="carbon"] .sent-to .label {
     color: var(--accent-hover, #ff6b8e);

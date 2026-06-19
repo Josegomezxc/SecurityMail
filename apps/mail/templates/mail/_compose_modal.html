@@ -1,36 +1,16 @@
 {% load static %}
-{% comment %}
-══════════════════════════════════════════════════════════════════════
-COMPOSE MODAL — partial incluido por base.html
-──────────────────────────────────────────────────────────────────────
-Permite componer y enviar correos desde un alias activo. Vive en
-base.html para que persista entre navegaciones (igual que Gmail/Proton):
-si lo minimizas, sigue visible al cambiar de página hasta que cierres
-explícitamente con la X.
 
-Estado persistido en sessionStorage (clave `sms_compose_state`):
-  - aliasId, aliasAddress, aliasLabel
-  - to, subject, bodyHtml
-  - scheduledAt (ISO string)
-  - minimized (boolean)
-
-NO se persisten los adjuntos (los `File` objects no son serializables).
-Si el usuario navega con archivos adjuntos seleccionados, los pierde.
-Avisamos con un toast al restaurar si había archivos en la sesión previa.
-{% endcomment %}
 
 <link rel="stylesheet" href="{% static 'mail/styles/compose_modal.css' %}?v={% if debug %}{% now 'U' %}{% else %}zindex-12h{% endif %}">
 
 
-<!-- ════════════════════════════════════════════════════════════════════
-     COMPOSE MODAL — HTML
-     ════════════════════════════════════════════════════════════════════ -->
+
 <div class="compose-overlay" id="composeOverlay" aria-hidden="true"></div>
 
 <div class="compose-window" id="composeWindow" role="dialog" aria-labelledby="composeTitle" aria-hidden="true">
   <header class="compose-head">
     <div class="compose-head-brand">
-      {# Drag handle (6 puntos): visible solo en estado minimizado #}
+      
       <div class="compose-head-handle" aria-hidden="true">
         <svg viewBox="0 0 8 16" fill="currentColor">
           <circle cx="2" cy="3"  r="1"/><circle cx="6" cy="3"  r="1"/>
@@ -210,7 +190,7 @@ Avisamos con un toast al restaurar si había archivos en la sesión previa.
   </form>
 </div>
 
-<!-- Modal datetime-picker custom (opción 'Personalizada') -->
+
 <div class="schedule-custom-overlay" id="scheduleCustomOverlay" aria-hidden="true">
   <div class="schedule-custom-dialog" role="dialog" aria-labelledby="scheduleCustomTitle">
     <div class="schedule-custom-head">

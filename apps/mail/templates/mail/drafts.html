@@ -4,13 +4,7 @@
 {% block page_title %}Borradores{% endblock %}
 {% block nav_drafts %}active{% endblock %}
 
-{% comment %}
-Excepción: en el módulo borradores NO mostramos los toasts del messages
-framework de Django. Si el usuario está acá editando/guardando un
-borrador, los mensajes ("Borrador guardado", etc.) son ruido — el
-feedback visual del autosave ya basta. Otros módulos sí procesan messages
-globalmente desde base.html.
-{% endcomment %}
+
 {% block block_django_messages %}{% endblock %}
 
 {% block extra_css %}
@@ -20,7 +14,7 @@ globalmente desde base.html.
 
 {% block body %}
 
-<!-- ── HERO ── -->
+
 <header class="dr-hero">
   <div class="dr-hero-inner">
     <div class="dr-hero-icon">
@@ -40,7 +34,7 @@ globalmente desde base.html.
   </div>
 </header>
 
-<!-- ── TOOLBAR: filtros + vaciar ── -->
+
 <section class="dr-toolbar" aria-label="Filtros y acciones de borradores">
   <div class="dr-tabs">
     <button type="button" class="dr-tab-btn active" data-filter="all" onclick="filterDrafts('all', this)">
@@ -68,7 +62,7 @@ globalmente desde base.html.
   </button>
 </section>
 
-<!-- ── LISTA ── -->
+
 <section id="drafts-list" aria-label="Lista de borradores"
          data-next-offset="{{ next_offset }}"
          data-has-more="{{ has_more|yesno:'1,0' }}">
@@ -100,9 +94,9 @@ globalmente desde base.html.
     <div id="dr-no-results-msg" class="empty-title">Sin borradores en este filtro</div>
     <div class="empty-sub">Prueba con otro filtro o crea un borrador nuevo.</div>
   </div>
-</section>{# /#drafts-list #}
+</section>
 
-<!-- ── BOTONES VER MÁS / VER MENOS ── -->
+
 <div class="dr-loadmore-wrap" id="dr-loadmore-wrap"
      data-initial-count="{{ next_offset }}">
   <button type="button" class="dr-loadmore-btn" id="dr-loadmore-btn"

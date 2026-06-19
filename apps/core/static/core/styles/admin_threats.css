@@ -1,15 +1,8 @@
 @import url('properties/admin_threats.css');
 
-/* ════════════════════════════════════════════════════════════════════
-   ADMIN THREATS — Mobile-First Strict
-   Base: hero apilable, tabla a 2 cols (score + contenido).
-   ≥768px: tabla pasa a 5 columnas (head visible).
-   ≥1024px: padding generoso en hero y rows.
-   ════════════════════════════════════════════════════════════════════ */
 
-/* ────────────────────────────────────────────────────────────────────
-   HERO
-   ──────────────────────────────────────────────────────────────────── */
+
+
 .adm-hero-th {
     display: flex;
     align-items: center;
@@ -94,9 +87,7 @@
     margin-top: 0.125rem;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   TOOLBAR
-   ──────────────────────────────────────────────────────────────────── */
+
 .th-toolbar {
     display: flex;
     gap: 0.625rem;
@@ -163,9 +154,7 @@
 .th-filter.active.high  { background: rgba(245, 158, 11, 0.12); color: #fbbf24; box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.3); }
 .th-filter.active.all   { background: var(--accent-soft); color: var(--accent-hover); box-shadow: inset 0 0 0 1px var(--accent-border); }
 
-/* ────────────────────────────────────────────────────────────────────
-   TABLA
-   ──────────────────────────────────────────────────────────────────── */
+
 .th-table-wrap {
     background: var(--bg-surface);
     border: 1px solid var(--border);
@@ -308,9 +297,7 @@
     text-align: center;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   TABLET (≥ 768px) — tabla a 5 columnas, header visible
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 768px) {
     .th-row { grid-template-columns: 4.375rem 1fr 13.75rem 8.125rem 7.5rem; }
     .th-row > .th-user,
@@ -323,9 +310,7 @@
     }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   DESKTOP (≥ 1024px) — hero generoso, rows con padding original
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
     .adm-hero-th          { flex-wrap: nowrap; padding: var(--at-hero-pad-desk); }
     .adm-hero-th-text h1  { font-size: var(--at-h1-desk); word-break: normal; }
@@ -333,9 +318,7 @@
     .th-row               { padding: var(--at-row-pad-desk); gap: 0.875rem; }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   OVERRIDES TEMA CARBON — Admin: Amenazas
-   ══════════════════════════════════════════════════════════════════════ */
+
 html[data-theme="carbon"] .th-filter.all.active {
     color: var(--accent-hover, #ff6b8e);
     background: rgba(255, 79, 122, 0.1);

@@ -1,15 +1,8 @@
 @import url('properties/alias.css');
 
-/* ════════════════════════════════════════════════════════════════════
-   ALIAS — Mobile-First Strict
-   Base: mobile (1 col, cards wrappeadas con actions en fila propia).
-   ≥768px: preview del create-card pasa a 2 cols.
-   ≥1024px: alias-card horizontal, toolbar en una fila, lista con 6 rows.
-   ════════════════════════════════════════════════════════════════════ */
 
-/* ────────────────────────────────────────────────────────────────────
-   ANIMACIONES
-   ──────────────────────────────────────────────────────────────────── */
+
+
 @keyframes fadeUp  { from { opacity: 0; transform: translateY(0.875rem); } to { opacity: 1; transform: translateY(0); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 @keyframes blink   { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
@@ -22,9 +15,7 @@
 @keyframes arModalIn   { from { opacity: 0; transform: translateY(0.75rem) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes qpp-pulse   { 0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); } 50% { box-shadow: 0 0 0 0.375rem rgba(245, 158, 11, 0); } }
 
-/* ════════════════════════════════════════════════════════════════════
-   HERO
-   ════════════════════════════════════════════════════════════════════ */
+
 .alias-hero {
     background: var(--bg-surface);
     border: 1px solid var(--ai-purple-border);
@@ -84,7 +75,7 @@
 }
 .alias-hero-text p { font-size: 0.8125rem; color: var(--text-secondary); font-family: var(--mono); }
 
-/* ── Hero stats ── */
+
 .hero-stats-row { display: flex; gap: 0.875rem; margin-left: auto; flex-wrap: wrap; }
 .hero-stat {
     display: flex;
@@ -108,9 +99,7 @@
     margin-top: 0.25rem;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   MESSAGES
-   ════════════════════════════════════════════════════════════════════ */
+
 .msg-success,
 .msg-error {
     border-radius: 0.625rem;
@@ -134,9 +123,7 @@
     color: var(--danger);
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   CREATE CARD V2 — generador instantáneo con preview
-   ════════════════════════════════════════════════════════════════════ */
+
 .create-card-v2 {
     position: relative;
     background:
@@ -179,7 +166,7 @@
     z-index: 1;
 }
 
-/* ── Lado izquierdo ── */
+
 .ccv2-eyebrow {
     display: inline-flex;
     align-items: center;
@@ -264,7 +251,7 @@
 }
 .ccv2-btn-arrow { transition: transform 0.2s ease; }
 
-/* ── Quota bar ── */
+
 .ccv2-quota {
     display: flex;
     align-items: center;
@@ -293,7 +280,7 @@
 }
 .ccv2-quota-txt strong { color: var(--ai-purple-light); font-weight: 700; }
 
-/* ── Lado derecho: preview ── */
+
 .ccv2-preview-label {
     font-family: var(--font-mono);
     font-size: 0.625rem;
@@ -368,9 +355,7 @@
     border: 1px solid rgba(46, 204, 113, 0.25);
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   PEDIR MÁS CUPO — CTA enriquecido
-   ════════════════════════════════════════════════════════════════════ */
+
 .ccv2-request-row {
     margin-top: 0.75rem;
     display: flex;
@@ -477,7 +462,7 @@
     color: #fff;
 }
 
-/* ── Pill cuando hay solicitud pendiente ── */
+
 .quota-pending-pill {
     display: inline-flex;
     align-items: center;
@@ -502,9 +487,7 @@
     animation: qpp-pulse 1.8s ease-in-out infinite;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   TOOLBAR (búsqueda + filtros)
-   ════════════════════════════════════════════════════════════════════ */
+
 .alias-toolbar {
     display: flex;
     gap: 0.625rem;
@@ -592,9 +575,7 @@
     margin: 0 0.125rem;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   LIST HEADER
-   ════════════════════════════════════════════════════════════════════ */
+
 .list-hdr {
     display: flex;
     align-items: center;
@@ -624,9 +605,7 @@
     border-radius: 0.625rem;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   LISTA DE ALIAS — frame único con scroll interno
-   ════════════════════════════════════════════════════════════════════ */
+
 #alias-list {
     --alias-row-h: var(--al-list-row-h-mobile);
     --alias-rows: var(--al-list-rows-mobile);
@@ -669,9 +648,7 @@
 }
 #alias-list .empty-state-v2 { padding: 2.5rem 0.875rem; }
 
-/* ════════════════════════════════════════════════════════════════════
-   ALIAS CARD
-   ════════════════════════════════════════════════════════════════════ */
+
 .alias-card {
     background: var(--bg-surface);
     border: 1px solid var(--border);
@@ -788,7 +765,7 @@
 }
 .alias-meta svg { opacity: 0.7; }
 
-/* ── Mini stats ── */
+
 .alias-mini-stats {
     display: flex;
     gap: 0.5rem;
@@ -820,7 +797,7 @@
     background: var(--ai-purple-soft);
 }
 
-/* ── Badges activo / destruido ── */
+
 .alias-badge-active {
     display: inline-flex;
     align-items: center;
@@ -855,7 +832,7 @@
     font-family: var(--mono);
 }
 
-/* ── Actions ── */
+
 .alias-actions {
     display: flex;
     gap: 0.375rem;
@@ -932,9 +909,7 @@
 }
 .btn-send svg { width: 0.6875rem; height: 0.6875rem; }
 
-/* ════════════════════════════════════════════════════════════════════
-   EMPTY STATES
-   ════════════════════════════════════════════════════════════════════ */
+
 .empty-state {
     text-align: center;
     padding: 4.5rem 1.25rem;
@@ -954,7 +929,7 @@
 .empty-title { font-family: var(--display); font-size: 1.0625rem; font-weight: 700; margin-bottom: 0.5rem; }
 .empty-sub   { font-size: 0.8125rem; color: var(--text-muted); font-family: var(--mono); }
 
-/* ── Empty state V2 (con fantasmas y flecha) ── */
+
 .empty-state-v2 {
     position: relative;
     text-align: center;
@@ -1057,9 +1032,7 @@
 
 #alias-no-results { display: none; }
 
-/* ════════════════════════════════════════════════════════════════════
-   MODAL: Solicitar más cupo
-   ════════════════════════════════════════════════════════════════════ */
+
 .aliasreq-overlay {
     position: fixed;
     inset: 0;
@@ -1115,7 +1088,7 @@
 }
 .aliasreq-close svg { width: 0.875rem; height: 0.875rem; }
 
-/* Header */
+
 .aliasreq-head {
     display: flex;
     align-items: flex-start;
@@ -1152,7 +1125,7 @@
 }
 .aliasreq-sub strong { color: var(--ai-purple-light, #a78bfa); font-weight: 700; }
 
-/* Preview "Ahora N → Si te aprueban M" */
+
 .aliasreq-preview {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -1207,7 +1180,7 @@
 }
 .aliasreq-preview-arrow svg { width: 1rem; height: 1rem; }
 
-/* Form fields */
+
 .aliasreq-field { margin-bottom: 1.125rem; }
 .aliasreq-label {
     display: flex;
@@ -1235,7 +1208,7 @@
     font-size: 0.65625rem;
 }
 
-/* Quick picks */
+
 .aliasreq-quicks {
     display: flex;
     gap: 0.375rem;
@@ -1270,7 +1243,7 @@
     box-shadow: 0 0.25rem 0.75rem rgba(124, 58, 237, 0.35);
 }
 
-/* Chips de razón */
+
 .aliasreq-reason-chips {
     display: flex;
     flex-wrap: wrap;
@@ -1316,7 +1289,7 @@
     transition: color 0.15s ease;
 }
 
-/* Slider + valor */
+
 .aliasreq-amount-row {
     display: flex;
     flex-direction: column;
@@ -1396,7 +1369,7 @@
     font-weight: 600;
 }
 
-/* Textarea */
+
 .aliasreq-textarea {
     width: 100%;
     background: rgba(255, 255, 255, 0.03);
@@ -1435,7 +1408,7 @@
     color: var(--text-muted, #8a8aa0);
 }
 
-/* Acciones del modal */
+
 .aliasreq-actions {
     display: flex;
     flex-direction: column-reverse;
@@ -1489,16 +1462,14 @@
     transform: none;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   TABLET (≥ 768px) — create card 2 cols, slider+num en fila, modal acciones
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 768px) {
     .create-card-v2 { padding: var(--al-ccv2-pad-desk); }
     .ccv2-grid {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: var(--al-ccv2-gap-desk);
     }
-    /* Slider + valor: vuelven a fila horizontal en tablet */
+    
     .aliasreq-amount-row { flex-direction: row; align-items: center; gap: 1rem; }
     .aliasreq-amount-num {
         flex-direction: column;
@@ -1509,16 +1480,14 @@
     }
     .aliasreq-amount-num #aliasReqAmountVal { font-size: 1.5rem; }
     .aliasreq-amount-unit { margin-top: 0.1875rem; }
-    /* Acciones del modal: vuelven a fila horizontal a la derecha */
+    
     .aliasreq-actions { flex-direction: row; gap: 0.625rem; }
     .aliasreq-actions button { width: auto; }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   DESKTOP (≥ 1024px) — toolbar horizontal, card alias horizontal, lista 6 rows
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
-    /* Toolbar */
+    
     .alias-toolbar { flex-direction: row; align-items: center; flex-wrap: wrap; }
     .alias-search-wrap {
         flex: 1;
@@ -1531,14 +1500,14 @@
     .alias-search-wrap::-webkit-scrollbar { display: initial; }
     .alias-search-input { flex: 1; min-width: 0; }
 
-    /* Lista: más rows pero más bajas + scrollbar más ancha */
+    
     #alias-list {
         --alias-row-h: var(--al-list-row-h-desk);
         --alias-rows: var(--al-list-rows-desk);
     }
     #alias-list::-webkit-scrollbar { width: 0.375rem; }
 
-    /* Alias card horizontal */
+    
     .alias-card {
         flex-wrap: nowrap;
         gap: 1.125rem;
@@ -1587,9 +1556,7 @@
     .btn-destroy:hover { transform: translateY(-0.0625rem); }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   VER MÁS / VER MENOS — botones de carga diferida
-   ══════════════════════════════════════════════════════════════════════ */
+
 .alias-loadmore-wrap {
   display: flex;
   justify-content: center;
@@ -1640,9 +1607,7 @@
 
 @keyframes alias-spin { to { transform: rotate(360deg); } }
 
-/* ══════════════════════════════════════════════════════════════════════
-   OVERRIDES TEMA CARBON — Mis alias
-   ══════════════════════════════════════════════════════════════════════ */
+
 html[data-theme="carbon"] .alias-card {
     background: linear-gradient(135deg,
         rgba(255, 79, 122, 0.04) 0%,
@@ -1695,7 +1660,7 @@ html[data-theme="carbon"] .alias-stats-card .stat-icon-circle {
     background: rgba(255, 79, 122, 0.12);
     color: var(--accent-hover, #ff6b8e);
 }
-/* Modal de solicitud de cupo */
+
 html[data-theme="carbon"] .aliasreq-icon {
     background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
 }

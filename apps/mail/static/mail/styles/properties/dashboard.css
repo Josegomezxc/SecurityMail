@@ -1,10 +1,6 @@
-/* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — mail/dashboard
-   Tokens de la vista (radios, paddings, tamaños). Las paletas
-   globales (dark/carbon) viven en core/properties/base.css.
-   ════════════════════════════════════════════════════════════════════ */
+
 :root {
-  /* Paleta heredada (alias cortos usados por la vista) */
+  
   --p:    #7c5cff;
   --pl:   #a78bfa;
   --ps:   rgba(124,92,255,0.12);
@@ -15,36 +11,36 @@
   --display: 'Syne', sans-serif;
   --mono:    'JetBrains Mono', monospace;
 
-  /* Welcome banner */
-  --db-banner-radius:   1.25rem;     /* 20px */
+  
+  --db-banner-radius:   1.25rem;     
   --db-banner-pad:      1.125rem 1rem;
   --db-banner-pad-md:   1.5rem 1.625rem;
   --db-banner-pad-lg:   1.75rem 2rem;
 
-  /* Stat cards */
-  --db-stat-radius:     1.125rem;    /* 18px */
+  
+  --db-stat-radius:     1.125rem;    
   --db-stat-pad:        1rem;
   --db-stat-pad-lg:     1.375rem 1.5rem;
-  --db-stat-icon:       2rem;        /* 32px */
-  --db-stat-icon-lg:    2.125rem;    /* 34px */
-  --db-stat-value:      2.25rem;     /* 36px */
-  --db-stat-value-lg:   3.25rem;     /* 52px */
+  --db-stat-icon:       2rem;        
+  --db-stat-icon-lg:    2.125rem;    
+  --db-stat-value:      2.25rem;     
+  --db-stat-value-lg:   3.25rem;     
 
-  /* Paneles */
-  --db-panel-radius:    1.125rem;    /* 18px */
-  --db-panel-max-h:     26.25rem;    /* 420px mobile */
-  --db-panel-h-lg:      30rem;       /* 480px desktop */
+  
+  --db-panel-radius:    1.125rem;    
+  --db-panel-max-h:     26.25rem;    
+  --db-panel-h-lg:      30rem;       
 
-  /* Botón CTA */
-  --db-cta-radius:      0.75rem;     /* 12px */
+  
+  --db-cta-radius:      0.75rem;     
   --db-cta-pad:         0.6875rem 1.375rem;
 
-  /* Threat cards */
-  --db-threat-radius:   0.875rem;    /* 14px */
+  
+  --db-threat-radius:   0.875rem;    
   --db-threat-pad:      0.75rem 0.875rem;
 
-  /* Welcome modal */
-  --db-wm-radius:       1.375rem;    /* 22px */
-  --db-wm-max:          26.25rem;    /* 420px */
+  
+  --db-wm-radius:       1.375rem;    
+  --db-wm-max:          26.25rem;    
   --db-wm-pad:          2rem 1.375rem 1.75rem;
 }

@@ -1,6 +1,4 @@
-/* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — admin_threats
-   ════════════════════════════════════════════════════════════════════ */
+
 :root {
     --at-hero-radius:        1rem;
     --at-hero-pad-mobile:    1rem 0.875rem;
@@ -21,7 +19,7 @@
     --at-row-pad-mobile:     0.625rem 0.75rem;
     --at-row-pad-desk:       0.875rem 1.125rem;
 
-    --at-score-size:         3.125rem;     /* 50px */
+    --at-score-size:         3.125rem;     
     --at-score-radius:       0.75rem;
     --at-score-font:         1.0625rem;
 

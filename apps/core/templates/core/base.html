@@ -16,13 +16,7 @@
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════
-     Pantalla de carga global (Uiverse-style)
-     Visible cuando <html> tiene la clase `ds-loading`.
-     Se activa por sessionStorage 'ds_navLoad' (lo setea
-     el form de login antes de submit) y se quita en
-     window.load de la página destino.
-============================================ -->
+
 <div class="ds-loader" id="dsLoader" role="status" aria-live="polite" aria-label="Cargando">
   <div class="ds-loader-card">
     <div class="ds-spinner" aria-hidden="true"></div>
@@ -39,10 +33,10 @@
   </div>
 </div>
 
-<!-- Container global para toasts (alerts deslizantes) -->
+
 {% if user.is_authenticated %}<div class="toast-container" id="toast-container"></div>{% endif %}
 
-<!-- Modal global de confirmación (reemplaza window.confirm) -->
+
 <div class="cd-overlay" id="cd-overlay" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="cd-modal" id="cd-modal">
         <div class="cd-head">
@@ -60,28 +54,22 @@
 </div>
 
 {% block body_outer %}
-<!-- Backdrop del drawer móvil (solo visible cuando el sidebar está abierto) -->
+
 <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 
 <div class="app-layout">
 
-    <!-- ═══════════════════════════════════════════
-         SIDEBAR
-    ════════════════════════════════════════════ -->
+    
     <aside class="sidebar" id="sidebar">
 
-        <!-- Logo → recarga la página al hacer clic.
-             El PNG ya tiene "DockerShield" incluido, sin texto duplicado. -->
+        
         <a href="{% url 'dashboard' %}" class="sidebar-logo" data-ds-loader>
             <div class="logo-icon">
                 <img src="{% static 'core/img/logo_2.png' %}" alt="DockerShield">
             </div>
         </a>
 
-        <!-- Botón "Nuevo correo" siempre visible debajo del logo.
-             Misma mecánica que el botón del módulo Enviados: abre un picker
-             con los alias activos y al elegir uno arranca el compose modal
-             global. IDs distintos del de sent.html para que no choquen. -->
+        
         {% if user.is_authenticated %}
         <div class="sidebar-compose" id="sidebarCompose">
             <button type="button" class="sidebar-compose-btn" id="sidebarComposeBtn"
@@ -140,12 +128,10 @@
         </div>
         {% endif %}
 
-        <!-- Wrapper con scroll interno: si el contenido es más alto que el
-             espacio disponible, solo este bloque scrollea. El logo arriba y
-             el footer abajo siempre quedan visibles. -->
+        
         <div class="sidebar-nav" id="sidebarNav">
 
-        <!-- Navegación principal -->
+        
         <nav class="sidebar-section" aria-label="Navegación principal">
             <div class="sidebar-label">Principal</div>
 
@@ -236,7 +222,7 @@
             </a>
         </nav>
 
-        <!-- Sección solo visible para administradores -->
+        
         {% if user.is_authenticated and user.is_staff %}
         <nav class="sidebar-section" aria-label="Navegación de administración">
             <div class="sidebar-label" style="color:#f59e0b">Administración</div>
@@ -300,12 +286,12 @@
         </nav>
         {% endif %}
 
-        </div><!-- /.sidebar-nav -->
+        </div>
 
-        <!-- Footer: avatar + dropdown de cuenta -->
+        
         <footer class="sidebar-footer">
 
-            <!-- Menú desplegable (sale hacia arriba) -->
+            
             <div class="user-dropdown" id="userDropdown">
                 <a href="{% url 'perfil' %}" class="dd-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -334,7 +320,7 @@
                 </a>
             </div>
 
-            <!-- Fila del avatar -->
+            
             <div class="user-row" id="userBtn">
                 <div class="avatar-circle"
                      {% if not user.profile.has_avatar %}style="background:linear-gradient(135deg, {{ avatar_color }} 0%, #9b6dff 100%)"{% endif %}>
@@ -361,14 +347,12 @@
         </footer>
     </aside>
 
-    <!-- ═══════════════════════════════════════════
-         MAIN
-    ════════════════════════════════════════════ -->
+    
     <main class="main-area">
 
-        <!-- Top bar -->
+        
         <header class="topbar">
-            <!-- Hamburguesa (solo visible en mobile/tablet vía CSS) -->
+            
             <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menú">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="3" y1="6" x2="21" y2="6"/>
@@ -395,7 +379,7 @@
                 {% endif %}
 
                 {% if user.is_authenticated %}
-                <!-- ── Bell de notificaciones ── -->
+                
                 <div class="notif-wrap" id="notif-wrap">
                     <button type="button" class="notif-bell" id="notif-bell" aria-label="Notificaciones">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -405,7 +389,7 @@
                         <span class="notif-badge" id="notif-badge" style="display:none">0</span>
                     </button>
 
-                    <!-- Dropdown panel -->
+                    
                     <div class="notif-panel" id="notif-panel">
                         <div class="notif-panel-head">
                             <div class="notif-panel-title">Notificaciones</div>
@@ -424,7 +408,7 @@
             </div>
         </header>
 
-        <!-- Contenido de página -->
+        
         <div class="content-area">
             {% block body %}{% endblock %}
         </div>
@@ -432,9 +416,7 @@
     </main>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     MODAL DE TEMAS
-════════════════════════════════════════════ -->
+
 <div id="themeOverlay" onclick="closeThemeModal()">
     <div class="theme-modal" onclick="event.stopPropagation()">
         <button type="button" class="theme-modal-close" onclick="closeThemeModal()" aria-label="Cerrar">
@@ -474,23 +456,12 @@
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     JS — dropdown de usuario + gestor de temas
-════════════════════════════════════════════ -->
+
 <script src="{% static 'core/js/base_2.js' %}"></script>
 
 <script src="{% static 'core/js/base_3.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader{% endif %}"></script>
 
-{% comment %}
-MENSAJES DJANGO → TOASTS — global para TODAS las páginas.
-Antes solo el dashboard renderizaba el `messages` framework, así que
-cualquier `messages.success("…")` quedaba guardado en sesión hasta llegar
-al dashboard, donde reventaban 4 toasts juntos. Ahora cada página los
-procesa al instante.
 
-Excepción `block_django_messages`: páginas que NO quieren mostrar toasts
-(ej. /borradores/) pueden sobreescribir el bloque vacío para suprimirlos.
-{% endcomment %}
 {% if messages and user.is_authenticated %}
   {% block block_django_messages %}
   <script>
@@ -506,11 +477,7 @@ Excepción `block_django_messages`: páginas que NO quieren mostrar toasts
 
 {% block extra_js %}{% endblock %}
 
-{% comment %}
-Compose modal global: vive en base.html para que persista entre páginas
-(al estilo Gmail/Proton). Solo se renderiza si el usuario está logueado
-— invitados no necesitan poder enviar correos desde alias.
-{% endcomment %}
+
 {% if user.is_authenticated %}
   {% include 'mail/_compose_modal.html' %}
 {% endif %}

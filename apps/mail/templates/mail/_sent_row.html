@@ -1,10 +1,4 @@
-{% comment %}
-Una fila .sent-row (estilo card/article) — partial reusable.
 
-Se usa tanto en el render inicial server-side como en el load-more
-(ver _sent_rows.html que itera y lo invoca). Se espera la variable `em`
-con el SentEmail (con attachments_meta_json ya anotado por el view).
-{% endcomment %}
 <article class="sent-row"
          data-id="{{ em.id }}"
          data-to="{{ em.to_email|lower }}"
@@ -61,7 +55,7 @@ con el SentEmail (con attachments_meta_json ya anotado por el view).
     <polyline points="9 18 15 12 9 6"/>
   </svg>
 
-  <!-- Datos para el panel de detalle / compose readonly -->
+  
   <div id="sent-detail-{{ em.id }}" style="display:none"
        data-to="{{ em.to_email }}"
        data-subject="{{ em.subject }}"

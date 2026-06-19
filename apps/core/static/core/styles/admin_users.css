@@ -1,20 +1,13 @@
 @import url('properties/admin_users.css');
 
-/* ════════════════════════════════════════════════════════════════════
-   ADMIN USERS — Mobile-First Strict
-   Base: cards apiladas en lugar de tabla, filtros pequeños.
-   ≥768px: padding más holgado, filtros más visibles.
-   ≥1024px: tabla nativa con thead visible.
-   ════════════════════════════════════════════════════════════════════ */
+
 
 @keyframes fadeUp {
     from { opacity: 0; transform: translateY(0.875rem); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   HEADER
-   ──────────────────────────────────────────────────────────────────── */
+
 .adm-header {
     display: flex;
     align-items: center;
@@ -37,7 +30,7 @@
     font-family: var(--mono);
 }
 
-/* ── Toolbar (buscador a la izquierda + filtros a la derecha) ── */
+
 .users-toolbar {
     display: flex;
     align-items: center;
@@ -46,7 +39,7 @@
     flex-wrap: wrap;
 }
 
-/* ── Search bar ── */
+
 .search-bar {
     flex: 1;
     max-width: var(--au-search-max);
@@ -60,7 +53,7 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Dentro de .users-toolbar, search se pega a la izquierda */
+
 .users-toolbar .search-bar {
     margin-left: 0;
     min-width: 14rem;
@@ -88,15 +81,12 @@
 }
 .search-bar input::placeholder { color: var(--text-muted); }
 
-/* ────────────────────────────────────────────────────────────────────
-   FILTROS POR ROL
-   ──────────────────────────────────────────────────────────────────── */
+
 .users-filters {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 1rem;
-    /* Mobile: una sola línea horizontal con scroll por toque cuando los
-       4 botones no caben. Scrollbar oculta para look limpio. */
+    
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
@@ -109,13 +99,12 @@
     width: 100%;
 }
 
-/* Dentro de la toolbar, los filtros se pegan a la derecha (auto-grow al
-   espacio que sobra) — search-bar a la izquierda, filtros a la derecha. */
+
 .users-toolbar .users-filters {
     margin-bottom: 0;
     width: auto;
     flex: 1 1 auto;
-    min-width: 0;          /* permite que el scroll horizontal funcione */
+    min-width: 0;          
 }
 .users-filters::-webkit-scrollbar { display: none; }
 .users-filter-btn { flex-shrink: 0; }
@@ -176,9 +165,7 @@
     color: inherit;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   ALERTAS
-   ──────────────────────────────────────────────────────────────────── */
+
 .adm-alert {
     background: rgba(46, 204, 113, 0.08);
     border: 1px solid rgba(46, 204, 113, 0.2);
@@ -199,12 +186,7 @@
     color: var(--danger);
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   TABLA — Mobile-first con scroll horizontal interno.
-   En móvil la tabla mantiene su layout nativo (thead + filas en grid)
-   y el usuario desliza con el dedo para ver todas las columnas. En
-   desktop (≥1024px) el scroll desaparece porque la tabla ya cabe.
-   ──────────────────────────────────────────────────────────────────── */
+
 .users-table-wrap {
     background: var(--bg-surface);
     border: 1px solid var(--border);
@@ -225,7 +207,7 @@
     display: table;
     width: 100%;
     border-collapse: collapse;
-    /* Mobile: ancho mínimo > viewport activa scroll horizontal del wrap */
+    
     min-width: 48rem;
 }
 .users-table thead { display: table-header-group; }
@@ -264,7 +246,7 @@
 .users-table tbody tr { transition: background 0.12s ease; }
 .users-table tbody tr:hover td { background: rgba(255, 255, 255, 0.03); }
 
-/* ── User cell ── */
+
 .user-cell {
     display: flex;
     align-items: center;
@@ -303,7 +285,7 @@
     margin-top: 0.125rem;
 }
 
-/* ── Badges ── */
+
 .role-badge {
     display: inline-flex;
     align-items: center;
@@ -333,7 +315,7 @@
     background: currentColor;
 }
 
-/* ── Numbers cell ── */
+
 .num-cell {
     font-family: var(--mono);
     font-weight: 600;
@@ -342,7 +324,7 @@
 .num-cell.threat { color: var(--danger); }
 .num-cell.muted  { color: var(--text-muted); }
 
-/* ── Row actions ── */
+
 .row-actions {
     display: flex;
     gap: 0.4375rem;
@@ -412,9 +394,7 @@
     font-size: 0.75rem;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   TABLET (≥ 768px) — filtros más visibles
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 768px) {
     .users-filter-btn {
         padding: var(--au-filter-pad-desk);
@@ -422,22 +402,20 @@
     }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   DESKTOP (≥ 1024px) — tabla nativa con header visible
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
     .adm-header   { padding: 0; }
     .adm-header h1 {
         font-size: var(--au-h1-font-desk);
         word-break: normal;
     }
-    /* Desktop: filtros vuelven a flex normal sin scroll (caben los 4) */
+    
     .users-filters {
         flex-wrap: wrap;
         overflow-x: visible;
         width: fit-content;
     }
-    /* Desktop: la tabla ya cabe sin scroll horizontal, lo desactivamos */
+    
     .users-table-wrap {
         overflow-x: hidden;
         overflow-y: hidden;
@@ -452,9 +430,7 @@
     }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   OVERRIDES TEMA CARBON — Admin: Usuarios
-   ══════════════════════════════════════════════════════════════════════ */
+
 html[data-theme="carbon"] .users-filter-btn.active {
     color: var(--accent-hover, #ff6b8e);
     background: rgba(255, 79, 122, 0.12);
@@ -470,15 +446,11 @@ html[data-theme="carbon"] .role-badge.admin .dot {
 }
 html[data-theme="carbon"] .user-avatar {
     background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
-    /* El texto del avatar (iniciales "MI", "JO"…) hereda
-       color: var(--ai-purple-light) que en carbon es rosa = invisible
-       sobre el fondo rosa. Forzamos blanco. */
+    
     color: #fff;
     border-color: rgba(255, 79, 122, 0.4);
 }
-/* btn-mini.primary: el background pisa con gradient rosa, pero hay que
-   forzar el texto e icono a blanco — el original usa --ai-purple-light
-   que en carbon también es rosa → mismo tono que el fondo, invisible. */
+
 html[data-theme="carbon"] .btn-mini.primary {
     background: linear-gradient(135deg, var(--accent, #ff4f7a), var(--accent-hover, #ff6b8e));
     color: #fff;

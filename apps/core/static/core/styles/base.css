@@ -1,15 +1,10 @@
 @import url('./properties/base.css');
 
-/* ══════════════════════════════════════════════════════════════════════
-   BASE — Layout global del proyecto.
-   Mobile First Strict: el sidebar es un drawer off-canvas por defecto;
-   los breakpoints estándar son 768 (tablet) y 1024 (desktop dockeado).
-   Las custom properties (todos los temas) viven en ./properties/base.css.
-   ══════════════════════════════════════════════════════════════════════ */
+
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* A11y: oculta visualmente sin esconder de lectores de pantalla. */
+
 .sr-only {
     position: absolute;
     width: 1px; height: 1px;
@@ -20,22 +15,11 @@
     border: 0;
 }
 
-/* Focus visible — outline neutralizado, los componentes pintan su anillo
-   con box-shadow propio (formulario, botones, etc.). El selector global
-   asegura accesibilidad por teclado sin ruido visual con el ratón. */
+
 :focus { outline: none; }
 :focus-visible { outline: none; }
 
-/* ──────────────────────────────────────────────────────────────────────
-   OVERRIDES POR TEMA (carbon)
-   Las paletas viven en properties/base.css, PERO duplicamos acá las
-   re-asignaciones de los aliases "ai-purple" porque:
-     - properties/base.css se carga vía @import sin cache-bust
-     - Mobile cachea agresivamente y no detectaba la versión nueva
-   Al ponerlas acá (en base.css que sí tiene ?v=...), mobile las
-   recibe frescas en cada bump. Si las dos definiciones difieren,
-   gana esta por cascada (se aplica después que el @import).
-   ────────────────────────────────────────────────────────────────────── */
+
 html[data-theme="carbon"] {
     --ai-purple:         #ff4f7a;
     --ai-purple-light:   #ff8aa6;
@@ -62,9 +46,7 @@ html[data-theme="carbon"] .topbar-title::before {
     box-shadow: 0 0 0.625rem #ff6b8e;
 }
 
-/* ──────────────────────────────────────────────────────────────────────
-   GLOBALS — html, body, scrollbar
-   ────────────────────────────────────────────────────────────────────── */
+
 html, body {
     max-width: 100vw;
     overflow-x: hidden;
@@ -85,23 +67,16 @@ img, iframe, video, canvas { max-width: 100%; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 0.1875rem; }
 
-/* ──────────────────────────────────────────────────────────────────────
-   LAYOUT PRINCIPAL — MOBILE FIRST
-   Base: sidebar drawer off-canvas; main-area ocupa todo el viewport.
-   Desktop (≥1024px): sidebar dockeado, main-area al lado.
-   ────────────────────────────────────────────────────────────────────── */
+
 .app-layout {
     display: flex;
     min-height: 100vh;
     min-height: 100dvh;
 }
 
-/* ── SIDEBAR (BASE = drawer off-canvas) ─────────────────────────────── */
+
 .sidebar {
-    /* !important blindado: el sidebar es position:fixed off-canvas en
-       móvil/tablet. Si algún CSS de página (o cache parcial) intenta
-       cambiar el position/transform/z-index, estos valores ganan. La
-       regla del @media (min-width:1024px) abajo lo dockea en desktop. */
+    
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
@@ -114,24 +89,16 @@ img, iframe, video, canvas { max-width: 100%; }
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    /* z-index extremadamente alto — el sidebar SIEMPRE va encima del
-       contenido de página cuando está abierto, sin importar qué
-       stacking context cree la página. */
+    
     z-index: 2147483600 !important;
     transform: translateX(-100%);
     transition: transform 0.28s cubic-bezier(.22,1,.36,1);
     box-shadow: 0.5rem 0 2rem rgba(0,0,0,0.4);
-    /* isolation:isolate fuerza al sidebar a vivir en SU PROPIO
-       stacking context, garantizando que su z-index gana sobre
-       cualquier elemento del page-content que tenga z-index. */
+    
     isolation: isolate;
 }
 .sidebar.open { transform: translateX(0) !important; }
-/* La sidebar y descendientes son NO-SELECCIONABLES y NO-ARRASTRABLES.
-   Sin esto, el editor contenteditable del compose puede dejar el
-   navegador en "modo selección" y los clicks en items se interpretan
-   como extender selección de texto. touch-action:manipulation desactiva
-   double-tap-zoom y panning, garantizando clicks puros. */
+
 .sidebar, .sidebar * {
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
@@ -169,7 +136,7 @@ img, iframe, video, canvas { max-width: 100%; }
     pointer-events: none;
 }
 
-/* ── Logo (link de recarga) ─────────────────────────────────────────── */
+
 .sidebar-logo {
     display: flex;
     justify-content: center;
@@ -220,7 +187,7 @@ img, iframe, video, canvas { max-width: 100%; }
     color: transparent;
 }
 
-/* ── Nav: secciones, labels, links ──────────────────────────────────── */
+
 .sidebar-section { padding: 1.375rem 0.75rem 0.375rem; }
 
 .sidebar-label {
@@ -296,7 +263,7 @@ img, iframe, video, canvas { max-width: 100%; }
     color: #b69dff;
 }
 
-/* ── Badges en nav ──────────────────────────────────────────────────── */
+
 .badge-count,
 .badge-danger-pill,
 .badge-warning-pill,
@@ -339,7 +306,7 @@ img, iframe, video, canvas { max-width: 100%; }
     50%      { box-shadow: 0 0 0 0.375rem rgba(232,64,64,0); }
 }
 
-/* ── SIDEBAR FOOTER (avatar + dropdown) ─────────────────────────────── */
+
 .sidebar-footer {
     padding: 0.75rem;
     position: relative;
@@ -413,7 +380,7 @@ img, iframe, video, canvas { max-width: 100%; }
     color: #fca5a5;
 }
 
-/* Fila del avatar */
+
 .user-row {
     display: flex;
     align-items: center;
@@ -480,10 +447,7 @@ img, iframe, video, canvas { max-width: 100%; }
     text-overflow: ellipsis;
     letter-spacing: -0.005em;
     margin-bottom: 0.125rem;
-    /* line-height generoso: el `overflow: hidden` recorta el alto del
-       cuadro de cada línea, y con line-height bajo los descendentes y
-       ascendentes de letras como `c`, `g`, `p`, `y`, `j` quedan cortados
-       (la `c` parecía una `o` por eso). 1.4 da aire vertical suficiente. */
+    
     line-height: 1.4;
     padding-block: 0.0625rem;
 }
@@ -506,10 +470,7 @@ img, iframe, video, canvas { max-width: 100%; }
 .user-row:hover .chevron-icon { color: var(--accent-hover); }
 .chevron-icon.up { transform: rotate(180deg); }
 
-/* ──────────────────────────────────────────────────────────────────────
-   MAIN AREA — móvil: scroll natural de la página. Desktop: overflow
-   hidden y row con sidebar dockeado.
-   ────────────────────────────────────────────────────────────────────── */
+
 .main-area {
     flex: 1;
     min-width: 0;
@@ -530,14 +491,7 @@ img, iframe, video, canvas { max-width: 100%; }
     -webkit-backdrop-filter: blur(14px) saturate(140%);
     flex-shrink: 0;
     position: relative;
-    /* z-index extremadamente alto — el topbar crea un stacking context
-       propio por el backdrop-filter, así que .notif-panel y el dropdown
-       de la cuenta (ambos position:absolute dentro) heredan este nivel
-       en el documento. Sin un z-index muy alto, cualquier toolbar/sticky
-       de una página de mail (z:50-100) o cards con z-index propio
-       quedaban POR DELANTE del panel de notificaciones. Queda justo por
-       debajo del sidebar abierto (2147483600) para que el drawer pueda
-       siempre taparlo. */
+    
     z-index: 2147483500 !important;
     isolation: isolate;
 }
@@ -554,7 +508,7 @@ img, iframe, video, canvas { max-width: 100%; }
         transparent 100%);
 }
 
-/* ── Título topbar ──────────────────────────────────────────────────── */
+
 .topbar-title {
     font-size: 0.9375rem;
     font-weight: 700;
@@ -568,9 +522,7 @@ img, iframe, video, canvas { max-width: 100%; }
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    /* El ::before es un punto pulsante con halo (box-shadow 4px). Sin
-       este padding-left, el primer flex child queda pegado al borde y
-       overflow:hidden recorta el halo. */
+    
     padding-left: 0.375rem;
 }
 .topbar-title::before {
@@ -589,7 +541,7 @@ img, iframe, video, canvas { max-width: 100%; }
     50%      { box-shadow: 0 0 1.125rem var(--accent-hover), 0 0 0 0.375rem var(--accent-soft); }
 }
 
-/* Status chip — saludo/fecha. Oculto por defecto (mobile-first). */
+
 .topbar-status {
     display: none;
     align-items: center;
@@ -614,7 +566,7 @@ img, iframe, video, canvas { max-width: 100%; }
     animation: dotPulse 2s ease-in-out infinite;
 }
 
-/* Right cluster: pill amenazas + bell agrupados visualmente */
+
 .topbar-right {
     margin-left: auto;
     display: flex;
@@ -629,14 +581,14 @@ img, iframe, video, canvas { max-width: 100%; }
 .topbar-right:hover { border-color: var(--border); }
 
 .topbar-right-divider {
-    display: none;   /* Mobile-first: solo aparece en desktop */
+    display: none;   
     width: 1px;
     height: 1.375rem;
     background: linear-gradient(180deg, transparent, var(--border), transparent);
     margin: 0 0.125rem;
 }
 
-/* ── Threat pill ────────────────────────────────────────────────────── */
+
 .threat-pill {
     display: inline-flex;
     align-items: center;
@@ -691,11 +643,11 @@ img, iframe, video, canvas { max-width: 100%; }
     box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.3);
 }
 .threat-pill .tp-label {
-    display: none;       /* Mobile-first: label oculto */
+    display: none;       
     font-weight: 600;
 }
 
-/* ── Bell de notificaciones ─────────────────────────────────────────── */
+
 .notif-wrap { position: relative; }
 .notif-bell {
     position: relative;
@@ -749,7 +701,7 @@ img, iframe, video, canvas { max-width: 100%; }
     to   { transform: scale(1); }
 }
 
-/* Panel desplegable de notificaciones */
+
 .notif-panel {
     position: absolute;
     top: calc(100% + 0.625rem);
@@ -765,10 +717,7 @@ img, iframe, video, canvas { max-width: 100%; }
     transform: translateY(-0.5rem) scale(0.97);
     transform-origin: top right;
     transition: all 0.18s cubic-bezier(.22,1,.36,1);
-    /* z-index máximo dentro del stacking context del topbar — combinado
-       con el isolation:isolate + z-index 2147483500 del topbar, el panel
-       queda SIEMPRE por delante de cualquier contenido de página, sin
-       importar qué z-index tengan los cards o toolbars de cada vista. */
+    
     z-index: 2147483500 !important;
     overflow: hidden;
     display: flex; flex-direction: column;
@@ -857,7 +806,7 @@ img, iframe, video, canvas { max-width: 100%; }
 .notif-item-icon.t-forwarded       { background: linear-gradient(135deg, #22c55e, #4ade80); }
 .notif-item-icon.t-threat_alert    { background: linear-gradient(135deg, var(--danger), #f87171); }
 .notif-item-icon.t-system          { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); }
-/* Override por nivel de riesgo del correo asociado: gana sobre el tipo */
+
 .notif-item-icon.r-safe   { background: linear-gradient(135deg, #22c55e, #4ade80); }
 .notif-item-icon.r-warn   { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
 .notif-item-icon.r-danger { background: linear-gradient(135deg, var(--danger), #f87171); }
@@ -922,20 +871,14 @@ img, iframe, video, canvas { max-width: 100%; }
 }
 .notif-panel-foot:hover { background: var(--accent-soft); }
 
-/* ══════════════════════════════════════════════════════════════════════
-   SISTEMA DE TOASTS — alertas deslizantes
-   Mobile-first: full-width arriba; en desktop pasan a corner derecho.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .toast-container {
     position: fixed;
-    /* Mobile: empujado debajo del topbar (3.5rem alto + 0.75rem margen)
-       para no taparlo ni a la hamburguesa/notif-bell. */
+    
     top: 4.25rem;
     right: 0.75rem;
     left: 0.75rem;
-    /* Z-index muy alto — por encima del topbar (2147483500) y el panel
-       de notificaciones, pero por debajo del sidebar abierto (2147483600)
-       para que el drawer pueda taparlos cuando se abre. */
+    
     z-index: 2147483550 !important;
     display: flex;
     flex-direction: column;
@@ -1069,16 +1012,11 @@ img, iframe, video, canvas { max-width: 100%; }
 .toast:hover { transform: translateX(-0.1875rem); transition: transform 0.18s; }
 .toast:hover .toast-progress { animation-play-state: paused; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   MODAL DE CONFIRMACIÓN — reemplaza window.confirm() nativo
-   ══════════════════════════════════════════════════════════════════════ */
+
 .cd-overlay {
     position: fixed;
     inset: 0;
-    /* Z-index máximo posible — los modales de confirmación deben quedar
-       SIEMPRE por encima de cualquier otra capa: topbar, notif-panel,
-       toasts e incluso el sidebar abierto. Sin esto, el modal salía
-       detrás del HTML y los clicks no llegaban. */
+    
     z-index: 2147483647 !important;
     background: rgba(8, 6, 18, 0.62);
     backdrop-filter: blur(6px);
@@ -1221,15 +1159,10 @@ img, iframe, video, canvas { max-width: 100%; }
     background: linear-gradient(135deg, var(--danger), #f87171);
 }
 
-/* ──────────────────────────────────────────────────────────────────────
-   CONTENT AREA + COMPONENTES GLOBALES (cards, btn, inputs, badges...)
-   ────────────────────────────────────────────────────────────────────── */
+
 .content-area {
     flex: 1;
-    /* min-width:0 en flex items rompe el min-content default. Sin esto,
-       una tabla o card con contenido no-rompible podía forzar al
-       .content-area a crecer más allá del viewport y empujar otros
-       cards (quota, alias-row, em-row) fuera del lado derecho. */
+    
     min-width: 0;
     overflow-y: auto;
     overflow-x: hidden;
@@ -1309,10 +1242,7 @@ img, iframe, video, canvas { max-width: 100%; }
 }
 .form-control::placeholder { color: var(--text-muted); }
 
-/* Anula el fondo amarillo/blanco que Chrome/Edge aplican al autocompletar.
-   Técnica clásica: box-shadow inset gigante con el color del input + text-
-   fill-color con el color del tema + transition larga para aplazar el
-   repintado nativo. Cubre login/register/recuperar/etc. */
+
 .form-control:-webkit-autofill,
 .form-control:-webkit-autofill:hover,
 .form-control:-webkit-autofill:focus,
@@ -1365,9 +1295,7 @@ select:-webkit-autofill {
 .page-header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem; }
 .page-header p  { color: var(--text-secondary); font-size: 0.84375rem; }
 
-/* ──────────────────────────────────────────────────────────────────────
-   MODAL DE TEMAS — selector dark / carbon
-   ────────────────────────────────────────────────────────────────────── */
+
 #themeOverlay {
     position: fixed;
     inset: 0;
@@ -1440,9 +1368,7 @@ select:-webkit-autofill {
 }
 
 .theme-grid {
-    /* Flex centrado en lugar de grid para que con N temas (2 ahora, más
-       en el futuro) las cards queden siempre centradas y nunca pegadas
-       a la izquierda por columnas vacías. */
+    
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -1450,7 +1376,7 @@ select:-webkit-autofill {
     margin-bottom: 1.375rem;
 }
 .theme-grid .theme-card {
-    flex: 0 1 12rem;     /* ancho fijo razonable, encoge en mobile */
+    flex: 0 1 12rem;     
     min-width: 9rem;
 }
 
@@ -1475,7 +1401,7 @@ html[data-theme="carbon"] .theme-card.selected {
     box-shadow: 0 0.375rem 1.125rem rgba(255,79,122,0.28), 0 0 0 1px var(--accent) inset;
 }
 
-/* Preview (mini-layout: sidebar + content lines) */
+
 .theme-preview {
     height: 5.75rem;
     border-radius: 0.5625rem;
@@ -1521,7 +1447,7 @@ html[data-theme="carbon"] .theme-card.selected {
 .theme-preview .tp-content i:nth-child(3) { width: 60%; }
 .theme-preview .tp-content i:nth-child(4) { width: 50%; }
 
-/* Paletas por preview */
+
 .tp-dark { background: #1a1828; }
 .tp-dark .tp-sidebar { background: #15131f; color: #7c5cff; }
 .tp-dark .tp-content { color: #e8e6f0; }
@@ -1562,9 +1488,7 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
     opacity: 0.85;
 }
 
-/* ──────────────────────────────────────────────────────────────────────
-   BOTÓN HAMBURGUESA — visible en móvil, oculto en desktop
-   ────────────────────────────────────────────────────────────────────── */
+
 .sidebar-toggle {
     display: inline-flex;
     background: var(--bg-elevated);
@@ -1586,7 +1510,7 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
 }
 .sidebar-toggle svg { width: 1.25rem; height: 1.25rem; }
 
-/* Backdrop oscuro detrás del drawer */
+
 .sidebar-backdrop {
     display: none;
     position: fixed !important;
@@ -1594,15 +1518,11 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
     background: rgba(0, 0, 0, 0.55);
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
-    /* Z-index justo por debajo del sidebar pero por encima de todo lo
-       demás (toasts, page content, topbar). Asegura que cuando el
-       drawer está abierto, NADA es clickeable en la página de fondo. */
+    
     z-index: 2147483599 !important;
     opacity: 0;
     transition: opacity 0.25s ease;
-    /* touch-action:none → al tocar el backdrop, el browser NO interpreta
-       gestos como scroll de la página subyacente. Combinado con html/body
-       overflow:hidden, garantiza que la página de fondo quede quieta. */
+    
     touch-action: none;
     overscroll-behavior: contain;
 }
@@ -1611,10 +1531,7 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
     opacity: 1;
 }
 
-/* ──────────────────────────────────────────────────────────────────────
-   SIDEBAR — Botón "Nuevo correo" + picker de alias
-   Vive entre el logo y la sección "Principal" del sidebar.
-   ────────────────────────────────────────────────────────────────────── */
+
 .sidebar-compose {
     position: relative;
     padding: 0.75rem 0.875rem 0.875rem;
@@ -1673,9 +1590,7 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
     background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%);
 }
 
-/* Picker que cae debajo del botón. Subclases (.alias-picker-*) son las
-   mismas del módulo Enviados, declaradas aquí para que funcionen en
-   cualquier página, no solo en /enviados/. */
+
 .sidebar-alias-picker {
     --alias-row-h: 3.375rem;
     --alias-rows:  5;
@@ -1848,9 +1763,7 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
     transform: translateY(-1px);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   TABLET — ≥ 768 px
-   ══════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 768px) {
     .topbar-status { display: inline-flex; }
     .threat-pill .tp-label { display: inline; }
@@ -1868,23 +1781,17 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
 
     .content-area { padding: 1.25rem 1.125rem; }
 
-    /* En desktop el flex centrado ya hace su trabajo — solo agrandamos
-       ligeramente las cards para llenar el modal más amplio. */
+    
     .theme-grid .theme-card { flex-basis: 13rem; }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   DESKTOP — ≥ 1024 px
-   El sidebar pasa de drawer a dockeado, hamburguesa se oculta, topbar
-   gana padding, content-area respira más.
-   ══════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
     .app-layout {
         height: 100vh;
         overflow: hidden;
     }
-    /* Desktop: el sidebar se dockea. Sobrescribimos los !important de
-       móvil con !important propios para que la cascada gane este modo. */
+    
     .sidebar {
         position: relative !important;
         top: auto !important;
@@ -1917,32 +1824,21 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
     .content-area { padding: 1.5rem; }
 }
 
-/* ──────────────────────────────────────────────────────────────────────
-   MÓVIL muy pequeño (< 23.75rem ≈ 380px): sacrifica el badge de amenazas
-   para no romper el cluster de la topbar.
-   ────────────────────────────────────────────────────────────────────── */
+
 @media (max-width: 23.75rem) {
     .threat-pill { display: none; }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   PANTALLA DE CARGA GLOBAL (login → dashboard, etc.)
-   Markup adaptado de Uiverse — Chriskoziol. Se muestra cuando hay
-   navegación entre páginas marcada por sessionStorage 'ds_navLoad'.
-   Se oculta automáticamente al disparar window.load en la página
-   destino. Si JS está deshabilitado nunca se muestra → el form
-   sigue funcionando normalmente.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .ds-loader {
     display: none;
     position: fixed;
     inset: 0;
     z-index: 2147483647;
-    background: rgba(8, 6, 18, 0.78);   /* sin blur — mucho más liviano */
+    background: rgba(8, 6, 18, 0.78);   
     align-items: center;
     justify-content: center;
-    /* Hint al compositor: la layer se aísla y no fuerza repaint
-       del resto de la página detrás. */
+    
     contain: layout paint;
 }
 html.ds-loading .ds-loader { display: flex; }
@@ -1962,9 +1858,7 @@ html.ds-loading .ds-loader { display: flex; }
     border-radius: 50%;
     border-right-color: var(--accent);
     animation: dsSpin 1.2s infinite linear;
-    /* will-change promueve la layer al GPU sin sobrescribir el
-       transform de la animación. NO usar translateZ acá: rompe la
-       rotación porque pisa el transform de los keyframes. */
+    
     will-change: transform;
 }
 .ds-spinner::before,
@@ -2022,7 +1916,7 @@ html.ds-loading .ds-loader { display: flex; }
     100% { transform: translate3d(0, -400%, 0); }
 }
 
-/* Mobile: spinner y texto más chicos */
+
 @media (max-width: 30rem) {
     .ds-spinner { width: 2.75rem; height: 2.75rem; }
     .ds-loader-msg { font-size: 1rem; height: 1.875rem; }

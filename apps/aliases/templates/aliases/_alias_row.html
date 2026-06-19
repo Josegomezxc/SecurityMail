@@ -1,7 +1,4 @@
-{% comment %}
-Una tarjeta .alias-card — partial reusable.
-Se espera `alias` y opcionalmente `row_index` (para animation-delay).
-{% endcomment %}
+
 <article class="alias-card {% if not alias.is_active %}destroyed{% endif %}"
      data-active="{{ alias.is_active|yesno:'true,false' }}"
      data-label="{{ alias.label|lower }}"

@@ -12,9 +12,7 @@
 
 {% block body %}
 
-<!-- ══════════════════════════════════════════════════════════
-     WELCOME BANNER — saludo grande + ilustración SVG + CTA
-     ════════════════════════════════════════════════════════ -->
+
 <section class="dash-welcome">
   <div class="dash-welcome-text">
     <div class="dash-welcome-eyebrow">
@@ -57,17 +55,17 @@
           <stop offset="1" class="dash-grad-glow" stop-opacity="0"/>
         </linearGradient>
       </defs>
-      <!-- Halo -->
+      
       <ellipse cx="120" cy="180" rx="100" ry="14" fill="url(#dwGlow)"/>
-      <!-- Shield body -->
+      
       <path d="M120 30 L195 60 V110 C195 145 162 175 120 185 C78 175 45 145 45 110 V60 Z"
             fill="url(#dwShield)" opacity="0.92"/>
-      <!-- Inner shield highlight -->
+      
       <path d="M120 50 L175 75 V108 C175 134 152 156 120 165 C88 156 65 134 65 108 V75 Z"
             fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
-      <!-- Check mark -->
+      
       <path d="M92 110 L113 130 L155 88" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- Decorative dots (color cambia con tema vía CSS) -->
+      
       <circle cx="40"  cy="50"  r="3"   class="dash-svg-dot"      opacity="0.7"/>
       <circle cx="210" cy="40"  r="4"   class="dash-svg-dot"      opacity="0.5"/>
       <circle cx="220" cy="110" r="2.5" class="dash-svg-dot--alt" opacity="0.6"/>
@@ -76,9 +74,7 @@
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════════════
-     STAT CARDS — 4 métricas principales en grid
-     ════════════════════════════════════════════════════════ -->
+
 <section class="dash-stats" aria-label="Resumen rápido">
   <article class="dash-stat dash-stat--accent">
     <div class="dash-stat-icon">
@@ -144,9 +140,7 @@
   </article>
 </section>
 
-<!-- ══════════════════════════════════════════════════════════
-     ROW: Actividad (bar chart) + Distribución (donut)
-     ════════════════════════════════════════════════════════ -->
+
 <section class="dash-row dash-row--2col">
   <article class="dash-card dash-chart-card">
     <header class="dash-card-head">
@@ -195,9 +189,7 @@
   </article>
 </section>
 
-<!-- ══════════════════════════════════════════════════════════
-     ROW: Profile report + Amenazas recientes
-     ════════════════════════════════════════════════════════ -->
+
 <section class="dash-row dash-row--3-7">
   <article class="dash-card dash-profile-card">
     <header class="dash-card-head">
@@ -278,9 +270,7 @@
   </article>
 </section>
 
-<!-- ══════════════════════════════════════════════════════════
-     ROW: Mis alias + Análisis sandbox recientes
-     ════════════════════════════════════════════════════════ -->
+
 <section class="dash-row dash-row--6-6">
   <article class="dash-card">
     <header class="dash-card-head">
@@ -359,9 +349,7 @@
   </article>
 </section>
 
-<!-- ══════════════════════════════════════════════════════════
-     Datos para Chart.js inyectados como JSON
-     ════════════════════════════════════════════════════════ -->
+
 {{ activity_14d|json_script:"dashActivityData" }}
 {{ risk_distribution|json_script:"dashRiskData" }}
 

@@ -1,60 +1,55 @@
-/* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — admin_alias_requests
-   La vista más compleja del admin: hero + toolbar + filtros + lista
-   con dos variantes (card pendiente vs fila resuelta) + modal de detalle
-   con timeline visual.
-   ════════════════════════════════════════════════════════════════════ */
+
 :root {
-    /* Hero */
+    
     --aar-hero-radius:        1rem;
     --aar-hero-pad:           1.125rem 1.375rem;
-    --aar-hero-icon-size:     3.125rem;     /* 50px */
+    --aar-hero-icon-size:     3.125rem;     
     --aar-h1-font:            1.375rem;
     --aar-stat-min-w:         5rem;
     --aar-stat-val-font:      1.375rem;
 
-    /* Toolbar */
+    
     --aar-search-radius:      0.6875rem;
     --aar-search-min-w:       15rem;
     --aar-filter-radius:      0.5625rem;
 
-    /* Card pendiente */
+    
     --aar-card-radius:        0.875rem;
     --aar-card-pad:           1.125rem 1.125rem 1rem;
-    --aar-user-avatar:        2.375rem;    /* 38px */
+    --aar-user-avatar:        2.375rem;    
 
-    /* Action sections (form admin) */
+    
     --aar-action-radius:      0.75rem;
     --aar-action-pad:         0.875rem 1rem;
 
-    /* Grant stepper + delta pill */
+    
     --aar-stepper-radius:     0.6875rem;
-    --aar-step-btn-w:         2.75rem;     /* 44px */
+    --aar-step-btn-w:         2.75rem;     
     --aar-grant-input-font:   1.5rem;
-    --aar-delta-icon-size:    2rem;        /* 32px */
+    --aar-delta-icon-size:    2rem;        
     --aar-delta-radius:       0.6875rem;
 
-    /* Botones aprobar/rechazar */
+    
     --aar-btn-radius:         0.5625rem;
     --aar-btn-pad:            0.5625rem 0.9375rem;
 
-    /* Row compacta (resuelta) */
+    
     --aar-row-radius:         0.75rem;
     --aar-row-pad:            0.75rem 1rem;
-    --aar-row-avatar:         2.25rem;     /* 36px */
+    --aar-row-avatar:         2.25rem;     
     --aar-row-amt-num:        0.875rem;
 
-    /* Empty state */
-    --aar-empty-icon-size:    4rem;        /* 64px */
+    
+    --aar-empty-icon-size:    4rem;        
 
-    /* Modal detalle */
-    --aar-modal-max:          45rem;       /* 576px */
-    --aar-modal-max-height:   40rem;       /* 576px */
+    
+    --aar-modal-max:          45rem;       
+    --aar-modal-max-height:   40rem;       
     --aar-modal-radius:       1rem;
     --aar-modal-pad:          1.5rem 1.375rem 1.25rem;
     --aar-modal-close-size:   1.875rem;
-    --aar-mb-avatar-size:     3.25rem;     /* 52px */
+    --aar-mb-avatar-size:     3.25rem;     
     --aar-mb-side-num-font:   1.875rem;
     --aar-mb-side-icon:       2.25rem;
-    --aar-mb-tl-dot-size:     2.25rem;     /* 36px timeline dot */
+    --aar-mb-tl-dot-size:     2.25rem;     
 }

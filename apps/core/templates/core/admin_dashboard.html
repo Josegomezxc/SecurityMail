@@ -13,9 +13,7 @@
 
 {% block body %}
 
-<!-- ══════════════════════════════════════════════════════════
-     WELCOME BANNER ADMIN
-     ════════════════════════════════════════════════════════ -->
+
 <section class="dash-welcome">
   <div class="dash-welcome-text">
     <div class="dash-welcome-eyebrow">
@@ -64,7 +62,7 @@
       <ellipse cx="120" cy="95" rx="20" ry="62" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
       <line x1="58" y1="95" x2="182" y2="95" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
       <line x1="120" y1="33" x2="120" y2="157" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
-      <!-- Pin del globo (color cambia con tema vía CSS) -->
+      
       <path d="M120 60 C112 60 105 67 105 75 C105 85 120 102 120 102 C120 102 135 85 135 75 C135 67 128 60 120 60 Z"
             fill="#ffffff" class="dash-svg-stroke" stroke-width="2"/>
       <circle cx="120" cy="75" r="4" class="dash-svg-fill"/>
@@ -72,9 +70,7 @@
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════════════
-     STAT CARDS — 4 métricas globales
-     ════════════════════════════════════════════════════════ -->
+
 <section class="dash-stats" aria-label="Resumen global">
   <article class="dash-stat dash-stat--accent">
     <div class="dash-stat-icon">
@@ -142,9 +138,7 @@
   </article>
 </section>
 
-<!-- ══════════════════════════════════════════════════════════
-     USUARIOS REGISTRADOS — diagrama de total + desglose
-     ════════════════════════════════════════════════════════ -->
+
 <section class="dash-row dash-row--users">
   <article class="dash-card dash-users-card">
     <header class="dash-card-head">
@@ -194,9 +188,7 @@
   </article>
 </section>
 
-<!-- ══════════════════════════════════════════════════════════
-     ROW: Actividad 7d + Distribución riesgo
-     ════════════════════════════════════════════════════════ -->
+
 <section class="dash-row dash-row--2col">
   <article class="dash-card">
     <header class="dash-card-head">
@@ -233,9 +225,7 @@
   </article>
 </section>
 
-<!-- ══════════════════════════════════════════════════════════
-     ROW: Top users + Recent threats
-     ════════════════════════════════════════════════════════ -->
+
 <section class="dash-row dash-row--6-6">
   <article class="dash-card">
     <header class="dash-card-head">
@@ -306,7 +296,7 @@
   </article>
 </section>
 
-<!-- Datos serializados para Chart.js (bar 7d + donut riesgo + donut usuarios) -->
+
 {{ activity_7d|json_script:"admActivityData" }}
 <script id="admRiskData" type="application/json">{"safe": {{ safe_count }}, "susp": {{ susp_count }}, "threats": {{ threats_total }}}</script>
 <script id="admUsersData" type="application/json">{"active": {{ users_active_regular }}, "staff": {{ users_staff }}, "inactive": {{ users_inactive }}}</script>

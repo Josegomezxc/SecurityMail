@@ -1,14 +1,5 @@
 {% load timeshort %}
-{% comment %}
-Filas de la tabla de solicitudes (`<tr>`). Reusable entre el render
-inicial server-side y futuros AJAX. Cada fila acepta click:
-  - Pending → abre modal con form de aprobación/rechazo
-  - Resuelta → abre modal con detalle de la decisión
 
-Los <template> con el contenido del modal van en bloque aparte (después
-de la tabla) para no contaminar la lista. Cada fila guarda el id del
-template a clonar en data-modal-target.
-{% endcomment %}
 {% for req in requests %}
   <tr class="aar-tr aar-tr--{{ req.status }}"
       data-modal-target="aar-detail-{{ req.id }}"

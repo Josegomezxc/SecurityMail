@@ -1,45 +1,43 @@
-/* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — privacidad
-   ════════════════════════════════════════════════════════════════════ */
+
 :root {
     --mono:                'JetBrains Mono', monospace;
     --display:             'Syne', sans-serif;
 
-    /* Layout */
-    --pr-content-max:      68.75rem;     /* ≈1100px */
-    --pr-toc-w:            15rem;        /* 240px */
+    
+    --pr-content-max:      68.75rem;     
+    --pr-toc-w:            15rem;        
     --pr-layout-gap:       2.5rem;
 
-    /* Progress bar */
+    
     --pr-progress-h:       0.1875rem;
 
-    /* Topbar */
+    
     --pr-topbar-pad:       0.875rem 1.5rem;
     --pr-topbar-logo-size: 1.75rem;
 
-    /* Hero */
+    
     --pr-hero-pad-mobile:  2.5rem 1.25rem 2rem;
     --pr-hero-pad-desk:    4rem 1.5rem 3rem;
     --pr-hero-icon-size:   4rem;
     --pr-h1-mobile:        1.875rem;
     --pr-h1-desk:          2.5rem;
 
-    /* Sections */
+    
     --pr-section-radius:   1rem;
     --pr-section-pad-mob:  1.375rem 1.25rem;
     --pr-section-pad-desk: 1.75rem 2rem;
     --pr-section-icon:     2.75rem;
     --pr-h2-font:          1.1875rem;
 
-    /* Callouts */
+    
     --pr-callout-radius:   0.75rem;
     --pr-callout-pad:      1rem 1.125rem;
     --pr-callout-icon:     1.75rem;
 
-    /* Data table */
+    
     --pr-table-radius:     0.75rem;
 
-    /* CTA */
+    
     --pr-cta-radius:       1.125rem;
     --pr-cta-pad:          2.25rem 2rem;
 }

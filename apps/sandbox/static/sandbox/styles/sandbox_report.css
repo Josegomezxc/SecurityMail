@@ -1,12 +1,8 @@
 @import url('./properties/sandbox_report.css');
 
-/* ══════════════════════════════════════════════════════════════════════
-   SANDBOX REPORT — Mobile First Strict.
-   La vista más densa del proyecto. Breakpoints normalizados a 768/1024.
-   Las paletas dark/light/carbon se heredan de core/base.
-   ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Keyframes ───────────────────────────────────────────────────────── */
+
+
 @keyframes spin         { to { transform: rotate(360deg); } }
 @keyframes fadeUp       { from { opacity: 0; transform: translateY(0.875rem); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn       { from { opacity: 0; } to { opacity: 1; } }
@@ -46,11 +42,7 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   STATUS BANNER
-   Mobile: grid 2 cols (icono + texto), tag baja a fila propia con borde.
-   Desktop ≥768: flex en línea — icono | texto | tag a la derecha.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .status-banner {
   border-radius: var(--sr-banner-radius);
   padding: var(--sr-banner-pad);
@@ -110,11 +102,7 @@
 }
 .status-sub strong { word-break: break-all; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   SCORE CARD
-   Mobile: stack vertical (ring + filename respira).
-   Desktop ≥1024: layout en línea con score-info amplio.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .score-card {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -166,10 +154,7 @@
 .score-badge.warning { background: rgba(245,158,11,0.12); color: var(--warning); border: 1px solid rgba(245,158,11,0.25); }
 .score-badge.success { background: rgba(46,204,113,0.1);  color: var(--success); border: 1px solid rgba(46,204,113,0.2); }
 
-/* ══════════════════════════════════════════════════════════════════════
-   ANALYSIS SECTIONS — secciones plegables del reporte
-   Mobile: padding compacto; section-head puede envolver.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .section-card {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -224,7 +209,7 @@
 }
 .finding-val .ok { color: var(--success); font-size: 0.75rem; }
 
-/* Tag badges */
+
 .tag {
   display: inline-flex; align-items: center; gap: 0.25rem;
   padding: 0.1875rem 0.5625rem; border-radius: 0.375rem;
@@ -236,9 +221,7 @@
 .tag-green   { background: rgba(46,204,113,0.1);  color: var(--success); border: 1px solid rgba(46,204,113,0.2); }
 .tag-purple  { background: var(--ai-purple-soft); color: var(--ai-purple-light); border: 1px solid var(--ai-purple-border); }
 
-/* ══════════════════════════════════════════════════════════════════════
-   AI SECTION — verdict de la IA
-   ══════════════════════════════════════════════════════════════════════ */
+
 .ai-section {
   background: var(--bg-surface);
   border: 1px solid var(--ai-purple-border);
@@ -304,7 +287,7 @@
   box-shadow: 0 0 0.375rem rgba(74,222,128,0.6);
 }
 
-/* Loading */
+
 .ai-loading-wrap {
   padding: 1.875rem 0.875rem;
   display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
@@ -341,10 +324,10 @@
   color: var(--success);
 }
 
-/* Result */
+
 .ai-result-body { padding: var(--sr-ai-result-pad); display: none; animation: fadeIn 0.5s ease; }
 
-/* Grids AI: Mobile = 1 col; Tablet+ (≥768) = 2 cols */
+
 .ai-top-grid    { display: grid; grid-template-columns: 1fr; gap: 0.625rem; margin-bottom: 0.75rem; }
 .ai-bottom-grid { display: grid; grid-template-columns: 1fr; gap: 0.625rem; }
 
@@ -422,10 +405,7 @@
   word-wrap: break-word;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   INSIGHT CARDS — Explicación + Recomendación (full-width)
-   Mobile: icono arriba (1 col); Tablet+ : icono 56px + 1fr.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .ai-insight-stack {
   display: flex;
   flex-direction: column;
@@ -572,9 +552,7 @@
   padding: 1.25rem 1.375rem; font-size: 0.8125rem; color: var(--text-muted);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   EMAIL INFO (legacy)
-   ══════════════════════════════════════════════════════════════════════ */
+
 .email-info-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
   gap: 0.875rem; padding: 1.125rem 1.25rem;
@@ -586,10 +564,7 @@
 }
 .email-info-item .ei-value { font-size: 0.8125rem; color: var(--text-primary); font-weight: 500; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   ORIGIN FLOW — Atacante → Asunto → Alias → Tu correo
-   Mobile: 1 col. Tablet ≥768: 2 cols. Desktop ≥1024: 4 cols.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .origin-flow {
   display: grid;
   grid-template-columns: 1fr;
@@ -775,7 +750,7 @@
   line-height: 1.4;
 }
 
-/* Legacy: clases que pueden venir de componentes históricos */
+
 .origin-subject-card {
   margin: 0.375rem 1.25rem 1.375rem;
   padding: 1.125rem 1.375rem;
@@ -864,7 +839,7 @@
   padding-left: 1.375rem;
 }
 
-/* Flow arrow legacy: mobile orientation = vertical (rotada 90deg) */
+
 .flow-arrow {
   flex-direction: row;
   justify-content: center;
@@ -877,9 +852,7 @@
   gap: 0.375rem;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   ACTIONS (legacy)
-   ══════════════════════════════════════════════════════════════════════ */
+
 .actions-row { display: flex; gap: 0.625rem; flex-wrap: wrap; margin-top: 0.625rem; }
 .btn-action {
   display: inline-flex; align-items: center; gap: 0.4375rem;
@@ -901,9 +874,7 @@
   box-shadow: 0 0.375rem 1.25rem rgba(232,64,64,0.6);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   PRÓXIMOS PASOS — tarjetas de acción al final del reporte
-   ══════════════════════════════════════════════════════════════════════ */
+
 .next-actions { margin-top: 0.875rem; }
 .next-actions-label {
   font-size: 0.625rem; font-weight: 700;
@@ -1017,9 +988,7 @@
   box-shadow: 0 0.75rem 2rem rgba(232,64,64,0.28);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   FILE FACTS GRID — identificación del archivo
-   ══════════════════════════════════════════════════════════════════════ */
+
 .facts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10.625rem, 1fr));
@@ -1073,9 +1042,7 @@
   border-color: rgba(46,204,113,0.2);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   EVIDENCE LIST
-   ══════════════════════════════════════════════════════════════════════ */
+
 .evidence-empty {
   padding: 1.5rem 1.25rem;
   text-align: center;
@@ -1154,9 +1121,7 @@
   border: 1px solid var(--border-soft);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   IOCs
-   ══════════════════════════════════════════════════════════════════════ */
+
 .ioc-group {
   padding: 0.625rem 1rem;
   border-bottom: 1px solid var(--border-soft);
@@ -1210,9 +1175,7 @@
 .ioc-copy-btn:hover { color: var(--ai-purple-light); border-color: var(--ai-purple-border); }
 .ioc-copy-btn.copied { background: rgba(46,204,113,0.12); color: var(--success); border-color: rgba(46,204,113,0.25); }
 
-/* ══════════════════════════════════════════════════════════════════════
-   YARA MATCHES
-   ══════════════════════════════════════════════════════════════════════ */
+
 .yara-list {
   padding: 0.75rem 1rem;
   display: flex;
@@ -1220,9 +1183,7 @@
   gap: 0.5rem;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   COLAPSABLE — Listas largas con "Ver más / Ver menos"
-   ══════════════════════════════════════════════════════════════════════ */
+
 .collapsible-list { position: relative; gap: 0.375rem; }
 .collapsible-list .collapsible-hidden { display: none; }
 .collapsible-list.expanded .collapsible-hidden {
@@ -1246,8 +1207,7 @@
   border-radius: 0 0 0.75rem 0.75rem;
 }
 
-/* Botón "Ver más" — display:flex (block-level outer) + width fija para
-   evitar problemas de inline-flex en mobile que daban overflow horizontal. */
+
 .collapsible-toggle {
   display: flex;
   width: calc(100% - 2rem);
@@ -1320,9 +1280,7 @@
   letter-spacing: 0.02em;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   ANALYZER CHIPS
-   ══════════════════════════════════════════════════════════════════════ */
+
 .analyzer-chips {
   padding: 0.75rem 1rem;
   display: flex;
@@ -1343,9 +1301,7 @@
 }
 .analyzer-chip svg { width: 0.625rem; height: 0.625rem; color: var(--success); }
 
-/* ══════════════════════════════════════════════════════════════════════
-   BODY-OF-EMAIL ANALYSIS CARD
-   ══════════════════════════════════════════════════════════════════════ */
+
 .body-card-head {
   background: linear-gradient(135deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02));
 }
@@ -1368,9 +1324,7 @@
 .body-summary-title { font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.125rem; }
 .body-summary-sub   { font-size: 0.71875rem; color: var(--text-muted); font-family: var(--mono); }
 
-/* ══════════════════════════════════════════════════════════════════════
-   MULTI-ATTACHMENTS LIST
-   ══════════════════════════════════════════════════════════════════════ */
+
 .att-list { padding: 0.625rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .att-item {
   display: grid;
@@ -1440,11 +1394,7 @@
 .att-pill.warning { background: rgba(245,158,11,0.12);  color: var(--warning); border: 1px solid rgba(245,158,11,0.25); }
 .att-pill.success { background: rgba(46,204,113,0.1);   color: var(--success); border: 1px solid rgba(46,204,113,0.22); }
 
-/* ══════════════════════════════════════════════════════════════════════
-   TABLET — ≥ 768 px
-   AI grids a 2 cols, insight side centrado, origin-flow a 2 cols,
-   action-tile más amplio, status-banner flex en línea.
-   ══════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 768px) {
   .status-banner {
     display: flex;
@@ -1491,12 +1441,7 @@
   .action-tile-sub   { font-size: 0.71875rem; }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   DESKTOP — ≥ 1024 px
-   Score-card en línea con score-info amplio, section-head sin wrap,
-   AI section-header en una sola fila, origin-flow a 4 cols, flow-arrow
-   horizontal, finding-row sin wrap.
-   ══════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
   .score-card {
     padding: var(--sr-score-pad-lg);
@@ -1539,7 +1484,7 @@
 
   .origin-flow { grid-template-columns: repeat(4, 1fr); }
 
-  /* Flow arrow vuelve a horizontal (sin rotación de 90deg) */
+  
   .flow-arrow {
     flex-direction: column;
     transform: none;
@@ -1551,11 +1496,7 @@
 
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   Panel "sin adjunto" — se muestra cuando el correo no trajo adjuntos
-   en lugar de la sección de Identificación del archivo con campos
-   vacíos (mejor UX que mostrar `—` por todos lados).
-   ──────────────────────────────────────────────────────────────────── */
+
 .no-attach-card { padding: 1.25rem 1.125rem; }
 .no-attach-inner {
   display: flex;
@@ -1588,11 +1529,7 @@
   line-height: 1.55;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   Markdown del análisis IA — se aplica al contenido renderizado por
-   _renderMarkdown() en sandbox_report.js. Headers, listas y negritas
-   con un look consistente con el resto del reporte.
-   ════════════════════════════════════════════════════════════════════ */
+
 #ai-expl-el,
 #ai-rec-el {
   font-size: 0.84375rem;
@@ -1617,9 +1554,7 @@
 }
 #ai-expl-el .ai-md-h:first-child { margin-top: 0; }
 
-/* Cada sección/categoría agrupada (sin fondo card — solo separador
-   por su header). Los items de la lista interna sí se acomodan en
-   grid 2 columnas en desktop, ver @media ≥1024px. */
+
 #ai-expl-el .ai-md-section {
   margin: 0 0 1.125rem;
 }
@@ -1631,7 +1566,7 @@
   font-weight: 700;
 }
 
-/* Lista en RECOMENDACION: stack vertical (pasos secuenciales) */
+
 #ai-rec-el .ai-md-list {
   list-style: none;
   margin: 0.375rem 0 0.875rem;
@@ -1640,8 +1575,7 @@
   flex-direction: column;
   gap: 0.5rem;
 }
-/* Lista en EXPLICACION: SIEMPRE 2 columnas (lado a lado).
-   En mobile muy chico (<640px) caería a 1 columna por legibilidad. */
+
 #ai-expl-el .ai-md-list {
   list-style: none;
   margin: 0.375rem 0 0.875rem;
@@ -1652,13 +1586,7 @@
   align-items: start;
 }
 
-/* Si hay un número IMPAR de items Y son AL MENOS 3 (3, 5, 7, ...),
-   el último item se centra:
-       [ 1 ]   [ 2 ]
-           [ 3 ]
-   Si hay 1 solo item se queda en la columna izquierda (sin centrar)
-   gracias al `:not(:first-child)` — un único item ES también el primero.
-   Si hay 2, 4, 6 (par) el `:nth-child(odd)` ya filtra esos casos. */
+
 #ai-expl-el .ai-md-list > li:last-child:nth-child(odd):not(:first-child) {
   grid-column: 1 / -1;
   justify-self: center;
@@ -1670,14 +1598,14 @@
   #ai-expl-el .ai-md-list {
     grid-template-columns: 1fr;
   }
-  /* En 1 columna no aplica el centrado especial — todos full-width */
+  
   #ai-expl-el .ai-md-list > li:last-child:nth-child(odd):not(:first-child) {
     grid-column: auto;
     justify-self: stretch;
     max-width: none;
   }
 }
-/* Estilo común de items en ambas listas */
+
 #ai-expl-el .ai-md-list > li,
 #ai-rec-el .ai-md-list > li {
   position: relative;
@@ -1725,20 +1653,14 @@
   background: rgba(124, 58, 237, 0.4);
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   ANÁLISIS IA — En pantallas ANCHAS (≥1280px) ensanchamos el gap.
-   El grid auto-fit ya hace el trabajo principal (2 cols cuando hay
-   espacio, 1 col cuando no), aquí solo afinamos el espaciado.
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1280px) {
   #ai-expl-el .ai-md-list {
     gap: 0.75rem 1rem;
   }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   OVERRIDES TEMA CARBON — Sandbox reporte
-   ══════════════════════════════════════════════════════════════════════ */
+
 html[data-theme="carbon"] .sbr-hero {
     background: linear-gradient(135deg,
         rgba(255, 79, 122, 0.18) 0%,
@@ -1764,9 +1686,7 @@ html[data-theme="carbon"] .ai-verdict-pill {
     color: var(--accent-hover, #ff6b8e);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   FILE GROUPS — separa evidencia por archivo adjunto
-   ══════════════════════════════════════════════════════════════════════ */
+
 .file-group + .file-group {
   margin-top: 0.75rem;
   padding-top: 0.75rem;

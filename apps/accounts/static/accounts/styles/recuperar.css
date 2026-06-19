@@ -1,15 +1,10 @@
 @import url('properties/recuperar.css');
 
-/* ════════════════════════════════════════════════════════════════════
-   RECUPERAR CONTRASEÑA — Mobile-First Strict
-   Base: 1 columna mobile · ≥768px padding holgado · ≥1024px split 2 cols.
-   ════════════════════════════════════════════════════════════════════ */
+
 
 body { background: var(--bg-base); }
 
-/* ────────────────────────────────────────────────────────────────────
-   WRAPPER
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-wrapper {
     min-height: 100vh;
     min-height: 100dvh;
@@ -30,9 +25,7 @@ body { background: var(--bg-base); }
     pointer-events: none;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   SHELL
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-shell {
     display: grid;
     grid-template-columns: 1fr;
@@ -52,9 +45,7 @@ body { background: var(--bg-base); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   PANEL IZQUIERDO — oculto en mobile, visible en desktop
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-side {
     display: none;
     background: linear-gradient(160deg, #2a2746 0%, #1f1d33 100%);
@@ -90,7 +81,7 @@ body { background: var(--bg-base); }
     margin-top: 0.375rem;
 }
 
-/* ── Help items ── */
+
 .help-list { display: flex; flex-direction: column; gap: 0.625rem; flex: 1; }
 .help-item {
     display: flex;
@@ -122,7 +113,7 @@ body { background: var(--bg-base); }
     margin-bottom: 0.125rem;
 }
 
-/* ── Promise ── */
+
 .side-promise {
     margin-top: auto;
     padding: 0.75rem 0.875rem;
@@ -145,17 +136,14 @@ body { background: var(--bg-base); }
     margin-top: 0.125rem;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   PANEL DERECHO
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-card {
     padding: var(--rc-card-pad-mobile);
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
-/* Logo: mismo tamaño/centrado que login.css para que ambas pantallas
-   compartan el mismo header visual (logo PNG grande, sin texto al lado). */
+
 .login-logo {
     display: flex;
     justify-content: center;
@@ -189,7 +177,7 @@ body { background: var(--bg-base); }
     margin-bottom: 1.5rem;
 }
 
-/* ── Input con ícono ── */
+
 .input-with-icon { position: relative; }
 .input-with-icon > .field-icon {
     position: absolute;
@@ -205,7 +193,7 @@ body { background: var(--bg-base); }
 .input-with-icon input { padding-left: var(--rc-input-pad-left); }
 .input-with-icon:focus-within > .field-icon { color: var(--accent); }
 
-/* ── Botón submit ── */
+
 .btn-submit {
     width: 100%;
     display: inline-flex;
@@ -246,7 +234,7 @@ body { background: var(--bg-base); }
 .btn-submit.loading .spinner { display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Footer ── */
+
 .login-footer {
     text-align: center;
     margin-top: 1.5rem;
@@ -265,9 +253,7 @@ body { background: var(--bg-base); }
 .login-footer a:hover,
 .login-footer a:focus-visible { text-decoration: underline; gap: 0.4375rem; outline: none; }
 
-/* ────────────────────────────────────────────────────────────────────
-   ESTADO DE ÉXITO
-   ──────────────────────────────────────────────────────────────────── */
+
 .success-state {
     text-align: center;
     padding: 0.5rem 0;
@@ -326,9 +312,7 @@ body { background: var(--bg-base); }
     margin-top: 0.125rem;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   ALERTAS PROFESIONALES
-   ──────────────────────────────────────────────────────────────────── */
+
 .form-alert {
     display: flex;
     align-items: flex-start;
@@ -388,9 +372,7 @@ body { background: var(--bg-base); }
 .form-alert.info .form-alert-icon { background: var(--accent); color: #fff; }
 .form-alert.info .form-alert-title { color: var(--accent); }
 
-/* ────────────────────────────────────────────────────────────────────
-   TRUST STRIP
-   ──────────────────────────────────────────────────────────────────── */
+
 .trust-strip {
     display: flex;
     justify-content: center;
@@ -403,16 +385,12 @@ body { background: var(--bg-base); }
 .trust-item { display: inline-flex; align-items: center; gap: 0.3125rem; }
 .trust-item svg { width: 0.75rem; height: 0.75rem; color: var(--success); }
 
-/* ════════════════════════════════════════════════════════════════════
-   TABLET (≥ 768px) — más respiro en el form card
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 768px) {
     .login-card { padding: 2.625rem 2.25rem; }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   DESKTOP (≥ 1024px) — split 2 columnas con panel lateral visible
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
     .login-shell {
         grid-template-columns: 1fr 1fr;

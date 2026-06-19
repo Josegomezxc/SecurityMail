@@ -1,16 +1,8 @@
-/* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — base.css
-   Custom properties GLOBALES del proyecto + paletas por tema (dark,
-   light, carbon). Importado como primera línea de base.css.
 
-   Mobile-first: las dimensiones se expresan en rem (16px = 1rem). Los
-   bordes hairline (1px) permanecen en px porque NO deben escalar con
-   el tamaño de fuente — son detalles de pintura, no de layout.
-   ════════════════════════════════════════════════════════════════════ */
 
 :root,
 html[data-theme="dark"] {
-    /* ── Paleta base ──────────────────────────── */
+    
     --bg-base:       #1c1b29;
     --bg-surface:    #252438;
     --bg-elevated:   #2e2c47;
@@ -34,18 +26,16 @@ html[data-theme="dark"] {
     --border:        rgba(255,255,255,0.07);
     --border-soft:   rgba(255,255,255,0.04);
 
-    /* ── Radios (rem) ─────────────────────────── */
-    --radius-sm:     0.375rem;   /* 6px */
-    --radius-md:     0.625rem;   /* 10px */
-    --radius-lg:     0.875rem;   /* 14px */
-    --radius-xl:     1.25rem;    /* 20px */
+    
+    --radius-sm:     0.375rem;   
+    --radius-md:     0.625rem;   
+    --radius-lg:     0.875rem;   
+    --radius-xl:     1.25rem;    
 
-    /* ── Tipografía ───────────────────────────── */
+    
     --font-sans:     'DM Sans', sans-serif;
     --font-mono:     'DM Mono', monospace;
-    /* Aliases usados por el compose modal y vistas internas. Se definen
-       aquí (no por página) para que las miradas tipográficas sean
-       consistentes en TODAS las vistas. */
+    
     --display:           'Syne', sans-serif;
     --mono:              'JetBrains Mono', monospace;
     --ai-purple:         #7c3aed;
@@ -53,13 +43,13 @@ html[data-theme="dark"] {
     --ai-purple-soft:    rgba(124,58,237,0.08);
     --ai-purple-border:  rgba(124,58,237,0.22);
 
-    /* ── Layout global (rem) ──────────────────── */
-    --ba-sidebar-w:        17.5rem;    /* 280px — drawer móvil/tablet */
-    --ba-sidebar-w-dock:   15.5rem;    /* 248px — sidebar dockeado en desktop */
-    --ba-topbar-h:         3.5rem;     /* 56px — topbar móvil */
-    --ba-topbar-h-dock:    3.75rem;    /* 60px — topbar desktop */
+    
+    --ba-sidebar-w:        17.5rem;    
+    --ba-sidebar-w-dock:   15.5rem;    
+    --ba-topbar-h:         3.5rem;     
+    --ba-topbar-h-dock:    3.75rem;    
 
-    /* z-index stack (escalera coherente) */
+    
     --ba-z-sidebar:        10500;
     --ba-z-backdrop:       10499;
     --ba-z-overlay:        11000;
@@ -67,7 +57,7 @@ html[data-theme="dark"] {
     --ba-z-topbar:         200;
 }
 
-/* ── TEMA CARBON (negro profundo) ─────── */
+
 html[data-theme="carbon"] {
     --bg-base:       #08080f;
     --bg-surface:    #101018;
@@ -86,10 +76,7 @@ html[data-theme="carbon"] {
     --border:        rgba(255,255,255,0.06);
     --border-soft:   rgba(255,255,255,0.03);
 
-    /* "AI purple" en carbon = mismo rosa coral del acento.
-       Muchos módulos usan estas vars en lugar de --accent (chips, pills,
-       links, etc.). Re-mapearlas acá hace que TODO el proyecto cambie a
-       la paleta carbon sin tocar cada CSS individual. */
+    
     --ai-purple:         #ff4f7a;
     --ai-purple-light:   #ff8aa6;
     --ai-purple-soft:    rgba(255,79,122,0.08);

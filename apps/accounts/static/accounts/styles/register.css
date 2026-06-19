@@ -1,17 +1,10 @@
 @import url('properties/register.css');
 
-/* ════════════════════════════════════════════════════════════════════
-   REGISTER — Mobile-First Strict
-   Base: mobile 1 col (panel lateral oculto).
-   ≥768px: respiro extra en card.
-   ≥1024px: split 5fr/7fr con panel lateral visible y checklist en 2 cols.
-   ════════════════════════════════════════════════════════════════════ */
+
 
 body { background: var(--bg-base); }
 
-/* ────────────────────────────────────────────────────────────────────
-   WRAPPER
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-wrapper {
     min-height: 100vh;
     min-height: 100dvh;
@@ -32,9 +25,7 @@ body { background: var(--bg-base); }
     pointer-events: none;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   SHELL
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-shell {
     display: grid;
     grid-template-columns: 1fr;
@@ -54,9 +45,7 @@ body { background: var(--bg-base); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   PANEL IZQUIERDO — oculto en mobile
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-side {
     display: none;
     background: linear-gradient(160deg, #2a2746 0%, #1f1d33 100%);
@@ -92,7 +81,7 @@ body { background: var(--bg-base); }
     margin-top: 0.375rem;
 }
 
-/* ── Stats card ── */
+
 .stats-card {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -119,7 +108,7 @@ body { background: var(--bg-base); }
     letter-spacing: 0.04em;
 }
 
-/* ── Steps ── */
+
 .steps {
     flex: 1;
     display: flex;
@@ -159,7 +148,7 @@ body { background: var(--bg-base); }
     margin-bottom: 0.125rem;
 }
 
-/* ── Guarantees ── */
+
 .guarantees {
     margin-top: auto;
     padding: 1rem 0.875rem;
@@ -194,9 +183,7 @@ body { background: var(--bg-base); }
     flex-shrink: 0;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   PANEL DERECHO (form)
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-card {
     padding: var(--rg-card-pad-mobile);
     display: flex;
@@ -231,7 +218,7 @@ body { background: var(--bg-base); }
     margin-bottom: 1.375rem;
 }
 
-/* ── Inputs con icono ── */
+
 .input-with-icon { position: relative; }
 .input-with-icon > .field-icon {
     position: absolute;
@@ -271,7 +258,7 @@ body { background: var(--bg-base); }
     outline: none;
 }
 
-/* ── Caps warning ── */
+
 .caps-warning {
     display: none;
     align-items: center;
@@ -283,7 +270,7 @@ body { background: var(--bg-base); }
 .caps-warning.show { display: flex; }
 .caps-warning svg { width: 0.75rem; height: 0.75rem; flex-shrink: 0; }
 
-/* ── Strength bar ── */
+
 .strength-wrap { margin-top: 0.5rem; }
 .strength-bar {
     display: flex;
@@ -306,7 +293,7 @@ body { background: var(--bg-base); }
 }
 .strength-label .level { font-weight: 500; }
 
-/* ── Checklist de requisitos ── */
+
 .req-list {
     display: grid;
     grid-template-columns: 1fr;
@@ -331,7 +318,7 @@ body { background: var(--bg-base); }
 .req.ok,
 .req.ok svg { color: var(--success); }
 
-/* ── Errores inline ── */
+
 .field-error {
     display: none;
     align-items: flex-start;
@@ -363,7 +350,7 @@ body { background: var(--bg-base); }
 .field-ok.show { display: flex; }
 .field-ok svg { width: 0.75rem; height: 0.75rem; flex-shrink: 0; }
 
-/* ── Coincidencia de contraseñas ── */
+
 .match-hint {
     display: none;
     align-items: center;
@@ -376,9 +363,7 @@ body { background: var(--bg-base); }
 .match-hint.bad { color: var(--danger); }
 .match-hint svg { width: 0.75rem; height: 0.75rem; flex-shrink: 0; }
 
-/* ────────────────────────────────────────────────────────────────────
-   CONSENTIMIENTOS
-   ──────────────────────────────────────────────────────────────────── */
+
 .consent-box {
     background: rgba(109, 74, 255, 0.05);
     border: 1px solid rgba(109, 74, 255, 0.18);
@@ -481,9 +466,7 @@ body { background: var(--bg-base); }
 .consent-progress.complete { color: var(--success); }
 .consent-progress svg { width: 0.75rem; height: 0.75rem; flex-shrink: 0; }
 
-/* ────────────────────────────────────────────────────────────────────
-   BOTÓN PRINCIPAL
-   ──────────────────────────────────────────────────────────────────── */
+
 .btn-submit {
     width: 100%;
     display: inline-flex;
@@ -524,7 +507,7 @@ body { background: var(--bg-base); }
 .btn-submit.loading .spinner { display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Footer ── */
+
 .login-footer {
     text-align: center;
     margin-top: 1.25rem;
@@ -539,9 +522,7 @@ body { background: var(--bg-base); }
 .login-footer a:hover,
 .login-footer a:focus-visible { text-decoration: underline; outline: none; }
 
-/* ────────────────────────────────────────────────────────────────────
-   ALERTAS PROFESIONALES
-   ──────────────────────────────────────────────────────────────────── */
+
 .form-alert {
     display: flex;
     align-items: flex-start;
@@ -601,7 +582,7 @@ body { background: var(--bg-base); }
 .form-alert.info .form-alert-icon { background: var(--accent); color: #fff; }
 .form-alert.info .form-alert-title { color: var(--accent); }
 
-/* ── Trust strip ── */
+
 .trust-strip {
     display: flex;
     justify-content: center;
@@ -614,9 +595,7 @@ body { background: var(--bg-base); }
 .trust-item { display: inline-flex; align-items: center; gap: 0.3125rem; }
 .trust-item svg { width: 0.75rem; height: 0.75rem; color: var(--success); }
 
-/* ────────────────────────────────────────────────────────────────────
-   MODAL (Términos / Privacidad)
-   ──────────────────────────────────────────────────────────────────── */
+
 .modal-overlay {
     display: none;
     position: fixed;
@@ -738,16 +717,12 @@ body { background: var(--bg-base); }
     margin-top: 0.5rem;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   TABLET (≥ 768px) — más respiro en el form
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 768px) {
     .login-card { padding: 2.25rem 2rem; }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   DESKTOP (≥ 1024px) — split 5fr/7fr + panel lateral + checklist 2 cols
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
     .login-shell {
         grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);

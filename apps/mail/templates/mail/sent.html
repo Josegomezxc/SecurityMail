@@ -13,7 +13,7 @@
 
 {% block body %}
 
-<!-- ── HERO ── -->
+
 <header class="sent-hero">
   <div class="sent-hero-inner">
     <div class="sent-hero-icon">
@@ -39,7 +39,7 @@
   </div>
 </header>
 
-<!-- ── TOOLBAR ── -->
+
 <section class="toolbar" role="search" aria-label="Buscar y componer enviados">
   <div class="search-wrap">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -51,7 +51,7 @@
       oninput="sentSearch(this.value)">
   </div>
 
-  <!-- Botón Alias + selector de alias -->
+  
   <div class="compose-new-wrap">
     <button class="compose-new-btn" id="composeNewBtn"
             {% if not active_aliases %}disabled title="Crea un alias activo primero"{% endif %}
@@ -109,7 +109,7 @@
   </div>
 </section>
 
-<!-- ── FILTROS + VACIAR ── -->
+
 <div class="sent-filters">
   <div class="sent-tabs">
     <button type="button" class="sent-tab-btn active" data-filter="all" onclick="filterSent('all', this)">
@@ -137,7 +137,7 @@
   </button>
 </div>
 
-<!-- ── LISTA DE ENVIADOS ── -->
+
 <section id="sent-list" aria-label="Lista de correos enviados"
          data-next-offset="{{ next_offset }}"
          data-has-more="{{ has_more|yesno:'1,0' }}">
@@ -172,9 +172,9 @@
     <div id="sent-no-results-msg" class="empty-title">Sin resultados</div>
     <div id="sent-no-results-hint" class="empty-sub"></div>
   </div>
-</section>{# /#sent-list #}
+</section>
 
-<!-- ── BOTONES VER MÁS / VER MENOS ── -->
+
 <div class="sent-loadmore-wrap" id="sent-loadmore-wrap"
      data-initial-count="{{ next_offset }}">
   <button type="button" class="sent-loadmore-btn" id="sent-loadmore-btn"

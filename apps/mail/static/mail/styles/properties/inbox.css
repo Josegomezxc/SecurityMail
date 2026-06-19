@@ -1,8 +1,6 @@
-/* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — mail/inbox
-   ════════════════════════════════════════════════════════════════════ */
+
 :root {
-  /* Paleta heredada */
+  
   --ai-purple:        #7c3aed;
   --ai-purple-light:  #a78bfa;
   --ai-purple-soft:   rgba(124,58,237,0.08);
@@ -10,40 +8,40 @@
   --mono:    'JetBrains Mono', monospace;
   --display: 'Syne', sans-serif;
 
-  /* Hero */
-  --ib-hero-radius:    1rem;            /* 16px */
+  
+  --ib-hero-radius:    1rem;            
   --ib-hero-pad:       0.875rem;
   --ib-hero-pad-lg:    1.25rem 1.5rem;
-  --ib-hero-icon:      2.875rem;        /* 46px */
-  --ib-hero-h1:        1.125rem;        /* 18px */
-  --ib-hero-h1-lg:     1.1875rem;       /* 19px */
+  --ib-hero-icon:      2.875rem;        
+  --ib-hero-h1:        1.125rem;        
+  --ib-hero-h1-lg:     1.1875rem;       
 
-  /* Stats hero */
+  
   --ib-stat-radius:    0.625rem;
   --ib-stat-pad:       0.5rem 0.625rem;
   --ib-stat-pad-lg:    0.625rem 1.125rem;
-  --ib-stat-val:       1.25rem;         /* 20px */
-  --ib-stat-val-lg:    1.375rem;        /* 22px */
+  --ib-stat-val:       1.25rem;         
+  --ib-stat-val-lg:    1.375rem;        
 
-  /* Toolbar */
+  
   --ib-tool-radius:    0.75rem;
-  --ib-search-min:     13.75rem;        /* 220px desktop */
+  --ib-search-min:     13.75rem;        
   --ib-clear-radius:   0.75rem;
-  --ib-clear-menu-w:   18.125rem;       /* 290px desktop */
+  --ib-clear-menu-w:   18.125rem;       
 
-  /* Email list card */
-  --ib-list-radius:    0.875rem;        /* 14px */
-  --ib-row-radius:     0.875rem;        /* 14px */
+  
+  --ib-list-radius:    0.875rem;        
+  --ib-row-radius:     0.875rem;        
   --ib-row-pad:        0.875rem;
   --ib-row-pad-lg:     0.875rem 1.125rem;
-  --ib-avatar:         2.375rem;        /* 38px */
+  --ib-avatar:         2.375rem;        
 
-  /* Detail panel */
-  --ib-detail-w-lg:    31.25rem;        /* 500px */
+  
+  --ib-detail-w-lg:    31.25rem;        
   --ib-detail-pad:     1.25rem;
   --ib-field-radius:   0.625rem;
 
-  /* Quick action buttons (mobile) */
+  
   --ib-qact-radius:    0.5rem;
   --ib-qact-pad:       0.5rem 0.75rem;
 }

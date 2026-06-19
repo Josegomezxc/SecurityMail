@@ -1,9 +1,4 @@
-/* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — mail/compose_modal
-   El modal flotante de redacción de correos. Es global (puede aparecer
-   en cualquier vista de mail) y tiene 3 estados visuales:
-   minimizado (widget), normal (corner) y maximizado (casi pantalla).
-   ════════════════════════════════════════════════════════════════════ */
+
 :root {
   --ai-purple:        #7c3aed;
   --ai-purple-light:  #a78bfa;
@@ -12,43 +7,43 @@
   --mono:    'JetBrains Mono', monospace;
   --display: 'Syne', sans-serif;
 
-  /* Modal window */
-  --cm-window-w-lg:    36.25rem;       /* 580px desktop corner */
-  --cm-window-max-lg:  68.75rem;       /* 1100px maximized */
+  
+  --cm-window-w-lg:    36.25rem;       
+  --cm-window-max-lg:  68.75rem;       
   --cm-window-radius:  1rem;
   --cm-window-radius-min: 0.625rem;
   --cm-window-radius-tablet: 0.875rem;
 
-  /* Window — minimizado */
-  --cm-min-w:          20rem;          /* 320px */
+  
+  --cm-min-w:          20rem;          
   --cm-min-radius:     0.625rem;
 
-  /* Editor */
-  --cm-editor-min-h:   13.75rem;       /* 220px */
-  --cm-editor-max-h:   21.25rem;       /* 340px */
+  
+  --cm-editor-min-h:   13.75rem;       
+  --cm-editor-max-h:   21.25rem;       
   --cm-editor-pad:     1.125rem 1.375rem;
 
-  /* Filas (DESDE / PARA / ASUNTO) */
+  
   --cm-row-pad:        0.125rem 1.125rem;
-  --cm-row-min-h:      2.875rem;       /* 46px */
-  --cm-row-label-w:    4rem;           /* 64px */
+  --cm-row-min-h:      2.875rem;       
+  --cm-row-label-w:    4rem;           
 
-  /* Header */
+  
   --cm-head-pad:       0.875rem 1.125rem;
-  --cm-head-shield:    2.25rem;        /* 36px */
+  --cm-head-shield:    2.25rem;        
 
-  /* Send button */
+  
   --cm-send-radius:    0.625rem;
 
-  /* Schedule popover */
-  --cm-sched-pop-min:  18.125rem;      /* 290px */
+  
+  --cm-sched-pop-min:  18.125rem;      
   --cm-sched-pop-radius: 0.875rem;
 
-  /* Custom schedule dialog */
-  --cm-sched-w-mb:     23.75rem;       /* 380px mobile */
-  --cm-sched-w-lg:     37.5rem;        /* 600px desktop */
+  
+  --cm-sched-w-mb:     23.75rem;       
+  --cm-sched-w-lg:     37.5rem;        
   --cm-sched-radius:   1rem;
 
-  /* Suggestion dropdown */
-  --cm-sugg-max-h:     17.5rem;        /* 280px */
+  
+  --cm-sugg-max-h:     17.5rem;        
 }

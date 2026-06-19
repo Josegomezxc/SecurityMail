@@ -7,7 +7,7 @@
   <title>{% block title %}Error{% endblock %} — DockerShield</title>
   <link rel="icon" type="image/png" href="{% static 'core/img/logo.png' %}">
 
-  {# Carga el tema guardado antes de pintar. Solo 'dark' o 'carbon' son válidos. #}
+  
   <script>
     (function () {
       try {
@@ -428,7 +428,7 @@
   <main class="err-card" role="alert" aria-live="assertive">
     <div class="err-card-inner">
 
-      <!-- Top bar: brand + status pill -->
+      
       <div class="err-topbar">
         <div class="err-brand">
           <span class="err-brand-mark" aria-hidden="true">
@@ -445,7 +445,7 @@
         </span>
       </div>
 
-      <!-- Icono grande -->
+      
       <div class="err-icon-wrap">
         <div class="err-icon">
           {% block error_icon %}
@@ -458,7 +458,7 @@
         </div>
       </div>
 
-      <!-- Código grande con efecto glow -->
+      
       <div class="err-code" data-code="{% block error_code_data %}???{% endblock %}">
         {% block error_code %}???{% endblock %}
       </div>
@@ -471,7 +471,7 @@
         {% endblock %}
       </p>
 
-      <!-- Acciones -->
+      
       <div class="err-actions">
         {% block error_actions %}
           <a href="/" class="err-btn err-btn-primary">
@@ -491,7 +491,7 @@
         {% endblock %}
       </div>
 
-      <!-- Footer técnico tipo terminal -->
+      
       <div class="err-footer" aria-hidden="true">
         {% block error_footer %}
           <div class="err-footer-cell">

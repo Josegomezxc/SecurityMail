@@ -1,9 +1,6 @@
 @import url('./properties/notifications.css');
 
-/* ══════════════════════════════════════════════════════════════════════
-   NOTIFICATIONS — Mobile First Strict.
-   Base = móvil (≥320px). Breakpoint único 1024 (desktop).
-   ══════════════════════════════════════════════════════════════════════ */
+
 
 .notif-page { max-width: var(--nf-page-max); }
 .notif-page-header {
@@ -39,12 +36,9 @@
   border-color: rgba(245,158,11,0.3);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   LISTA DE NOTIFICACIONES — frame card + scroll interno.
-   Variables --notif-row-h / --notif-rows controlan la altura visible.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .notif-list-card {
-  --notif-row-h: 6.875rem;   /* mobile: fila alta (wrap) */
+  --notif-row-h: 6.875rem;   
   --notif-rows:  4;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -93,7 +87,7 @@
 .notif-row-icon.t-forwarded       { background: linear-gradient(135deg, #22c55e, #4ade80); box-shadow: 0 0.25rem 0.875rem rgba(46,204,113,0.3); }
 .notif-row-icon.t-threat_alert    { background: linear-gradient(135deg, var(--danger), #f87171); box-shadow: 0 0.25rem 0.875rem rgba(232,64,64,0.3); }
 .notif-row-icon.t-system          { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); }
-/* Override por riesgo del correo asociado (pisa el del tipo) */
+
 .notif-row-icon.r-safe   { background: linear-gradient(135deg, #22c55e, #4ade80); box-shadow: 0 0.25rem 0.875rem rgba(46,204,113,0.3); }
 .notif-row-icon.r-warn   { background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 0.25rem 0.875rem rgba(245,158,11,0.3); }
 .notif-row-icon.r-danger { background: linear-gradient(135deg, var(--danger), #f87171); box-shadow: 0 0.25rem 0.875rem rgba(232,64,64,0.3); }
@@ -141,9 +135,7 @@
   padding: 3.75rem 1.25rem; text-align: center; color: var(--text-muted);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   TOOLBAR (filtros + acciones)
-   ══════════════════════════════════════════════════════════════════════ */
+
 .notif-toolbar {
   display: flex;
   flex-direction: column;
@@ -213,7 +205,7 @@
   color: inherit;
 }
 
-/* Botón "Vaciar" + dropdown */
+
 .notif-actions { width: 100%; }
 .notif-clear-wrap {
   position: relative;
@@ -282,7 +274,7 @@
 .ncm-item-danger .ncm-sub { color: rgba(252,165,165,0.7); }
 .ncm-sep { height: 1px; background: var(--border-soft); margin: 0.25rem 0.5rem; }
 
-/* Estado: oculto por filtro */
+
 .notif-row.filtered-out { display: none !important; }
 .notif-row.removing-out {
   animation: notifRemoveOut 0.3s cubic-bezier(.22,1,.36,1) forwards;
@@ -307,9 +299,7 @@
   font-family: var(--font-mono);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   DESKTOP — ≥ 1024 px
-   ══════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
   .notif-page-header {
     flex-direction: row;
@@ -368,15 +358,13 @@
   }
 
   .notif-list-card {
-    --notif-row-h: 4.875rem;   /* 78px */
+    --notif-row-h: 4.875rem;   
     --notif-rows:  6;
   }
   .notif-list-card::-webkit-scrollbar { width: 0.375rem; }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   VER MÁS / VER MENOS — botones de carga diferida
-   ══════════════════════════════════════════════════════════════════════ */
+
 .notif-loadmore-wrap {
   display: flex;
   justify-content: center;
@@ -427,9 +415,7 @@
 
 @keyframes notif-spin { to { transform: rotate(360deg); } }
 
-/* ══════════════════════════════════════════════════════════════════════
-   OVERRIDES TEMA CARBON — Notificaciones
-   ══════════════════════════════════════════════════════════════════════ */
+
 html[data-theme="carbon"] .notif-row.unread {
     background: rgba(255, 79, 122, 0.04);
     border-left-color: var(--accent, #ff4f7a);

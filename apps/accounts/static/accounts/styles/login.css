@@ -1,18 +1,11 @@
 @import url('properties/login.css');
 
-/* ════════════════════════════════════════════════════════════════════
-   LOGIN — Mobile-First Strict
-   Base: scroll natural mobile, 1 columna.
-   ≥768px: padding más holgado en el card del form.
-   ≥1024px: viewport-locked, split 2 cols con panel lateral visible.
-   ════════════════════════════════════════════════════════════════════ */
+
 
 html, body { height: auto; overflow: auto; }
 body { background: var(--bg-base); }
 
-/* ────────────────────────────────────────────────────────────────────
-   WRAPPER
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-wrapper {
     height: auto;
     min-height: 100vh;
@@ -34,9 +27,7 @@ body { background: var(--bg-base); }
     pointer-events: none;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   SHELL
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-shell {
     display: grid;
     grid-template-columns: 1fr;
@@ -56,9 +47,7 @@ body { background: var(--bg-base); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   PANEL IZQUIERDO (branding + features) — oculto en mobile
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-side {
     display: none;
     background: linear-gradient(160deg, #2a2746 0%, #1f1d33 100%);
@@ -99,7 +88,7 @@ body { background: var(--bg-base); }
     margin-top: 0.375rem;
 }
 
-/* ── Feature list ── */
+
 .feature-list {
     display: flex;
     flex-direction: column;
@@ -148,9 +137,7 @@ body { background: var(--bg-base); }
     gap: 0.375rem;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   PANEL DERECHO (form)
-   ──────────────────────────────────────────────────────────────────── */
+
 .login-card {
     padding: var(--lg-card-pad-mobile);
     display: flex;
@@ -192,7 +179,7 @@ body { background: var(--bg-base); }
     text-align: center;
 }
 
-/* ── Inputs con icono interior ── */
+
 .input-with-icon { position: relative; }
 .input-with-icon > .field-icon {
     position: absolute;
@@ -230,7 +217,7 @@ body { background: var(--bg-base); }
     outline: none;
 }
 
-/* ── Caps lock warning ── */
+
 .caps-warning {
     display: none;
     align-items: center;
@@ -242,7 +229,7 @@ body { background: var(--bg-base); }
 .caps-warning.show { display: flex; }
 .caps-warning svg { width: 0.75rem; height: 0.75rem; flex-shrink: 0; }
 
-/* ── Form row (remember + forgot) ── */
+
 .form-row {
     display: flex;
     align-items: center;
@@ -273,7 +260,7 @@ body { background: var(--bg-base); }
 .forgot-link:hover,
 .forgot-link:focus-visible { text-decoration: underline; outline: none; }
 
-/* ── Botón principal ── */
+
 .btn-login {
     width: 100%;
     display: inline-flex;
@@ -314,7 +301,7 @@ body { background: var(--bg-base); }
 .btn-login.loading .spinner { display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Footer ── */
+
 .login-footer {
     text-align: center;
     margin-top: 0.875rem;
@@ -329,9 +316,7 @@ body { background: var(--bg-base); }
 .login-footer a:hover,
 .login-footer a:focus-visible { text-decoration: underline; outline: none; }
 
-/* ────────────────────────────────────────────────────────────────────
-   ALERTAS (profesionales, reemplazan al .alert global)
-   ──────────────────────────────────────────────────────────────────── */
+
 .form-alert {
     display: flex;
     align-items: flex-start;
@@ -391,7 +376,7 @@ body { background: var(--bg-base); }
 .form-alert.info .form-alert-icon { background: var(--accent); color: #fff; }
 .form-alert.info .form-alert-title { color: var(--accent); }
 
-/* ── Trust strip ── */
+
 .trust-strip {
     display: flex;
     justify-content: center;
@@ -404,16 +389,12 @@ body { background: var(--bg-base); }
 .trust-item { display: inline-flex; align-items: center; gap: 0.3125rem; }
 .trust-item svg { width: 0.75rem; height: 0.75rem; color: var(--success); }
 
-/* ════════════════════════════════════════════════════════════════════
-   TABLET (≥ 768px)
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 768px) {
     .login-card { padding: 2.25rem 2.5rem; }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   DESKTOP (≥ 1024px) — viewport-locked + split 2 cols
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
     html, body { height: 100%; overflow: hidden; }
     .login-wrapper {
@@ -431,20 +412,9 @@ body { background: var(--bg-base); }
     .side-headline { font-size: 1.5rem; }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   LOCK OVERLAY — extiende el modal `.cd-*` (confirmDialog) para mostrar
-   los bloqueos temporal y permanente. NO-DISMISSIBLE: no tiene X, no se
-   cierra al click fuera ni con Escape. Persistente entre reloads via
-   server (ver login_view + session).
 
-   Adds:
-     - Variante `is-warning` con strip y icono ámbar para temp lock.
-     - `.cd-reason`     <pre> con motivos del bloqueo permanente.
-     - `.cd-warning-strip`  banner rojo "Última oportunidad" en temp lock.
-     - `.cd-pill-pending`   pill ámbar cuando ya hay solicitud enviada.
-   ════════════════════════════════════════════════════════════════════ */
 
-/* Variante warning del modal cd-* (para el temp lock) */
+
 .cd-modal.is-warning::before {
     background: linear-gradient(90deg, transparent, #f59e0b, transparent);
 }
@@ -454,9 +424,7 @@ body { background: var(--bg-base); }
     box-shadow: 0 0.375rem 1.125rem rgba(245, 158, 11, 0.35);
 }
 
-/* Caja de motivos del bloqueo permanente (multilínea, pre-formateada).
-   Mantiene los saltos pero con tipografía sans para que se lea bien — el
-   pre se usa solo por la preservación de whitespace. */
+
 .cd-reason {
     margin: 0 1.375rem 0.75rem;
     padding: 0.875rem 1rem;
@@ -475,7 +443,7 @@ body { background: var(--bg-base); }
     z-index: 1;
 }
 
-/* Banner rojo "Última oportunidad" dentro del temp lock */
+
 .cd-warning-strip {
     margin: 0 1.375rem 0.875rem;
     padding: 0.6875rem 0.875rem;
@@ -494,7 +462,7 @@ body { background: var(--bg-base); }
 .cd-warning-strip svg { color: #f87171; flex-shrink: 0; margin-top: 0.0625rem; }
 .cd-warning-strip strong { color: #fff; font-weight: 600; }
 
-/* Pill ámbar cuando la solicitud de recuperación ya está pending */
+
 .cd-pill-pending {
     flex: 1 1 auto;
     display: inline-flex;
@@ -511,15 +479,13 @@ body { background: var(--bg-base); }
 }
 .cd-pill-pending svg { flex-shrink: 0; }
 
-/* Permitir que .cd-btn-confirm / cancel se usen como <a> con look idéntico al <button> */
+
 a.cd-btn-confirm,
 a.cd-btn-cancel {
     text-decoration: none;
 }
 
-/* Botón X de cerrar para las variantes DISMISSIBLE del overlay (flash de
-   "solicitud enviada" y modal de "solicitud pendiente" tras un POST).
-   Cuadrado perfecto, no se deforma con el flex del head. */
+
 .cd-close {
     position: absolute;
     top: 0.75rem;
@@ -556,11 +522,10 @@ a.cd-btn-cancel {
     flex-shrink: 0;
 }
 
-/* Cuando hay X de cerrar, el head necesita padding-right extra para que
-   el título no pase por debajo del botón (overlap en mobile). */
+
 .cd-modal:has(> .cd-close) > .cd-head {
     padding-right: 3.5rem;
 }
 
-/* Bloqueo del scroll detrás del overlay (form invisible/disabled) */
+
 body:has(.lock-overlay) { overflow: hidden; }

@@ -20,7 +20,7 @@
 
 <div class="profile-grid">
 
-  <!-- ── COLUMNA IZQUIERDA ── -->
+  
   <div>
     <section class="profile-avatar-card" aria-labelledby="pf-avatar-name">
 
@@ -196,7 +196,7 @@
     </aside>
   </div>
 
-  <!-- ── COLUMNA DERECHA ── -->
+  
   <div>
 
     <section class="profile-panel" style="animation-delay:60ms" aria-labelledby="panel-info-title">
@@ -305,7 +305,7 @@
               </button>
             </div>
 
-            <!-- Caps Lock warning -->
+            
             <div class="caps-warning" id="capsWarning" role="status" aria-live="polite">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -315,7 +315,7 @@
               Bloq Mayús está activado
             </div>
 
-            <!-- Barra de fortaleza (4 segmentos) -->
+            
             <div class="strength-wrap" aria-live="polite">
               <div class="strength-bar" id="strengthBar" role="presentation">
                 <span></span><span></span><span></span><span></span>
@@ -326,7 +326,7 @@
               </div>
             </div>
 
-            <!-- Requisitos -->
+            
             <ul class="req-list" id="reqList" aria-label="Requisitos de la contraseña">
               <li class="req" data-req="len">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -386,7 +386,7 @@
   </div>
 </div>
 
-<!-- ══ Fila inferior: Notificaciones + Zona de peligro ══ -->
+
 <div class="profile-bottom-row">
 
   <section class="profile-panel" style="animation-delay:140ms" aria-labelledby="panel-notif-title">
@@ -485,7 +485,7 @@
 
 </div>
 
-<!-- ══ Modal "Eliminar cuenta" ══ -->
+
 <div id="deleteAccountOverlay" class="da-overlay" aria-hidden="true">
   <div class="da-modal" role="dialog" aria-modal="true" aria-labelledby="da-title">
     <header class="da-head">
@@ -522,7 +522,7 @@
       </div>
     </dl>
 
-    <!-- ── PASO 1: password + ELIMINAR ── -->
+    
     <form id="deleteAccountForm" class="da-form" autocomplete="off">
       {% csrf_token %}
 
@@ -559,7 +559,7 @@
       </div>
     </form>
 
-    <!-- ── PASO 2: código de 6 dígitos ── (oculto al inicio) -->
+    
     <form id="deleteAccountCodeForm" class="da-form" autocomplete="off" style="display:none">
       {% csrf_token %}
 
@@ -595,7 +595,7 @@
   </div>
 </div>
 
-<!-- ══ Modal de previsualización del avatar ══ -->
+
 {% if user.profile.has_avatar %}
 <div id="avatarPreviewOverlay" onclick="closeAvatarPreview()" role="dialog" aria-modal="true" aria-label="Vista previa de la foto de perfil">
   <div class="avatar-preview-modal" onclick="event.stopPropagation()">

@@ -1,6 +1,4 @@
-/* ════════════════════════════════════════════════════════════════════
-   PROPERTIES — admin_dashboard
-   ════════════════════════════════════════════════════════════════════ */
+
 :root {
     --adm-orange:        #f59e0b;
     --adm-orange-soft:   rgba(245, 158, 11, 0.1);
@@ -8,7 +6,7 @@
     --mono:              'JetBrains Mono', monospace;
     --display:           'Syne', sans-serif;
 
-    /* Hero */
+    
     --ad-hero-radius:        1.125rem;
     --ad-hero-pad-mobile:    1rem 0.875rem;
     --ad-hero-pad-desk:      1.375rem 1.625rem;
@@ -16,32 +14,32 @@
     --ad-h1-mobile:          1.125rem;
     --ad-h1-desk:            1.25rem;
 
-    /* Stats */
+    
     --ad-stat-radius:        1rem;
     --ad-stat-pad:           1.25rem 1.375rem;
     --ad-stat-value-font:    2.75rem;
     --ad-stat-icon-size:     1.625rem;
 
-    /* Panels */
+    
     --ad-panel-radius:       1rem;
     --ad-panel-head-pad:     1rem 1.25rem;
 
-    /* Risk dist + donut */
-    --ad-donut-size:         6.875rem;     /* 110px */
-    --ad-donut-inner-size:   4.875rem;     /* 78px */
+    
+    --ad-donut-size:         6.875rem;     
+    --ad-donut-inner-size:   4.875rem;     
 
-    /* Activity chart */
-    --ad-chart-h:            12.5rem;      /* 200px */
+    
+    --ad-chart-h:            12.5rem;      
 
-    /* Top users */
-    --ad-tu-avatar-size:     2.125rem;     /* 34px */
+    
+    --ad-tu-avatar-size:     2.125rem;     
 
-    /* Threat items */
+    
     --ad-thi-icon-size:      2.125rem;
 
-    /* Health cells */
+    
     --ad-health-icon-size:   2.25rem;
 
-    /* Attacker rank */
+    
     --ad-rank-size:          1.75rem;
 }

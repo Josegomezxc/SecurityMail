@@ -11,7 +11,7 @@
 
 {% block body %}
 
-<!-- HERO -->
+
 <header class="adm-hero-th">
   <div class="adm-hero-th-icon" aria-hidden="true">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -43,7 +43,7 @@
   </dl>
 </header>
 
-<!-- Toolbar -->
+
 <form method="get" class="th-toolbar" role="search" aria-label="Buscar y filtrar amenazas" id="th-search-form">
   <div class="th-search">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -74,7 +74,7 @@
   </nav>
 </form>
 
-<!-- Tabla -->
+
 <section class="th-table-wrap" aria-label="Lista de amenazas detectadas">
   <div class="th-row head" role="presentation">
     <div style="text-align:center">Score</div>
@@ -120,34 +120,6 @@
 
 {% include 'core/_pagination.html' with page_obj=page_obj qs_params=qs_params %}
 
-<script>
-/* Búsqueda server-side con debounce 350ms (mismo patrón que bandeja/sandbox). */
-(function () {
-  const form  = document.getElementById('th-search-form');
-  const input = document.getElementById('threatsSearchInput');
-  if (!form || !input) return;
-
-  let timer = null;
-  function go() {
-    const q = input.value.trim();
-    const url = new URL(window.location.href);
-    if (q) url.searchParams.set('q', q);
-    else   url.searchParams.delete('q');
-    url.searchParams.delete('page');
-    if (url.toString() !== window.location.href) {
-      window.location.href = url.toString();
-    }
-  }
-  input.addEventListener('input', function () {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(go, 350);
-  });
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (timer) clearTimeout(timer);
-    go();
-  });
-})();
-</script>
+<script src="{% static 'core/js/admin_threats.js' %}?v={% if debug %}{% now 'U' %}{% else %}1{% endif %}"></script>
 
 {% endblock %}

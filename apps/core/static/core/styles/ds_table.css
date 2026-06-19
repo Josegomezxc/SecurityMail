@@ -1,10 +1,6 @@
-/* ══════════════════════════════════════════════════════════════════════
-   DS_TABLE — Tabla compacta + paginación compartida.
-   Se importa desde los CSS de cada módulo (mail, aliases, sandbox, etc.)
-   que necesite listar registros paginados server-side.
-   ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Wrapper de la tabla ────────────────────────────────────────────── */
+
+
 .ds-table-wrap {
     background: var(--bg-surface);
     border: 1px solid var(--border);
@@ -22,12 +18,10 @@
     -webkit-overflow-scrolling: touch;
 }
 
-/* ── Tabla ──────────────────────────────────────────────────────────── */
+
 .ds-table {
     width: 100%;
-    /* fixed → respeta los widths de <colgroup>/<th> sin reasignar al
-       contenido. Es lo que evita que un asunto largo "estire" su columna
-       y empuje las otras (lo que se veía como tabla deforme). */
+    
     table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.8125rem;
@@ -92,13 +86,11 @@
     text-overflow: ellipsis;
 }
 
-/* Columna que puede crecer y envolver texto (la principal — asunto, etc.) */
+
 .ds-table td.ds-td-grow,
 .ds-table th.ds-td-grow {
     white-space: nowrap;
-    /* Si queremos truncado en una línea: con table-layout:fixed y width
-       en el <col> esta celda respeta su slot y aplica ellipsis sin
-       desbordarse. */
+    
 }
 
 .ds-table td.ds-td-actions,
@@ -108,7 +100,7 @@
     overflow: visible;
 }
 
-/* Acciones inline (varios botones en línea) */
+
 .ds-table .ds-actions-inline {
     display: inline-flex;
     align-items: center;
@@ -116,21 +108,19 @@
     justify-content: flex-end;
 }
 
-/* Para celdas estrechas que solo contienen un icono/avatar centrado.
-   Aplica tanto a <th> como a <td>. */
+
 .ds-table td.ds-td-center,
 .ds-table th.ds-td-center {
     text-align: center;
 }
 
-/* Variante: centrado SIN reducir el padding (para columnas normales que
-   solo queremos centradas, no compactas). */
+
 .ds-table td.ds-td-mid,
 .ds-table th.ds-td-mid {
     text-align: center;
 }
 
-/* Fila "vacío" cuando no hay datos */
+
 .ds-table tbody tr.ds-empty-row {
     cursor: default;
 }
@@ -144,7 +134,7 @@
     font-style: italic;
 }
 
-/* ── Mini badges / pills dentro de celdas ────────────────────────────── */
+
 .ds-cell-mono {
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -166,7 +156,7 @@
     font-weight: 600;
 }
 
-/* Punto de "no leído" */
+
 .ds-dot {
     display: inline-block;
     width: 0.5rem;
@@ -177,7 +167,7 @@
     flex-shrink: 0;
 }
 
-/* Avatar pequeñito */
+
 .ds-mini-avatar {
     width: 1.625rem;
     height: 1.625rem;
@@ -194,7 +184,7 @@
     flex-shrink: 0;
 }
 
-/* Badges / pills */
+
 .ds-pill {
     display: inline-flex;
     align-items: center;
@@ -245,7 +235,7 @@
     border: 1px solid rgba(109, 74, 255, 0.3);
 }
 
-/* Botón mini de acción dentro de la fila */
+
 .ds-row-btn {
     background: transparent;
     border: 1px solid var(--border);
@@ -288,9 +278,7 @@
     pointer-events: none;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   PAGINACIÓN
-   ══════════════════════════════════════════════════════════════════════ */
+
 .ds-pagination {
     display: flex;
     align-items: center;
@@ -369,9 +357,7 @@
     font-size: 0.875rem;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   FORM DE FILTROS / BÚSQUEDA SERVER-SIDE
-   ══════════════════════════════════════════════════════════════════════ */
+
 .ds-filterbar {
     display: flex;
     flex-wrap: wrap;
@@ -411,7 +397,7 @@
     background: var(--bg-elevated);
 }
 
-/* Ocultar la "X" nativa del input[type=search] — solo usamos la custom */
+
 .ds-filterbar-search input[type="search"]::-webkit-search-cancel-button,
 .ds-filterbar-search input[type="search"]::-webkit-search-decoration {
     -webkit-appearance: none;
@@ -450,26 +436,24 @@
     padding: 0.1875rem;
 }
 
-/* Mobile: tabs en UNA SOLA fila con scroll horizontal en lugar de
-   agruparse en varias filas (queda más limpio y se nota mejor que
-   son tabs). */
+
 @media (max-width: 720px) {
     .ds-filterbar-tabs {
         flex-wrap: nowrap;
         overflow-x: auto;
         overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;       /* Firefox */
-        width: 100%;                 /* fila propia: search arriba, tabs aquí */
+        scrollbar-width: none;       
+        width: 100%;                 
         min-width: 0;
     }
     .ds-filterbar-tabs::-webkit-scrollbar {
-        display: none;               /* Chrome/Safari */
+        display: none;               
     }
     .ds-filterbar-tab {
-        flex-shrink: 0;              /* tabs nunca se comprimen */
+        flex-shrink: 0;              
     }
-    /* La búsqueda toma su fila completa */
+    
     .ds-filterbar-search {
         flex: 1 1 100%;
     }
@@ -519,7 +503,7 @@
     color: var(--ai-purple-light, #a78bfa);
 }
 
-/* Responsive */
+
 @media (max-width: 640px) {
     .ds-pagination {
         flex-direction: column;
@@ -536,13 +520,7 @@
     }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   OVERRIDES TEMA CARBON
-   Cambia los morados hardcoded (filas unread, focus rings, pills, etc.)
-   por los rosas/corales del tema carbon. Este archivo es compartido por
-   TODOS los módulos que usan .ds-table — así con un solo override aquí
-   afectamos bandeja, enviados, sandbox, alias requests, etc.
-   ══════════════════════════════════════════════════════════════════════ */
+
 html[data-theme="carbon"] .ds-table tbody tr.unread {
     background: rgba(255, 79, 122, 0.04);
 }

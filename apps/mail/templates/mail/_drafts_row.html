@@ -1,7 +1,4 @@
-{% comment %}
-Una fila .dr-row — partial reusable.
-Se espera `d` (Draft) en el contexto.
-{% endcomment %}
+
 <article class="dr-row" id="draft-row-{{ d.id }}"
      data-has-recipient="{% if d.to_email %}1{% else %}0{% endif %}"
      data-scheduled="{% if d.scheduled_at %}1{% else %}0{% endif %}"

@@ -11,7 +11,7 @@
 
 {% block body %}
 
-<!-- ── HERO ── -->
+
 <header class="alias-hero">
   <div class="alias-hero-inner">
     <div class="alias-hero-icon" aria-hidden="true">
@@ -43,15 +43,15 @@
   </div>
 </header>
 
-<!-- ── MESSAGES ── (manejado por toast en base.html) -->
 
 
-<!-- ── CREATE CARD ── -->
+
+
 <section class="create-card-v2" aria-labelledby="ccv2-title">
   <div class="ccv2-glow" aria-hidden="true"></div>
 
   <div class="ccv2-grid">
-    <!-- Lado izquierdo: copy + botón -->
+    
     <div class="ccv2-left">
       <div class="ccv2-eyebrow">
         <span class="ccv2-eyebrow-dot" aria-hidden="true"></span>
@@ -124,7 +124,7 @@
       </form>
     </div>
 
-    <!-- Lado derecho: preview visual -->
+    
     <aside class="ccv2-right" aria-label="Ejemplo de alias generado">
       <div class="ccv2-preview-label">EJEMPLO</div>
       <div class="ccv2-preview-card">
@@ -157,7 +157,7 @@
   </div>
 </section>
 
-<!-- ── TOOLBAR ── -->
+
 <section class="alias-toolbar" role="search" aria-label="Buscar y filtrar alias">
   <div class="alias-search-wrap">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -191,7 +191,7 @@
   </div>
 </section>
 
-<!-- ── LIST HEADER ── -->
+
 <header class="list-hdr">
   <h2 class="list-hdr-title">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -204,7 +204,7 @@
   <span class="list-hdr-count">{{ aliases|length }} total</span>
 </header>
 
-<!-- ── LISTA DE ALIAS ── -->
+
 <section id="alias-list" aria-label="Lista de alias"
          data-next-offset="{{ next_offset }}"
          data-has-more="{{ has_more|yesno:'1,0' }}">
@@ -267,7 +267,7 @@
 
 </section>
 
-<!-- ── BOTONES VER MÁS / VER MENOS ── -->
+
 <div class="alias-loadmore-wrap" id="alias-loadmore-wrap"
      data-initial-count="{{ next_offset }}">
   <button type="button" class="alias-loadmore-btn" id="alias-loadmore-btn"
@@ -294,7 +294,7 @@
 </div>
 
 {% if not is_unlimited %}
-<!-- ══ MODAL: Solicitar más cupo ══ -->
+
 <div class="aliasreq-overlay" id="aliasReqOverlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="aliasReqTitle"
      data-current-quota="{{ alias_limit }}">
   <div class="aliasreq-modal" id="aliasReqModal">

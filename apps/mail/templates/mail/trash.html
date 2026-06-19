@@ -11,7 +11,7 @@
 
 {% block body %}
 
-<!-- ── HERO ── -->
+
 <header class="trash-hero">
   <div class="trash-hero-inner">
     <div class="trash-hero-icon">
@@ -39,7 +39,7 @@
   </div>
 </header>
 
-<!-- ── BANNER ── -->
+
 {% if total_trash %}
 <aside class="retention-banner" role="note">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -47,7 +47,7 @@
 </aside>
 {% endif %}
 
-<!-- ── TABS + VACIAR ── -->
+
 <section class="toolbar" aria-label="Filtros y acciones de papelera">
   <div class="tabs">
     <button class="tab-btn active" data-tab="all" onclick="switchTab('all')">
@@ -76,9 +76,7 @@
   </button>
 </section>
 
-<!-- ── LISTA UNIFICADA: una sola lista ordenada por deleted_at desc.
-     Cada fila lleva data-kind (inbound|outbound|draft) y el JS filtra
-     por ese atributo cuando se cambia de pestaña. ── -->
+
 <section id="trash-list" aria-label="Lista de correos en papelera"
          data-next-offset="{{ next_offset }}"
          data-has-more="{{ has_more|yesno:'1,0' }}">
@@ -86,7 +84,7 @@
     {% include 'mail/_trash_row.html' with it=it %}
   {% endfor %}
 
-  {# Empty-states: uno por pestaña, el JS muestra el que corresponde. #}
+  
   <div class="empty-state" id="empty-all" {% if total_trash %}style="display:none"{% endif %}>
     <div class="empty-icon-wrap">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(232,64,64,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -126,7 +124,7 @@
   </div>
 </section>
 
-<!-- ── BOTONES VER MÁS / VER MENOS ── -->
+
 <div class="trash-loadmore-wrap" id="trash-loadmore-wrap"
      data-initial-count="{{ next_offset }}">
   <button type="button" class="trash-loadmore-btn" id="trash-loadmore-btn"

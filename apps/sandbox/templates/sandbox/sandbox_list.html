@@ -13,7 +13,7 @@
 
 {% block body %}
 
-<!-- ── HERO ── -->
+
 <header class="sb-hero">
   <div class="sb-hero-inner">
     <div class="sb-hero-icon">
@@ -32,7 +32,7 @@
   </div>
 </header>
 
-<!-- ── HOW IT WORKS ── -->
+
 <section class="how-section" aria-labelledby="how-title">
   <h2 class="how-title" id="how-title">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -70,7 +70,7 @@
   </ol>
 </section>
 
-<!-- ── STATS ── -->
+
 <section class="stats-grid" aria-label="Estadísticas de análisis">
   <article class="stat-card total">
     <svg class="stat-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ai-purple-light)" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -94,7 +94,7 @@
   </article>
 </section>
 
-<!-- ── TOOLBAR: búsqueda + filtros server-side ── -->
+
 <section class="ds-filterbar" role="search" aria-label="Buscar y filtrar análisis">
   <form method="get" action="" class="ds-filterbar-search {% if q %}has-value{% endif %}" id="search-form">
     <svg class="lupa" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -142,7 +142,7 @@
   </div>
 </section>
 
-<!-- ── TABLA DE ANÁLISIS ── -->
+
 <div class="ds-table-wrap" id="sandbox-list" aria-label="Lista de análisis">
   <div class="ds-table-scroll">
     <table class="ds-table sandbox-table" id="sandbox-table">
@@ -178,7 +178,7 @@
               data-threat="{{ analysis.threat_name|lower }}"
               onclick="window.location='{% url 'sandbox_report' analysis.pk %}'">
 
-            <!-- Score ring compacto -->
+            
             <td class="ds-td-center">
               <div class="sb-score-ring">
                 <svg width="40" height="40" viewBox="0 0 52 52" aria-hidden="true">

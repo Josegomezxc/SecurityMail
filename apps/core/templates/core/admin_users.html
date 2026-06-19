@@ -19,7 +19,7 @@
   </div>
 </header>
 
-<!-- ── Toolbar: buscador a la izquierda + filtros a la derecha ── -->
+
 <div class="users-toolbar">
   <form method="get" action="" class="search-bar" role="search" id="adm-users-search-form">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -154,70 +154,6 @@
   {% include 'core/_pagination.html' with page_obj=page_obj qs_params=qs_params %}
 </div>
 
-<script>
-/* Búsqueda con debounce 350ms: a cada keystroke reinicia el timer y al
-   soltar navega a la URL con el nuevo ?q=. Preserva role= y resetea
-   ?page= (siempre vuelve a la página 1 cuando cambia la query). */
-(function () {
-  const form  = document.getElementById('adm-users-search-form');
-  const input = document.getElementById('userSearch');
-  if (!form || !input) return;
-
-  let timer = null;
-  function go() {
-    const q = input.value.trim();
-    const url = new URL(window.location.href);
-    if (q) url.searchParams.set('q', q);
-    else   url.searchParams.delete('q');
-    url.searchParams.delete('page');
-    if (url.toString() !== window.location.href) {
-      window.location.href = url.toString();
-    }
-  }
-  input.addEventListener('input', function () {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(go, 350);
-  });
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (timer) clearTimeout(timer);
-    go();
-  });
-})();
-</script>
-
-<script>
-/* ConfirmDialog personalizado para promover/degradar administradores.
-   Reemplaza el window.confirm() nativo por el cd-modal is-danger. */
-function confirmStaffToggle(ev, btn) {
-  ev.preventDefault();
-  var form  = btn.closest('form');
-  var email = btn.dataset.userEmail || 'este usuario';
-  var isDemote = btn.classList.contains('demote');
-  var title    = isDemote ? 'Degradar usuario' : 'Promover a administrador';
-  var action   = isDemote ? 'quitar permisos de administrador' : 'hacer administrador';
-
-  if (window.confirmDialog) {
-    window.confirmDialog({
-      danger:      true,
-      icon:        'warning',
-      title:       title,
-      message:     '¿' + action + ' a ' + email + '?',
-      confirmText: isDemote ? 'Sí, degradar' : 'Sí, promover',
-      cancelText:  'Cancelar',
-    }).then(function (ok) {
-      if (ok) {
-        window.dsShowLoader();
-        form.submit();
-      }
-    });
-  } else {
-    if (confirm('¿' + action + ' a ' + email + '?')) {
-      form.submit();
-    }
-  }
-  return false;
-}
-</script>
+<script src="{% static 'core/js/admin_users.js' %}?v={% if debug %}{% now 'U' %}{% else %}1{% endif %}"></script>
 
 {% endblock %}

@@ -1,17 +1,8 @@
 @import url('properties/admin_dashboard.css');
 
-/* ══════════════════════════════════════════════════════════════════════
-   ADMIN DASHBOARD — Redesign v3
-   Reusa los estilos de mail/dashboard.css (importado en el template).
-   Añade solo lo específico del admin: card de desglose de usuarios
-   (donut + lista) y la lista de top users.
-   ══════════════════════════════════════════════════════════════════════ */
 
-/* ══════════════════════════════════════════════════════════════════════
-   CARD: USUARIOS REGISTRADOS — donut con desglose
-   Layout: a desktop el donut va a la izquierda y la lista a la derecha;
-   en mobile se apilan (donut arriba, lista abajo).
-   ══════════════════════════════════════════════════════════════════════ */
+
+
 .dash-row--users {
     grid-template-columns: 1fr;
 }
@@ -29,7 +20,7 @@
     .dash-users-body { grid-template-columns: 1fr; gap: 1.25rem; }
 }
 
-/* Donut chart wrapper con número total en el centro */
+
 .dash-users-chart-wrap {
     position: relative;
     width: 100%;
@@ -69,7 +60,7 @@
     margin-top: 0.375rem;
 }
 
-/* Lista de desglose por tipo de usuario */
+
 .dash-users-breakdown {
     list-style: none;
     margin: 0;
@@ -122,9 +113,7 @@
     flex-shrink: 0;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   TOP USERS LIST (admin)
-   ══════════════════════════════════════════════════════════════════════ */
+
 .adm-user-list {
     list-style: none;
     margin: 0;
@@ -183,11 +172,7 @@
 }
 .adm-user-link:hover { color: var(--ai-purple-light, #a78bfa); background: rgba(124, 58, 237, 0.08); }
 
-/* ══════════════════════════════════════════════════════════════════════
-   OVERRIDES TEMA CARBON
-   Pisamos los morados hardcoded por el rosa del tema carbon
-   (--accent = #ff4f7a).
-   ══════════════════════════════════════════════════════════════════════ */
+
 html[data-theme="carbon"] .dash-users-dot--active {
     background: var(--accent-hover, #ff6b8e);
 }

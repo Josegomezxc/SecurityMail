@@ -1,9 +1,7 @@
-# Secretos — NUNCA subir a git
 .env
 *.env.local
 *.env.production
 
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -13,13 +11,11 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Entornos virtuales
 venv/
 ent_email/
 env/
 .venv/
 
-# Django
 *.log
 db.sqlite3
 db.sqlite3-journal
@@ -27,7 +23,6 @@ media/
 staticfiles/
 local_settings.py
 
-# IDE / editor
 .vscode/
 .idea/
 .claude/
@@ -37,5 +32,4 @@ local_settings.py
 Thumbs.db
 CLAUDE.md
 
-# Migraciones de desarrollo local (si prefieres no versionarlas)
-# app/migrations/0*.py
+

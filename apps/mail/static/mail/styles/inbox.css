@@ -1,9 +1,6 @@
 @import url('./properties/inbox.css');
 
-/* ══════════════════════════════════════════════════════════════════════
-   INBOX — Mobile First Strict.
-   Base = móvil (≥320px). Breakpoints normalizados a 768 y 1024.
-   ══════════════════════════════════════════════════════════════════════ */
+
 
 @keyframes fadeUp     { from { opacity: 0; transform: translateY(0.75rem); } to { opacity: 1; transform: translateY(0); } }
 @keyframes shimmer    { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
@@ -22,11 +19,7 @@
   to   { opacity: 1; transform: translateY(0); max-height: 12.5rem; margin-top: 0.375rem; }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   HERO
-   Mobile: grid 2 cols (icono + texto), stats baja a fila propia.
-   Desktop: grid 3 cols (icono + texto + stats a la derecha).
-   ══════════════════════════════════════════════════════════════════════ */
+
 .inbox-hero {
   background: var(--bg-surface);
   border: 1px solid var(--ai-purple-border);
@@ -83,7 +76,7 @@
   -webkit-text-fill-color: var(--ai-purple-light);
 }
 
-/* Stats */
+
 .inbox-stats {
   display: flex;
   gap: 0.5rem;
@@ -119,11 +112,7 @@
   font-family: var(--mono);
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   TOOLBAR — search/filtros + Vaciar
-   Mobile: stack vertical, search con scroll horizontal interno.
-   Desktop: una fila con search-wrap flex-1 y Vaciar a la derecha.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .toolbar {
   display: flex;
   flex-direction: column;
@@ -136,7 +125,7 @@
   z-index: 1;
 }
 
-/* Botón Vaciar (mobile: full-width) */
+
 .inbox-clear-wrap {
   position: relative;
   flex-shrink: 0;
@@ -218,7 +207,7 @@
   overflow: hidden;
 }
 
-/* Search bar con filtros integrados. Mobile: scroll horizontal interno. */
+
 .search-wrap {
   display: flex;
   align-items: center;
@@ -323,12 +312,9 @@
 .search-clear:hover { background: rgba(232,64,64,0.15); color: var(--danger); }
 .search-clear.visible { display: flex; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   LISTA DE CORREOS — frame card con scroll interno
-   Variables --inbox-row-h y --inbox-rows controlan altura visible.
-   ══════════════════════════════════════════════════════════════════════ */
+
 #email-list {
-  --inbox-row-h: 10.9375rem;   /* mobile: fila alta con wrap + 3 botones */
+  --inbox-row-h: 10.9375rem;   
   --inbox-rows:  4;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -362,11 +348,7 @@
 
 #email-list > .date-divider:first-child { margin-top: 0.25rem; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   EMAIL ROW
-   Mobile: wrap con botones de acción al final.
-   Desktop: una sola fila con botones absolutos a la derecha.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .email-row {
   display: flex;
   align-items: flex-start;
@@ -404,7 +386,7 @@
 .email-row.unread::before { background: var(--ai-purple); opacity: 1; }
 .email-row.threat::before { background: var(--danger); opacity: 1; }
 
-/* Chevron decorativo: oculto en móvil, visible en desktop */
+
 .email-row > svg { display: none; }
 
 .unread-dot {
@@ -558,7 +540,7 @@
 
 mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-radius: 2px; padding: 0 1px; }
 
-/* ── ESTADO VACÍO / SIN RESULTADOS ──────────────────────────────────── */
+
 .empty-state {
   text-align: center;
   padding: 4.5rem 1.25rem;
@@ -577,10 +559,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
 
 #no-results { display: none; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   OVERLAY + PANEL DE DETALLE
-   Mobile: full-viewport. Desktop: lateral 500px.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .overlay {
   display: none;
   position: fixed; inset: 0;
@@ -649,11 +628,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
   white-space: nowrap;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   BOTONES DE ACCIÓN POR FILA
-   Mobile: flow normal, apilados al final del card de la fila.
-   Desktop: position:absolute a la derecha.
-   ══════════════════════════════════════════════════════════════════════ */
+
 .quick-reply {
   display: inline-flex;
   align-items: center;
@@ -744,9 +719,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
 }
 .quick-trash svg { width: 0.6875rem; height: 0.6875rem; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   PANEL DE DETALLE (cuerpo)
-   ══════════════════════════════════════════════════════════════════════ */
+
 .detail-body { padding: var(--ib-detail-pad); }
 .detail-section { margin-bottom: 1.125rem; }
 .detail-section-title {
@@ -868,7 +841,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
   overflow-y: auto;
 }
 
-/* ── Bloqueo visual de adjuntos (UX educativo: nunca se descargan) ── */
+
 .blocked-asset {
   position: relative;
   cursor: not-allowed !important;
@@ -941,7 +914,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
   background: linear-gradient(90deg, rgba(124,58,237,0.08), transparent 50%);
 }
 
-/* Separadores de fecha (Hoy / Ayer / Esta semana / Anteriores) */
+
 .date-divider {
   display: flex;
   align-items: center;
@@ -972,11 +945,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
 
 .email-row { position: relative; }
 
-/* ══════════════════════════════════════════════════════════════════════
-   DESKTOP — ≥ 1024 px
-   Restaura layout horizontal: hero en 3 cols, toolbar en fila, filas
-   en una sola línea con quick-* absolutos, panel detail lateral 500px.
-   ══════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
   .inbox-hero { padding: var(--ib-hero-pad-lg); }
   .inbox-hero-inner {
@@ -1076,7 +1045,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
   }
   .email-meta { gap: 0.375rem; }
 
-  /* Quick-* botones: position:absolute con animaciones */
+  
   .quick-reply {
     position: absolute;
     right: 15rem;
@@ -1125,7 +1094,7 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
   }
   .quick-trash:active { transform: translateY(-50%) scale(0.96); }
 
-  /* Si no hay reporte, "Responder" se desplaza a la derecha */
+  
   .email-row:not(:has(.quick-report)) .quick-reply { right: 9.25rem; }
 
   .detail-panel {
@@ -1141,21 +1110,16 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
   }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   TABLA DE BANDEJA — comportamiento responsive.
-   Los anchos base están inline en cada <col> dentro del template; aquí
-   solo ajustamos qué columnas se ocultan en cada breakpoint.
-   ══════════════════════════════════════════════════════════════════════ */
 
-/* Tablet: ocultamos "Alias" (col 5) */
+
+
 @media (max-width: 1024px) {
   .inbox-table col.col-alias,
   .inbox-table th:nth-child(5),
   .inbox-table td:nth-child(5) { display: none; }
 }
 
-/* Mobile: ocultamos "De" (3) y "Recibido" (7).
-   Quedan: dot · avatar · asunto · riesgo · acciones. */
+
 @media (max-width: 720px) {
   .inbox-table col.col-from,
   .inbox-table col.col-time,
@@ -1164,27 +1128,22 @@ mark { background: rgba(124,58,237,0.25); color: var(--ai-purple-light); border-
   .inbox-table th:nth-child(7),
   .inbox-table td:nth-child(7) { display: none; }
 
-  /* Sin scroll horizontal en mobile */
+  
   .ds-table.inbox-table { min-width: 0; }
 
-  /* Stats compactos para que no aprieten al hero en mobile */
+  
   .ds-table.inbox-table thead th,
   .ds-table.inbox-table td { padding: 0.5rem 0.5rem; }
 }
 
-/* Pantallas muy estrechas (≤420px): ocultamos también "Riesgo" para
-   dejar respiración al asunto */
+
 @media (max-width: 420px) {
   .inbox-table col.col-risk,
   .inbox-table th:nth-child(6),
   .inbox-table td:nth-child(6) { display: none; }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   OVERRIDES TEMA CARBON — Bandeja
-   Pisa los morados hardcoded (filas unread, focus rings, contadores)
-   por los rosas del tema carbon (--accent = #ff4f7a).
-   ══════════════════════════════════════════════════════════════════════ */
+
 html[data-theme="carbon"] .email-row.unread { background: rgba(255, 79, 122, 0.04); }
 html[data-theme="carbon"] .email-row.unread:hover { background: rgba(255, 79, 122, 0.08); }
 html[data-theme="carbon"] .email-row.unread::before { background: var(--accent, #ff4f7a); }

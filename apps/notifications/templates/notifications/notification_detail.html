@@ -16,16 +16,16 @@
     Todas las notificaciones
   </a>
 
-  <!-- HERO -->
+  
   {% with quota=notif.quota_amount %}
   <header class="nd-hero t-{{ notif.type }} {% if quota %}nd-hero--quota-{{ quota.kind }}{% endif %}">
     <div class="nd-hero-head">
       <div class="nd-hero-icon t-{{ notif.type }} {% if quota.kind == 'approved' %}nd-hero-icon--ok{% elif quota.kind == 'rejected' %}nd-hero-icon--ko{% endif %}">
         {% if quota.kind == 'approved' %}
-          {# Check grande para aprobada #}
+          
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         {% elif quota.kind == 'rejected' %}
-          {# X grande para rechazada #}
+          
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         {% elif notif.type == 'forward_request' %}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -43,7 +43,7 @@
       </div>
     </div>
 
-    {# ── Bloque destacado: número de alias concedidos (solo cuota) ── #}
+    
     {% if quota %}
       <div class="nd-quota-stat nd-quota-stat--{{ quota.kind }}">
         <div class="nd-quota-stat-num">
@@ -116,7 +116,7 @@
   {% endwith %}
 
   {% if email %}
-  <!-- PREVIEW DEL CORREO -->
+  
   <section class="nd-section" aria-labelledby="nd-email-title">
     <h2 class="nd-section-title" id="nd-email-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -159,7 +159,7 @@
   </section>
   {% endif %}
 
-  <!-- ACCIONES (forward_request pendiente: correo seguro o sospechoso) -->
+  
   {% if notif.is_actionable %}
   {% with email_risk=email.risk_score|default:0 %}
   <section class="nd-section" aria-labelledby="nd-actions-title">
@@ -169,7 +169,7 @@
     </h2>
 
     {% if email_risk > 30 %}
-    <!-- Aviso: correo sospechoso (score 31-60) -->
+    
     <div class="nd-suspicious-warn">
       <div class="nd-suspicious-warn-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">

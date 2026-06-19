@@ -10,7 +10,7 @@
 <main class="login-wrapper" aria-labelledby="lg-title">
   <section class="login-shell">
 
-    <!-- ── PANEL VISUAL IZQUIERDO ── -->
+    
     <aside class="login-side" aria-label="Beneficios de DockerShield">
       <div class="side-content">
         <header>
@@ -67,7 +67,7 @@
       </div>
     </aside>
 
-    <!-- ── PANEL FORMULARIO ── -->
+    
     <article class="login-card">
 
       <header class="login-logo">
@@ -196,10 +196,7 @@
 </main>
 
 {% if recovery_flash %}
-{% comment %}
-FLASH "Solicitud enviada" — card DISMISSIBLE (tiene X). Se muestra una sola
-vez después de redirigir desde /cuenta/recuperar-bloqueada/.
-{% endcomment %}
+
 <div class="cd-overlay lock-overlay visible" role="dialog" aria-modal="true"
      aria-labelledby="flashTitle" id="recoveryFlashOverlay">
   <div class="cd-modal">
@@ -237,15 +234,7 @@ vez después de redirigir desde /cuenta/recuperar-bloqueada/.
 {% endif %}
 
 {% if permanent_lock or temp_lock %}
-{% comment %}
-OVERLAY DE BLOQUEO — modal flotante.
-Tipos:
-  - permanent_lock + sin solicitud → NON-dismissible. Persiste en reloads
-    (session.locked_user_id). Botón "Solicitar recuperación".
-  - permanent_lock + solicitud pending (dismissible=True) → DISMISSIBLE.
-    NO persiste en session. Muestra la pill "Tu solicitud sigue pendiente".
-  - temp_lock → NON-dismissible. Countdown live, reload auto al expirar.
-{% endcomment %}
+
 <div class="cd-overlay lock-overlay visible" role="dialog" aria-modal="true"
      aria-labelledby="lockTitle" aria-describedby="lockDesc"
      id="lockOverlay"
@@ -355,28 +344,6 @@ Tipos:
 <script src="{% static 'accounts/js/login.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader{% endif %}"></script>
 
 {% if temp_lock %}
-<script>
-  // Countdown del temp lock: al llegar a 0, recargamos para limpiar la card.
-  (function () {
-    var el = document.getElementById('lockCountdown');
-    if (!el) return;
-    var remaining = parseInt(el.textContent, 10) || 0;
-    function fmt(s) {
-      if (s <= 0) return '0s';
-      var m = Math.floor(s / 60), r = s % 60;
-      return m ? (m + 'm ' + r + 's') : (r + 's');
-    }
-    el.textContent = fmt(remaining);
-    var tick = setInterval(function () {
-      remaining -= 1;
-      if (remaining <= 0) {
-        clearInterval(tick);
-        window.location.reload();
-        return;
-      }
-      el.textContent = fmt(remaining);
-    }, 1000);
-  })();
-</script>
+<script src="{% static 'accounts/js/login.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader{% endif %}"></script>
 {% endif %}
 {% endblock %}

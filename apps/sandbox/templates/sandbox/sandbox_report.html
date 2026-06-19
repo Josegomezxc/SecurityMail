@@ -20,7 +20,7 @@
 
 {% block body %}
 
-<!-- ── STATUS BANNER ── -->
+
 {% if analysis.risk_score >= 61 %}
 <header class="status-banner blocked" style="animation:fadeUp 0.4s ease" role="alert">
   <div class="status-icon-wrap">
@@ -57,7 +57,7 @@
 </header>
 {% endif %}
 
-<!-- ── SCORE CARD ── -->
+
 <section class="score-card" style="animation:fadeUp 0.4s ease 0.05s both" aria-label="Resumen del análisis">
   <div class="score-ring-wrap">
     <svg width="88" height="88" viewBox="0 0 88 88">
@@ -105,10 +105,7 @@
   </div>
 </section>
 
-<!-- ── IDENTIFICACIÓN DEL ARCHIVO ──
-     Solo se muestra si el correo realmente trajo un adjunto. Si no,
-     mostramos un panel informativo que aclara que solo se analizó el
-     cuerpo del correo. -->
+
 {% if analysis.email.attachment.has_attachment or analysis.body_analysis.attachments_reports or analysis.file_info.sha256_hash %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.1s both">
   <header class="section-head">
@@ -169,7 +166,7 @@
   </div>
 </section>
 {% else %}
-<!-- Correo sin adjuntos: panel explicativo en lugar de la tabla vacía -->
+
 <section class="section-card no-attach-card" style="animation:fadeUp 0.4s ease 0.1s both">
   <div class="no-attach-inner">
     <div class="no-attach-icon" aria-hidden="true">
@@ -190,7 +187,7 @@
 </section>
 {% endif %}
 
-<!-- ── TODOS LOS ADJUNTOS (si el correo traía varios) ── -->
+
 {% if analysis.body_analysis.attachments_reports and analysis.body_analysis.attachments_reports|length > 1 %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.11s both">
   <header class="section-head">
@@ -249,7 +246,7 @@
 </section>
 {% endif %}
 
-<!-- ── EVIDENCIA (CORE: cada indicador detectado) ── -->
+
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.13s both">
   <header class="section-head">
     <div class="section-icon-box" style="background:rgba(232,64,64,0.1)">
@@ -358,7 +355,7 @@
   {% endif %}
 </section>
 
-<!-- ── YARA MATCHES (si hay) ── -->
+
 {% if analysis.dynamic.yara_matches %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.16s both">
   <header class="section-head">
@@ -390,7 +387,7 @@
 </section>
 {% endif %}
 
-<!-- ── IOCs (URLs, IPs, dominios) ── -->
+
 {% if analysis.dynamic.iocs.urls or analysis.dynamic.iocs.ips or analysis.dynamic.iocs.domains %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.18s both">
   <header class="section-head">
@@ -456,7 +453,7 @@
 </section>
 {% endif %}
 
-<!-- ── ANÁLISIS DEL CUERPO DEL CORREO ── -->
+
 {% if analysis.body_analysis.body_score > 0 or analysis.body_analysis.body_evidence %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.2s both">
   <header class="section-head body-card-head">
@@ -550,7 +547,7 @@
 </section>
 {% endif %}
 
-<!-- ── ANALIZADORES EJECUTADOS ── -->
+
 {% if analysis.dynamic.analyzers_run %}
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.22s both">
   <header class="section-head">
@@ -577,9 +574,7 @@
 </section>
 {% endif %}
 
-<!-- ══════════════════════════════════════
-     AI SECTION
-══════════════════════════════════════ -->
+
 <section class="ai-section" style="animation:fadeUp 0.4s ease 0.2s both" aria-label="Análisis de IA">
 
   <div class="ai-section-header">
@@ -599,7 +594,7 @@
     </div>
   </div>
 
-  <!-- LOADING -->
+  
   <div class="ai-loading-wrap" id="ai-loading">
     <div class="ai-spinner-ring">
       <svg width="64" height="64" viewBox="0 0 64 64">
@@ -622,9 +617,9 @@
     </div>
   </div>
 
-  <!-- RESULTADO -->
+  
   <div class="ai-result-body" id="ai-content">
-    <!-- TOP: Veredicto + Tipo -->
+    
     <div class="ai-top-grid">
       <div class="ai-card">
         <div class="ai-card-label">
@@ -647,10 +642,10 @@
         <div class="ai-timestamp" id="ai-time-el"></div>
       </div>
     </div>
-    <!-- BOTTOM: Explicación + Recomendación (full-width, mejor jerarquía visual) -->
+    
     <div class="ai-insight-stack">
 
-      <!-- EXPLICACIÓN -->
+      
       <div class="ai-insight ai-insight--explain">
         <div class="ai-insight-side">
           <div class="ai-insight-icon">
@@ -668,7 +663,7 @@
         </div>
       </div>
 
-      <!-- RECOMENDACIÓN -->
+      
       <div class="ai-insight ai-insight--advice">
         <div class="ai-insight-side">
           <div class="ai-insight-icon">
@@ -688,14 +683,14 @@
     </div>
   </div>
 
-  <!-- ERROR -->
+  
   <div class="ai-error-wrap" id="ai-error">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <span id="ai-error-msg">Análisis IA no disponible.</span>
   </div>
 </section>
 
-<!-- ── CORREO ORIGEN — Flow visual del ataque y la protección ── -->
+
 <section class="section-card" style="animation:fadeUp 0.4s ease 0.25s both">
   <header class="section-head">
     <div class="section-icon-box" style="background:var(--bg-hover)">
@@ -710,7 +705,7 @@
 
   <div class="origin-flow">
 
-    <!-- 1. Atacante / Origen -->
+    
     <div class="flow-node flow-node--threat">
       <div class="flow-node-side">
         <div class="flow-node-icon">
@@ -730,7 +725,7 @@
       </div>
     </div>
 
-    <!-- 2. Asunto / Anzuelo -->
+    
     <div class="flow-node flow-node--bait">
       <div class="flow-node-side">
         <div class="flow-node-icon">
@@ -749,7 +744,7 @@
       </div>
     </div>
 
-    <!-- 3. Alias / Escudo -->
+    
     <div class="flow-node flow-node--shield">
       <div class="flow-node-side">
         <div class="flow-node-icon">
@@ -767,7 +762,7 @@
       </div>
     </div>
 
-    <!-- 4. Correo real / Protegido -->
+    
     <div class="flow-node flow-node--safe">
       <div class="flow-node-side">
         <div class="flow-node-icon">
@@ -789,13 +784,13 @@
   </div>
 </section>
 
-<!-- ── PRÓXIMOS PASOS — tarjetas de acción ── -->
+
 <section class="next-actions" style="animation:fadeUp 0.4s ease 0.3s both" aria-label="Próximos pasos sugeridos">
   <div class="next-actions-label">¿Y AHORA QUÉ?</div>
   <div class="next-actions-grid">
 
     {% if analysis.blocked %}
-    <!-- Acción crítica: destruir alias (solo aparece si el correo fue bloqueado) -->
+    
     <a href="{% url 'alias_list' %}" class="action-tile action-tile--critical">
       <div class="action-tile-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -855,7 +850,7 @@
   </div>
 </section>
 
-<!-- ── AI SCRIPT ── -->
+
 <script>
 window.__SANDBOX_CTX__ = {
   analysisId:   {{ analysis.id }},

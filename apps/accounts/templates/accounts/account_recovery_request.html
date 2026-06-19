@@ -3,11 +3,7 @@
 {% block title %}Recuperar cuenta bloqueada — DockerShield{% endblock %}
 
 {% block extra_css %}
-{% comment %}
-Reusamos estilos del modal de pedir cupo de alias (.aar-mb-* + .aliasreq-*) —
-mismo lenguaje visual del admin para que la decisión se vea exactamente igual
-desde el lado del usuario.
-{% endcomment %}
+
 <link rel="stylesheet" href="{% static 'aliases/styles/alias.css' %}">
 <link rel="stylesheet" href="{% static 'core/styles/admin_alias_requests.css' %}?v={% if debug %}{% now 'U' %}{% else %}modal-top-align{% endif %}">
 <link rel="stylesheet" href="{% static 'core/styles/admin_account_recovery.css' %}?v={% if debug %}{% now 'U' %}{% else %}v2-aar{% endif %}">
@@ -19,7 +15,7 @@ desde el lado del usuario.
   <div class="recovery-shell">
     <div class="aliasreq-modal recovery-card">
 
-      {# ═══ Estado: PENDIENTE ═══════════════════════════════════════════ #}
+      
       {% if pending %}
         <header class="aliasreq-head">
           <div class="aliasreq-icon" aria-hidden="true">
@@ -87,7 +83,7 @@ desde el lado del usuario.
           <a href="{% url 'login' %}" class="aliasreq-btn-secondary">Volver al inicio de sesión</a>
         </div>
 
-      {# ═══ Estado: APROBADA / RECHAZADA (resuelta) ════════════════════ #}
+      
       {% elif resolved %}
         <header class="aliasreq-head">
           <div class="aliasreq-icon" aria-hidden="true">
@@ -115,7 +111,7 @@ desde el lado del usuario.
           </div>
         </header>
 
-        {# Decisión "Pidió → Le dieron" — espejo del modal del admin. #}
+        
         <div class="aar-mb-decision rec-decision">
           <div class="aar-mb-side aar-mb-side--ask">
             <div class="aar-mb-side-icon">
@@ -212,7 +208,7 @@ desde el lado del usuario.
         </footer>
 
         {% if resolved.status == 'rejected' and is_locked %}
-          {# Permitimos un nuevo intento si la cuenta SIGUE bloqueada y la última solicitud fue rechazada. #}
+          
           <div class="rec-retry">
             <div class="rec-retry-divider"><span>o intentar de nuevo</span></div>
             <form method="post" novalidate data-ds-loader>
@@ -256,7 +252,7 @@ desde el lado del usuario.
           </div>
         {% endif %}
 
-      {# ═══ Estado: SIN HISTORIAL — form nuevo ══════════════════════════ #}
+      
       {% else %}
         <header class="aliasreq-head">
           <div class="aliasreq-icon" aria-hidden="true">
@@ -366,16 +362,5 @@ desde el lado del usuario.
   </div>
 </main>
 
-<script>
-  /* Click en chip → llena el textarea + marca chip activo + actualiza contador */
-  function recSetReason(btn, text) {
-    var ta = document.getElementById('reason-input');
-    if (!ta) return;
-    ta.value = text;
-    document.querySelectorAll('.aliasreq-chip').forEach(function (c) { c.classList.remove('active'); });
-    btn.classList.add('active');
-    var counter = document.getElementById('reasonCount');
-    if (counter) counter.textContent = text.length;
-  }
-</script>
+<script src="{% static 'accounts/js/account_recovery.js' %}?v={% if debug %}{% now 'U' %}{% else %}1{% endif %}"></script>
 {% endblock %}

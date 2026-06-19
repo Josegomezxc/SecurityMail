@@ -1,20 +1,13 @@
 @import url('properties/admin_user_detail.css');
 
-/* ════════════════════════════════════════════════════════════════════
-   ADMIN USER DETAIL — Mobile-First Strict
-   Base: stats apiladas, emails wrappeados, quota en 1 columna.
-   ≥768px: stats a 3 cols, quota grid 2 cols, unlim hero/grant horizontales.
-   ≥1024px: em-row a 4 columnas en línea.
-   ════════════════════════════════════════════════════════════════════ */
+
 
 @keyframes fadeUp {
     from { opacity: 0; transform: translateY(0.875rem); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   BACK LINK
-   ──────────────────────────────────────────────────────────────────── */
+
 .back-to-list {
     display: inline-flex;
     align-items: center;
@@ -33,13 +26,7 @@
     outline: none;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   HEADER
-   Mobile: stack vertical centrado (avatar arriba, info debajo). El email
-   puede romper por cualquier carácter (los correos sin separadores son
-   largos y rompían el layout). Desktop: layout horizontal con avatar a
-   la izquierda y texto a la derecha.
-   ──────────────────────────────────────────────────────────────────── */
+
 .user-header-card {
     background: linear-gradient(160deg, rgba(124, 92, 255, 0.08), var(--bg-surface) 55%);
     border: 1px solid var(--ai-purple-border, rgba(124, 58, 237, 0.22));
@@ -84,9 +71,7 @@
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
-    /* word-break:break-all garantiza que un correo largo sin separadores
-       (gpalaciosl3@unemi.edu.ec) parta a caracteres y no desborde el
-       contenedor. overflow-wrap:anywhere es el modern complement. */
+    
     word-break: break-all;
     overflow-wrap: anywhere;
     line-height: 1.3;
@@ -133,9 +118,7 @@
     background: currentColor;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   MINI STATS
-   ──────────────────────────────────────────────────────────────────── */
+
 .mini-stats-row {
     display: grid;
     grid-template-columns: 1fr;
@@ -168,23 +151,16 @@
 .mini-stat-val.threat { color: var(--danger); }
 .mini-stat-val.accent { color: var(--ai-purple-light, #a78bfa); }
 
-/* ────────────────────────────────────────────────────────────────────
-   SECTION CARD
-   ──────────────────────────────────────────────────────────────────── */
+
 .section-card {
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: var(--ud-section-radius);
-    /* overflow:hidden corta el contenido si algún hijo desborda — en
-       móvil esto era el origen del corte visual de "11/10", "+5",
-       "ACTIVO" y los botones de los aliases. Cambiamos a clip para
-       respetar el border-radius sin matar el contenido. */
+    
     overflow: clip;
     margin-bottom: 1rem;
     animation: fadeUp 0.45s ease both;
-    /* Garantiza que el card NUNCA es más ancho que su contenedor padre.
-       En móvil sin esto, algún hijo con white-space:nowrap podía empujar
-       el ancho más allá del viewport. */
+    
     max-width: 100%;
 }
 .section-card > * {
@@ -216,14 +192,7 @@
     font-weight: 700;
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   ALIAS LIST
-   Mobile: flex-wrap — el primer hijo (info con address + label) ocupa
-   toda la fila (flex-basis: 100%), y los chips + botón fluyen debajo
-   envolviendo según ancho. Así el alias address no compite por espacio
-   con los chips y los botones nunca se mezclan con el texto.
-   Desktop: grid horizontal de 5 columnas (info | 3 chips | botón).
-   ──────────────────────────────────────────────────────────────────── */
+
 .alias-row-adm {
     display: flex;
     flex-wrap: wrap;
@@ -280,8 +249,7 @@
     font-size: 0.78125rem;
     font-weight: 600;
     color: var(--ai-purple-light, #a78bfa);
-    /* Mobile: wrap por palabras (los nombres "stellar-eagle" tienen
-       guión que es punto natural de quiebre). Desktop usa ellipsis. */
+    
     word-break: break-word;
     overflow-wrap: anywhere;
     line-height: 1.35;
@@ -313,13 +281,7 @@
     color: var(--text-muted);
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   EMAILS LIST
-   Mobile: grid 3 columnas (avatar | info | score) — avatar y texto
-   en línea, score pegado a la derecha sin estirarse. La hora baja a
-   una fila propia bajo info para no apretar el cluster superior.
-   Desktop: 4 columnas en línea (avatar | info | score | time).
-   ──────────────────────────────────────────────────────────────────── */
+
 .em-row {
     display: grid;
     grid-template-columns: auto 1fr auto;
@@ -334,8 +296,7 @@
     white-space: normal;
 }
 .em-row:last-child { border-bottom: 0; }
-/* En móvil, .em-time baja a fila propia full-width bajo info para
-   liberar el cluster avatar+info+score. */
+
 .em-row .em-time {
     grid-column: 1 / -1;
     margin-top: 0.125rem;
@@ -375,8 +336,7 @@
     font-weight: 800;
     padding: 0.1875rem 0.5625rem;
     border-radius: 0.5rem;
-    /* Ancho natural, sin stretch: el score "38" o "80" no debe
-       extenderse a full-width cuando es el único elemento de su columna. */
+    
     justify-self: end;
     align-self: center;
     white-space: nowrap;
@@ -401,23 +361,19 @@
     font-size: 0.75rem;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   QUOTA CARD
-   ════════════════════════════════════════════════════════════════════ */
+
 .quota-card { border-color: rgba(124, 58, 237, 0.25); }
 
 .quota-grid {
     display: grid;
     grid-template-columns: 1fr;
     gap: 0.875rem;
-    /* Mobile: padding lateral compacto para que el cluster interno
-       (info-card + form) no desborde el .section-card cuando el viewport
-       es estrecho. Desktop sube el padding a 1.25rem por estética. */
+    
     padding: 0.75rem 0.875rem 0.875rem;
     margin-top: 0.375rem;
 }
 
-/* Quota info */
+
 .quota-info {
     display: flex;
     flex-direction: column;
@@ -426,8 +382,7 @@
     background: rgba(124, 58, 237, 0.05);
     border: 1px solid rgba(124, 58, 237, 0.18);
     border-radius: var(--ud-quota-info-radius);
-    /* Garantiza que la card no sea más ancha que el .quota-grid contenedor
-       (clave en móvil: sin esto, los números a la derecha podían salirse). */
+    
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
@@ -478,7 +433,7 @@
     box-shadow: 0 0 0.75rem rgba(124, 58, 237, 0.4);
 }
 
-/* Quota form */
+
 .quota-form { display: flex; flex-direction: column; gap: 0.625rem; }
 .quota-form-lbl {
     font-family: var(--mono, monospace);
@@ -574,9 +529,7 @@
 }
 .quota-save-btn:active { transform: translateY(0); }
 
-/* ════════════════════════════════════════════════════════════════════
-   QUOTA — Modo ilimitado + grant card
-   ════════════════════════════════════════════════════════════════════ */
+
 .count-chip.unlimited {
     background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(167, 139, 250, 0.10));
     color: var(--ai-purple-light, #a78bfa);
@@ -589,7 +542,7 @@
     background: linear-gradient(180deg, rgba(124, 58, 237, 0.05), transparent 50%);
 }
 
-/* Hero ilimitado */
+
 .quota-unlim-hero {
     position: relative;
     display: grid;
@@ -597,8 +550,8 @@
     text-align: center;
     align-items: center;
     gap: 0.875rem;
-    margin: 0.75rem 0.875rem;     /* mobile: márgenes compactos */
-    padding: 1rem;                 /* mobile: padding compacto */
+    margin: 0.75rem 0.875rem;     
+    padding: 1rem;                 
     background:
         radial-gradient(ellipse 60% 100% at 0% 0%, rgba(124, 58, 237, 0.18), transparent 60%),
         linear-gradient(135deg, rgba(124, 58, 237, 0.10), rgba(167, 139, 250, 0.04));
@@ -688,7 +641,7 @@
 }
 .quota-unlim-hero-revoke svg { flex-shrink: 0; }
 
-/* Grant card */
+
 .quota-grant-card {
     position: relative;
     display: grid;
@@ -696,8 +649,8 @@
     text-align: center;
     align-items: center;
     gap: 0.875rem;
-    margin: 0.875rem 0.875rem 0.875rem;   /* mobile: márgenes compactos */
-    padding: 1rem;                          /* mobile: padding compacto */
+    margin: 0.875rem 0.875rem 0.875rem;   
+    padding: 1rem;                          
     background:
         radial-gradient(ellipse 70% 100% at 100% 0%, rgba(124, 58, 237, 0.14), transparent 60%),
         linear-gradient(135deg, rgba(124, 58, 237, 0.06), rgba(155, 109, 255, 0.02));
@@ -794,11 +747,7 @@
 }
 .quota-grant-cta:hover svg:last-child { transform: translateX(0.125rem); opacity: 1; }
 
-/* ════════════════════════════════════════════════════════════════════
-   TABLET (≥ 768px) — Header horizontal, stats 3 cols, quota grid 2
-   cols, hero/grant cards horizontales con texto alineado a la izquierda.
-   Alias-row vuelve a un grid horizontal de 5 columnas.
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 768px) {
     .user-header-card {
         flex-direction: row;
@@ -846,7 +795,7 @@
     .quota-unlim-hero-revoke,
     .quota-grant-cta { width: auto; }
 
-    /* Alias-row vuelve al grid horizontal de 5 columnas */
+    
     .alias-row-adm {
         display: grid;
         grid-template-columns: 1fr auto auto auto auto;
@@ -863,16 +812,14 @@
         overflow-wrap: normal;
     }
 
-    /* Em-row: time vuelve a su columna natural (no full-row) */
+    
     .em-row .em-time {
         grid-column: auto;
         margin-top: 0;
     }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   DESKTOP (≥ 1024px) — em-row a 4 cols en línea
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (min-width: 1024px) {
     .em-row {
         grid-template-columns: 2.125rem 1fr auto auto;
@@ -886,13 +833,9 @@
     }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   MOBILE GUARDS — fuerza el layout móvil aún ante cache agresivo
-   o reglas heredadas inline. Refuerza explícitamente las 4 áreas:
-   header centrado, quota sin overflow, alias-row stack, em-row 3-col.
-   ════════════════════════════════════════════════════════════════════ */
+
 @media (max-width: 47.99rem) {
-    /* 1. HEADER: avatar centrado arriba, info debajo con email wrapping */
+    
     .user-header-card {
         flex-direction: column !important;
         align-items: center !important;
@@ -915,11 +858,7 @@
         justify-content: center !important;
     }
 
-    /* 2. QUOTA: sin overflow horizontal.
-       Estrategia agresiva — fuerza box-sizing y max-width en cada
-       nivel para que ningún hijo pueda empujar el ancho del card más
-       allá del viewport. Si el card es 100% de .content-area, los
-       hijos heredan ese ancho y no lo exceden. */
+    
     .quota-card,
     .quota-card * {
         box-sizing: border-box !important;
@@ -972,8 +911,7 @@
     .quota-save-btn {
         width: 100% !important;
     }
-    /* Hero ilimitado + grant card: margen lateral chico para que el
-       radius del componente respire dentro del card padre. */
+    
     .quota-unlim-hero,
     .quota-grant-card {
         margin: 0.875rem 0.625rem !important;
@@ -1001,7 +939,7 @@
         overflow-wrap: anywhere !important;
     }
 
-    /* 3. ALIAS-ROW: stack — info ocupa fila completa, chips fluyen debajo */
+    
     .alias-row-adm {
         display: flex !important;
         flex-direction: row !important;
@@ -1025,7 +963,7 @@
     }
     .alias-row-adm form { margin: 0 !important; }
 
-    /* 4. EM-ROW: grid 3-col (avatar | info | score), time abajo full-width */
+    
     .em-row {
         display: grid !important;
         grid-template-columns: auto 1fr auto !important;
@@ -1036,8 +974,7 @@
     .em-info {
         min-width: 0 !important;
     }
-    /* En móvil el asunto y el sub pueden hacer wrap por palabras para
-       no truncar texto largo. Desktop mantiene el ellipsis. */
+    
     .em-subject {
         white-space: normal !important;
         overflow: visible !important;

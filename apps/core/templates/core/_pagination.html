@@ -1,15 +1,4 @@
-{% comment %}
-Partial reusable para paginación server-side.
 
-Variables esperadas:
-  - page_obj   : objeto Page de Django (de paginator.get_page(...))
-  - qs_params  : (opcional) string con los query params a preservar al
-                 navegar entre páginas, ej: "q=foo&filter=unread".
-                 NO incluir 'page=' ni '?' inicial — se concatena con &.
-
-Ejemplo de uso en template:
-  {% include 'core/_pagination.html' with page_obj=page_obj qs_params=qs_params %}
-{% endcomment %}
 
 {% if page_obj.paginator.num_pages > 1 %}
 <nav class="ds-pagination" aria-label="Paginación" role="navigation">
@@ -19,7 +8,7 @@ Ejemplo de uso en template:
   </div>
 
   <ul class="ds-pag-list">
-    {# « primera #}
+    
     {% if page_obj.has_previous %}
       <li>
         <a class="ds-pag-link" href="?page=1{% if qs_params %}&{{ qs_params }}{% endif %}" aria-label="Primera página">
@@ -40,7 +29,7 @@ Ejemplo de uso en template:
       </span></li>
     {% endif %}
 
-    {# Números: ventana de ±2 alrededor de la página actual, con elipsis #}
+    
     {% for n in page_obj.paginator.page_range %}
       {% if n == page_obj.number %}
         <li><span class="ds-pag-link current" aria-current="page">{{ n }}</span></li>
@@ -51,7 +40,7 @@ Ejemplo de uso en template:
       {% endif %}
     {% endfor %}
 
-    {# › última #}
+    
     {% if page_obj.has_next %}
       <li>
         <a class="ds-pag-link" href="?page={{ page_obj.next_page_number }}{% if qs_params %}&{{ qs_params }}{% endif %}" aria-label="Página siguiente">

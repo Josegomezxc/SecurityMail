@@ -1,16 +1,9 @@
-{% comment %}
-Contenido de los modales — un <template> por cada solicitud visible.
-La fila correspondiente tiene data-modal-target="aar-detail-N" que apunta
-a su template, y al hacer click el JS clona el contenido al modal global.
 
-  - Pending → action form (stepper de cantidad + note chips + approve/reject)
-  - Resuelta → vista de detalle (timeline + decisión + justificación)
-{% endcomment %}
 {% for req in requests %}
 <template id="aar-detail-{{ req.id }}">
 
   {% if req.status == 'pending' %}
-    {# ─── MODAL: form de aprobación (solicitud pendiente) ─── #}
+    
     <div class="aar-mb-strip aar-mb-strip--pending"></div>
 
     <div class="aar-mb-head">
@@ -145,7 +138,7 @@ a su template, y al hacer click el JS clona el contenido al modal global.
     </form>
 
   {% else %}
-    {# ─── MODAL: detalle de resolución (approved/rejected) ─── #}
+    
     <div class="aar-mb-strip aar-mb-strip--{{ req.status }}"></div>
 
     <div class="aar-mb-head">

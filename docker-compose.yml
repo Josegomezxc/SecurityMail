@@ -2,7 +2,6 @@ version: '3.9'
 
 services:
 
-  # ─── Aplicación Django ────────────────────────────────────────────────
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
@@ -18,18 +17,17 @@ services:
     networks:
       - web_net
 
-  # ─── Sandbox aislado (sin acceso a internet) ─────────────────────────
   sandbox:
     build:
       context: .
       dockerfile: Dockerfile.sandbox
     volumes:
-      - media_data:/app/media   # comparte adjuntos con el web
+      - media_data:/app/media   
     environment:
       - SANDBOX_MODE=1
-    # Sin puertos expuestos al exterior → completamente aislado
+    
     networks:
-      - sandbox_net             # red interna sin salida
+      - sandbox_net             
 
 volumes:
   media_data:
@@ -39,4 +37,4 @@ networks:
     driver: bridge
   sandbox_net:
     driver: bridge
-    internal: true              # ← clave: sin acceso a internet
+    internal: true              

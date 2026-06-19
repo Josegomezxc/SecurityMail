@@ -7,7 +7,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-{# Reusamos la base de estilos del módulo de alias requests — son del mismo dominio visual (tabla + modal + filtros). #}
+
 <link rel="stylesheet" href="{% static 'core/styles/admin_alias_requests.css' %}?v={% if debug %}{% now 'U' %}{% else %}modal-top-align{% endif %}">
 <link rel="stylesheet" href="{% static 'core/styles/ds_table.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-fix-1{% endif %}">
 <link rel="stylesheet" href="{% static 'core/styles/admin_account_recovery.css' %}?v={% if debug %}{% now 'U' %}{% else %}v3-topalign{% endif %}">
@@ -164,15 +164,11 @@
   {% include 'core/_pagination.html' with page_obj=page_obj qs_params=qs_params %}
 </div>
 
-{% comment %}
-Un <template> por cada solicitud — al hacer click en su fila el JS
-clona el contenido al modal global. Espejan al pixel los modales de
-Solicitudes de alias (.aar-mb-*) para mantener consistencia visual.
-{% endcomment %}
+
 {% for req in requests %}
 <template id="arr-detail-{{ req.id }}">
   {% if req.status == 'pending' %}
-    {# ─── PENDING: form de aprobación / rechazo ─── #}
+    
     <div class="aar-mb-strip aar-mb-strip--pending"></div>
 
     <div class="aar-mb-head">
@@ -251,7 +247,7 @@ Solicitudes de alias (.aar-mb-*) para mantener consistencia visual.
     </form>
 
   {% else %}
-    {# ─── RESOLVED: detalle (approved / rejected) ─── #}
+    
     <div class="aar-mb-strip aar-mb-strip--{{ req.status }}"></div>
 
     <div class="aar-mb-head">
@@ -273,7 +269,7 @@ Solicitudes de alias (.aar-mb-*) para mantener consistencia visual.
       </div>
     </div>
 
-    {# Decisión: "Pidió recuperar" → "Reactivada / Sigue bloqueada" — mismo layout de dos columnas del modal de Solicitudes de alias. #}
+    
     <div class="aar-mb-decision">
       <div class="aar-mb-side aar-mb-side--ask">
         <div class="aar-mb-side-icon">
@@ -389,117 +385,5 @@ Solicitudes de alias (.aar-mb-*) para mantener consistencia visual.
 {% endblock %}
 
 {% block extra_js %}
-<script>
-/* Búsqueda con debounce 350ms */
-(function () {
-  const form  = document.getElementById('arr-search-form');
-  const input = document.getElementById('arr-search-input');
-  if (!form || !input) return;
-  function syncHasValue() { form.classList.toggle('has-value', !!input.value); }
-  syncHasValue();
-  let timer = null;
-  function go() {
-    const q = input.value.trim();
-    const url = new URL(window.location.href);
-    if (q) url.searchParams.set('q', q); else url.searchParams.delete('q');
-    url.searchParams.delete('page');
-    if (url.toString() !== window.location.href) window.location.href = url.toString();
-  }
-  input.addEventListener('input', function () {
-    syncHasValue();
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(go, 350);
-  });
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (timer) clearTimeout(timer);
-    go();
-  });
-})();
-function arrClearSearch() {
-  const url = new URL(window.location.href);
-  url.searchParams.delete('q');
-  url.searchParams.delete('page');
-  window.location.href = url.toString();
-}
-
-/* Modal de detalle */
-function arrOpenDetail(rowEl) {
-  var targetId = rowEl && rowEl.dataset.modalTarget;
-  if (!targetId) return;
-  var tpl = document.getElementById(targetId);
-  var modal  = document.getElementById('arrModalOverlay');
-  var bodyEl = document.getElementById('arrModalBody');
-  if (!tpl || !modal || !bodyEl) return;
-  bodyEl.innerHTML = '';
-  bodyEl.appendChild(tpl.content.cloneNode(true));
-  modal.classList.add('open');
-  modal.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
-}
-function arrCloseDetail() {
-  var modal = document.getElementById('arrModalOverlay');
-  if (!modal) return;
-  modal.classList.remove('open');
-  modal.setAttribute('aria-hidden', 'true');
-  document.body.style.overflow = '';
-}
-(function () {
-  var modal = document.getElementById('arrModalOverlay');
-  if (!modal) return;
-  modal.addEventListener('click', function (e) { if (e.target === modal) arrCloseDetail(); });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && modal.classList.contains('open')) arrCloseDetail();
-  });
-})();
-
-/* Inyecta un hidden name=action para que form.submit() programático
-   (data-ds-loader) no se trague el valor del botón clickeado. */
-function injectAction(form, value) {
-  var h = form.querySelector('input[name="action"][data-iar-injected]');
-  if (!h) {
-    h = document.createElement('input');
-    h.type = 'hidden';
-    h.name = 'action';
-    h.setAttribute('data-iar-injected', '');
-    form.appendChild(h);
-  }
-  h.value = value;
-}
-
-function arrConfirmApprove(ev, btn) {
-  injectAction(btn.closest('form'), 'approve');
-  return true;
-}
-function arrConfirmReject(ev, btn) {
-  var email = btn.dataset.userEmail || 'este usuario';
-  arrCloseDetail();
-  injectAction(btn.closest('form'), 'reject');
-  if (!window.confirm('¿Rechazar la recuperación de ' + email + '?\n\n'
-                    + 'La cuenta quedará bloqueada y el usuario recibirá tu nota.')) {
-    ev.preventDefault();
-    return false;
-  }
-  return true;
-}
-
-/* Deep-link ?open=ID — abre la fila directo (desde notif del admin) */
-(function () {
-  var openId = new URLSearchParams(window.location.search).get('open');
-  if (!openId) return;
-  var row = document.querySelector('.aar-tr[data-modal-target="arr-detail-' + openId + '"]');
-  if (row) {
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(function () { arrOpenDetail(row); }, 360);
-  }
-  if (window.history && window.history.replaceState) {
-    var params = new URLSearchParams(window.location.search);
-    params.delete('open');
-    var clean = window.location.pathname +
-                (params.toString() ? '?' + params.toString() : '') +
-                window.location.hash;
-    window.history.replaceState({}, '', clean);
-  }
-})();
-</script>
+<script src="{% static 'core/js/admin_account_recovery.js' %}?v={% if debug %}{% now 'U' %}{% else %}1{% endif %}"></script>
 {% endblock %}

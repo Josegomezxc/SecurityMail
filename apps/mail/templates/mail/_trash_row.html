@@ -1,7 +1,4 @@
-{% comment %}
-Una fila .trash-row — partial reusable. Despacha por it.kind.
-Se espera `it` en el contexto.
-{% endcomment %}
+
 {% if it.kind == 'inbound' %}
   <article class="trash-row" data-kind="inbound" id="trash-row-inbound-{{ it.id }}">
     <div class="trash-avatar">{{ it.from_email|first|upper }}</div>

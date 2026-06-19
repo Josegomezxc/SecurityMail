@@ -12,7 +12,7 @@
 
 {% block body %}
 
-<!-- ── HERO ── -->
+
 <header class="inbox-hero">
   <div class="inbox-hero-inner">
     <div class="inbox-hero-icon">
@@ -42,7 +42,7 @@
   </div>
 </header>
 
-<!-- ── TOOLBAR: búsqueda + filtros server-side ── -->
+
 <section class="ds-filterbar" role="search" aria-label="Buscar y filtrar bandeja">
   <form method="get" action="" class="ds-filterbar-search {% if q %}has-value{% endif %}" id="search-form">
     <svg class="lupa" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -89,7 +89,7 @@
     </a>
   </div>
 
-  <!-- Botón "Vaciar correos" con dropdown -->
+  
   <div class="inbox-clear-wrap" id="inbox-clear-wrap">
     <button type="button" class="inbox-clear-btn" id="inbox-clear-btn">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -121,7 +121,7 @@
   </div>
 </section>
 
-<!-- ── TABLA DE CORREOS ── -->
+
 <div class="ds-table-wrap" id="inbox-list" aria-label="Lista de correos">
   <div class="ds-table-scroll">
     <table class="ds-table inbox-table" id="email-table">
@@ -223,7 +223,7 @@
             </td>
           </tr>
 
-          <!-- Datos para el panel lateral (HTML del cuerpo se carga bajo demanda) -->
+          
           <tr style="display:none" aria-hidden="true">
             <td colspan="8" style="padding:0;border:0">
               <div id="detail-{{ email.id }}"
