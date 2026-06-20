@@ -479,6 +479,16 @@ def server_error_view(request):
     return render(request, '500.html', status=500)
 
 
+def permission_denied_view(request, exception=None):
+    """403 — permisos insuficientes o acceso denegado."""
+    return render(request, '403.html', {'exception': exception}, status=403)
+
+
+def csrf_failure_view(request, reason=""):
+    """403 CSRF — token inválido/expirado. Muestra página amigable."""
+    return render(request, '403.html', {'reason': reason}, status=403)
+
+
 # ─────────────────────────────────────────────────────────────────────
 #  ADMIN — Solicitudes de cupo de alias
 # ─────────────────────────────────────────────────────────────────────

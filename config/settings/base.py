@@ -71,6 +71,9 @@ for h in ALLOWED_HOSTS:
 # en el header X-Forwarded-Proto que el proxy nos pone para detectar HTTPS.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# Vista personalizada para errores CSRF (token inválido/expirado).
+CSRF_FAILURE_VIEW = 'apps.core.views.csrf_failure_view'
+
 # Dominio que se usa para generar las direcciones de los alias.
 # Tiene que coincidir con el dominio verificado en Resend.
 MAIL_DOMAIN = os.environ.get('MAIL_DOMAIN', 'dockershield.lat').strip()

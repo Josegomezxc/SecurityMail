@@ -391,7 +391,7 @@
     </ul>
     <div class="modal-highlight">
       <strong style="color:var(--text-primary)">Fundamento legal:</strong> El análisis automatizado para fines de
-      seguridad está amparado bajo el consentimiento explícito del usuario y es práctica estándar en ciberseguridad.
+      seguridad está amparado bajo el consentimiento explícito del usuario (<a href="https://www.gob.ec/regulaciones/ley-organica-proteccion-datos-personales" target="_blank" rel="noopener noreferrer">art. 8 LOPDP</a>), así como en la figura de decisiones automatizadas (<a href="https://www.gob.ec/regulaciones/ley-organica-proteccion-datos-personales" target="_blank" rel="noopener noreferrer">art. 18 LOPDP</a>), y es práctica estándar en ciberseguridad.
     </div>
   </section>
 
@@ -399,14 +399,14 @@
     <h3 class="modal-section-title">3. Uso Aceptable</h3>
     <ul>
       <li>Usar el servicio únicamente para proteger tu propia privacidad.</li>
-      <li>No usar los alias para actividades ilegales o fraudulentas.</li>
+      <li>No usar los alias para actividades ilegales o fraudulentas (<a href="https://www.gob.ec/sites/default/files/regulations/2020-09/1.%20COIP.pdf" target="_blank" rel="noopener noreferrer">art. 229 COIP</a>).</li>
       <li>Mantener la confidencialidad de tus credenciales.</li>
     </ul>
   </section>
 
   <section class="modal-section">
     <h3 class="modal-section-title">4. Limitación de Responsabilidad</h3>
-    <p>DockerShield no garantiza detección del 100% de amenazas. Es una capa adicional de seguridad, no el único
+    <p>DockerShield no garantiza detección del 100% de amenazas (<a href="https://www.gob.ec/sites/default/files/regulations/2018-10/CIVIL-CODIGO_CIVIL_.pdf" target="_blank" rel="noopener noreferrer">art. 1554 del Código Civil</a>). Es una capa adicional de seguridad, no el único
       mecanismo de protección.</p>
   </section>
 </aside>
@@ -431,14 +431,14 @@
 
   <section class="modal-section">
     <h3 class="modal-section-title">1. Tu Correo Real</h3>
-    <p>Nunca es expuesto a terceros. Solo lo usamos para enviarte alertas de seguridad cuando detectamos una amenaza en
+    <p>Nunca es expuesto a terceros (<a href="https://www.gob.ec/regulaciones/ley-organica-proteccion-datos-personales" target="_blank" rel="noopener noreferrer">art. 7 LOPDP</a>). Solo lo usamos para enviarte alertas de seguridad cuando detectamos una amenaza en
       tus alias.</p>
   </section>
 
   <section class="modal-section">
     <h3 class="modal-section-title">2. Qué Datos Almacenamos</h3>
     <ul>
-      <li><strong style="color:var(--text-primary)">Correo electrónico</strong> — para alertas de seguridad. Nunca compartido.</li>
+      <li><strong style="color:var(--text-primary)">Correo electrónico</strong> — para alertas de seguridad. Nunca compartido (<a href="https://www.gob.ec/regulaciones/ley-organica-proteccion-datos-personales" target="_blank" rel="noopener noreferrer">arts. 8, 11 y 12 LOPDP</a>).</li>
       <li><strong style="color:var(--text-primary)">Alias creados</strong> — para gestionar tu protección.</li>
       <li><strong style="color:var(--text-primary)">Metadatos de correos</strong> — remitente y asunto, para mostrártelos.</li>
       <li><strong style="color:var(--text-primary)">Resultado del análisis</strong> — score de riesgo y tipo de amenaza. NO el contenido del adjunto.</li>
@@ -454,14 +454,14 @@
       <li>Solo almacenamos el resultado (score, tipo de amenaza), no el archivo.</li>
     </ul>
     <div class="modal-highlight">
-      <strong style="color:var(--text-primary)">Sin intervención humana:</strong> Nadie accede al contenido de tus correos o adjuntos. Todo es automatizado.
+      <strong style="color:var(--text-primary)">Sin intervención humana:</strong> Nadie accede al contenido de tus correos o adjuntos. Todo es automatizado, con medidas de seguridad técnicas y organizativas (<a href="https://www.gob.ec/regulaciones/ley-organica-proteccion-datos-personales" target="_blank" rel="noopener noreferrer">arts. 20 y 21 LOPDP</a>).
     </div>
   </section>
 
   <section class="modal-section">
     <h3 class="modal-section-title">4. Tus Derechos</h3>
     <ul>
-      <li>Eliminar tu cuenta y todos tus datos en cualquier momento.</li>
+      <li>Eliminar tu cuenta y todos tus datos en cualquier momento (<a href="https://www.gob.ec/regulaciones/ley-organica-proteccion-datos-personales" target="_blank" rel="noopener noreferrer">arts. 39 a 47 LOPDP</a>).</li>
       <li>Destruir cualquier alias activo.</li>
       <li>Solicitar información sobre los datos almacenados.</li>
     </ul>
@@ -469,9 +469,9 @@
 
   <section class="modal-section">
     <h3 class="modal-section-title">5. Contacto</h3>
-    <p>Para consultas sobre privacidad: <strong style="color:var(--accent)">jgomezm10@unemi.edu.ec</strong></p>
+    <p>Para consultas sobre privacidad, escribe a nuestro <strong style="color:var(--text-primary)">Delegado de Protección de Datos</strong> (<a href="https://www.gob.ec/regulaciones/ley-organica-proteccion-datos-personales" target="_blank" rel="noopener noreferrer">art. 47 LOPDP</a>): <strong style="color:var(--accent)">jgomezm10@unemi.edu.ec</strong></p>
   </section>
 </aside>
 
-<script src="{% static 'accounts/js/register.js' %}"></script>
+<script src="{% static 'accounts/js/register.js' %}?v={% if debug %}{% now 'U' %}{% else %}register-2.0{% endif %}"></script>
 {% endblock %}

@@ -16,3 +16,9 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0','app.dockershield.lat', *_e
 
 # Helpers de debug (Django Debug Toolbar opcional, no obligatorio)
 INTERNAL_IPS = ['127.0.0.1', 'localhost']
+
+# ── Templates sin caché para desarrollo ──
+TEMPLATES[0]['OPTIONS']['loaders'] = [
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader',
+]

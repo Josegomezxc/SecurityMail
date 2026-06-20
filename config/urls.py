@@ -18,8 +18,9 @@ register_converter(SignedIdConverter, 'sid')
 # handlers automáticamente. En DEBUG=True los ignora y muestra la pantalla
 # técnica con el listado de rutas; por eso además agregamos un catch-all
 # al final de urlpatterns que captura cualquier ruta no reconocida.
-from apps.core.views import page_not_found_view
+from apps.core.views import page_not_found_view, permission_denied_view
 handler404 = 'apps.core.views.page_not_found_view'
+handler403 = 'apps.core.views.permission_denied_view'
 handler500 = 'apps.core.views.server_error_view'
 
 urlpatterns = [
