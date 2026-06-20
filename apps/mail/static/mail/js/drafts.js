@@ -4,9 +4,9 @@ function getCsrfTok() {
 }
 
 /* Reanuda el borrador en el compose modal global (incluido por base.html). */
-function resumeDraft(id) {
+function resumeDraft(draftId) {
   if (typeof window.openDraft === 'function') {
-    window.openDraft(id);
+    window.openDraft(draftId);
   } else if (window.showToast) {
     window.showToast({
       type: 'danger',

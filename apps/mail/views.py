@@ -20,6 +20,7 @@ from django.views.decorators.http import require_POST
 from apps.aliases.models import Alias
 from apps.sandbox.models import SandboxAnalysis
 from apps.core.services.stats_service import dashboard_stats
+from apps.core.url_signer import decode_id, encode_id
 from .models import EmailMessage, SentEmail, Draft
 
 
@@ -780,8 +781,12 @@ def draft_save_api(request):
 
     # Resolver alias (debe pertenecer al usuario)
     alias = None
-    if alias_id.isdigit():
-        alias = Alias.objects.filter(id=int(alias_id), user=request.user).first()
+    try:
+        alias_pk = decode_id(alias_id)
+    except Exception:
+        alias_pk = int(alias_id) if alias_id.isdigit() else None
+    if alias_pk is not None:
+        alias = Alias.objects.filter(id=alias_pk, user=request.user).first()
 
     # Parse scheduled_at si llegó
     scheduled_dt = None
@@ -797,8 +802,12 @@ def draft_save_api(request):
 
     # Update si nos dieron un id válido y el borrador es nuestro
     draft = None
-    if raw_id.isdigit():
-        draft = Draft.objects.filter(id=int(raw_id), user=request.user).first()
+    try:
+        draft_pk = decode_id(raw_id)
+    except Exception:
+        draft_pk = int(raw_id) if raw_id.isdigit() else None
+    if draft_pk is not None:
+        draft = Draft.objects.filter(id=draft_pk, user=request.user).first()
 
     # Deduplicación: si NO nos dieron draft_id (borrador "nuevo") pero ya
     # existe uno con el MISMO alias + destinatario + asunto, lo reusamos.
@@ -832,7 +841,7 @@ def draft_save_api(request):
 
     return JsonResponse({
         'ok': True,
-        'draft_id':   draft.id,
+        'draft_id':   encode_id(draft.id),
         'updated_at': draft.updated_at.isoformat(),
     })
 
@@ -845,14 +854,15 @@ def draft_get_api(request, pk):
     except Draft.DoesNotExist:
         return JsonResponse({'ok': False, 'error': 'not_found'}, status=404)
 
+    alias = d.alias
     return JsonResponse({
         'ok': True,
         'draft': {
-            'id':            d.id,
-            'alias_id':      d.alias.id if d.alias else None,
-            'alias_address': d.alias.address if d.alias else '',
-            'alias_label':   d.alias.label if d.alias else '',
-            'alias_active':  bool(d.alias and d.alias.is_active),
+            'id':            encode_id(d.id),
+            'alias_id':      encode_id(alias.id) if alias else None,
+            'alias_address': alias.address if alias else '',
+            'alias_label':   alias.label if alias else '',
+            'alias_active':  bool(alias and alias.is_active),
             'to':            d.to_email,
             'subject':       d.subject,
             'body_html':     d.body_html,

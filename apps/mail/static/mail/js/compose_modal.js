@@ -31,7 +31,7 @@
   var currentAliasId   = null;
   var currentAliasAddr = '';
   var currentAliasLabel = '';
-  var currentDraftId   = null;               // id del borrador asociado (si lo hay)
+  var currentDraftId   = null;
   var recipients       = [];                 // chips committed [{email, label}]
   var suggestActive    = -1;                 // índice resaltado en el dropdown
   var suggestItems     = [];                 // resultados actuales del dropdown
@@ -879,9 +879,6 @@
     if (!currentDraftId) return Promise.resolve(null);
     var id = currentDraftId;
     currentDraftId = null;
-    /* hard=1 → borrado permanente. Se llama al enviar exitosamente
-       (el correo ya partió, no tiene sentido conservar el borrador
-       en la papelera durante 30 días). */
     var fd = new FormData();
     fd.append('hard', '1');
     fd.append('csrfmiddlewaretoken', getCsrf());

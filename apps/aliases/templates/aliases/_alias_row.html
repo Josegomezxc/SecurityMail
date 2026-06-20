@@ -47,7 +47,7 @@
         Copiar
       </button>
       <button type="button" class="btn-send"
-              data-alias-id="{{ alias.id }}"
+              data-alias-id="{{ alias.id|sign_id }}"
               data-alias-address="{{ alias.address }}"
               data-alias-label="{{ alias.label }}"
               onclick="aliasOpenCompose(this)">

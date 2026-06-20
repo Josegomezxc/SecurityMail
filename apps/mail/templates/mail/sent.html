@@ -1,5 +1,5 @@
 {% extends 'core/base.html' %}
-{% load static %}
+{% load static %}{% load sign_id_tags %}
 {% block title %}Enviados — DockerShield{% endblock %}
 {% block page_title %}Enviados{% endblock %}
 {% block nav_sent %}active{% endblock %}
@@ -80,7 +80,7 @@
         <span class="alias-picker-header-badge">{{ active_aliases|length }}</span>
       </div>
       {% for a in active_aliases %}
-      <div class="alias-picker-item" data-alias-id="{{ a.id }}" data-alias-address="{{ a.address }}"
+      <div class="alias-picker-item" data-alias-id="{{ a.id|sign_id }}" data-alias-address="{{ a.address }}"
         data-alias-label="{{ a.label }}" onclick="composeFromAlias(this)">
         <div class="alias-picker-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">

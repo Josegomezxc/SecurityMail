@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% load static %}
+    {% load static %}{% load sign_id_tags %}
     <title>{% block title %}DockerShield{% endblock %}</title>
     <link rel="icon" type="image/png" href="{% static 'core/img/logo.png' %}">
     <link rel="apple-touch-icon" href="{% static 'core/img/logo.png' %}">
@@ -99,7 +99,7 @@
                     <span class="alias-picker-header-badge">{{ active_aliases|length }}</span>
                 </div>
                 {% for a in active_aliases %}
-                <div class="alias-picker-item" data-alias-id="{{ a.id }}" data-alias-address="{{ a.address }}"
+                <div class="alias-picker-item" data-alias-id="{{ a.id|sign_id }}" data-alias-address="{{ a.address }}"
                      data-alias-label="{{ a.label }}" onclick="composeFromSidebarAlias(this)">
                     <div class="alias-picker-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">

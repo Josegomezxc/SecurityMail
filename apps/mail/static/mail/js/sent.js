@@ -347,8 +347,8 @@
   });
 
   function composeFromAlias(item) {
-    var id = item.dataset.aliasId;
-    var addr = item.dataset.aliasAddress;
+    var id    = item.dataset.aliasId;
+    var addr  = item.dataset.aliasAddress;
     var label = item.dataset.aliasLabel || '';
     closeAliasPicker();
     if (typeof window.openCompose === 'function') {

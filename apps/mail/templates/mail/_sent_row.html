@@ -1,12 +1,12 @@
-
+{% load sign_id_tags %}
 <article class="sent-row"
-         data-id="{{ em.id }}"
+         data-id="{{ em.id|sign_id }}"
          data-to="{{ em.to_email|lower }}"
          data-subject="{{ em.subject|lower }}"
          data-alias="{{ em.alias.address|lower }}"
          data-has-attach="{% if em.attachments_count %}1{% else %}0{% endif %}"
          data-scheduled="{% if em.scheduled_at %}1{% else %}0{% endif %}"
-         onclick="openSent({{ em.id }})">
+         onclick="openSent('{{ em.id|sign_id }}')">
 
   <div class="sent-avatar">{{ em.to_email|first|upper }}</div>
 
@@ -40,7 +40,7 @@
     </div>
   </div>
 
-  <button type="button" class="sent-trash-btn" data-email-id="{{ em.id }}"
+  <button type="button" class="sent-trash-btn" data-email-id="{{ em.id|sign_id }}"
     onclick="event.stopPropagation();sentTrashEmail(this)" title="Mover a papelera">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
       stroke-linejoin="round">
@@ -56,11 +56,11 @@
   </svg>
 
   
-  <div id="sent-detail-{{ em.id }}" style="display:none"
+  <div id="sent-detail-{{ em.id|sign_id }}" style="display:none"
        data-to="{{ em.to_email }}"
        data-subject="{{ em.subject }}"
        data-alias="{{ em.alias.address }}"
-       data-alias-id="{{ em.alias.id }}"
+       data-alias-id="{{ em.alias.id|sign_id }}"
        data-alias-label="{{ em.alias.label }}"
        data-alias-active="{{ em.alias.is_active|yesno:'1,0' }}"
        data-time="{{ em.sent_at|date:'d/m/Y H:i' }}"

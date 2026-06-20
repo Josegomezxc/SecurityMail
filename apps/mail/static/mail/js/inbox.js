@@ -385,9 +385,9 @@ function trashEmail(btn, kind) {
   var row = btn.closest('.inbox-row, .sent-row, tr');
   if (!row) return;
 
-  var url = (kind === 'outbound')
+  var url = (kind === 'outbound'
     ? '/enviados/' + encodeURIComponent(id) + '/papelera/'
-    : '/bandeja/' + encodeURIComponent(id) + '/papelera/';
+    : '/bandeja/' + encodeURIComponent(id) + '/papelera/');
 
   var csrf = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
   csrf = csrf ? csrf.split('=')[1] : '';

@@ -1,11 +1,11 @@
-
-<article class="dr-row" id="draft-row-{{ d.id }}"
+{% load sign_id_tags %}
+<article class="dr-row" id="draft-row-{{ d.id|sign_id }}"
      data-has-recipient="{% if d.to_email %}1{% else %}0{% endif %}"
      data-scheduled="{% if d.scheduled_at %}1{% else %}0{% endif %}"
      tabindex="0"
      role="button"
      aria-label="Continuar editando borrador"
-     onclick="resumeDraft({{ d.id }})">
+     onclick="resumeDraft('{{ d.id|sign_id }}')">
   <div class="dr-avatar">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -46,7 +46,7 @@
   </div>
 
   <button type="button" class="dr-delete-btn"
-          onclick="event.stopPropagation();deleteDraft({{ d.id }})"
+          onclick="event.stopPropagation();deleteDraft('{{ d.id|sign_id }}')"
           title="Eliminar borrador">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="3 6 5 6 21 6"/>
