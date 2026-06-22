@@ -1151,66 +1151,71 @@
     if (!currentAliasId) return;
     clearErrors();
     btnSend.classList.add('loading'); btnSend.disabled = true;
-    var fd = new FormData();
-    fd.append('to', inputTo.value);
-    fd.append('subject', inputSubj.value);
-    fd.append('message_html', editor.innerHTML);
-    if (inputScheduled && inputScheduled.value) fd.append('scheduled_at', inputScheduled.value);
-    attachedFiles.forEach(function (f) { fd.append('attachments', f); });
-    fetch('/alias/' + currentAliasId + '/enviar/', {
-      method: 'POST', credentials: 'same-origin',
-      headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
-      body: fd,
-    })
-    .then(function (res) { return res.json().then(function (data) { return { status: res.status, data: data }; }); })
-    .then(function (r) {
-      btnSend.classList.remove('loading'); btnSend.disabled = false;
-      if (r.status === 200 && r.data.ok) {
-        if (window.showToast) {
-          var sent = r.data.message || 'Tu correo salió de DockerShield.';
-          var attN = r.data.attachments_sent || 0;
-          if (attN) sent += ' Llevó ' + attN + ' adjunto' + (attN === 1 ? '' : 's') + '.';
-          var title = r.data.scheduled
-            ? 'Correo programado'
-            : 'Correo enviado';
-          var extra = r.data.scheduled
-            ? ' Se enviará automáticamente en la fecha indicada.'
-            : ' Lo guardamos en Enviados — el destinatario lo recibirá en breve.';
-          window.showToast({
-            type:    'success',
-            title:   title,
-            message: sent + extra,
-            duration: 5500,
-          });
+    window.dsShowLoader();
+    console.log('[compose] dsShowLoader called');
+    console.log('[compose] html has ds-loading?', document.documentElement.classList.contains('ds-loading'));
+    var _dl = document.getElementById('dsLoader');
+    console.log('[compose] #dsLoader exists?', !!_dl);
+    if (_dl) console.log('[compose] #dsLoader style.display:', _dl.style.display);
+    requestAnimationFrame(function () {
+        console.log('[compose] RAF fired — starting fetch');
+      var fd = new FormData();
+      fd.append('to', inputTo.value);
+      fd.append('subject', inputSubj.value);
+      fd.append('message_html', editor.innerHTML);
+      if (inputScheduled && inputScheduled.value) fd.append('scheduled_at', inputScheduled.value);
+      attachedFiles.forEach(function (f) { fd.append('attachments', f); });
+      fetch('/alias/' + currentAliasId + '/enviar/', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd,
+      })
+      .then(function (res) { return res.json().then(function (data) { return { status: res.status, data: data }; }); })
+      .then(function (r) {
+        console.log('[compose] response received — hiding loader');
+        window.dsHideLoader();
+        btnSend.classList.remove('loading'); btnSend.disabled = false;
+        if (r.status === 200 && r.data.ok) {
+          if (window.showToast) {
+            var sent = r.data.message || 'Tu correo salió de DockerShield.';
+            var attN = r.data.attachments_sent || 0;
+            if (attN) sent += ' Llevó ' + attN + ' adjunto' + (attN === 1 ? '' : 's') + '.';
+            var title = r.data.scheduled
+              ? 'Correo programado'
+              : 'Correo enviado';
+            var extra = r.data.scheduled
+              ? ' Se enviará automáticamente en la fecha indicada.'
+              : ' Lo guardamos en Enviados — el destinatario lo recibirá en breve.';
+            window.showToast({
+              type:    'success',
+              title:   title,
+              message: sent + extra,
+              duration: 5500,
+            });
+          }
+          if (r.data.sent) {
+            document.dispatchEvent(new CustomEvent('compose:sent', {
+              detail: r.data.sent,
+            }));
+          }
+          deleteDraftRemote();
+          setToValue('');
+          inputSubj.value = '';
+          editor.innerHTML = '';
+          closeCompose();
+        } else {
+          if (r.data && r.data.errors) showErrors(r.data.errors);
+          else if (r.data && r.data.error) {
+            if (window.showToast) window.showToast({ type:'danger', title:'No se pudo enviar', message: r.data.error, duration: 6000 });
+          }
         }
-        /* Disparar evento global con la metadata del correo recién creado.
-           La página de /enviados/ lo escucha para insertar la fila al
-           instante sin necesidad de recargar. Cualquier otra página puede
-           ignorar el evento (no pasa nada). */
-        if (r.data.sent) {
-          document.dispatchEvent(new CustomEvent('compose:sent', {
-            detail: r.data.sent,
-          }));
-        }
-        /* El correo se envió: si existía un borrador asociado, lo
-           descartamos para que no aparezca duplicado en /borradores/.
-           Vaciamos los campos antes de cerrar para que closeCompose
-           NO crea otro borrador "fantasma" al detectar contenido. */
-        deleteDraftRemote();
-        setToValue('');
-        inputSubj.value = '';
-        editor.innerHTML = '';
-        closeCompose();
-      } else {
-        if (r.data && r.data.errors) showErrors(r.data.errors);
-        else if (r.data && r.data.error) {
-          if (window.showToast) window.showToast({ type:'danger', title:'No se pudo enviar', message: r.data.error, duration: 6000 });
-        }
-      }
-    })
-    .catch(function () {
-      btnSend.classList.remove('loading'); btnSend.disabled = false;
-      if (window.showToast) window.showToast({ type:'danger', title:'Error de red', message:'No pudimos conectar con el servidor. Intenta de nuevo.', duration: 6000 });
+      })
+      .catch(function () {
+        console.log('[compose] error — hiding loader');
+        window.dsHideLoader();
+        btnSend.classList.remove('loading'); btnSend.disabled = false;
+        if (window.showToast) window.showToast({ type:'danger', title:'Error de red', message:'No pudimos conectar con el servidor. Intenta de nuevo.', duration: 6000 });
+      });
     });
   });
 

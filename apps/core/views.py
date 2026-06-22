@@ -148,6 +148,10 @@ def admin_toggle_staff(request, pk):
         role = "administrador" if target.is_staff else "usuario normal"
         messages.success(request, f"{target.email} ahora es {role}.")
 
+    # Redirige según origen: tabla de usuarios → a la lista, detalle → al detalle
+    referer = request.META.get('HTTP_REFERER', '')
+    if '/admin-panel/usuario/' in referer:
+        return redirect('admin_user_detail', pk=target.pk)
     return redirect('admin_users')
 
 

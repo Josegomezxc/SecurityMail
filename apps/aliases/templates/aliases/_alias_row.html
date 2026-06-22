@@ -1,4 +1,4 @@
-
+{% load sign_id_tags %}
 <article class="alias-card {% if not alias.is_active %}destroyed{% endif %}"
      data-active="{{ alias.is_active|yesno:'true,false' }}"
      data-label="{{ alias.label|lower }}"

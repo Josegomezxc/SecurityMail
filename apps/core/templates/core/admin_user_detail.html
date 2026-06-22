@@ -47,7 +47,7 @@
 
   {% if target != request.user %}
     <form method="post" action="{% url 'admin_toggle_staff' target.pk %}"
-          onsubmit="return confirm('{% if target.is_staff %}¿Quitar permisos admin a {{ target.email }}?{% else %}¿Hacer admin a {{ target.email }}?{% endif %}');">
+          data-user-email="{{ target.email }}">
       {% csrf_token %}
       {% if target.is_staff %}
         <button type="submit" style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-secondary);font-family:var(--mono);font-size:0.75rem;font-weight:600;padding:0.5rem 0.875rem;border-radius:0.625rem;cursor:pointer;display:inline-flex;align-items:center;gap:0.375rem">

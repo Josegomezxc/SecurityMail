@@ -116,19 +116,17 @@
             {% if u == request.user %}
               <span class="self-note">(tú)</span>
             {% else %}
-              <form method="post" action="{% url 'admin_toggle_staff' u.pk %}" style="display:inline" data-ds-loader>
+              <form method="post" action="{% url 'admin_toggle_staff' u.pk %}" style="display:inline">
                 {% csrf_token %}
                 {% if u.is_staff %}
                   <button type="submit" class="btn-mini demote" title="Quitar rol admin"
-                          data-user-email="{{ u.email }}"
-                          onclick="return confirmStaffToggle(event, this)">
+                          data-user-email="{{ u.email }}">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     Degradar
                   </button>
                 {% else %}
                   <button type="submit" class="btn-mini promote" title="Promover a admin"
-                          data-user-email="{{ u.email }}"
-                          onclick="return confirmStaffToggle(event, this)">
+                          data-user-email="{{ u.email }}">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
                     Promover
                   </button>

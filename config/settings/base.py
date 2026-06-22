@@ -78,6 +78,12 @@ CSRF_FAILURE_VIEW = 'apps.core.views.csrf_failure_view'
 # Tiene que coincidir con el dominio verificado en Resend.
 MAIL_DOMAIN = os.environ.get('MAIL_DOMAIN', 'dockershield.lat').strip()
 
+# ─── CONFIGURACIÓN GLOBAL DE CORREO DE DJANGO ───────────────────────
+# Remitente por defecto para Auth, formularios nativos y apps de terceros
+DEFAULT_FROM_EMAIL = f'DockerShield <noreply@{MAIL_DOMAIN}>'
+
+# Remitente de las alertas del sistema (errores 500) enviadas a los ADMINS
+SERVER_EMAIL = f'root@{MAIL_DOMAIN}'
 
 # ═══════════════════════════════════════════════════════════════════
 #  APPS

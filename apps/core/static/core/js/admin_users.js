@@ -52,3 +52,31 @@ function applyAllFilters() {
     b.addEventListener('click', function () { setRoleFilter(b.dataset.roleFilter, b); });
   });
 })();
+
+/* Confirmación con modal danger antes de promover/degradar admin */
+document.addEventListener('submit', function (e) {
+  var form = e.target.closest('form[action*="toggle-staff"]');
+  if (!form || form.dataset.confirmed === '1') return;
+  e.preventDefault();
+  if (!window.confirmDialog) { form.submit(); return; }
+
+  var btn = form.querySelector('.promote, .demote');
+  var isPromote = btn && btn.classList.contains('promote');
+  var email = (btn && btn.getAttribute('data-user-email')) || '';
+
+  window.confirmDialog({
+    danger:      true,
+    icon:        'warning',
+    title:       isPromote ? 'Promover a administrador' : 'Degradar a usuario normal',
+    message:     isPromote
+      ? '¿Estás seguro de querer promover a <strong>' + email + '</strong> como administrador? Podrá gestionar usuarios, alias y solicitudes.'
+      : '¿Estás seguro de querer degradar a <strong>' + email + '</strong> a usuario normal? Perderá todos los privilegios de administrador.',
+    confirmText: isPromote ? 'Sí, promover' : 'Sí, degradar',
+    cancelText:  'Cancelar',
+  }).then(function (ok) {
+    if (!ok) return;
+    form.dataset.confirmed = '1';
+    if (window.dsShowLoader) window.dsShowLoader();
+    form.submit();
+  });
+});
