@@ -48,9 +48,12 @@ def admin_dashboard_view(request):
 
     top_users = (
         User.objects
-            .annotate(emails_count=Count('aliases__emails'))
-            .filter(emails_count__gt=0)
-            .order_by('-emails_count')[:5]
+            .annotate(threats_count=Count(
+                'aliases__emails',
+                filter=Q(aliases__is_active=True, aliases__emails__risk_score__gte=61)
+            ))
+            .filter(threats_count__gt=0)
+            .order_by('-threats_count')[:5]
     )
 
     recent_threats = (

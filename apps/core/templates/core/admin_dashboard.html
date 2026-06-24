@@ -230,8 +230,8 @@
   <article class="dash-card">
     <header class="dash-card-head">
       <div>
-        <h3 class="dash-card-title">Top usuarios</h3>
-        <p class="dash-card-sub">Con más correos procesados</p>
+        <h3 class="dash-card-title">Top usuarios con alto riesgo</h3>
+        <p class="dash-card-sub">Con más amenazas detectadas en sus alias</p>
       </div>
       <a href="{% url 'admin_users' %}" class="dash-link-tiny">
         Ver todos
@@ -245,7 +245,7 @@
         <div class="adm-user-avatar">{{ u.email|first|upper }}{{ u.email|slice:"1:2"|upper }}</div>
         <div class="adm-user-body">
           <div class="adm-user-email">{{ u.email|truncatechars:30 }}</div>
-          <div class="adm-user-meta">{{ u.emails_count }} correo{{ u.emails_count|pluralize:"s" }}</div>
+          <div class="adm-user-meta">{{ u.threats_count }} amenaza{{ u.threats_count|pluralize:"s" }}</div>
         </div>
         <a href="{% url 'admin_user_detail' u.pk %}" class="adm-user-link" aria-label="Ver detalle">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
@@ -254,7 +254,7 @@
       {% endfor %}
     </ul>
     {% else %}
-    <div class="dash-empty"><div class="dash-empty-title">Sin actividad aún</div></div>
+    <div class="dash-empty"><div class="dash-empty-title">Sin usuarios bajo riesgo</div></div>
     {% endif %}
   </article>
 
