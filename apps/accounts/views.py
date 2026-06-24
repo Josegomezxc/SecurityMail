@@ -310,8 +310,10 @@ def login_view(request):
             remember = (request.POST.get('remember') or '').lower() in ('on', '1', 'true', 'yes')
             if remember:
                 request.session.set_expiry(60 * 60 * 24 * 30)   # 30 días
+                request.session['remember_me'] = True
             else:
                 request.session.set_expiry(0)                   # cierre del navegador
+                request.session['remember_me'] = False
 
             return redirect('dashboard')
 

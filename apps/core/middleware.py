@@ -54,15 +54,17 @@ class SingleSessionMiddleware:
                     return redirect('login')
 
                 # ── 2) Auto-logout por inactividad ──
-                if session and session.session_last_activity:
-                    idle = (timezone.now() - session.session_last_activity).total_seconds()
-                    if idle > SESSION_IDLE_TIMEOUT_SECONDS:
-                        logout(request)
-                        messages.info(
-                            request,
-                            'Tu sesión cerró por inactividad. Iniciá sesión de nuevo.',
-                        )
-                        return redirect('login')
+                # Solo se aplica si el usuario NO marcó "Recordarme en este equipo".
+                if not request.session.get('remember_me'):
+                    if session and session.session_last_activity:
+                        idle = (timezone.now() - session.session_last_activity).total_seconds()
+                        if idle > SESSION_IDLE_TIMEOUT_SECONDS:
+                            logout(request)
+                            messages.info(
+                                request,
+                                'Tu sesión cerró por inactividad. Iniciá sesión de nuevo.',
+                            )
+                            return redirect('login')
 
                 # ── 3) Marcar actividad: tu sesión está VIVA ──
                 # Cada request resetea el contador de inactividad.
