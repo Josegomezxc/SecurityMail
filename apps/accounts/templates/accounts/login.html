@@ -3,7 +3,8 @@
 {% block title %}Iniciar sesión — DockerShield{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'accounts/styles/login.css' %}?v={% if debug %}{% now 'U' %}{% else %}close-fix{% endif %}">
+<link rel="preload" href="{% static 'accounts/styles/login.css' %}?v={% if debug %}{% now 'U' %}{% else %}close-fix-v3{% endif %}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="{% static 'accounts/styles/login.css' %}?v={% if debug %}{% now 'U' %}{% else %}close-fix-v3{% endif %}"></noscript>
 {% endblock %}
 
 {% block body_outer %}
@@ -72,7 +73,7 @@
 
       <header class="login-logo">
         <span class="login-logo-icon">
-          <img src="{% static 'core/img/logo.png' %}" alt="DockerShield" width="220" height="90">
+          <img src="{% static 'core/img/logo.webp' %}" alt="DockerShield" width="220" height="90" fetchpriority="high">
         </span>
       </header>
 
@@ -341,9 +342,9 @@
 </div>
 {% endif %}
 
-<script src="{% static 'accounts/js/login.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader{% endif %}"></script>
+<script defer src="{% static 'accounts/js/login.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader-v3{% endif %}"></script>
 
 {% if temp_lock %}
-<script src="{% static 'accounts/js/login.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader{% endif %}"></script>
+<script defer src="{% static 'accounts/js/login.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader-v3{% endif %}"></script>
 {% endif %}
 {% endblock %}

@@ -1019,7 +1019,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
             if sandbox_id
             else f"{base_url}/sandbox/"
         )
-        logo_url = f"{base_url}/static/core/img/logo.png"
+        logo_url = f"{base_url}/static/core/img/logo.webp"
 
         # ── Nivel de amenaza ───────────────────────────────────────────
         if risk_score >= 81:
@@ -1291,7 +1291,7 @@ def send_safe_email_forward(email_obj, force=False):
         from apps.core.services.email_service import get_site_url
         domain = settings.MAIL_DOMAIN or 'dockershield.lat'
         from_addr = f"DockerShield <forward@{domain}>"
-        logo_url = f"{get_site_url()}/static/core/img/logo.png"
+        logo_url = f"{get_site_url()}/static/core/img/logo.webp"
 
         original_sender  = email_obj.from_email or '(remitente desconocido)'
         original_subject = email_obj.subject or '(sin asunto)'

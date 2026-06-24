@@ -8,7 +8,16 @@
   /* Colores leídos del tema activo (dark=morado, carbon=rosa) */
   function cssVar(name, fallback) {
     const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    return v || fallback;
+    if (v) return v;
+    // Fallback defensivo basado en el tema activo
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    if (theme === 'light') {
+      if (name.includes('text-muted')) return '#000000';
+      if (name.includes('border')) return 'rgba(0,0,0,0.1)';
+      if (name.includes('accent-hover')) return '#5a3ee0';
+      if (name.includes('accent')) return '#6d4aff';
+    }
+    return fallback;
   }
   function hexToRgba(hex, alpha) {
     hex = (hex || '').trim().replace('#', '');
@@ -19,14 +28,18 @@
     const b = parseInt(hex.slice(4, 6), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
-  const accent      = cssVar('--accent',       '#6d4aff');
-  const accentLight = cssVar('--accent-hover', '#7c5cff');
+
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const isLight = theme === 'light';
+
+  const accent      = cssVar('--accent',       isLight ? '#6d4aff' : '#6d4aff');
+  const accentLight = cssVar('--accent-hover', isLight ? '#5a3ee0' : '#7c5cff');
 
   /* ── DEFAULTS Chart.js (lee del tema activo) ─────────────────────── */
   if (typeof Chart !== 'undefined') {
     Chart.defaults.font.family = "'JetBrains Mono', monospace";
     Chart.defaults.font.size   = 11;
-    Chart.defaults.color       = hexToRgba(accentLight, 0.6);
+    Chart.defaults.color       = isLight ? '#000000' : hexToRgba(accentLight, 0.6);
   }
 
   /* ── 1) BAR CHART: actividad global últimos 7 días ───────────────── */
@@ -79,13 +92,13 @@
         scales: {
           x: {
             grid:    { display: false },
-            ticks:   { color: 'rgba(255,255,255,0.4)', maxRotation: 0 },
+            ticks:   { color: cssVar('--text-muted', isLight ? '#000000' : 'rgba(255,255,255,0.4)'), maxRotation: 0 },
             border:  { display: false },
           },
           y: {
             beginAtZero: true,
-            grid:    { color: 'rgba(255,255,255,0.04)' },
-            ticks:   { color: 'rgba(255,255,255,0.4)', precision: 0, stepSize: 1 },
+            grid:    { color: cssVar('--border-soft', isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)') },
+            ticks:   { color: cssVar('--text-muted', isLight ? '#000000' : 'rgba(255,255,255,0.4)'), precision: 0, stepSize: 1 },
             border:  { display: false },
           },
         },
@@ -108,7 +121,7 @@
     const data = total > 0 ? [safe, susp, threats] : [1];
     const colors = total > 0
       ? ['rgba(16, 185, 129, 0.85)', 'rgba(245, 158, 11, 0.85)', 'rgba(239, 68, 68, 0.85)']
-      : ['rgba(255, 255, 255, 0.05)'];
+      : [cssVar('--border', isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255, 255, 255, 0.05)')];
     const labels = total > 0 ? ['Seguros', 'Sospechosos', 'Amenazas'] : ['Sin datos'];
 
     new Chart(donutEl.getContext('2d'), {
@@ -162,7 +175,7 @@
     const data = total > 0 ? [active, staff, inactive] : [1];
     const colors = total > 0
       ? [hexToRgba(accentLight, 0.88), 'rgba(245, 158, 11, 0.85)', 'rgba(239, 68, 68, 0.55)']
-      : ['rgba(255, 255, 255, 0.05)'];
+      : [cssVar('--border', isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255, 255, 255, 0.05)')];
     const labels = total > 0
       ? ['Activos (regulares)', 'Administradores', 'Inactivos']
       : ['Sin datos'];

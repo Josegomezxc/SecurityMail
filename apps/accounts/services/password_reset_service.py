@@ -86,7 +86,7 @@ def send_reset_email(user: User, token: PasswordResetToken) -> Tuple[bool, str]:
 def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str) -> str:
     from apps.core.services.email_service import get_site_url
     display_name = (user.first_name or user.email or 'Usuario').strip()
-    logo_url = f"{get_site_url()}/static/core/img/logo.png"
+    logo_url = f"{get_site_url()}/static/core/img/logo.webp"
 
     # Email HTML — diseño profesional basado en tables (máx compat con Gmail,
     # Outlook, iOS Mail, etc.) + estilos 100% inline (muchos clientes strippean

@@ -1,10 +1,9 @@
 // Aplica el tema guardado ANTES de renderizar — evita el flash del tema por defecto.
-// Los temas válidos son 'dark' y 'carbon'. Si en localStorage queda
-// 'light' (de una versión vieja) se migra a 'dark' automáticamente.
+// Los temas válidos son 'dark', 'carbon' y 'light'.
 (function () {
     try {
         var t = localStorage.getItem('sms_theme') || 'dark';
-        if (t !== 'dark' && t !== 'carbon') {
+        if (t !== 'dark' && t !== 'carbon' && t !== 'light') {
             t = 'dark';
             localStorage.setItem('sms_theme', t);
         }

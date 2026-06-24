@@ -83,7 +83,7 @@ def send_deletion_code_email(
 def _build_deletion_code_html(*, display_name: str, code: str, minutes: int) -> str:
     """HTML con el código en caja grande y advertencia roja."""
     base_url = get_site_url()
-    logo_url = f"{base_url}/static/core/img/logo.png"
+    logo_url = f"{base_url}/static/core/img/logo.webp"
     name_safe = (display_name or 'Usuario').strip() or 'Usuario'
 
     return f"""<!DOCTYPE html>
@@ -199,7 +199,7 @@ def _build_account_deleted_html(
     base_url    = get_site_url()
     register_url = f"{base_url}/registro/"
     name_safe    = (display_name or 'Usuario').strip() or 'Usuario'
-    logo_url     = f"{base_url}/static/core/img/logo.png"
+    logo_url     = f"{base_url}/static/core/img/logo.webp"
 
     return f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="es">

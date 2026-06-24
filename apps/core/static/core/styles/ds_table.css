@@ -200,25 +200,25 @@
 }
 
 .ds-pill-danger {
-    color: #fca5a5;
+    color: var(--text-danger);
     background: rgba(239, 68, 68, 0.12);
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .ds-pill-warning {
-    color: #fbbf24;
+    color: var(--text-warning);
     background: rgba(245, 158, 11, 0.12);
     border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .ds-pill-success {
-    color: #6ee7b7;
+    color: var(--text-success);
     background: rgba(16, 185, 129, 0.12);
     border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .ds-pill-info {
-    color: #93c5fd;
+    color: var(--text-info);
     background: rgba(59, 130, 246, 0.12);
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
@@ -260,7 +260,7 @@
 }
 
 .ds-row-btn-danger {
-    color: #fca5a5;
+    color: var(--text-danger);
     border-color: rgba(239, 68, 68, 0.35);
     background: rgba(239, 68, 68, 0.06);
 }

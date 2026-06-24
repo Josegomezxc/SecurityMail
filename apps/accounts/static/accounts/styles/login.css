@@ -33,6 +33,7 @@ body { background: var(--bg-base); }
     grid-template-columns: 1fr;
     max-width: var(--lg-shell-max-mobile);
     width: 100%;
+    min-height: 33.75rem; /* 540px */
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
@@ -54,6 +55,11 @@ body { background: var(--bg-base); }
     padding: var(--lg-side-padding);
     position: relative;
     overflow: hidden;
+    /* Forzar colores de texto oscuros porque el fondo es siempre oscuro */
+    --text-primary: #ffffff;
+    --text-secondary: #b4b3c8;
+    --text-muted: #9493a8;
+    --border: rgba(255, 255, 255, 0.08);
 }
 .login-side::after {
     content: '';
@@ -190,10 +196,14 @@ body { background: var(--bg-base); }
     height: var(--lg-icon-size);
     color: var(--text-muted);
     pointer-events: none;
-    transition: color 0.15s ease;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
 }
 .input-with-icon input { padding-left: var(--lg-input-pad-left); }
-.input-with-icon:focus-within > .field-icon { color: var(--accent); }
+.input-with-icon:focus-within > .field-icon {
+    color: var(--accent);
+    opacity: 1;
+}
 .input-with-icon.has-eye input { padding-right: var(--lg-input-pad-right); }
 
 .eye-btn {
@@ -406,6 +416,7 @@ body { background: var(--bg-base); }
     .login-shell {
         grid-template-columns: 1fr 1fr;
         max-width: var(--lg-shell-max-desktop);
+        min-height: 28.125rem; /* 450px */
     }
     .login-side { display: block; }
     .login-card { padding: var(--lg-card-pad-desk); }

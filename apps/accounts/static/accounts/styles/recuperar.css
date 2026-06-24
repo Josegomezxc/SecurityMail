@@ -52,6 +52,10 @@ body { background: var(--bg-base); }
     padding: var(--rc-side-padding);
     position: relative;
     overflow: hidden;
+    --text-primary: #ffffff;
+    --text-secondary: #b4b3c8;
+    --text-muted: #9493a8;
+    --border: rgba(255, 255, 255, 0.08);
 }
 .login-side::after {
     content: '';

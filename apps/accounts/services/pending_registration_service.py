@@ -231,7 +231,7 @@ def _build_verification_html(pr: PendingRegistration) -> str:
     code = pr.code
     minutes = CODE_VALIDITY_MINUTES
     name = pr.first_name or 'usuario'
-    logo_url = f"{get_site_url()}/static/core/img/logo.png"
+    logo_url = f"{get_site_url()}/static/core/img/logo.webp"
 
     return f"""<!DOCTYPE html>
 <html lang="es">

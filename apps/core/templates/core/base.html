@@ -5,13 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% load static %}{% load sign_id_tags %}
     <title>{% block title %}DockerShield{% endblock %}</title>
-    <link rel="icon" type="image/png" href="{% static 'core/img/logo.png' %}">
-    <link rel="apple-touch-icon" href="{% static 'core/img/logo.png' %}">
+    <link rel="icon" type="image/webp" href="{% static 'core/img/logo.webp' %}">
+    <link rel="apple-touch-icon" href="{% static 'core/img/logo.webp' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script src="{% static 'core/js/base.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader-14{% endif %}"></script>
-    <link rel="stylesheet" href="{% static 'core/styles/base.css' %}?v={% if debug %}{% now 'U' %}{% else %}carbon-vars-2026-05-19{% endif %}">
+    <link rel="preload" href="https://fonts.gstatic.com/s/dmsans/v17/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K4.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="https://fonts.gstatic.com/s/dmsans/v17/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu6-K6h9Q.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap"></noscript>
+    <script>
+    (function () {
+        try {
+            var t = localStorage.getItem('sms_theme') || 'dark';
+            if (t !== 'dark' && t !== 'carbon' && t !== 'light') {
+                t = 'dark';
+                localStorage.setItem('sms_theme', t);
+            }
+            document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+    })();
+    </script>
+    <script defer src="{% static 'core/js/base.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader-15{% endif %}"></script>
+    <style>
+        /* CSS Crítico Above-The-Fold / Temas y Loader */
+        :root {
+            --bg-base: #1c1b29;
+            --text-primary: #e8e6f0;
+            --text-secondary: #9e9cb8;
+            --accent: #6d4aff;
+        }
+        html[data-theme="light"] {
+            --bg-base: #f3f4f6;
+            --text-primary: #000000;
+            --text-secondary: #000000;
+            --accent: #6d4aff;
+        }
+        html[data-theme="carbon"] {
+            --bg-base: #08080f;
+            --text-primary: #eeecf5;
+            --text-secondary: #9b98ae;
+            --accent: #ff4f7a;
+        }
+        html, body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+        }
+        .ds-loader {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2147483647;
+            background: rgba(8, 6, 18, 0.78);
+            align-items: center;
+            justify-content: center;
+            contain: layout paint;
+        }
+        html.ds-loading .ds-loader {
+            display: flex;
+        }
+    </style>
+    <link rel="preload" href="{% static 'core/styles/base.css' %}?v={% if debug %}{% now 'U' %}{% else %}light-mode-v6{% endif %}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{% static 'core/styles/base.css' %}?v={% if debug %}{% now 'U' %}{% else %}light-mode-v6{% endif %}"></noscript>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -65,7 +121,7 @@
         
         <a href="{% url 'dashboard' %}" class="sidebar-logo" data-ds-loader>
             <div class="logo-icon">
-                <img src="{% static 'core/img/logo_2.png' %}" alt="DockerShield">
+                <img src="{% static 'core/img/logo_2.webp' %}" alt="DockerShield">
             </div>
         </a>
 
@@ -429,6 +485,14 @@
         <div class="theme-modal-sub">Elige el tema que más te guste.</div>
 
         <div class="theme-grid">
+            <div class="theme-card" data-theme="light" onclick="selectThemeCard('light')">
+                <div class="theme-preview tp-light">
+                    <div class="tp-sidebar"><i></i><i></i><i></i><i></i></div>
+                    <div class="tp-content"><i></i><i></i><i></i><i></i></div>
+                </div>
+                <div class="theme-name">Claro</div>
+            </div>
+
             <div class="theme-card" data-theme="dark" onclick="selectThemeCard('dark')">
                 <div class="theme-preview tp-dark">
                     <div class="tp-sidebar"><i></i><i></i><i></i><i></i></div>
@@ -459,7 +523,7 @@
 
 <script src="{% static 'core/js/base_2.js' %}"></script>
 
-<script src="{% static 'core/js/base_3.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader{% endif %}"></script>
+<script src="{% static 'core/js/base_3.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader-light{% endif %}"></script>
 
 
 {% if messages and user.is_authenticated %}

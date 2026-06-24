@@ -25,6 +25,13 @@ html[data-theme="dark"] {
     --text-muted:    #6b6884;
     --border:        rgba(255,255,255,0.07);
     --border-soft:   rgba(255,255,255,0.04);
+    
+    --text-danger:   #fca5a5;
+    --text-warning:  #fbbf24;
+    --text-success:  #6ee7b7;
+    --text-info:     #93c5fd;
+    --ftc-rules-bg:  rgba(0, 0, 0, 0.15);
+    --threat-pill-hover-text: #fee2e2;
 
     
     --radius-sm:     0.375rem;   
@@ -76,6 +83,13 @@ html[data-theme="carbon"] {
     --border:        rgba(255,255,255,0.06);
     --border-soft:   rgba(255,255,255,0.03);
 
+    --text-danger:   #fca5a5;
+    --text-warning:  #fbbf24;
+    --text-success:  #6ee7b7;
+    --text-info:     #93c5fd;
+    --ftc-rules-bg:  rgba(0, 0, 0, 0.15);
+    --threat-pill-hover-text: #fee2e2;
+
     
     --ai-purple:         #ff4f7a;
     --ai-purple-light:   #ff8aa6;
@@ -84,3 +98,39 @@ html[data-theme="carbon"] {
 }
 
 
+html[data-theme="light"] {
+    --bg-base:       #f3f4f6;
+    --bg-surface:    #ffffff;
+    --bg-elevated:   #ffffff;
+    --bg-hover:      #f9fafb;
+    --sidebar-top:   #ffffff;
+    --sidebar-bottom:#f9fafb;
+    --topbar-bg:     rgba(255,255,255,0.85);
+    --accent:        #6d4aff;
+    --accent-hover:  #5a3ee0;
+    --accent-soft:   rgba(109,74,255,0.1);
+    --accent-border: rgba(109,74,255,0.25);
+    --danger:        #e11d48;
+    --danger-soft:   rgba(225,29,72,0.1);
+    --success:       #10b981;
+    --success-soft:  rgba(16,185,129,0.1);
+    --warning:       #d97706;
+    --warning-soft:  rgba(245,158,11,0.1);
+    --text-primary:  #000000;
+    --text-secondary:#000000;
+    --text-muted:    #000000;
+    --border:        rgba(0,0,0,0.1);
+    --border-soft:   rgba(0,0,0,0.05);
+
+    --text-danger:   #be123c;
+    --text-warning:  #9a3412;
+    --text-success:  #166534;
+    --text-info:     #1d4ed8;
+    --ftc-rules-bg:  var(--bg-base);
+    --threat-pill-hover-text: var(--danger);
+
+    --ai-purple:         #7c3aed;
+    --ai-purple-light:   #6d28d9;
+    --ai-purple-soft:    rgba(124,58,237,0.1);
+    --ai-purple-border:  rgba(124,58,237,0.2);
+}

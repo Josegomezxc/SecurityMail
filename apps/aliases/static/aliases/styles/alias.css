@@ -291,8 +291,8 @@
     padding-left: 0.25rem;
 }
 .ccv2-preview-card {
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px dashed rgba(124, 58, 237, 0.3);
+    background: var(--bg-hover);
+    border: 1px dashed var(--ai-purple-border);
     border-radius: var(--al-preview-radius);
     padding: 1rem;
     position: relative;

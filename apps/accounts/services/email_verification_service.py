@@ -257,7 +257,7 @@ def _build_verification_html(user: User, ev: EmailVerificationCode) -> str:
     code = ev.code
     minutes = CODE_VALIDITY_MINUTES
     name = user.first_name or user.username or 'usuario'
-    logo_url = f"{get_site_url()}/static/core/img/logo.png"
+    logo_url = f"{get_site_url()}/static/core/img/logo.webp"
 
     return f"""<!DOCTYPE html>
 <html lang="es">

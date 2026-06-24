@@ -315,8 +315,8 @@
 })();
 
 /* ─── Gestor de temas (se ejecuta ANTES de que el usuario interactúe) ─── */
-// Temas válidos: 'dark' y 'carbon'. Si llega 'light' (versión vieja) → 'dark'.
-const VALID_THEMES = ['dark', 'carbon'];
+// Temas válidos: 'dark', 'carbon' y 'light'.
+const VALID_THEMES = ['dark', 'carbon', 'light'];
 (function () {
     let saved = localStorage.getItem('sms_theme') || 'dark';
     if (!VALID_THEMES.includes(saved)) {

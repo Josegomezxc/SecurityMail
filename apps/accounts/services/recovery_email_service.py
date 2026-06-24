@@ -49,7 +49,7 @@ def _build_reactivated_html(
     """HTML estilo verde (positivo) avisando la reactivación."""
     base_url  = get_site_url()
     login_url = f"{base_url}/"
-    logo_url  = f"{base_url}/static/core/img/logo.png"
+    logo_url  = f"{base_url}/static/core/img/logo.webp"
     name_safe = (display_name or 'Usuario').strip() or 'Usuario'
 
     # Bloque opcional con la nota del admin
