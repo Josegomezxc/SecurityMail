@@ -345,6 +345,50 @@
 <script defer src="{% static 'accounts/js/login.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader-v3{% endif %}"></script>
 
 {% if temp_lock %}
-<script defer src="{% static 'accounts/js/login.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader-v3{% endif %}"></script>
+<script>
+  (function () {
+    const countdownEl = document.getElementById('lockCountdown');
+    const overlay = document.getElementById('lockOverlay');
+    if (!countdownEl || !overlay) return;
+
+    let seconds = parseInt(countdownEl.innerText) || 60;
+    
+    // Persistencia del timer en el cliente ante recargas de página
+    const storageKey = 'sms_temp_lock_expires_at';
+    let expiresAt = localStorage.getItem(storageKey);
+    const now = Date.now();
+
+    if (!expiresAt) {
+      expiresAt = now + seconds * 1000;
+      localStorage.setItem(storageKey, expiresAt);
+    } else {
+      expiresAt = parseInt(expiresAt);
+      // Validamos coherencia: si expiró o está fuera de rango respecto a lo reportado por el servidor,
+      // sincronizamos con el valor del servidor.
+      if (expiresAt <= now || expiresAt > now + (seconds + 5) * 1000) {
+        expiresAt = now + seconds * 1000;
+        localStorage.setItem(storageKey, expiresAt);
+      }
+    }
+
+    function updateCountdown() {
+      const currentNow = Date.now();
+      const remaining = Math.max(0, Math.round((expiresAt - currentNow) / 1000));
+      countdownEl.innerText = remaining + 's';
+
+      if (remaining <= 0) {
+        clearInterval(timer);
+        localStorage.removeItem(storageKey);
+        if (overlay) {
+          overlay.remove();
+        }
+        document.body.style.overflow = '';
+      }
+    }
+
+    const timer = setInterval(updateCountdown, 1000);
+    updateCountdown();
+  })();
+</script>
 {% endif %}
 {% endblock %}
