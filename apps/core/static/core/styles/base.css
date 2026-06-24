@@ -1888,7 +1888,7 @@ html.ds-loading .ds-loader { display: flex; }
 }
 
 .ds-loader-msg {
-    color: var(--text-secondary);
+    color: #9e9cb8;
     font-family: var(--font-sans, sans-serif);
     font-weight: 500;
     font-size: 1.25rem;
