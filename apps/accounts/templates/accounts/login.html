@@ -3,8 +3,7 @@
 {% block title %}Iniciar sesión — DockerShield{% endblock %}
 
 {% block extra_css %}
-<link rel="preload" href="{% static 'accounts/styles/login.css' %}?v={% if debug %}{% now 'U' %}{% else %}close-fix-v3{% endif %}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="{% static 'accounts/styles/login.css' %}?v={% if debug %}{% now 'U' %}{% else %}close-fix-v3{% endif %}"></noscript>
+<link rel="stylesheet" href="{% static 'accounts/styles/login.css' %}?v={% if debug %}{% now 'U' %}{% else %}close-fix-v3{% endif %}">
 {% endblock %}
 
 {% block body_outer %}
