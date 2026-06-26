@@ -5,9 +5,13 @@ Vistas CRUD de alias desechables:
   - Destruir (marcar inactivo).
   - Componer y enviar correo desde un alias.
   - Solicitar más cupo de alias al administrador.
+  - Escaneo de adjuntos con DockerShield.
 """
+import os
 import re
+import tempfile
 
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count, Q
@@ -18,6 +22,8 @@ from django.views.decorators.http import require_POST
 
 from .models import Alias, AliasQuotaRequest
 from .services.alias_service import generate_alias_address, generate_creative_label
+from .services.attachment_scanner import scan_attachment
+
 
 
 # Cuántos alias ACTIVOS puede tener un usuario común al mismo tiempo.
@@ -240,7 +246,71 @@ _HTML_JS_HREF_RX = re.compile(r'(href|src)\s*=\s*("javascript:[^"]*"|\'javascrip
 MAX_TOTAL_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_ATTACHMENTS            = 10
 MAX_RECIPIENTS             = 50
-ALLOWED_ATTACHMENT_NAME_RX = re.compile(r'[^A-Za-z0-9._\- ()áéíóúüñÁÉÍÓÚÜÑ]+')
+ALLOWED_ATTACHMENT_NAME_RX = re.compile(r'[^A-Za-z0-9.\-_ ()áéíóúüñÁÉÍÓÚÜÑ]+')
+
+# ─── Extensiones ejecutables/peligrosas bloqueadas ───────────────────────────
+DANGEROUS_EXTENSIONS = {
+    '.exe', '.bat', '.cmd', '.msi', '.vbs', '.vbe', '.scr',
+    '.ps1', '.psm1', '.psd1', '.sh', '.bash', '.zsh', '.fish',
+    '.jar', '.com', '.pif', '.reg', '.hta', '.cpl', '.dll',
+    '.sys', '.drv', '.inf', '.ade', '.adp', '.application',
+    '.gadget', '.msc', '.msh', '.msh1', '.msh2', '.mshxml',
+    '.msp', '.mst', '.ops', '.prg', '.psc1', '.psc2',
+    '.ws', '.wsc', '.wsf', '.wsh',
+}
+
+# Magic bytes de ejecutables: (offset, byte_sequence, label)
+_EXEC_MAGIC = [
+    (0, b'MZ',                 'Windows PE/EXE/DLL'),          # PE/DOS EXE
+    (0, b'\x7fELF',           'ELF Executable (Linux)'),       # ELF
+    (0, b'\xca\xfe\xba\xbe', 'Mach-O Executable (macOS)'),    # Mach-O fat
+    (0, b'\xcf\xfa\xed\xfe', 'Mach-O Executable (macOS)'),    # Mach-O 64-bit
+    (0, b'\xce\xfa\xed\xfe', 'Mach-O Executable (macOS)'),    # Mach-O 32-bit
+    (0, b'\xd0\xcf\x11\xe0', 'MSI/OLE2 (Compound Document)'), # MSI/OLE2
+    (0, b'PK\x03\x04',        'ZIP/JAR Archive'),              # ZIP/JAR
+]
+
+
+def _check_dangerous_file(upload) -> str | None:
+    """
+    Devuelve un mensaje de error legible si el archivo es un ejecutable
+    bloqueado por extensión o por magic bytes, o None si es seguro.
+
+    Comprueba:
+      1. Extensión del nombre original (incluyendo doble extensión como .pdf.exe).
+      2. Cabecera binaria (magic bytes) para detectar ejecutables renombrados.
+    """
+    name = upload.name or ''
+    ext  = os.path.splitext(name.lower())[1]
+    if ext in DANGEROUS_EXTENSIONS:
+        return (
+            f'El archivo "{name}" no puede adjuntarse. '
+            f'Los archivos ejecutables y de script ({ext}) están '
+            f'prohibidos por la política de seguridad de DockerShield.'
+        )
+
+    # Leer primeros bytes para detección por cabecera
+    upload.seek(0)
+    header = upload.read(8)
+    upload.seek(0)
+    for offset, magic, label in _EXEC_MAGIC:
+        chunk = header[offset: offset + len(magic)]
+        if chunk == magic:
+            # JAR/ZIP tampoco se permiten si la extensión no es .zip (ej: .jar renombrado)
+            if magic == b'PK\x03\x04' and ext not in ('.zip',):
+                return (
+                    f'El archivo "{name}" no puede adjuntarse. '
+                    f'El contenido parece un archivo JAR o ZIP ejecutable ({label}). '
+                    f'Solo se permiten archivos .zip convencionales.'
+                )
+            if magic != b'PK\x03\x04':
+                return (
+                    f'El archivo "{name}" no puede adjuntarse. '
+                    f'El contenido ha sido identificado como un ejecutable ({label}) '
+                    f'independientemente de su extensión. '
+                    f'Este tipo de archivo está prohibido por la política de seguridad.'
+                )
+    return None
 
 
 def _parse_recipients(raw: str) -> list:
@@ -270,6 +340,227 @@ def _safe_filename(name: str) -> str:
     name = name.replace('\\', '/').split('/')[-1]
     name = ALLOWED_ATTACHMENT_NAME_RX.sub('_', name)
     return (name or 'archivo')[:120]
+
+
+# ════════════════════════════════════════════════════════════════════════
+#  NOTIFICACIÓN A ADMIN + BLOQUEO POR ABUSO (adjuntos maliciosos)
+# ════════════════════════════════════════════════════════════════════════
+
+
+def _notify_admin_attachment_abuse(user, filename, report, previous_data=None):
+    """
+    Notifica a todos los admins cuando un usuario es bloqueado por
+    intentar adjuntar malware repetidamente. Incluye detalles de ambos intentos.
+    """
+    try:
+        from apps.notifications.models import Notification
+        from django.contrib.auth.models import User
+
+        admins = User.objects.filter(is_staff=True, is_active=True)
+        if not admins:
+            return
+
+        user_name = user.get_full_name() or user.email or user.username
+
+        # Intento actual (2º)
+        threat2 = report.get('threat_name', 'Desconocido')
+        score2 = report.get('risk_score', 0)
+        yara2 = len(report.get('yara_matches', []))
+        risk2 = report.get('risk_level', 'unknown')
+
+        title = 'Cuenta bloqueada por intento de adjuntar malware'
+
+        msg = f'Usuario: {user_name} ({user.email})\n'
+        msg += '═══════════════════════════════════════════\n'
+        msg += 'RESUMEN DE LA CUENTA BLOQUEADA\n'
+        msg += '═══════════════════════════════════════════\n\n'
+
+        # Intento 1 (desde previous_data)
+        if previous_data:
+            msg += (
+                f'◈ Intento 1 — {previous_data.get("timestamp", "—")}\n'
+                f'  Archivo: {previous_data.get("filename", "—")}\n'
+                f'  Amenaza: {previous_data.get("threat", "Desconocido")}\n'
+                f'  Score: {previous_data.get("score", 0)} | '
+                f'YARA: {previous_data.get("yara_count", 0)} | '
+                f'Nivel: {previous_data.get("risk_level", "unknown")}\n'
+                f'  Acción: Archivo rechazado, 1ª advertencia registrada.\n\n'
+            )
+        else:
+            msg += '◈ Intento 1 — (sin datos previos)\n\n'
+
+        # Intento 2 (actual)
+        msg += (
+            f'◈ Intento 2 — {timezone.now().isoformat()}\n'
+            f'  Archivo: {filename}\n'
+            f'  Amenaza: {threat2}\n'
+            f'  Score: {score2} | YARA: {yara2} | Nivel: {risk2}\n'
+            f'  Acción: Cuenta bloqueada permanentemente.\n'
+            f'  Sesión cerrada.\n'
+            f'  Redirigido al login.\n'
+            f'  El usuario deberá contactar al administrador para recuperar el acceso.\n'
+        )
+
+        Notification.objects.bulk_create([
+            Notification(
+                user=admin, type='system', title=title,
+                message=msg, status='pending', read=False,
+            )
+            for admin in admins
+        ])
+    except Exception as e:
+        print(f'[_notify_admin_attachment_abuse] Error: {e}')
+
+
+def _block_user_for_abuse(user):
+    """
+    Bloquea la cuenta de `user` por intento repetido de adjuntar malware:
+      - Desactiva user.is_active
+      - Marca permanent_lock en AccountLock para que login_view muestre
+        el modal de "Solicitar recuperación" (sin contar intentos fallidos)
+      - Cierra su sesión activa
+    La notificación a admins la hace el caller.
+    """
+    user.is_active = False
+    user.save(update_fields=['is_active'])
+    try:
+        from django.utils import timezone
+        from apps.accounts.models import AccountLock
+        lock, _ = AccountLock.objects.get_or_create(profile=user.profile)
+        lock.permanent_lock_at = timezone.now()
+        lock.permanent_lock_reason = (
+            'Cuenta bloqueada automáticamente por intentar adjuntar '
+            'archivos maliciosos a correos salientes. '
+            'Contacta al administrador para recuperar el acceso.'
+        )
+        lock.save(update_fields=['permanent_lock_at', 'permanent_lock_reason'])
+    except Exception:
+        pass
+    try:
+        from django.contrib.sessions.models import Session
+        session_key = user.profile.session.current_session_key
+        if session_key:
+            Session.objects.filter(session_key=session_key).delete()
+    except Exception:
+        pass
+
+
+# ════════════════════════════════════════════════════════════════════════
+#  ESCANEO DE ADJUNTOS CON DOCKERSHIELD
+# ════════════════════════════════════════════════════════════════════════
+
+
+@login_required(login_url='login')
+@require_POST
+def attachment_scan_api(request):
+    """
+    POST /alias/attachment-scan/
+    Recibe un archivo vía multipart/form-data (`file`), lo pasa por el
+    sandbox DockerShield y devuelve el veredicto.
+
+    Si es malicioso (risk_level = critical|high):
+      - 1ª vez:           {ok: false, error, attempts: 1}
+      - 2ª vez o más:     {ok: false, error, blocked: true}
+      El servidor además incrementa el contador y (en la 2ª) bloquea la
+      cuenta y notifica al admin.
+
+    Si es seguro o análisis falla: {ok: true, risk_level, risk_score}
+    """
+    if 'file' not in request.FILES:
+        return JsonResponse({'ok': False, 'error': 'No se envió ningún archivo.'}, status=400)
+
+    upload = request.FILES['file']
+    if upload.size == 0:
+        return JsonResponse({'ok': False, 'error': 'El archivo está vacío.'}, status=400)
+
+    # ── Validación de extensión + magic bytes ANTES de pasar al sandbox ──
+    dangerous_msg = _check_dangerous_file(upload)
+    if dangerous_msg:
+        return JsonResponse({'ok': False, 'error': dangerous_msg, 'blocked_extension': True}, status=400)
+
+    suffix = os.path.splitext(upload.name)[1] or '.bin'
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    try:
+        for chunk in upload.chunks():
+            tmp.write(chunk)
+        tmp.close()
+
+        report = scan_attachment(tmp.name)
+
+        risk_level = report.get('risk_level', 'unknown')
+        is_malicious = risk_level in ('critical', 'high')
+        is_warning = risk_level == 'warning'
+
+        if is_warning:
+            return JsonResponse({
+                'ok': False,
+                'error': f'El archivo "{upload.name}" contiene elementos sospechosos y no puede adjuntarse.',
+                'warning': True,
+                'risk_level': risk_level,
+                'risk_score': report.get('risk_score'),
+                'threat_name': report.get('threat_name'),
+            })
+
+        # Detectar si el sandbox no está disponible (Docker apagado)
+        has_service_error = any(
+            e.get('type') == 'service_error'
+            for e in report.get('evidence', [])
+        )
+        if not is_malicious and has_service_error:
+            return JsonResponse({
+                'ok': False,
+                'error': 'El contenedor DockerShield no está disponible. No se puede analizar el adjunto. Intenta de nuevo más tarde.',
+                'sandbox_down': True,
+            })
+
+        result = {
+            'ok': not is_malicious,
+            'risk_level': risk_level,
+            'risk_score': report.get('risk_score'),
+            'threat_name': report.get('threat_name'),
+        }
+
+        if is_malicious:
+            profile = request.user.profile
+            profile.malicious_attachment_attempts += 1
+            profile.save(update_fields=['malicious_attachment_attempts'])
+
+            result['attempts'] = profile.malicious_attachment_attempts
+
+            if profile.malicious_attachment_attempts >= 2:
+                _block_user_for_abuse(request.user)
+                result['blocked'] = True
+                result['error'] = (
+                    'Has intentado adjuntar un archivo malicioso repetidamente. '
+                    'Tu cuenta ha sido bloqueada por seguridad.'
+                )
+                _notify_admin_attachment_abuse(
+                    request.user, upload.name, report,
+                    previous_data=profile.malicious_attempt_data,
+                )
+                profile.malicious_attempt_data = {}
+                profile.save(update_fields=['malicious_attempt_data'])
+            else:
+                result['error'] = (
+                    report.get('threat_name')
+                    or 'Archivo potencialmente malicioso detectado por DockerShield.'
+                )
+                profile.malicious_attempt_data = {
+                    'filename': upload.name,
+                    'threat': report.get('threat_name', 'Desconocido'),
+                    'score': report.get('risk_score', 0),
+                    'yara_count': len(report.get('yara_matches', [])),
+                    'risk_level': risk_level,
+                    'timestamp': timezone.now().isoformat(),
+                }
+                profile.save(update_fields=['malicious_attempt_data'])
+
+        return JsonResponse(result)
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except Exception:
+            pass
 
 
 @login_required(login_url='login')
@@ -324,6 +615,14 @@ def alias_compose_view(request, pk):
     if total_bytes > MAX_TOTAL_ATTACHMENT_BYTES:
         size_mb = MAX_TOTAL_ATTACHMENT_BYTES // (1024 * 1024)
         errors['attachments'] = f'Tamaño total de adjuntos supera {size_mb} MB.'
+
+    # ── Validación de ejecutables (extensión + magic bytes) en cada adjunto ──
+    if not errors.get('attachments'):
+        for f in uploaded_files:
+            msg = _check_dangerous_file(f)
+            if msg:
+                errors['attachments'] = msg
+                break
 
     send_at_ts = None
     if scheduled_at:

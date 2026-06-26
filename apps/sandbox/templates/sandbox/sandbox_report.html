@@ -488,7 +488,7 @@
   </div>
 
   {% if analysis.body_analysis.body_evidence %}
-    <div class="evidence-list">
+    <div class="evidence-list collapsible-list" data-show="5" data-label="indicadores">
       {% for ev in analysis.body_analysis.body_evidence %}
         {% with sev=ev.severity %}
           {% if sev >= 81 %}{% with cls="sev-critical" label="CRÍTICO" %}

@@ -1,0 +1,7 @@
+/* Escaneo de adjuntos con DockerShield */
+.compose-attachments { max-height: 4.5rem; overflow-y: auto; flex-shrink: 0; }
+.compose-attachment-status { font-size: 0.625rem; color: var(--success, #22c55e); flex-shrink: 0; }
+.compose-attachment-spinner { font-size: 0.625rem; color: var(--text-muted); flex-shrink: 0; display: inline-flex; align-items: center; gap: 0.3125rem; }
+.scan-spinner { display: inline-block; width: 0.625rem; height: 0.625rem; border: 1.5px solid var(--accent-border); border-top-color: var(--accent-hover); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.compose-attachment.scanning { background: rgba(255,255,255,0.04); border-color: var(--border-soft); pointer-events: none; }

@@ -86,7 +86,7 @@ def send_reset_email(user: User, token: PasswordResetToken) -> Tuple[bool, str]:
 def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str) -> str:
     from apps.core.services.email_service import get_site_url
     display_name = (user.first_name or user.email or 'Usuario').strip()
-    logo_url = f"{get_site_url()}/static/core/img/logo.webp"
+    logo_url = f"{get_site_url()}/static/core/img/logo-dark-card.png"
 
     # Email HTML — diseño profesional basado en tables (máx compat con Gmail,
     # Outlook, iOS Mail, etc.) + estilos 100% inline (muchos clientes strippean
@@ -138,8 +138,8 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
                 <td style="width:96px;height:96px;background:radial-gradient(circle at center,rgba(124,92,255,0.28) 0%,rgba(124,92,255,0.03) 70%);border-radius:50%;text-align:center;vertical-align:middle">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
                     <tr>
-                      <td style="width:68px;height:68px;background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:50%;text-align:center;vertical-align:middle;line-height:68px;box-shadow:0 10px 28px rgba(109,74,255,0.45)">
-                        <span style="font-size:30px;line-height:68px;vertical-align:middle">🔐</span>
+                      <td style="width:68px;height:68px;background:#6d4aff;background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%);border-radius:50%;text-align:center;vertical-align:middle;line-height:68px;box-shadow:0 10px 28px rgba(109,74,255,0.45);font-size:30px">
+                        &#128274;
                       </td>
                     </tr>
                   </table>
@@ -198,7 +198,7 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.22);border-radius:12px;margin-bottom:10px">
               <tr>
                 <td width="40" valign="top" style="padding:14px 0 14px 15px">
-                  <div style="width:32px;height:32px;background:rgba(245,158,11,0.18);border-radius:9px;text-align:center;line-height:32px"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;margin-top:8px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                  <div style="width:32px;height:32px;background:rgba(245,158,11,0.18);border-radius:9px;text-align:center;line-height:32px;font-size:16px">&#9203;</div>
                 </td>
                 <td valign="middle" style="padding:14px 15px 14px 12px">
                   <div style="color:#fbbf24;font-size:10.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px">Expira</div>
@@ -210,7 +210,9 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:rgba(124,92,255,0.08);border:1px solid rgba(124,92,255,0.22);border-radius:12px">
               <tr>
                 <td width="40" valign="top" style="padding:14px 0 14px 15px">
-                  <div style="width:32px;height:32px;background:rgba(124,92,255,0.22);border-radius:9px;text-align:center;line-height:32px;font-size:15px">🔑</div>
+                  <div style="width:32px;height:32px;background:rgba(124,92,255,0.22);border-radius:9px;text-align:center;line-height:32px;font-size:16px">
+                    &#128273;
+                  </div>
                 </td>
                 <td valign="middle" style="padding:14px 15px 14px 12px">
                   <div style="color:#a78bfa;font-size:10.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px">Un solo uso</div>
@@ -226,7 +228,7 @@ def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str
           <td style="padding:0 38px 28px">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.2);border-radius:12px">
               <tr>
-                <td width="40" valign="top" style="padding:14px 0 14px 15px"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></td>
+                <td width="40" valign="top" style="padding:14px 0 14px 15px;font-size:20px">&#128737;&#65039;</td>
                 <td valign="top" style="padding:14px 15px 14px 10px">
                   <div style="color:#bbf2c9;font-size:12.5px;font-weight:700;margin-bottom:3px">¿No solicitaste esto?</div>
                   <div style="color:#86e6a6;font-size:12.5px;line-height:1.65">

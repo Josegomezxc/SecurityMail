@@ -269,14 +269,11 @@ def _neutralize_links_html(html: str) -> str:
         if src.startswith('data:'):
             return match.group(0)  # Imagen inline, no es tracking → la dejamos
         # Reemplazamos por placeholder visible
-        return ('<img src="data:image/svg+xml;utf8,'
-                '<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%2240%22>'
-                '<rect width=%22120%22 height=%2240%22 fill=%22%23f3f4f6%22/>'
-                '<text x=%2260%22 y=%2225%22 text-anchor=%22middle%22 '
-                'font-family=%22monospace%22 font-size=%2210%22 fill=%22%236b7280%22>'
-                'imagen bloqueada</text></svg>" '
-                f'alt="Imagen externa bloqueada" title="Imagen externa bloqueada por seguridad" '
-                f'style="border:1px dashed #9ca3af;padding:4px;border-radius:4px">')
+        return ('<span style="display:inline-block;background:#f3f4f6;color:#6b7280;'
+                'font-family:monospace;font-size:10px;padding:8px 14px;'
+                'border:1px dashed #9ca3af;border-radius:4px;'
+                'text-align:center;vertical-align:middle">'
+                '&#128247; imagen bloqueada</span>')
 
     html = re.sub(r'<img\b([^>]*)>', _process_img, html, flags=re.IGNORECASE)
 
@@ -1019,7 +1016,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
             if sandbox_id
             else f"{base_url}/sandbox/"
         )
-        logo_url = f"{base_url}/static/core/img/logo.webp"
+        logo_url = f"{base_url}/static/core/img/logo-purple.png"
 
         # ── Nivel de amenaza ───────────────────────────────────────────
         if risk_score >= 81:
@@ -1077,8 +1074,8 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
                   <table cellpadding="0" cellspacing="0">
                     <tr>
                       <td style="vertical-align:middle;padding-right:14px">
-                        <div style="width:40px;height:40px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:10px;text-align:center;line-height:40px">
-                          <span style="color:{level_color};font-size:18px">&#9888;</span>
+                        <div style="width:40px;height:40px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:10px;text-align:center;line-height:40px;font-size:20px">
+                          &#9888;&#65039;
                         </div>
                       </td>
                       <td style="vertical-align:middle">
@@ -1195,7 +1192,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
                       <td align="center" style="padding-bottom:12px">
                         <a href="{report_url}" target="_blank"
                            style="display:inline-block;background:#6d4aff;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;letter-spacing:0.02em;padding:14px 40px;border-radius:9px;border:1px solid rgba(255,255,255,0.15);font-family:'Helvetica Neue',Arial,sans-serif">
-                          Ver reporte completo &rarr;
+                          Ver reporte completo &gt;
                         </a>
                       </td>
                     </tr>
@@ -1291,7 +1288,7 @@ def send_safe_email_forward(email_obj, force=False):
         from apps.core.services.email_service import get_site_url
         domain = settings.MAIL_DOMAIN or 'dockershield.lat'
         from_addr = f"DockerShield <forward@{domain}>"
-        logo_url = f"{get_site_url()}/static/core/img/logo.webp"
+        logo_url = f"{get_site_url()}/static/core/img/logo-dark-bg.png"
 
         original_sender  = email_obj.from_email or '(remitente desconocido)'
         original_subject = email_obj.subject or '(sin asunto)'
@@ -1375,8 +1372,8 @@ def send_safe_email_forward(email_obj, force=False):
                     f'<tr><td style="padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.06)">'
                     f'<table cellpadding="0" cellspacing="0" width="100%"><tr>'
                     f'<td width="32" valign="middle">'
-                    f'<div style="width:30px;height:30px;background:rgba(124,92,255,0.18);border:1px solid rgba(124,92,255,0.3);border-radius:7px;text-align:center;line-height:30px">'
-                    f'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></div></td>'
+                    f'<div style="width:30px;height:30px;background:rgba(124,92,255,0.18);border:1px solid rgba(124,92,255,0.3);border-radius:7px;text-align:center;line-height:30px;font-size:14px">'
+                    f'&#128206;</div></td>'
                     f'<td valign="middle" style="padding-left:12px">'
                     f'<div style="font-size:12.5px;color:#f0eeff;font-weight:600;font-family:monospace">{a["filename"]}</div>'
                     f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">{_fmt_size(a["size"])} · escaneado por sandbox</div>'
@@ -1519,7 +1516,7 @@ def send_safe_email_forward(email_obj, force=False):
                       <td style="padding:16px 14px">
                         <table cellpadding="0" cellspacing="0" border="0"><tr>
                           <td width="36" height="36" valign="middle" align="center" style="background:#22c55e;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);border-radius:9px;text-align:center;vertical-align:middle;line-height:36px;mso-line-height-rule:exactly;font-size:18px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 3px 10px rgba(34,197,94,0.35)">
-                            &#9635;
+                            &#128230;
                           </td>
                         </tr></table>
                         <div style="font-size:12px;color:#f0eeff;font-weight:700;letter-spacing:0.005em;margin-top:12px;line-height:1.3">Sandbox Docker</div>
@@ -1535,7 +1532,7 @@ def send_safe_email_forward(email_obj, force=False):
                       <td style="padding:16px 14px">
                         <table cellpadding="0" cellspacing="0" border="0"><tr>
                           <td width="36" height="36" valign="middle" align="center" style="background:#22c55e;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);border-radius:9px;text-align:center;vertical-align:middle;line-height:36px;mso-line-height-rule:exactly;font-size:20px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 3px 10px rgba(34,197,94,0.35)">
-                            &#10003;
+                            &#10004;
                           </td>
                         </tr></table>
                         <div style="font-size:12px;color:#f0eeff;font-weight:700;letter-spacing:0.005em;margin-top:12px;line-height:1.3">Reglas YARA</div>
@@ -1551,7 +1548,7 @@ def send_safe_email_forward(email_obj, force=False):
                       <td style="padding:16px 14px">
                         <table cellpadding="0" cellspacing="0" border="0"><tr>
                           <td width="36" height="36" valign="middle" align="center" style="background:#22c55e;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);border-radius:9px;text-align:center;vertical-align:middle;line-height:36px;mso-line-height-rule:exactly;font-size:18px;color:#ffffff;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;box-shadow:0 3px 10px rgba(34,197,94,0.35)">
-                            &#9733;
+                            &#11088;
                           </td>
                         </tr></table>
                         <div style="font-size:12px;color:#f0eeff;font-weight:700;letter-spacing:0.005em;margin-top:12px;line-height:1.3">Análisis IA</div>

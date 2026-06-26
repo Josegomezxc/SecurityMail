@@ -51,6 +51,14 @@ class UserProfile(models.Model):
     )
     updated_at = models.DateTimeField(auto_now=True, db_column='pfu_actualizado_en')
     is_active = models.BooleanField(default=True, db_column='pfu_activo')
+    malicious_attachment_attempts = models.IntegerField(
+        default=0, db_column='pfu_intentos_adjunto_malicioso',
+        help_text="Contador de intentos de adjuntar malware en correos salientes. Se reinicia al llegar a 0 tras bloqueo manual del admin.",
+    )
+    malicious_attempt_data = models.JSONField(
+        default=dict, blank=True, db_column='pfu_datos_intento_malicioso',
+        help_text="Almacena detalles del primer intento de malware (filename, threat, score, timestamp). Se lee al segundo intento para notificar al admin con ambos, luego se limpia.",
+    )
 
     class Meta:
         db_table = 'tbl_perfil_usuario'

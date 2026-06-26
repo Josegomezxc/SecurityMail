@@ -257,7 +257,7 @@ def _build_verification_html(user: User, ev: EmailVerificationCode) -> str:
     code = ev.code
     minutes = CODE_VALIDITY_MINUTES
     name = user.first_name or user.username or 'usuario'
-    logo_url = f"{get_site_url()}/static/core/img/logo.webp"
+    logo_url = f"{get_site_url()}/static/core/img/logo-purple.png"
 
     return f"""<!DOCTYPE html>
 <html lang="es">
@@ -276,7 +276,7 @@ def _build_verification_html(user: User, ev: EmailVerificationCode) -> str:
           <td style="background:#161527;border:1px solid rgba(109,74,255,0.25);border-radius:14px;overflow:hidden">
 
             <!-- HEADER morado con LOGO REAL -->
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#6d4aff 0%,#9b6dff 100%)">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#6d4aff">
               <tr>
                 <td style="padding:26px 28px" align="center">
                   <img src="{logo_url}" alt="DockerShield" width="200" style="display:inline-block;height:auto;max-width:200px;border:0;outline:none;text-decoration:none">
@@ -306,8 +306,8 @@ def _build_verification_html(user: User, ev: EmailVerificationCode) -> str:
                   <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.22);border-radius:9px;margin-bottom:20px">
                     <tr>
                       <td style="padding:12px 14px">
-                        <span style="color:#fbbf24;font-size:12.5px;line-height:1.5">
-                          &#9888; Este código expira en <strong>{minutes} minutos</strong>.
+                         <span style="color:#fbbf24;font-size:12.5px;line-height:1.5">
+                          <span style="display:inline-block;width:14px;height:14px;line-height:14px;text-align:center;background-color:#fbbf24;color:#1a1829;font-weight:bold;font-size:11px;border-radius:3px;margin-right:6px">!</span>Este código expira en <strong>{minutes} minutos</strong>.
                           Solo se usa una vez.
                         </span>
                       </td>

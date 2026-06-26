@@ -157,11 +157,16 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     margin-bottom: 0.125rem;
+    max-width: 100%;
 }
 .adm-user-meta {
     font-family: var(--font-mono, monospace);
     font-size: 0.625rem;
     color: var(--text-muted);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .adm-user-link {
@@ -169,6 +174,7 @@
     padding: 0.375rem;
     border-radius: 0.375rem;
     transition: color 0.14s ease, background 0.14s ease;
+    flex-shrink: 0;
 }
 .adm-user-link:hover { color: var(--ai-purple-light, #a78bfa); background: rgba(124, 58, 237, 0.08); }
 
@@ -182,4 +188,12 @@ html[data-theme="carbon"] .dash-users-val {
 html[data-theme="carbon"] .adm-user-link:hover {
     color: var(--accent-hover, #ff6b8e);
     background: rgba(255, 79, 122, 0.08);
+}
+
+
+@media (max-width: 480px) {
+    .adm-user-avatar { width: 1.5rem; height: 1.5rem; font-size: 0.5rem; }
+    .adm-user-email { font-size: 0.625rem; }
+    .adm-user-meta { font-size: 0.5rem; }
+    .adm-user-item { padding: 0.3125rem 0; gap: 0.375rem; }
 }

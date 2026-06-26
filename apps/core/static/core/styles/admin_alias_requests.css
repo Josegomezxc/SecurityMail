@@ -1002,7 +1002,7 @@
     align-items: flex-start;
     justify-content: center;
     
-    z-index: 2147483647 !important;
+    z-index: 2147483640 !important;
     padding: 1.125rem;
     overflow-y: auto;
 }
@@ -1570,7 +1570,7 @@
         position: fixed;
         top: 0.75rem;
         right: 0.75rem;
-        z-index: 2147483647;
+        z-index: 2147483640;
         background: rgba(20, 14, 40, 0.92);
         backdrop-filter: blur(0.25rem);
         -webkit-backdrop-filter: blur(0.25rem);

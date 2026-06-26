@@ -43,6 +43,10 @@ document.querySelectorAll('.collapsible-list').forEach(wrap => {
     btn.innerHTML = expanded
       ? `Ver menos ${chev}`
       : `Ver <span class="toggle-count">${hidden}</span> ${label} más ${chev}`;
+    
+    if (!expanded) {
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   });
 
   // Inserta el botón justo después de la lista

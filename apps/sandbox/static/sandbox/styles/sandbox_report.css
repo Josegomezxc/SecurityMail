@@ -1185,17 +1185,13 @@
 
 
 .collapsible-list { position: relative; gap: 0.375rem; }
-.collapsible-list .collapsible-hidden { display: none; }
+.collapsible-list .collapsible-hidden { display: none !important; }
 .collapsible-list.expanded .collapsible-hidden {
-  display: flex;
   animation: collapseSlide 0.25s ease both;
 }
-.collapsible-list .evidence-item.collapsible-hidden,
-.collapsible-list .yara-rule.collapsible-hidden,
-.collapsible-list .ioc-row.collapsible-hidden { display: none; }
-.collapsible-list.expanded .evidence-item.collapsible-hidden { display: flex; }
-.collapsible-list.expanded .yara-rule.collapsible-hidden     { display: block; }
-.collapsible-list.expanded .ioc-row.collapsible-hidden       { display: flex; }
+.collapsible-list.expanded .evidence-item.collapsible-hidden { display: grid !important; }
+.collapsible-list.expanded .yara-rule.collapsible-hidden     { display: block !important; }
+.collapsible-list.expanded .ioc-row.collapsible-hidden       { display: flex !important; }
 
 .collapsible-list:not(.expanded).has-hidden::after {
   content: '';

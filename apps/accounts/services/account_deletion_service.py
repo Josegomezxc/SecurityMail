@@ -83,7 +83,7 @@ def send_deletion_code_email(
 def _build_deletion_code_html(*, display_name: str, code: str, minutes: int) -> str:
     """HTML con el código en caja grande y advertencia roja."""
     base_url = get_site_url()
-    logo_url = f"{base_url}/static/core/img/logo.webp"
+    logo_url = f"{base_url}/static/core/img/logo-red.png"
     name_safe = (display_name or 'Usuario').strip() or 'Usuario'
 
     return f"""<!DOCTYPE html>
@@ -103,7 +103,7 @@ def _build_deletion_code_html(*, display_name: str, code: str, minutes: int) -> 
           <td style="background:#161527;border:1px solid rgba(232,64,64,0.28);border-radius:14px;overflow:hidden">
 
             <!-- HEADER ROJO de alerta -->
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%)">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#dc2626">
               <tr>
                 <td style="padding:26px 28px" align="center">
                   <img src="{logo_url}" alt="DockerShield" width="200" style="display:inline-block;height:auto;max-width:200px;border:0;outline:none;text-decoration:none">
@@ -137,7 +137,7 @@ def _build_deletion_code_html(*, display_name: str, code: str, minutes: int) -> 
                     <tr>
                       <td style="padding:12px 14px">
                         <span style="color:#fbbf24;font-size:12.5px;line-height:1.5">
-                          &#9888; Este código expira en <strong>{minutes} minutos</strong>.
+                          <span style="display:inline-block;width:14px;height:14px;line-height:14px;text-align:center;background-color:#fbbf24;color:#1a1829;font-weight:bold;font-size:11px;border-radius:3px;margin-right:6px">!</span>Este código expira en <strong>{minutes} minutos</strong>.
                           Solo se usa una vez.
                         </span>
                       </td>
@@ -199,7 +199,7 @@ def _build_account_deleted_html(
     base_url    = get_site_url()
     register_url = f"{base_url}/registro/"
     name_safe    = (display_name or 'Usuario').strip() or 'Usuario'
-    logo_url     = f"{base_url}/static/core/img/logo.webp"
+    logo_url     = f"{base_url}/static/core/img/logo-dark-card.png"
 
     return f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="es">
@@ -247,8 +247,8 @@ def _build_account_deleted_html(
                 <td style="width:96px;height:96px;background:radial-gradient(circle at center,rgba(232,64,64,0.28) 0%,rgba(232,64,64,0.03) 70%);border-radius:50%;text-align:center;vertical-align:middle">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
                     <tr>
-                      <td style="width:68px;height:68px;background:#e84040;background:linear-gradient(135deg,#e84040 0%,#f87171 100%);border-radius:50%;text-align:center;vertical-align:middle;line-height:68px;box-shadow:0 10px 28px rgba(232,64,64,0.45)">
-                        <span style="font-size:30px;line-height:68px;vertical-align:middle">👋</span>
+                      <td style="width:68px;height:68px;background:#e84040;background:linear-gradient(135deg,#e84040 0%,#f87171 100%);border-radius:50%;text-align:center;vertical-align:middle;line-height:68px;box-shadow:0 10px 28px rgba(232,64,64,0.45);font-size:30px">
+                        &#128100;&#10060;
                       </td>
                     </tr>
                   </table>
@@ -321,7 +321,9 @@ def _build_account_deleted_html(
           <td style="padding:18px 38px 0">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:rgba(124,92,255,0.08);border:1px solid rgba(124,92,255,0.22);border-radius:12px">
               <tr>
-                <td width="40" valign="top" style="padding:14px 0 14px 15px;color:#a78bfa;font-size:17px">📭</td>
+                <td width="40" valign="top" style="padding:14px 0 14px 15px;color:#a78bfa;font-size:20px">
+                  &#9993;&#65039;
+                </td>
                 <td valign="top" style="padding:14px 15px 14px 10px">
                   <div style="color:#c3a8ff;font-size:12.5px;font-weight:700;margin-bottom:3px">Tus alias dejaron de existir</div>
                   <div style="color:#a9a6c1;font-size:12.5px;line-height:1.65">
@@ -338,7 +340,7 @@ def _build_account_deleted_html(
           <td style="padding:14px 38px 0">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.22);border-radius:12px">
               <tr>
-                <td width="40" valign="top" style="padding:14px 0 14px 15px"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></td>
+                <td width="40" valign="top" style="padding:14px 0 14px 15px;font-size:20px">&#9888;&#65039;</td>
                 <td valign="top" style="padding:14px 15px 14px 10px">
                   <div style="color:#fbbf24;font-size:12.5px;font-weight:700;margin-bottom:3px">¿No fuiste tú?</div>
                   <div style="color:#fde68a;font-size:12.5px;line-height:1.65">

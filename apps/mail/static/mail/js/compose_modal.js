@@ -666,9 +666,13 @@
     suggestTimer = setTimeout(function () {
       var key = q.toLowerCase();
       if (suggestCache[key]) { applySuggestions(suggestCache[key]); return; }
-      fetch('/contactos/?q=' + encodeURIComponent(q), {
-        credentials: 'same-origin',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      var fd = new FormData();
+      fd.append('q', q);
+      fd.append('csrfmiddlewaretoken', getCsrf());
+      fetch('/contactos/', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd,
       })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -1276,4 +1280,17 @@
   } else {
     restoreState();
   }
+
+  // ═══ API expuesta para compose_attachment_scanner.js ═══
+  window.__composeApi = {
+    addFile: function (f) { attachedFiles.push(f); attachedTotalBytes += f.size; renderAttachments(); },
+    removeFile: function (i) { var r = attachedFiles.splice(i, 1)[0]; if (r) attachedTotalBytes -= r.size; renderAttachments(); },
+    renderAttachments: renderAttachments,
+    getFiles: function () { return attachedFiles.slice(); },
+    getTotalBytes: function () { return attachedTotalBytes; },
+    btnSend: btnSend,
+    MAX_FILES: MAX_FILES,
+    MAX_TOTAL_BYTES: MAX_TOTAL_BYTES,
+    getCsrf: getCsrf,
+  };
 })();

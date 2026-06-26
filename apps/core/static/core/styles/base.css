@@ -879,7 +879,7 @@ img, iframe, video, canvas { max-width: 100%; }
     right: 0.75rem;
     left: 0.75rem;
     
-    z-index: 2147483550 !important;
+    z-index: 2147483647 !important;
     display: flex;
     flex-direction: column;
     gap: 0.625rem;
@@ -1017,7 +1017,7 @@ img, iframe, video, canvas { max-width: 100%; }
     position: fixed;
     inset: 0;
     
-    z-index: 2147483647 !important;
+    z-index: 2147483640 !important;
     background: rgba(8, 6, 18, 0.62);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
@@ -1841,7 +1841,7 @@ html[data-theme="carbon"] .theme-card.selected .theme-name { color: var(--accent
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 2147483647;
+    z-index: 2147483640;
     background: rgba(8, 6, 18, 0.78);   
     align-items: center;
     justify-content: center;

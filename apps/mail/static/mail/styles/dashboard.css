@@ -397,6 +397,10 @@
     color: var(--text-muted);
     word-break: break-all;
 }
+.dash-profile-meta {
+    flex: 1;
+    min-width: 0;
+}
 .dash-mini-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -502,6 +506,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
 }
 .dash-threat-time {
     font-family: var(--font-mono, monospace);
@@ -548,11 +553,16 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100%;
 }
 .dash-alias-label {
     font-size: 0.6875rem;
     color: var(--text-muted);
     margin-top: 0.125rem;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 
@@ -582,6 +592,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     margin-bottom: 0.125rem;
+    max-width: 100%;
 }
 .dash-sandbox-meta {
     font-family: var(--font-mono, monospace);
@@ -590,6 +601,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100%;
 }
 .dash-sandbox-link {
     color: var(--text-muted);
@@ -737,3 +749,35 @@ html[data-theme="carbon"] .dash-svg-dot       { fill: #ff8aa6; }
 html[data-theme="carbon"] .dash-svg-dot--alt  { fill: #ff6b8e; }
 html[data-theme="carbon"] .dash-svg-stroke    { stroke: #ff4f7a; }
 html[data-theme="carbon"] .dash-svg-fill      { fill: #ff4f7a; }
+
+
+@media (max-width: 480px) {
+    .dash-row--3-7 .dash-card,
+    .dash-row--6-6 .dash-card { padding: 0.75rem; }
+
+    .dash-profile-body { flex-direction: column; text-align: center; }
+    .dash-avatar-circle { width: 2.25rem; height: 2.25rem; font-size: 0.75rem; }
+    .dash-profile-name { font-size: 0.8125rem; }
+    .dash-profile-email { font-size: 0.625rem; }
+    .dash-mini-stats { grid-template-columns: 1fr; gap: 0.375rem; padding: 0.5rem; }
+    .dash-mini-val { font-size: 0.9375rem; }
+    .dash-mini-lbl { font-size: 0.5625rem; }
+
+    .dash-threat-avatar { width: 1.5rem; height: 1.5rem; font-size: 0.5625rem; }
+    .dash-threat-from { font-size: 0.625rem; }
+    .dash-threat-time { font-size: 0.5rem; }
+    .dash-threat-subj { font-size: 0.625rem; }
+    .dash-threat-score { font-size: 0.5625rem; padding: 0.125rem 0.3125rem; }
+    .dash-threat-item { padding: 0.3125rem 0; gap: 0.375rem; }
+
+    .dash-alias-addr { font-size: 0.625rem; }
+    .dash-alias-label { font-size: 0.5rem; }
+    .dash-alias-icon { width: 1.5rem; height: 1.5rem; }
+    .dash-alias-icon svg { width: 12px; height: 12px; }
+    .dash-alias-item { padding: 0.3125rem 0; gap: 0.375rem; }
+
+    .dash-sandbox-file { font-size: 0.625rem; }
+    .dash-sandbox-meta { font-size: 0.5rem; }
+    .dash-sandbox-score { width: 1.5rem; height: 1.5rem; font-size: 0.625rem; }
+    .dash-sandbox-item { padding: 0.3125rem 0; gap: 0.375rem; }
+}

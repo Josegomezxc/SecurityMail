@@ -427,7 +427,7 @@ def compose_contacts_api(request):
     Devuelve hasta 8 sugerencias ordenadas por uso reciente, filtradas por
     `q` (substring case-insensitive en el email o en el nombre).
     """
-    q = (request.GET.get('q', '') or '').strip().lower()
+    q = ((request.POST.get('q') or request.GET.get('q', '')) or '').strip().lower()
 
     # Email → {label, last_seen}. Nos quedamos con el label más informativo
     # y el timestamp más reciente para ordenar.

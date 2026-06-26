@@ -181,6 +181,9 @@ def unlock_user_after_recovery(user, admin):
         'permanent_lock_at',
         'permanent_lock_reason',
     ])
+    profile.malicious_attachment_attempts = 0
+    profile.malicious_attempt_data = {}
+    profile.save(update_fields=['malicious_attachment_attempts', 'malicious_attempt_data'])
 
 
 # ─────────────────────────────────────────────────────────────────────

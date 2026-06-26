@@ -2,6 +2,7 @@
 
 
 <link rel="stylesheet" href="{% static 'mail/styles/compose_modal.css' %}?v={% if debug %}{% now 'U' %}{% else %}zindex-12h{% endif %}">
+<link rel="stylesheet" href="{% static 'mail/styles/compose_attachment_scanner.css' %}?v={% if debug %}{% now 'U' %}{% else %}1{% endif %}">
 
 
 
@@ -270,3 +271,4 @@
 
 
 <script src="{% static 'mail/js/compose_modal.js' %}?v={% if debug %}{% now 'U' %}{% else %}12h-format{% endif %}"></script>
+<script src="{% static 'mail/js/compose_attachment_scanner.js' %}?v={% if debug %}{% now 'U' %}{% else %}1{% endif %}"></script>

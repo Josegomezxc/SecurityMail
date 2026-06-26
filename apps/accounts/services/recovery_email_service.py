@@ -49,7 +49,7 @@ def _build_reactivated_html(
     """HTML estilo verde (positivo) avisando la reactivación."""
     base_url  = get_site_url()
     login_url = f"{base_url}/"
-    logo_url  = f"{base_url}/static/core/img/logo.webp"
+    logo_url  = f"{base_url}/static/core/img/logo-green.png"
     name_safe = (display_name or 'Usuario').strip() or 'Usuario'
 
     # Bloque opcional con la nota del admin
@@ -86,7 +86,7 @@ def _build_reactivated_html(
           <td style="background:#161527;border:1px solid rgba(34,197,94,0.32);border-radius:14px;overflow:hidden">
 
             <!-- HEADER VERDE de éxito -->
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#15803d 0%,#22c55e 100%)">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#16a34a">
               <tr>
                 <td style="padding:26px 28px" align="center">
                   <img src="{logo_url}" alt="DockerShield" width="200" style="display:inline-block;height:auto;max-width:200px;border:0;outline:none;text-decoration:none">
@@ -113,7 +113,7 @@ def _build_reactivated_html(
                     <tr>
                       <td align="center">
                         <a href="{login_url}" style="display:inline-block;padding:14px 26px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-size:14px;font-weight:700;border-radius:10px;text-decoration:none;letter-spacing:0.01em">
-                          Iniciar sesión &rarr;
+                          Iniciar sesión &gt;
                         </a>
                       </td>
                     </tr>

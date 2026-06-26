@@ -1058,10 +1058,10 @@
 .da-overlay {
     position: fixed;
     inset: 0;
-    z-index: 12000;
-    background: rgba(8, 6, 18, 0.72);
-    backdrop-filter: blur(0.5rem);
-    -webkit-backdrop-filter: blur(0.5rem);
+    z-index: 100 !important;
+    background: rgba(15, 12, 30, 0.6);
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1091,6 +1091,9 @@
     transform: translateY(0.875rem) scale(0.96);
     opacity: 0;
     transition: transform 0.28s cubic-bezier(.22, 1, .36, 1), opacity 0.22s ease;
+    z-index: 110 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 .da-overlay.visible .da-modal {
     transform: translateY(0) scale(1);
