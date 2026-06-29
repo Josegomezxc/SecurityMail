@@ -94,7 +94,7 @@
                 <span class="qpp-dot" aria-hidden="true"></span>
                 <span>Solicitud pendiente · pediste <strong>+{{ pending_request.requested_amount }}</strong></span>
               </span>
-            {% else %}
+            {% elif alias_remaining == 0 %}
               <button type="button" class="ccv2-request-btn" id="aliasRequestOpenBtn"
                       onclick="openAliasRequestModal()"
                       aria-haspopup="dialog">
@@ -110,6 +110,28 @@
                   <span class="ccv2-request-sub">
                     Solicita más alias.<br>
                     Tu petición será revisada por el administrador.
+                  </span>
+                </span>
+                <span class="ccv2-request-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </span>
+              </button>
+            {% else %}
+              <button type="button" class="ccv2-request-btn ccv2-request-btn--blocked" disabled>
+                <span class="ccv2-request-btn-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  <span class="ccv2-request-plus">+</span>
+                </span>
+                <span class="ccv2-request-text">
+                  <span class="ccv2-request-title">Todavía tienes cupo</span>
+                  <span class="ccv2-request-sub">
+                    Usa tus alias disponibles primero.<br>
+                    Cuando se acaben, podrás solicitar más.
                   </span>
                 </span>
                 <span class="ccv2-request-arrow" aria-hidden="true">

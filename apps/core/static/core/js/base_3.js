@@ -154,12 +154,64 @@
             e.stopPropagation();
             dismiss();
         });
-        // Click en el cuerpo (cuando es link) también lo cierra antes de navegar
+        // Click en el cuerpo (cuando es link) también lo cierre antes de navegar
         if (href) {
-            toast.addEventListener('click', function () {
-                removeStored(id);   // se va de la storage al navegar
+            toast.addEventListener('click', function (e) {
+                if (swipePreventClick) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    swipePreventClick = false;
+                    return;
+                }
+                removeStored(id);
             });
         }
+
+        /* ── Swipe-to-dismiss en táctil ── */
+        var touchStartX = 0;
+        var touchStartY = 0;
+        var swiping = false;
+        var swipeDelta = 0;
+        var swipePreventClick = false;
+
+        toast.addEventListener('touchstart', function (e) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            swiping = false;
+            swipeDelta = 0;
+            swipePreventClick = false;
+        }, { passive: true });
+
+        toast.addEventListener('touchmove', function (e) {
+            var deltaX = e.touches[0].clientX - touchStartX;
+            var deltaY = e.touches[0].clientY - touchStartY;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+                swiping = true;
+                swipeDelta = deltaX;
+                toast.style.transform = 'translateX(' + deltaX + 'px)';
+                toast.style.opacity = Math.max(0, 1 - Math.abs(deltaX) / 300);
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        toast.addEventListener('touchend', function () {
+            if (!swiping) return;
+
+            if (Math.abs(swipeDelta) > 80) {
+                swipePreventClick = true;
+                dismiss();
+            } else {
+                toast.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+                toast.style.transform = 'translateX(0)';
+                toast.style.opacity = '1';
+                setTimeout(function () {
+                    toast.style.transition = '';
+                    toast.style.transform = '';
+                    toast.style.opacity = '';
+                }, 300);
+            }
+        }, { passive: true });
 
         return { id: id, toast: toast };
     }

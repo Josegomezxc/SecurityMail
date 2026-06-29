@@ -4,10 +4,11 @@ Cálculos estadísticos reutilizables.
 Usado por dashboard, perfil, y panel de admin. Mantiene las consultas
 centralizadas para no duplicar lógica.
 """
-from datetime import timedelta
+import calendar
+from datetime import datetime, timedelta
 
 from django.db.models import Count, Q
-from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncDate, TruncHour, TruncMonth, TruncYear
 from django.utils import timezone
 
 from apps.aliases.models import Alias
@@ -19,17 +20,106 @@ from apps.sandbox.models import SandboxAnalysis
 #  Stats del usuario logueado (usado por el dashboard normal)
 # ─────────────────────────────────────────────────────────────────────
 
-def dashboard_stats(user) -> dict:
+def _build_activity(user, period, ref_date):
+    """Construye la serie de actividad según período y fecha de referencia."""
+    today = timezone.now().date()
+
+    if period == 'diario':
+        start = timezone.make_aware(datetime.combine(ref_date, datetime.min.time()))
+        end = start + timedelta(days=1)
+        qs = (EmailMessage.objects
+              .filter(alias__user=user, received_at__gte=start, received_at__lt=end)
+              .annotate(bucket=TruncHour('received_at'))
+              .values('bucket')
+              .annotate(count=Count('id')))
+        bucket_map = {row['bucket'].hour: row['count'] for row in qs}
+        data = [{'label': f'{h:02d}:00', 'count': bucket_map.get(h, 0)} for h in range(24)]
+        label = ref_date.strftime('%d/%m/%Y')
+
+    elif period == 'semanal':
+        monday = ref_date - timedelta(days=ref_date.weekday())
+        start = timezone.make_aware(datetime.combine(monday, datetime.min.time()))
+        end = start + timedelta(days=7)
+        qs = (EmailMessage.objects
+              .filter(alias__user=user, received_at__gte=start, received_at__lt=end)
+              .annotate(bucket=TruncDate('received_at'))
+              .values('bucket')
+              .annotate(count=Count('id')))
+        bucket_map = {row['bucket']: row['count'] for row in qs}
+        weekdays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+        data = []
+        for i in range(7):
+            day = monday + timedelta(days=i)
+            data.append({'label': f"{weekdays[i]} {day.day}", 'count': bucket_map.get(day, 0)})
+        label = f"Semana del {monday.strftime('%d/%m')}"
+
+    elif period == 'mensual':
+        first = ref_date.replace(day=1)
+        start = timezone.make_aware(datetime.combine(first, datetime.min.time()))
+        if ref_date.month == 12:
+            end = timezone.make_aware(datetime.combine(first.replace(year=first.year + 1, month=1), datetime.min.time()))
+        else:
+            end = timezone.make_aware(datetime.combine(first.replace(month=first.month + 1), datetime.min.time()))
+        qs = (EmailMessage.objects
+              .filter(alias__user=user, received_at__gte=start, received_at__lt=end)
+              .annotate(bucket=TruncDate('received_at'))
+              .values('bucket')
+              .annotate(count=Count('id')))
+        bucket_map = {}
+        for row in qs:
+            bucket_map[row['bucket'].day] = row['count']
+        last_day = calendar.monthrange(ref_date.year, ref_date.month)[1]
+        data = [{'label': f'{d:02d}/{ref_date.month:02d}', 'count': bucket_map.get(d, 0)} for d in range(1, last_day + 1)]
+        label = ref_date.strftime('%B %Y').capitalize()
+
+    elif period == 'anual':
+        today = timezone.now().date()
+        first_year = today.year - 4
+        start = timezone.make_aware(datetime(first_year, 1, 1))
+        end = timezone.make_aware(datetime(today.year + 1, 1, 1))
+        qs = (EmailMessage.objects
+              .filter(alias__user=user, received_at__gte=start, received_at__lt=end)
+              .annotate(bucket=TruncYear('received_at'))
+              .values('bucket')
+              .annotate(count=Count('id')))
+        bucket_map = {row['bucket'].year: row['count'] for row in qs}
+        data = [{'label': str(y), 'count': bucket_map.get(y, 0)} for y in range(first_year, today.year + 1)]
+        label = f"{first_year}–{today.year}"
+
+    else:
+        return _build_activity(user, 'diario', today)
+
+    return data, label
+
+
+def activity_data_for_user(user, period='diario'):
+    """Wrapper público para obtener solo los datos del chart de actividad."""
+    today = timezone.now().date()
+    return _build_activity(user, period, today)
+
+
+def dashboard_stats(user, period='diario', ref_str=None) -> dict:
     """
     Devuelve todas las métricas que el dashboard del usuario necesita:
     contadores principales, tendencia 24h, tasa de bloqueo, serie de
-    actividad diaria (últimos 14 días, para el gráfico de barras) y
+    actividad dinámica según período (diario/semanal/mensual/anual) y
     distribución por nivel de riesgo (para el donut).
     """
     now       = timezone.now()
+    today     = now.date()
     cutoff_1d = now - timedelta(days=1)
     cutoff_2d = now - timedelta(days=2)
-    cutoff_14d = now - timedelta(days=14)
+
+    # ── Parsear fecha de referencia ──────────────────────────────────
+    if ref_str:
+        try:
+            ref_date = datetime.strptime(ref_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            ref_date = today
+    else:
+        ref_date = today
+    if ref_date > today:
+        ref_date = today
 
     # ── Query 1: todos los conteos en UNA consulta ─────────────────
     agg = EmailMessage.objects.filter(alias__user=user).aggregate(
@@ -47,23 +137,8 @@ def dashboard_stats(user) -> dict:
         )),
     )
 
-    # ── Query 2: actividad diaria (14 días) en UNA consulta ────────
-    activity_qs = (
-        EmailMessage.objects
-        .filter(alias__user=user, received_at__gte=cutoff_14d)
-        .annotate(day=TruncDate('received_at'))
-        .values('day')
-        .annotate(count=Count('id'))
-        .order_by('day')
-    )
-    activity_map = {row['day']: row['count'] for row in activity_qs}
-    activity_14d = []
-    for i in range(13, -1, -1):
-        day = (now - timedelta(days=i)).date()
-        activity_14d.append({
-            'label': day.strftime('%d/%m'),
-            'count': activity_map.get(day, 0),
-        })
+    # ── Query 2: actividad según período ────────────────────────────
+    activity_data, range_label = _build_activity(user, period, ref_date)
 
     # ── Query 3: conteo SandboxAnalysis seguro ──────────────────────
     safe_count = SandboxAnalysis.objects.filter(
@@ -102,7 +177,8 @@ def dashboard_stats(user) -> dict:
         "yday_emails":       yday_emails,
         "today_threats":     today_threats,
         "block_rate":        block_rate,
-        "activity_14d":      activity_14d,
+        "activity_data":     activity_data,
+        "range_label":       range_label,
         "risk_distribution": risk_distribution,
         "emails_trend":      emails_trend,
     }

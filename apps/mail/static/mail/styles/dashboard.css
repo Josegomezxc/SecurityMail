@@ -320,6 +320,36 @@
 }
 
 
+.dash-period-select {
+    font-family: var(--mono, monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5625rem;
+    padding: 0.375rem 2rem 0.375rem 0.625rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 0.75rem;
+    min-width: 8rem;
+}
+.dash-period-select:hover {
+    border-color: rgba(124, 58, 237, 0.4);
+}
+.dash-period-select:focus-visible {
+    border-color: var(--ai-purple, #7c3aed);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+
 .dash-chart-wrap { position: relative; height: 220px; }
 
 

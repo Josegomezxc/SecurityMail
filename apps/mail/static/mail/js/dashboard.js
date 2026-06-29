@@ -50,29 +50,32 @@
   Chart.defaults.font.size   = 11;
   Chart.defaults.color       = isLight ? '#000000' : hexToRgba(accentLight, 0.6);
 
-  /* ── 1) BAR CHART: actividad últimos 14 días ──────────────────────── */
+  /* ── 1) BAR CHART: actividad según período ─────────────────────── */
   const activityEl = document.getElementById('dashActivityChart');
-  const activityData = JSON.parse(
-    document.getElementById('dashActivityData').textContent || '[]'
-  );
-  if (activityEl && activityData.length) {
-    const ctx    = activityEl.getContext('2d');
-    const labels = activityData.map(d => d.label);
-    const counts = activityData.map(d => d.count);
+  const subtitleEl = document.getElementById('dashActivitySub');
+  const periodSelect = document.getElementById('dashPeriodSelect');
+  var activityChart = null;
 
-    /* Gradient vertical para las barras — usa el acento del tema activo */
-    const grad = ctx.createLinearGradient(0, 0, 0, 220);
-    grad.addColorStop(0, hexToRgba(accentLight, 0.9));
-    grad.addColorStop(1, hexToRgba(accent, 0.5));
+  function buildGradient(ctx) {
+    var g = ctx.createLinearGradient(0, 0, 0, 220);
+    g.addColorStop(0, hexToRgba(accentLight, 0.9));
+    g.addColorStop(1, hexToRgba(accent, 0.5));
+    return g;
+  }
 
-    new Chart(ctx, {
+  function renderChart(labels, counts) {
+    if (!activityEl) return;
+    var ctx = activityEl.getContext('2d');
+    if (activityChart) activityChart.destroy();
+
+    activityChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [{
           label: 'Correos',
           data: counts,
-          backgroundColor: grad,
+          backgroundColor: buildGradient(ctx),
           borderColor: hexToRgba(accentLight, 0.9),
           borderWidth: 0,
           borderRadius: 6,
@@ -93,7 +96,7 @@
             padding:     10,
             displayColors: false,
             callbacks: {
-              label: (ctx) => `${ctx.parsed.y} correo${ctx.parsed.y === 1 ? '' : 's'}`,
+              label: function (ctx) { return ctx.parsed.y + ' corre' + (ctx.parsed.y === 1 ? 'o' : 'os'); },
             },
           },
         },
@@ -111,6 +114,42 @@
           },
         },
       },
+    });
+  }
+
+  // Initial render with server data
+  var initialData = JSON.parse(
+    document.getElementById('dashActivityData').textContent || '[]'
+  );
+  if (activityEl && initialData.length) {
+    renderChart(
+      initialData.map(function (d) { return d.label; }),
+      initialData.map(function (d) { return d.count; })
+    );
+  }
+
+  // Period selector → AJAX update
+  if (periodSelect) {
+    periodSelect.addEventListener('change', function () {
+      var period = periodSelect.value;
+      fetch('/dashboard/actividad/?period=' + period)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.activity_data && data.activity_data.length) {
+            renderChart(
+              data.activity_data.map(function (d) { return d.label; }),
+              data.activity_data.map(function (d) { return d.count; })
+            );
+          }
+          if (subtitleEl && data.range_label) {
+            subtitleEl.textContent = data.range_label + ' — correos recibidos';
+          }
+        })
+        .catch(function () {
+          if (window.showToast) {
+            window.showToast({ type: 'danger', title: 'Error', message: 'No se pudo actualizar el gráfico.', duration: 4000 });
+          }
+        });
     });
   }
 

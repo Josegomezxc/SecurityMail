@@ -6,7 +6,8 @@ from .webhook import inbound_email_webhook
 
 urlpatterns = [
     # Dashboard
-    path('dashboard/',       views.dashboard_view,    name='dashboard'),
+    path('dashboard/',        views.dashboard_view,         name='dashboard'),
+    path('dashboard/actividad/', views.dashboard_activity_api, name='dashboard_activity'),
 
     # Bandeja
     path('bandeja/',         views.inbox_view,         name='inbox'),

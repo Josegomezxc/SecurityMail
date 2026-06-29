@@ -6,28 +6,6 @@
   var MAX_FILES = window.__composeApi ? window.__composeApi.MAX_FILES : 5;
   var MAX_TOTAL_BYTES = window.__composeApi ? window.__composeApi.MAX_TOTAL_BYTES : 25 * 1024 * 1024;
 
-  // ── Lista de extensiones ejecutables/peligrosas bloqueadas en frontend ──
-  var BLOCKED_EXTENSIONS = [
-    '.exe', '.bat', '.cmd', '.msi', '.vbs', '.vbe', '.scr',
-    '.ps1', '.psm1', '.psd1', '.sh', '.bash', '.zsh', '.fish',
-    '.jar', '.com', '.pif', '.reg', '.hta', '.cpl', '.dll',
-    '.sys', '.drv', '.inf', '.ade', '.adp', '.application',
-    '.gadget', '.msc', '.msh', '.msh1', '.msh2', '.mshxml',
-    '.msp', '.mst', '.ops', '.prg', '.psc1', '.psc2',
-    '.ws', '.wsc', '.wsf', '.wsh',
-  ];
-
-  function isBlockedExtension(filename) {
-    var lower = String(filename || '').toLowerCase();
-    // Detectar doble extensión (ej: factura.pdf.exe)
-    var parts = lower.split('.');
-    if (parts.length >= 2) {
-      var ext = '.' + parts[parts.length - 1];
-      if (BLOCKED_EXTENSIONS.indexOf(ext) !== -1) return ext;
-    }
-    return null;
-  }
-
   var scanningFiles = [];
   var scanIdCounter = 0;
 
@@ -135,25 +113,6 @@
     var totalBytes = api ? api.getTotalBytes() : 0;
     if (totalBytes + file.size > MAX_TOTAL_BYTES) {
       if (window.showToast) window.showToast({ type: 'warning', title: 'Adjunto omitido', message: file.name + ' supera el límite total de 25 MB.', duration: 5000 });
-      return;
-    }
-
-    // ── Validación rápida de extensión peligrosa (antes del sandbox) ──
-    var blockedExt = isBlockedExtension(file.name);
-    if (blockedExt) {
-      var safeName = String(file.name || '').replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '');
-      if (window.showToast) {
-        window.showToast({
-          type: 'danger',
-          title: 'Archivo Bloqueado por Seguridad',
-          message: '"' + safeName + '" no puede adjuntarse. Los archivos ejecutables y de script (' + blockedExt + ') están prohibidos por la política de seguridad de DockerShield.',
-          duration: 7000,
-        });
-      }
-      if (errAtt) {
-        errAtt.textContent = 'El archivo "' + safeName + '" fue bloqueado: extensión ' + blockedExt + ' no permitida.';
-        errAtt.classList.add('show');
-      }
       return;
     }
 

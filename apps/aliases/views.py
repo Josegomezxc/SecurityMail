@@ -248,69 +248,7 @@ MAX_ATTACHMENTS            = 10
 MAX_RECIPIENTS             = 50
 ALLOWED_ATTACHMENT_NAME_RX = re.compile(r'[^A-Za-z0-9.\-_ ()áéíóúüñÁÉÍÓÚÜÑ]+')
 
-# ─── Extensiones ejecutables/peligrosas bloqueadas ───────────────────────────
-DANGEROUS_EXTENSIONS = {
-    '.exe', '.bat', '.cmd', '.msi', '.vbs', '.vbe', '.scr',
-    '.ps1', '.psm1', '.psd1', '.sh', '.bash', '.zsh', '.fish',
-    '.jar', '.com', '.pif', '.reg', '.hta', '.cpl', '.dll',
-    '.sys', '.drv', '.inf', '.ade', '.adp', '.application',
-    '.gadget', '.msc', '.msh', '.msh1', '.msh2', '.mshxml',
-    '.msp', '.mst', '.ops', '.prg', '.psc1', '.psc2',
-    '.ws', '.wsc', '.wsf', '.wsh',
-}
 
-# Magic bytes de ejecutables: (offset, byte_sequence, label)
-_EXEC_MAGIC = [
-    (0, b'MZ',                 'Windows PE/EXE/DLL'),          # PE/DOS EXE
-    (0, b'\x7fELF',           'ELF Executable (Linux)'),       # ELF
-    (0, b'\xca\xfe\xba\xbe', 'Mach-O Executable (macOS)'),    # Mach-O fat
-    (0, b'\xcf\xfa\xed\xfe', 'Mach-O Executable (macOS)'),    # Mach-O 64-bit
-    (0, b'\xce\xfa\xed\xfe', 'Mach-O Executable (macOS)'),    # Mach-O 32-bit
-    (0, b'\xd0\xcf\x11\xe0', 'MSI/OLE2 (Compound Document)'), # MSI/OLE2
-    (0, b'PK\x03\x04',        'ZIP/JAR Archive'),              # ZIP/JAR
-]
-
-
-def _check_dangerous_file(upload) -> str | None:
-    """
-    Devuelve un mensaje de error legible si el archivo es un ejecutable
-    bloqueado por extensión o por magic bytes, o None si es seguro.
-
-    Comprueba:
-      1. Extensión del nombre original (incluyendo doble extensión como .pdf.exe).
-      2. Cabecera binaria (magic bytes) para detectar ejecutables renombrados.
-    """
-    name = upload.name or ''
-    ext  = os.path.splitext(name.lower())[1]
-    if ext in DANGEROUS_EXTENSIONS:
-        return (
-            f'El archivo "{name}" no puede adjuntarse. '
-            f'Los archivos ejecutables y de script ({ext}) están '
-            f'prohibidos por la política de seguridad de DockerShield.'
-        )
-
-    # Leer primeros bytes para detección por cabecera
-    upload.seek(0)
-    header = upload.read(8)
-    upload.seek(0)
-    for offset, magic, label in _EXEC_MAGIC:
-        chunk = header[offset: offset + len(magic)]
-        if chunk == magic:
-            # JAR/ZIP tampoco se permiten si la extensión no es .zip (ej: .jar renombrado)
-            if magic == b'PK\x03\x04' and ext not in ('.zip',):
-                return (
-                    f'El archivo "{name}" no puede adjuntarse. '
-                    f'El contenido parece un archivo JAR o ZIP ejecutable ({label}). '
-                    f'Solo se permiten archivos .zip convencionales.'
-                )
-            if magic != b'PK\x03\x04':
-                return (
-                    f'El archivo "{name}" no puede adjuntarse. '
-                    f'El contenido ha sido identificado como un ejecutable ({label}) '
-                    f'independientemente de su extensión. '
-                    f'Este tipo de archivo está prohibido por la política de seguridad.'
-                )
-    return None
 
 
 def _parse_recipients(raw: str) -> list:
@@ -473,11 +411,6 @@ def attachment_scan_api(request):
     if upload.size == 0:
         return JsonResponse({'ok': False, 'error': 'El archivo está vacío.'}, status=400)
 
-    # ── Validación de extensión + magic bytes ANTES de pasar al sandbox ──
-    dangerous_msg = _check_dangerous_file(upload)
-    if dangerous_msg:
-        return JsonResponse({'ok': False, 'error': dangerous_msg, 'blocked_extension': True}, status=400)
-
     suffix = os.path.splitext(upload.name)[1] or '.bin'
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
@@ -615,14 +548,6 @@ def alias_compose_view(request, pk):
     if total_bytes > MAX_TOTAL_ATTACHMENT_BYTES:
         size_mb = MAX_TOTAL_ATTACHMENT_BYTES // (1024 * 1024)
         errors['attachments'] = f'Tamaño total de adjuntos supera {size_mb} MB.'
-
-    # ── Validación de ejecutables (extensión + magic bytes) en cada adjunto ──
-    if not errors.get('attachments'):
-        for f in uploaded_files:
-            msg = _check_dangerous_file(f)
-            if msg:
-                errors['attachments'] = msg
-                break
 
     send_at_ts = None
     if scheduled_at:

@@ -19,7 +19,7 @@ from django.views.decorators.http import require_POST
 
 from apps.aliases.models import Alias
 from apps.sandbox.models import SandboxAnalysis
-from apps.core.services.stats_service import dashboard_stats
+from apps.core.services.stats_service import activity_data_for_user, dashboard_stats
 from apps.core.url_signer import decode_id, encode_id
 from .models import EmailMessage, SentEmail, Draft
 
@@ -45,7 +45,9 @@ def _qs_params(request, exclude=('page',)):
 @login_required(login_url='login')
 def dashboard_view(request):
     """Dashboard principal — métricas + listas recientes."""
-    stats = dashboard_stats(request.user)
+    period = request.GET.get('period', 'diario')
+    ref = request.GET.get('ref')
+    stats = dashboard_stats(request.user, period=period, ref_str=ref)
 
     aliases         = Alias.objects.filter(user=request.user, is_active=True)[:5]
     # 20 correos = 5 páginas de 4 en la tabla "Actividad reciente".
@@ -91,6 +93,7 @@ def dashboard_view(request):
         'recent_emails':   recent_emails,
         'recent_analyses': recent_analyses,
         'recent_threats':  recent_threats,
+        'period':          period,
         **stats,
     })
 
@@ -970,3 +973,13 @@ def drafts_more_api(request):
         'next_offset': new_offset,
         'has_more':    new_offset < total,
     })
+
+
+@login_required(login_url='login')
+def dashboard_activity_api(request):
+    """GET → {activity_data: [...], range_label: '...'} para el chart."""
+    period = request.GET.get('period', 'diario')
+    if period not in ('diario', 'semanal', 'mensual', 'anual'):
+        period = 'diario'
+    data, label = activity_data_for_user(request.user, period)
+    return JsonResponse({'activity_data': data, 'range_label': label})
