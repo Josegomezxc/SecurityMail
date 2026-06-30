@@ -24,9 +24,8 @@ from apps.core.validators import (
 )
 from .forms import CambiarPasswordForm
 from .services.auth_service import (
-    authenticate_flexible, login_single_session, is_session_active,
+    authenticate_flexible, login_single_session,
     login_is_locked, login_register_failure, login_clear_failures,
-    SESSION_IDLE_TIMEOUT_SECONDS,
 )
 from .services.login_lock_service import (
     check_user_lock_state, register_user_failure, clear_user_failures,
@@ -285,20 +284,6 @@ def login_view(request):
             return render(request, 'accounts/login.html', {'form_values': form_values})
 
         if user:
-            # ── BLOQUEO: si la cuenta tiene sesión activa reciente, NO dejar entrar.
-            # Esto evita que dos personas estén usando la misma cuenta a la vez.
-            # Si la otra sesión queda inactiva más de SESSION_IDLE_TIMEOUT_SECONDS
-            # (ej: cierran el navegador), el bloqueo se libera automáticamente.
-            if is_session_active(user):
-                mins = max(1, SESSION_IDLE_TIMEOUT_SECONDS // 60)
-                messages.error(
-                    request,
-                    f'Esta cuenta ya está siendo usada en otro dispositivo. '
-                    f'Cierra sesión allí o espera {mins} minuto(s) de inactividad '
-                    f'para volver a entrar.',
-                )
-                return render(request, 'accounts/login.html', {'form_values': form_values})
-
             login_clear_failures(ip)
             clear_user_failures(user)
             login_single_session(request, user)

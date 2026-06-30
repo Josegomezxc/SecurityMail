@@ -17,8 +17,14 @@
 
 #arrModalOverlay {
     align-items: flex-start;
-    padding-top: 1.25rem;
+    padding-top: 2rem;
     padding-bottom: 1.25rem;
+}
+
+
+#arrModal {
+    max-width: 60rem;
+    max-height: 35rem;
 }
 
 

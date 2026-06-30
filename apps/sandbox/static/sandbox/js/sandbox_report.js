@@ -13,43 +13,63 @@ document.querySelectorAll('.ioc-copy-btn').forEach(btn => {
   });
 });
 
-// ── Listas colapsables: "Ver más / Ver menos" automatic ───────────────
-// Cualquier .collapsible-list con data-show="N" y más de N hijos
-// recibe un botón de toggle.
+// ── Listas colapsables: "Ver más" progresivo de a N ───────────────────
+// Cualquier .collapsible-list con data-show="N" y data-step="M" recibe
+// un botón que revela M items cada clic, hasta mostrar todos.
 document.querySelectorAll('.collapsible-list').forEach(wrap => {
-  const show  = parseInt(wrap.dataset.show, 10) || 5;
+  const show  = parseInt(wrap.dataset.show, 10) || 4;
+  const step  = parseInt(wrap.dataset.step, 10) || show;
   const label = wrap.dataset.label || 'elementos';
   const items = Array.from(wrap.children);
   if (items.length <= show) return;
 
-  // Marca los items que sobran como ocultos
-  const hidden = items.length - show;
-  for (let i = show; i < items.length; i++) {
+  let shown = show;
+  for (let i = shown; i < items.length; i++) {
     items[i].classList.add('collapsible-hidden');
   }
   wrap.classList.add('has-hidden');
 
-  // Crea el botón con chevron + contador
+  const chev = '<svg class="toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'collapsible-toggle';
-  const chev = '<svg class="toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>';
-  btn.innerHTML = `Ver <span class="toggle-count">${hidden}</span> ${label} más ${chev}`;
+
+  function _updateBtn() {
+    const remaining = items.length - shown;
+    if (remaining <= 0) {
+      btn.innerHTML = `Ver menos ${chev}`;
+    } else {
+      btn.innerHTML = `Ver <span class="toggle-count">${Math.min(remaining, step)}</span> ${label} más ${chev}`;
+    }
+  }
+  _updateBtn();
 
   btn.addEventListener('click', () => {
-    const expanded = wrap.classList.toggle('expanded');
-    btn.classList.toggle('is-expanded', expanded);
-    wrap.classList.toggle('has-hidden', !expanded);
-    btn.innerHTML = expanded
-      ? `Ver menos ${chev}`
-      : `Ver <span class="toggle-count">${hidden}</span> ${label} más ${chev}`;
-    
-    if (!expanded) {
+    const isCollapse = shown >= items.length;
+    if (isCollapse) {
+      // Colapsar a cantidad inicial
+      for (let i = show; i < items.length; i++) {
+        items[i].classList.add('collapsible-hidden');
+      }
+      shown = show;
+      wrap.classList.add('has-hidden');
+      _updateBtn();
       wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
     }
+    // Revelar step items más
+    const next = Math.min(shown + step, items.length);
+    for (let i = shown; i < next; i++) {
+      items[i].classList.remove('collapsible-hidden');
+    }
+    shown = next;
+    if (shown >= items.length) {
+      wrap.classList.remove('has-hidden');
+    }
+    _updateBtn();
   });
 
-  // Inserta el botón justo después de la lista
   wrap.parentNode.insertBefore(btn, wrap.nextSibling);
 });
 
@@ -156,8 +176,9 @@ CONTEXTO YARA: ${yaraDetailedBlock || "-"}
 BODY SCORE: ${bodyScore}/100 ${bodyThreat ? "("+bodyThreat+")" : ""}
 
 REGLAS:
-1. VEREDICTO: 81-100=MALICIOSO | 31-80=SOSPECHOSO | 0-30=SEGURO.
+1. VEREDICTO: 61-100=MALICIOSO | 31-60=SOSPECHOSO | 0-30=SEGURO.
 2. EXPLICACION: Un solo párrafo fluido narrando la correlación de hallazgos. ¡Sin relleno! Define tecnicismos en 3 palabras max.
+3. RECOMENDACION: Redacta un único párrafo continuo, fluido y directo que presente la acción inmediata, explicando de manera clara por qué es la más adecuada, su justificación estratégica y por qué es prioridad frente a otras alternativas. Usa un tono profesional pero cercano, de asesor de confianza con urgencia justificada. Cero guiones, listas, numeración, saltos de línea ni formatos estructurados. Debe responder implícitamente a: ¿por qué ahora?, ¿por qué esto? y ¿qué riesgo se evita? La acción debe ser específica y ejecutable.
 
 FORMATO EXACTO:
 VEREDICTO: [MALICIOSO / SOSPECHOSO / SEGURO]
@@ -168,10 +189,7 @@ EXPLICACION:
 [Un solo párrafo fluido y ultra-conciso explicando qué se detectó y su impacto, conectando datos e IOCs]
 
 RECOMENDACION:
-• **[Acción inmediata corta]**
-  - **Descripción**: [Explicación en 1 línea]
-  - **Prioridad**: [Alta/Media/Baja]
-  - **Acción recomendada**: [Paso exacto en 1 línea]`;
+Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generará el párrafo continuo y fluido basado en la regla 3, pegado directamente a la frase inicial]`;
 
   /* ──────────────────────────────────────────────────────────────────
      Mini-renderer de Markdown

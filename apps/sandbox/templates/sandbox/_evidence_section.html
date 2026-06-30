@@ -1,0 +1,112 @@
+{% load sandbox_filters %}
+<header class="section-head">
+  <div class="section-icon-box" style="background:rgba(232,64,64,0.1)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+    </svg>
+  </div>
+  <h2 class="section-head-title">Evidencia detectada</h2>
+  <div class="section-head-tag">
+    {% if evidence_groups %}
+      <span class="tag tag-red" id="evidenceCountTag">{{ analysis.dynamic.evidence|length }} indicador{{ analysis.dynamic.evidence|length|pluralize:"es" }}</span>
+    {% else %}
+      <span class="tag tag-green">Sin hallazgos</span>
+    {% endif %}
+  </div>
+</header>
+
+{% if evidence_groups %}
+  {% for fname, items in evidence_groups %}
+    <div class="file-group">
+      {% if fname != "__general__" %}
+        <div class="file-group-header">
+          <svg class="file-group-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span class="file-group-name">{{ fname }}</span>
+          {% if items|has_evidence_type:'password_protected' %}
+            <button class="evidence-unlock-btn" type="button" onclick="openPassModal('{{ analysis.id }}', '{{ fname|escapejs }}')" title="Proporcionar contraseña para re-analizar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Desbloquear
+            </button>
+          {% endif %}
+          <span class="file-group-count">{{ items|length }} indicador{{ items|length|pluralize:"es" }}</span>
+        </div>
+      {% endif %}
+      <div class="evidence-list collapsible-list" data-show="4" data-step="4" data-label="indicadores">
+        {% for ev in items %}
+          {% with sev=ev.severity %}
+            {% if sev >= 81 %}
+              {% with cls="sev-critical" label="CRÍTICO" %}
+                <div class="evidence-item {{ cls }}">
+                  <span class="severity-pill {{ cls }}">
+                    <span class="sev-label">{{ label }}</span>
+                    <span class="sev-score">{{ sev }}</span>
+                  </span>
+                  <div class="evidence-body">
+                    <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
+                    <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
+                  </div>
+                </div>
+              {% endwith %}
+            {% elif sev >= 61 %}
+              {% with cls="sev-high" label="ALTO" %}
+                <div class="evidence-item {{ cls }}">
+                  <span class="severity-pill {{ cls }}">
+                    <span class="sev-label">{{ label }}</span>
+                    <span class="sev-score">{{ sev }}</span>
+                  </span>
+                  <div class="evidence-body">
+                    <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
+                    <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
+                  </div>
+                </div>
+              {% endwith %}
+            {% elif sev >= 31 %}
+              {% with cls="sev-medium" label="MEDIO" %}
+                <div class="evidence-item {{ cls }}">
+                  <span class="severity-pill {{ cls }}">
+                    <span class="sev-label">{{ label }}</span>
+                    <span class="sev-score">{{ sev }}</span>
+                  </span>
+                  <div class="evidence-body">
+                    <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
+                    <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
+                  </div>
+                </div>
+              {% endwith %}
+            {% elif sev > 0 %}
+              {% with cls="sev-low" label="BAJO" %}
+                <div class="evidence-item {{ cls }}">
+                  <span class="severity-pill {{ cls }}">
+                    <span class="sev-label">{{ label }}</span>
+                    <span class="sev-score">{{ sev }}</span>
+                  </span>
+                  <div class="evidence-body">
+                    <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
+                    <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
+                  </div>
+                </div>
+              {% endwith %}
+            {% else %}
+              {% with cls="sev-info" label="INFO" %}
+                <div class="evidence-item {{ cls }}">
+                  <span class="severity-pill {{ cls }}">
+                    <span class="sev-label">{{ label }}</span>
+                  </span>
+                  <div class="evidence-body">
+                    <div class="evidence-detail">{{ ev.detail|format_evidence_detail:ev.type }}</div>
+                    <span class="evidence-type">{{ ev.type|translate_evidence_type }}</span>
+                  </div>
+                </div>
+              {% endwith %}
+            {% endif %}
+          {% endwith %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="evidence-empty">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="margin-bottom:6px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    <div>El análisis no encontró indicadores sospechosos en este archivo.</div>
+  </div>
+{% endif %}

@@ -20,7 +20,6 @@ from django.shortcuts import redirect
 from django.utils import timezone
 
 from apps.accounts.models import UserSession
-from apps.accounts.services.auth_service import SESSION_IDLE_TIMEOUT_SECONDS
 
 
 class SingleSessionMiddleware:
@@ -53,21 +52,7 @@ class SingleSessionMiddleware:
                     )
                     return redirect('login')
 
-                # ── 2) Auto-logout por inactividad ──
-                # Solo se aplica si el usuario NO marcó "Recordarme en este equipo".
-                if not request.session.get('remember_me'):
-                    if session and session.session_last_activity:
-                        idle = (timezone.now() - session.session_last_activity).total_seconds()
-                        if idle > SESSION_IDLE_TIMEOUT_SECONDS:
-                            logout(request)
-                            messages.info(
-                                request,
-                                'Tu sesión cerró por inactividad. Iniciá sesión de nuevo.',
-                            )
-                            return redirect('login')
-
-                # ── 3) Marcar actividad: tu sesión está VIVA ──
-                # Cada request resetea el contador de inactividad.
+                # ── 2) Marcar actividad ──
                 session = getattr(profile, 'session', None)
                 if session is None:
                     session = UserSession.objects.create(profile=profile)

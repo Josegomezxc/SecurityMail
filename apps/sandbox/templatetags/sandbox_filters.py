@@ -275,6 +275,11 @@ def format_evidence_detail(detail, ev_type):
 
 
 @register.filter
+def has_evidence_type(items, type_name):
+    return any(ev.get('type') == type_name for ev in items)
+
+
+@register.filter
 def translate_yara_rule(value):
     if not value:
         return ""

@@ -10,53 +10,11 @@ from functools import wraps
 
 from django.contrib.auth import authenticate, login as django_login
 from django.contrib.auth.models import User
-from django.contrib.sessions.models import Session
 from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils import timezone
 
 from apps.accounts.models import UserSession
-
-
-# Tiempo de inactividad después del cual una sesión se considera "abandonada"
-# y se permite que otra persona haga login con la misma cuenta. Si quieres
-# que cerrar el navegador desbloquee al instante, baja a 0; si quieres ser
-# más estricto, súbelo. 3 minutos es un buen balance.
-SESSION_IDLE_TIMEOUT_SECONDS = 600
-
-
-def is_session_active(user) -> bool:
-    """
-    Devuelve True si el usuario tiene una sesión "viva" en otro navegador
-    o dispositivo (alguien la está usando ahora mismo).
-
-    Se considera viva si:
-      • El perfil tiene una current_session_key registrada
-      • Esa sesión todavía existe en la BD de Django (no fue logout/expirada)
-      • Hubo actividad en los últimos SESSION_IDLE_TIMEOUT_SECONDS segundos
-    """
-    try:
-        profile = user.profile
-    except Exception:
-        return False
-
-    session = getattr(profile, 'session', None)
-    if session is None:
-        return False
-    key = (session.current_session_key or '').strip()
-    if not key:
-        return False
-
-    # ¿Existe la sesión todavía? (si hicieron logout o expiró, ya no)
-    if not Session.objects.filter(session_key=key).exists():
-        return False
-
-    # ¿Hubo actividad reciente?
-    last = session.session_last_activity
-    if last is None:
-        return False
-    idle = (timezone.now() - last).total_seconds()
-    return idle < SESSION_IDLE_TIMEOUT_SECONDS
 
 
 # ─────────────────────────────────────────────────────────────────────

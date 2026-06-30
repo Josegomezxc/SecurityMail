@@ -32,6 +32,11 @@ class EmailMessage(models.Model):
         help_text="0-100. 0=seguro, 100=malware",
     )
     is_active = models.BooleanField(default=True, db_column='msc_activo')
+    resend_email_id = models.CharField(
+        max_length=255, unique=True, null=True, blank=True,
+        db_column='msc_id_resend',
+        help_text="ID único del correo en Resend (para deduplicar webhooks)",
+    )
 
     def __str__(self):
         return f"{self.subject} → {self.alias.address}"

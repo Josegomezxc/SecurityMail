@@ -27,7 +27,10 @@ urlpatterns = [
     path('admin-panel/solicitudes-cuenta/', views.admin_account_recovery_requests_view, name='admin_account_recovery_requests'),
     path('admin-panel/solicitudes-cuenta/<sid:pk>/resolver/', views.admin_account_recovery_request_resolve, name='admin_account_recovery_request_resolve'),
 
-    # 6. Previews de desarrollo para páginas de error
+    # 6. API de actividad global (AJAX)
+    path('admin-panel/actividad/', views.admin_activity_api, name='admin_activity_api'),
+
+    # 7. Previews de desarrollo para páginas de error
     path('error/404/', views.page_not_found_view, name='preview_404'),
     path('error/500/', views.server_error_view, name='preview_500'),
 ]

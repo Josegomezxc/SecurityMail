@@ -17,6 +17,7 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -44,7 +45,12 @@ def _admin_qs_params(request, exclude=('page',)):
 @admin_required
 def admin_dashboard_view(request):
     """Panel global — estadísticas agregadas del sistema entero."""
+    from apps.core.services.stats_service import activity_data_for_user
+
     stats = admin_global_stats()
+
+    period = 'diario'
+    activity_data, range_label = activity_data_for_user(None, period)
 
     top_users = (
         User.objects
@@ -65,9 +71,23 @@ def admin_dashboard_view(request):
 
     return render(request, 'core/admin_dashboard.html', {
         **stats,
+        'period':         period,
+        'activity_data':  activity_data,
+        'range_label':    range_label,
         'top_users':      top_users,
         'recent_threats': recent_threats,
     })
+
+
+@admin_required
+def admin_activity_api(request):
+    """GET ?period=diario|semanal|mensual|anual → JSON con actividad global."""
+    from apps.core.services.stats_service import activity_data_for_user
+    period = request.GET.get('period', 'diario')
+    if period not in ('diario', 'semanal', 'mensual', 'anual'):
+        period = 'diario'
+    data, label = activity_data_for_user(None, period)
+    return JsonResponse({'activity_data': data, 'range_label': label})
 
 
 @admin_required

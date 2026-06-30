@@ -19,11 +19,12 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.mail.models import EmailMessage
-from .models import SandboxAnalysis, IAResult
+from .models import SandboxAnalysis, DynamicAnalysis, IAResult
 
 _UNICODE_CONTROL_RE = re.compile(
     '[\u200b\u200c\u200d\u200e\u200f'
@@ -49,12 +50,22 @@ def _group_evidence(evidence_list):
         else:
             groups.setdefault("__general__", []).append(ev)
 
-    # Ordenar los grupos: primero "general", luego el resto alfabético
+    def _has_password(items):
+        return any(ev.get('type') == 'password_protected' for ev in items)
+
+    # Ordenar: primero "general", luego grupos con password (alfabético),
+    # después grupos sin password (alfabético)
     result = []
     if "__general__" in groups:
         result.append(("__general__", groups.pop("__general__")))
+
+    protected = []
+    unprotected = []
     for fname in sorted(groups):
-        result.append((fname, groups[fname]))
+        (protected if _has_password(groups[fname]) else unprotected).append((fname, groups[fname]))
+
+    result.extend(protected)
+    result.extend(unprotected)
     return result
 
 
@@ -232,6 +243,225 @@ def sandbox_report_view(request, pk):
         'analysis':          analysis,
         'yara_context_json': json.dumps(yara_context, ensure_ascii=False),
         'evidence_groups':   evidence_groups,
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────
+#  Desbloquear archivo protegido con contraseña
+# ─────────────────────────────────────────────────────────────────────
+
+@login_required(login_url='login')
+@require_POST
+def sandbox_unlock_view(request, pk):
+    """POST {password: "..."} → re-analiza con contraseña, actualiza BD."""
+    qs = SandboxAnalysis.objects.select_related(
+        'email__alias', 'email__attachment', 'dynamic', 'file_info', 'body_analysis',
+    )
+    if request.user.is_staff:
+        analysis = get_object_or_404(qs, pk=pk)
+    else:
+        analysis = get_object_or_404(qs, pk=pk, email__alias__user=request.user)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
+
+    password = (data.get('password') or '').strip()
+    if not password:
+        return JsonResponse({'ok': False, 'error': 'Contraseña requerida'}, status=400)
+
+    if len(password) > 128:
+        return JsonResponse({'ok': False, 'error': 'Contraseña demasiado larga'}, status=400)
+
+    if any(ord(c) < 32 for c in password):
+        return JsonResponse({'ok': False, 'error': 'Caracteres no válidos en la contraseña'}, status=400)
+
+    filename = (data.get('filename') or '').strip()
+    if not filename:
+        return JsonResponse({'ok': False, 'error': 'Nombre de archivo requerido'}, status=400)
+
+    session_key = f'unlock_attempts_{pk}'
+    attempts = request.session.get(session_key, 0)
+    if attempts >= 3:
+        return JsonResponse({
+            'ok': False, 'error': 'Demasiados intentos. Esperá unos minutos.',
+        }, status=429)
+
+    # Buscar filepath del archivo específico en attachments_reports
+    filepath = ''
+    body_analysis = analysis.body_analysis
+    if body_analysis and body_analysis.attachments_reports:
+        for att in body_analysis.attachments_reports:
+            if att.get('filename') == filename:
+                filepath = att.get('filepath', '') or ''
+                break
+    if not filepath:
+        try:
+            filepath = analysis.email.attachment.attachment_path if analysis.email and hasattr(analysis.email, 'attachment') and analysis.email.attachment else ''
+        except Exception:
+            filepath = ''
+    if not filepath or not os.path.exists(filepath):
+        return JsonResponse({'ok': False, 'error': 'Archivo no disponible'}, status=404)
+
+    request.session[session_key] = attempts + 1
+    request.session.set_expiry(600)
+
+    from .service import run_sandbox_with_password
+    report = run_sandbox_with_password(filepath, password)
+
+    if not report:
+        return JsonResponse({'ok': False, 'error': 'Error al re-analizar'}, status=500)
+
+    # Verificar si el reporte sigue teniendo password_protected (contraseña incorrecta)
+    still_protected = any(
+        ev.get('type') == 'password_protected'
+        for ev in (report.get('evidence') or [])
+    )
+    has_password_ev = report.get('evidence') and still_protected
+
+    if has_password_ev:
+        return JsonResponse({
+            'ok': True,
+            'changed': False,
+            'error': 'Contraseña incorrecta',
+        })
+
+    # Contraseña correcta — resetear intentos y actualizar BD
+    if session_key in request.session:
+        del request.session[session_key]
+
+    dynamic, _ = DynamicAnalysis.objects.get_or_create(analysis=analysis)
+
+    # Reemplazar solo la evidencia del archivo desbloqueado
+    old_evidence = dynamic.evidence or []
+    prefix = f'[{filename}]'
+    new_evidence = []
+    for ev in (report.get('evidence') or []):
+        ev_copy = dict(ev)
+        ev_copy['detail'] = f'{prefix} {_sanitize_value(ev.get("detail", ""))}'
+        new_evidence.append(ev_copy)
+    filtered = [ev for ev in old_evidence if not ev.get('detail', '').startswith(prefix)]
+    dynamic.evidence = filtered + new_evidence
+
+    dynamic.iocs = _sanitize_value(report.get('iocs', {}))
+    dynamic.category = report.get('category', dynamic.category)
+    dynamic.yara_matches = _sanitize_value(report.get('yara_matches', []))
+    dynamic.network_connections = _sanitize_value(report.get('network_connections', []))
+    dynamic.child_processes = _sanitize_value(report.get('child_processes', []))
+    dynamic.file_writes = _sanitize_value(report.get('file_writes', []))
+    dynamic.analyzers_run = _sanitize_value(report.get('analyzers_run', []))
+    dynamic.save()
+
+    analysis.dynamic = dynamic
+
+    # Actualizar attachments_reports con el nuevo reporte del archivo desbloqueado
+    if body_analysis and body_analysis.attachments_reports:
+        updated = []
+        for att in body_analysis.attachments_reports:
+            if att.get('filename') == filename:
+                att['risk_score'] = int(report.get('risk_score', 0))
+                att['risk_level'] = report.get('risk_level', 'safe')
+                att['threat_name'] = report.get('threat_name', '')
+                att['evidence'] = report.get('evidence', [])
+                att['iocs'] = report.get('iocs', {'urls': [], 'ips': [], 'domains': [], 'hashes': []})
+                att['yara_matches'] = report.get('yara_matches', [])
+                att['analyzers_run'] = report.get('analyzers_run', [])
+                att['category'] = report.get('category', att.get('category', 'unknown'))
+            updated.append(att)
+        body_analysis.attachments_reports = updated
+        body_analysis.save(update_fields=['attachments_reports'])
+
+    # Recalcular score global como el max score de todos los attachments
+    all_scores = [0]
+    if body_analysis and body_analysis.attachments_reports:
+        for att in body_analysis.attachments_reports:
+            all_scores.append(int(att.get('risk_score', 0)))
+    final_score = max(all_scores)
+    analysis.risk_score = final_score
+    analysis.risk_level = 'critical' if final_score >= 81 else ('high' if final_score >= 61 else ('medium' if final_score >= 31 else 'safe'))
+    analysis.threat_name = report.get('threat_name', '')
+    analysis.save(update_fields=['risk_score', 'risk_level', 'threat_name'])
+
+    # Actualizar el score en el EmailMessage para bandeja/detalle/color
+    analysis.email.risk_score = final_score
+    analysis.email.save(update_fields=['risk_score'])
+
+    # Actualizar la notificación existente con el nuevo score/tipo
+    from apps.notifications.models import Notification
+    try:
+        notif = Notification.objects.filter(
+            related_email=analysis.email,
+            user=request.user,
+        ).latest('created_at')
+        alias_email = analysis.email.alias.address if analysis.email and analysis.email.alias else '—'
+        sender = analysis.email.from_email or '—'
+        if final_score >= 61:
+            notif.type = 'threat_alert'
+            notif.title = f'Correo AMENAZA BLOQUEADA en {alias_email}'
+            notif.message = f'De: {sender} · Riesgo alto ({final_score}/100)'
+            notif.status = 'done'
+        elif final_score >= 31:
+            notif.type = 'forward_request'
+            notif.title = f'Correo SOSPECHOSO en {alias_email}'
+            notif.message = f'De: {sender} · Riesgo medio ({final_score}/100) — ¿reenviar a tu correo real?'
+            notif.status = 'pending'
+        else:
+            notif.type = 'forwarded'
+            notif.title = f'Correo SEGURO en {alias_email}'
+            notif.message = f'De: {sender} · Riesgo bajo ({final_score}/100)'
+            notif.status = 'approved'
+        notif.read = False
+        notif.save()
+    except Notification.DoesNotExist:
+        pass
+
+    # Enviar alerta por correo si el desbloqueo reveló una amenaza real
+    if final_score >= 61:
+        from apps.mail.webhook import send_threat_alert
+        send_threat_alert(
+            analysis.email,
+            {
+                'risk_score':  final_score,
+                'threat_name': analysis.threat_name,
+                'filename':    filename,
+                'attachment_count': 1,
+            },
+            sandbox_id=analysis.id,
+            alert_type='unlock',
+        )
+
+    # Eliminar análisis IA previo para que se regenere con la nueva evidencia
+    try:
+        if hasattr(analysis, 'ai_result') and analysis.ai_result:
+            analysis.ai_result.delete()
+    except Exception:
+        pass
+
+    messages.success(request, 'Archivo desbloqueado — reporte actualizado con los nuevos datos del análisis.')
+    if final_score >= 61:
+        messages.error(request, f'Amenaza bloqueada — Riesgo alto ({final_score}/100)')
+    elif final_score >= 31:
+        messages.warning(request, f'Sospechoso — Riesgo medio ({final_score}/100)')
+    else:
+        messages.success(request, f'Seguro — Riesgo bajo ({final_score}/100)')
+
+    # Renderizar HTML de la sección de evidencia actualizada
+    evidence_groups = _group_evidence(dynamic.evidence if dynamic else [])
+    evidence_html = render_to_string(
+        'sandbox/_evidence_section.html',
+        {'evidence_groups': evidence_groups, 'analysis': analysis},
+        request=request,
+    )
+
+    return JsonResponse({
+        'ok': True,
+        'changed': True,
+        'score': analysis.risk_score,
+        'risk_level': analysis.risk_level,
+        'threat_name': analysis.threat_name,
+        'evidence_html': evidence_html,
+        'evidence_count': len(dynamic.evidence) if dynamic else 0,
     })
 
 

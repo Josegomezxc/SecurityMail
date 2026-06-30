@@ -484,6 +484,7 @@ document.addEventListener('keydown', function (e) {
     // respuesta del endpoint en F5.
     const SEEN_KEY = 'sms_notif_last_seen_id';
     let lastSeenId = null;   // null = aún no sabemos (esperar respuesta server)
+    const toastados = new Set(); // IDs ya mostrados como toast (evita duplicados por race condition)
     try {
         const cached = localStorage.getItem(SEEN_KEY);
         if (cached !== null) lastSeenId = parseInt(cached, 10) || 0;
@@ -592,7 +593,7 @@ document.addEventListener('keydown', function (e) {
                     const effectiveSeen = Math.max(serverSeen, lastSeenId ?? serverSeen);
                     // Si es la primera carga del usuario (server=0 Y sin caché
                     // local) NO toasteamos las viejas — solo registramos el max.
-                    const firstTime = (serverSeen === 0 && lastSeenId === null);
+                    const firstTime = (serverSeen === 0 && (lastSeenId === null || lastSeenId === 0));
 
                     const maxId = data.recent.reduce(
                         (m, it) => (it.id > m ? it.id : m), 0
@@ -603,6 +604,8 @@ document.addEventListener('keydown', function (e) {
                         // Orden cronológico (más antigua primero) para que la
                         // más reciente quede arriba del stack de toasts.
                         newOnes.sort((a, b) => a.id - b.id).forEach(item => {
+                            if (toastados.has(item.id)) return;
+                            toastados.add(item.id);
                             // Color del toast por nivel de riesgo del correo:
                             //   amenaza (≥61)    → rojo
                             //   sospechoso (31-60) → amarillo

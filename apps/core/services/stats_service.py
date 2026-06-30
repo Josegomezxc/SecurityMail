@@ -21,14 +21,16 @@ from apps.sandbox.models import SandboxAnalysis
 # ─────────────────────────────────────────────────────────────────────
 
 def _build_activity(user, period, ref_date):
-    """Construye la serie de actividad según período y fecha de referencia."""
+    """Construye la serie de actividad según período y fecha de referencia.
+    Si user=None → actividad GLOBAL (sin filtro por usuario)."""
     today = timezone.now().date()
+    _filter = {} if user is None else {'alias__user': user}
 
     if period == 'diario':
         start = timezone.make_aware(datetime.combine(ref_date, datetime.min.time()))
         end = start + timedelta(days=1)
         qs = (EmailMessage.objects
-              .filter(alias__user=user, received_at__gte=start, received_at__lt=end)
+              .filter(**_filter, received_at__gte=start, received_at__lt=end)
               .annotate(bucket=TruncHour('received_at'))
               .values('bucket')
               .annotate(count=Count('id')))
@@ -41,7 +43,7 @@ def _build_activity(user, period, ref_date):
         start = timezone.make_aware(datetime.combine(monday, datetime.min.time()))
         end = start + timedelta(days=7)
         qs = (EmailMessage.objects
-              .filter(alias__user=user, received_at__gte=start, received_at__lt=end)
+              .filter(**_filter, received_at__gte=start, received_at__lt=end)
               .annotate(bucket=TruncDate('received_at'))
               .values('bucket')
               .annotate(count=Count('id')))
@@ -61,7 +63,7 @@ def _build_activity(user, period, ref_date):
         else:
             end = timezone.make_aware(datetime.combine(first.replace(month=first.month + 1), datetime.min.time()))
         qs = (EmailMessage.objects
-              .filter(alias__user=user, received_at__gte=start, received_at__lt=end)
+              .filter(**_filter, received_at__gte=start, received_at__lt=end)
               .annotate(bucket=TruncDate('received_at'))
               .values('bucket')
               .annotate(count=Count('id')))
@@ -78,7 +80,7 @@ def _build_activity(user, period, ref_date):
         start = timezone.make_aware(datetime(first_year, 1, 1))
         end = timezone.make_aware(datetime(today.year + 1, 1, 1))
         qs = (EmailMessage.objects
-              .filter(alias__user=user, received_at__gte=start, received_at__lt=end)
+              .filter(**_filter, received_at__gte=start, received_at__lt=end)
               .annotate(bucket=TruncYear('received_at'))
               .values('bucket')
               .annotate(count=Count('id')))

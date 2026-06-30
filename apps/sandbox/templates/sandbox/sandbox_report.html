@@ -37,6 +37,22 @@
     <span class="tag tag-red">BLOQUEADO</span>
   </div>
 </header>
+{% elif analysis.risk_score >= 31 %}
+<header class="status-banner suspicious" style="animation:fadeUp 0.4s ease" role="status">
+  <div class="status-icon-wrap">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round">
+      <path d="M12 9v4M12 17h.01"/>
+      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+    </svg>
+  </div>
+  <div class="status-text">
+    <div class="status-title" style="color:var(--warning)">Archivo sospechoso — se detectaron indicadores</div>
+    <div class="status-sub">El análisis encontró comportamientos que requieren revisión manual.</div>
+  </div>
+  <div class="status-tag">
+    <span class="tag tag-yellow">SOSPECHOSO</span>
+  </div>
+</header>
 {% else %}
 <header class="status-banner safe" style="animation:fadeUp 0.4s ease" role="status">
   <div class="status-icon-wrap">
@@ -49,10 +65,7 @@
     <div class="status-sub">El análisis no encontró comportamiento malicioso.</div>
   </div>
   <div class="status-tag">
-    {% if analysis.risk_score >= 81 %}<span class="tag tag-red">MALWARE</span>
-    {% elif analysis.risk_score >= 61 %}<span class="tag tag-red">ALTO RIESGO</span>
-    {% elif analysis.risk_score >= 31 %}<span class="tag tag-yellow">SOSPECHOSO</span>
-    {% else %}<span class="tag tag-green">SEGURO</span>{% endif %}
+    <span class="tag tag-green">SEGURO</span>
   </div>
 </header>
 {% endif %}
@@ -77,7 +90,23 @@
   </div>
 
   <div class="score-info">
-    <div class="score-filename">{{ analysis.file_info.filename|sanitize_text }}</div>
+    <div class="score-filename">
+      {% with sorted=analysis.body_analysis.attachments_reports|dictsortreversed:"risk_score" %}
+        {% if sorted and sorted.0.risk_score >= 31 %}
+          {% regroup sorted by risk_score as score_groups %}
+          {% with top_group=score_groups.0.list %}
+            {% for att in top_group|slice:":2" %}
+              {% if not forloop.first %}, {% endif %}{{ att.filename|sanitize_text }}
+            {% endfor %}
+            {% with extra=top_group|length|add:"-2" %}
+              {% if extra > 0 %} y {{ extra }} más{% endif %}
+            {% endwith %}
+          {% endwith %}
+        {% else %}
+          {{ analysis.file_info.filename|sanitize_text }}
+        {% endif %}
+      {% endwith %}
+    </div>
     <div class="score-meta">{{ analysis.analyzed_at|date:"d/m/Y" }} · {{ analysis.analyzed_at|date:"H:i" }} · {{ analysis.email.subject|truncatechars:45 }}</div>
     <div class="score-bar">
       <div class="score-bar-fill"
@@ -200,8 +229,8 @@
     <div class="section-head-tag"><span class="tag tag-yellow">{{ analysis.body_analysis.attachments_reports|length }} archivos analizados</span></div>
   </header>
 
-  <div class="att-list">
-    {% for att in analysis.body_analysis.attachments_reports %}
+  <div class="att-list collapsible-list" data-show="4" data-step="4" data-label="archivos">
+    {% for att in analysis.body_analysis.attachments_reports|dictsortreversed:"risk_score" %}
       {% with s=att.risk_score %}
       <div class="att-item">
         <div class="att-score-wrap">
@@ -271,10 +300,16 @@
           <div class="file-group-header">
             <svg class="file-group-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             <span class="file-group-name">{{ fname }}</span>
+            {% if items|has_evidence_type:'password_protected' %}
+              <button class="evidence-unlock-btn" type="button" onclick="openPassModal('{{ analysis.id }}', '{{ fname|escapejs }}')" title="Proporcionar contraseña para re-analizar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Desbloquear
+              </button>
+            {% endif %}
             <span class="file-group-count">{{ items|length }} indicador{{ items|length|pluralize:"es" }}</span>
           </div>
         {% endif %}
-        <div class="evidence-list collapsible-list" data-show="{% if fname == '__general__' %}5{% else %}10{% endif %}" data-label="indicadores">
+        <div class="evidence-list collapsible-list" data-show="4" data-step="4" data-label="indicadores">
           {% for ev in items %}
             {% with sev=ev.severity %}
               {% if sev >= 81 %}
@@ -874,5 +909,284 @@ window.__SANDBOX_CTX__ = {
 };
 </script>
 <script src="{% static 'sandbox/js/sandbox_report.js' %}?v={% if debug %}{% now 'U' %}{% else %}yara-translate{% endif %}"></script>
+
+<style>
+.evidence-unlock-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-left: 0.625rem;
+    padding: 0.25rem 0.75rem;
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    color: #fff;
+    border: none;
+    border-radius: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    animation: passPulseGlow 2s infinite;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    line-height: 1.6;
+}
+.evidence-unlock-btn:hover { transform: scale(1.06); box-shadow: 0 0 0.375rem 0.125rem rgba(124, 58, 237, 0.55); }
+.evidence-unlock-btn:active { transform: scale(0.96); }
+.evidence-unlock-btn svg { width: 0.75rem; height: 0.75rem; }
+
+@keyframes passPulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
+    50%      { box-shadow: 0 0 0 0.375rem rgba(124, 58, 237, 0); }
+}
+
+.pass-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 6, 18, 0.72);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2147483640;
+}
+.pass-modal-overlay.open { display: flex; }
+
+.pass-modal {
+    position: relative;
+    width: 100%;
+    max-width: 26rem;
+    background: var(--bg-surface, #1a1828);
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    border-radius: 1rem;
+    padding: 1.5rem 1.375rem 1.25rem;
+    box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.6);
+}
+.pass-modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+.pass-modal-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+.pass-modal-input {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+}
+.pass-modal-input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
+.pass-modal-input::placeholder { color: var(--text-muted); opacity: 0.6; }
+
+.pass-modal-actions {
+    display: flex;
+    gap: 0.625rem;
+    margin-top: 1rem;
+}
+.pass-btn-primary, .pass-btn-ghost {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.12s, box-shadow 0.12s;
+}
+.pass-btn-primary {
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    color: #fff;
+    flex: 1;
+}
+.pass-btn-primary:hover { transform: scale(1.02); box-shadow: 0 0.25rem 0.75rem rgba(124, 58, 237, 0.45); }
+.pass-btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+.pass-btn-ghost:hover { background: rgba(255,255,255,0.04); }
+
+.pass-modal-error {
+    display: none;
+    color: #f87171;
+    font-size: 0.75rem;
+    margin-top: 0.625rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+.pass-modal-error.visible { display: block; }
+
+.pass-modal-loading {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+}
+.pass-modal-loading.visible { display: flex; }
+.pass-spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--border);
+    border-top-color: #7c3aed;
+    border-radius: 50%;
+    animation: passSpin 0.6s linear infinite;
+}
+@keyframes passSpin { to { transform: rotate(360deg); } }
+
+.pass-toggle-btn {
+    position: absolute;
+    right: 0.375rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+    line-height: 1;
+}
+.pass-toggle-btn:hover { opacity: 1; }
+</style>
+
+<div class="pass-modal-overlay" id="passModalOverlay">
+  <div class="pass-modal">
+    <div class="pass-modal-title">Archivo protegido</div>
+    <div class="pass-modal-sub">Ingresá la contraseña del archivo comprimido para re-analizarlo.</div>
+    <div style="position:relative">
+      <input type="password" id="passInput" class="pass-modal-input" placeholder="Contraseña del archivo..." autocomplete="off" maxlength="128">
+      <button type="button" id="passToggleBtn" class="pass-toggle-btn" onclick="togglePassVisibility()" tabindex="-1" aria-label="Mostrar contraseña">
+        <svg id="passEyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+    <div class="pass-modal-error" id="passError">Contraseña incorrecta. Intentá de nuevo.</div>
+    <div class="pass-modal-actions">
+      <button class="pass-btn-primary" id="passSubmitBtn" onclick="submitPassword()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:0.375rem"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Re-analizar
+      </button>
+      <button class="pass-btn-ghost" id="passCancelBtn" onclick="closePassModal()">Cancelar</button>
+    </div>
+    <div class="pass-modal-loading" id="passLoading">
+      <div class="pass-spinner"></div>
+      <span>Analizando archivo...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+var passAnalysisId = null;
+var passFilename = null;
+
+function openPassModal(analysisId, fname) {
+    passAnalysisId = analysisId;
+    passFilename = fname;
+    document.getElementById('passModalOverlay').classList.add('open');
+    document.getElementById('passInput').value = '';
+    document.getElementById('passError').classList.remove('visible');
+    document.getElementById('passLoading').classList.remove('visible');
+    document.getElementById('passSubmitBtn').style.display = '';
+    setTimeout(function() { document.getElementById('passInput').focus(); }, 200);
+}
+
+function togglePassVisibility() {
+    var input = document.getElementById('passInput');
+    var icon = document.getElementById('passEyeIcon');
+    if (!input || !icon) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    } else {
+        input.type = 'password';
+        icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    }
+}
+
+function closePassModal() {
+    document.getElementById('passModalOverlay').classList.remove('open');
+    passAnalysisId = null;
+}
+
+function submitPassword() {
+    var pass = document.getElementById('passInput').value;
+    if (!pass) return;
+    document.getElementById('passError').classList.remove('visible');
+    document.getElementById('passSubmitBtn').style.display = 'none';
+    document.getElementById('passCancelBtn').style.display = 'none';
+    document.getElementById('passLoading').classList.add('visible');
+
+    fetch('/sandbox/desbloquear/' + passAnalysisId + '/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({password: pass, filename: passFilename}),
+    })
+    .then(function(r) {
+        if (!r.ok) {
+            return r.text().then(function(text) {
+                var msg = 'Error del servidor';
+                try { var j = JSON.parse(text); msg = j.error || msg; } catch(e) {}
+                throw new Error(msg);
+            });
+        }
+        return r.json();
+    })
+    .then(function(data) {
+        document.getElementById('passLoading').classList.remove('visible');
+        document.getElementById('passSubmitBtn').style.display = '';
+        document.getElementById('passCancelBtn').style.display = '';
+
+        if (!data.ok) {
+            document.getElementById('passError').textContent = data.error || 'Error al analizar';
+            document.getElementById('passError').classList.add('visible');
+            return;
+        }
+
+        if (!data.changed) {
+            document.getElementById('passInput').value = '';
+            document.getElementById('passError').textContent = 'Contraseña incorrecta. Intentá de nuevo.';
+            document.getElementById('passError').classList.add('visible');
+            document.getElementById('passInput').focus();
+            return;
+        }
+
+        // Contraseña correcta — recargar reporte actualizado
+        try { sessionStorage.removeItem('sms_seen_django_msgs'); } catch(e) {}
+        closePassModal();
+        location.reload();
+    })
+    .catch(function(err) {
+        document.getElementById('passLoading').classList.remove('visible');
+        document.getElementById('passSubmitBtn').style.display = '';
+        document.getElementById('passCancelBtn').style.display = '';
+        document.getElementById('passError').textContent = err.message || 'Error de conexión. Intentá de nuevo.';
+        document.getElementById('passError').classList.add('visible');
+    });
+}
+
+// Enter key submits
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('passInput')?.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') submitPassword();
+    });
+});
+</script>
 
 {% endblock %}

@@ -42,29 +42,32 @@
     Chart.defaults.color       = isLight ? '#000000' : hexToRgba(accentLight, 0.6);
   }
 
-  /* ── 1) BAR CHART: actividad global últimos 7 días ───────────────── */
+  /* ── 1) BAR CHART: actividad global con selector de período ──────── */
   const activityEl = document.getElementById('admActivityChart');
-  const activityRaw = document.getElementById('admActivityData');
-  if (activityEl && activityRaw && typeof Chart !== 'undefined') {
-    let activity = [];
-    try { activity = JSON.parse(activityRaw.textContent || '[]'); } catch (e) { activity = []; }
+  const subtitleEl = document.getElementById('admActivitySub');
+  const periodSelect = document.getElementById('admPeriodSelect');
+  var admActivityChart = null;
 
-    const ctx    = activityEl.getContext('2d');
-    const labels = activity.map(d => d.label);
-    const counts = activity.map(d => d.count);
+  function buildGradient(ctx) {
+    var g = ctx.createLinearGradient(0, 0, 0, 220);
+    g.addColorStop(0, hexToRgba(accentLight, 0.9));
+    g.addColorStop(1, hexToRgba(accent, 0.45));
+    return g;
+  }
 
-    const grad = ctx.createLinearGradient(0, 0, 0, 220);
-    grad.addColorStop(0, hexToRgba(accentLight, 0.9));
-    grad.addColorStop(1, hexToRgba(accent, 0.45));
+  function renderAdmChart(labels, counts) {
+    if (!activityEl) return;
+    var ctx = activityEl.getContext('2d');
+    if (admActivityChart) admActivityChart.destroy();
 
-    new Chart(ctx, {
+    admActivityChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [{
           label: 'Correos',
           data: counts,
-          backgroundColor: grad,
+          backgroundColor: buildGradient(ctx),
           borderColor: hexToRgba(accentLight, 0.9),
           borderWidth: 0,
           borderRadius: 6,
@@ -85,7 +88,7 @@
             padding:     10,
             displayColors: false,
             callbacks: {
-              label: (ctx) => `${ctx.parsed.y} correo${ctx.parsed.y === 1 ? '' : 's'}`,
+              label: function (ctx) { return ctx.parsed.y + ' corre' + (ctx.parsed.y === 1 ? 'o' : 'os'); },
             },
           },
         },
@@ -103,6 +106,44 @@
           },
         },
       },
+    });
+  }
+
+  // Initial render from server data
+  var activityRaw = document.getElementById('admActivityData');
+  if (activityEl && activityRaw && typeof Chart !== 'undefined') {
+    var initialData = [];
+    try { initialData = JSON.parse(activityRaw.textContent || '[]'); } catch (e) { initialData = []; }
+    if (initialData.length) {
+      renderAdmChart(
+        initialData.map(function (d) { return d.label; }),
+        initialData.map(function (d) { return d.count; })
+      );
+    }
+  }
+
+  // Period selector → AJAX update
+  if (periodSelect) {
+    periodSelect.addEventListener('change', function () {
+      var period = periodSelect.value;
+      fetch('/admin-panel/actividad/?period=' + period)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.activity_data && data.activity_data.length) {
+            renderAdmChart(
+              data.activity_data.map(function (d) { return d.label; }),
+              data.activity_data.map(function (d) { return d.count; })
+            );
+          }
+          if (subtitleEl && data.range_label) {
+            subtitleEl.textContent = data.range_label + ' — correos recibidos';
+          }
+        })
+        .catch(function () {
+          if (window.showToast) {
+            window.showToast({ type: 'danger', title: 'Error', message: 'No se pudo actualizar el gráfico.', duration: 4000 });
+          }
+        });
     });
   }
 

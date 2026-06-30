@@ -53,16 +53,42 @@ def analyze(filepath: str, mime: str = "", recurse_fn=None, depth: int = 0) -> d
             ))
             return result
         except _ProtectedError:
-            # Archivos comprimidos con contraseña son SOSPECHOSOS por diseño
-            # (técnica clásica de evasión de antivirus)
-            result["score"] = max(result["score"], 75)
-            result["threat"] = "Archivo comprimido protegido con contraseña"
-            result["evidence"].append(evidence(
-                "password_protected",
-                "El archivo está cifrado/protegido — es una técnica común para evadir antivirus",
-                75,
-            ))
-            return result
+            password = os.environ.get('SANDBOX_PASSWORD')
+            if password:
+                try:
+                    extracted = _extract_with_password(filepath, ext, extract_dir, password)
+                except _ProtectedError:
+                    result["score"] = max(result["score"], 50)
+                    result["threat"] = "Archivo comprimido protegido con contraseña"
+                    result["evidence"] = [evidence(
+                        "password_protected",
+                        "Contraseña incorrecta — no se pudo descomprimir",
+                        50,
+                    )]
+                    return result
+                except _ZipBombError as zb:
+                    result["score"] = max(result["score"], 90)
+                    result["threat"] = "Posible zip-bomb"
+                    result["evidence"] = [evidence("zip_bomb", str(zb), 90)]
+                    return result
+                if not extracted:
+                    result["score"] = max(result["score"], 50)
+                    result["threat"] = "Archivo comprimido protegido con contraseña"
+                    result["evidence"] = [evidence(
+                        "password_protected",
+                        "No se pudo descomprimir con la contraseña proporcionada",
+                        50,
+                    )]
+                    return result
+            else:
+                result["score"] = max(result["score"], 50)
+                result["threat"] = "Archivo comprimido protegido con contraseña"
+                result["evidence"].append(evidence(
+                    "password_protected",
+                    "El archivo está cifrado/protegido — es una técnica común para evadir antivirus",
+                    50,
+                ))
+                return result
         except Exception as e:
             result["evidence"].append(evidence(
                 "extract_error", f"No se pudo extraer ({ext}): {e}", 35,
@@ -146,6 +172,80 @@ def _extract(filepath: str, ext: str, dest: str, result: dict) -> list:
     if ext in (".rar",):
         return _extract_rar(filepath, dest)
     raise Exception(f"formato '{ext}' no soportado")
+
+
+def _extract_with_password(filepath: str, ext: str, dest: str, password: str) -> list:
+    """Extrae un archivo comprimido protegido con la contraseña dada."""
+    if ext == ".zip" or _looks_like_zip(filepath):
+        return _extract_zip_with_password(filepath, dest, password)
+    if ext == ".7z":
+        return _extract_7z_with_password(filepath, dest, password)
+    if ext in (".rar",):
+        return _extract_rar_with_password(filepath, dest, password)
+    raise _ProtectedError(f"formato '{ext}' no soportado con contraseña")
+
+
+def _extract_zip_with_password(filepath: str, dest: str, password: str) -> list:
+    # Zip bomb check con zipfile (solo metadata, no necesita password)
+    with zipfile.ZipFile(filepath, "r") as z:
+        compressed = sum(i.compress_size for i in z.infolist())
+        uncompressed = sum(i.file_size for i in z.infolist())
+        if compressed > 0 and uncompressed / compressed > 100 and uncompressed > 10 * 1024 * 1024:
+            raise _ZipBombError(
+                f"Ratio de compresión sospechoso: {uncompressed/compressed:.0f}x"
+            )
+        total_bytes = 0
+        for info in z.infolist()[:MAX_FILES]:
+            if info.file_size > MAX_FILE_BYTES:
+                continue
+            total_bytes += info.file_size
+            if total_bytes > MAX_TOTAL_BYTES:
+                raise _ZipBombError(
+                    f"Tamaño descomprimido > {MAX_TOTAL_BYTES//1024//1024} MB"
+                )
+
+    # 7z CLI para la extracción real (soporta ZipCrypto + AES-256 y todos los formatos)
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["7z", "x", "-y", f"-p{password}", f"-o{dest}", filepath],
+            capture_output=True, text=True, timeout=60,
+        )
+    except FileNotFoundError:
+        raise _ProtectedError("7z no disponible en el contenedor")
+    except subprocess.TimeoutExpired:
+        raise _ProtectedError("Tiempo agotado descomprimiendo el ZIP")
+
+    if result.returncode not in (0, 1):
+        raise _ProtectedError("Contraseña incorrecta para ZIP")
+
+    return _walk_files(dest)
+
+
+def _extract_7z_with_password(filepath: str, dest: str, password: str) -> list:
+    try:
+        import py7zr
+    except Exception:
+        raise Exception("py7zr no disponible")
+    try:
+        with py7zr.SevenZipFile(filepath, mode="r", password=password) as z:
+            z.extractall(path=dest)
+    except Exception:
+        raise _ProtectedError("Contraseña incorrecta para 7z")
+    return _walk_files(dest)
+
+
+def _extract_rar_with_password(filepath: str, dest: str, password: str) -> list:
+    try:
+        import rarfile
+    except Exception:
+        raise Exception("rarfile no disponible")
+    try:
+        with rarfile.RarFile(filepath) as r:
+            r.extractall(path=dest, pwd=password)
+    except Exception:
+        raise _ProtectedError("Contraseña incorrecta para RAR")
+    return _walk_files(dest)
 
 
 def _looks_like_zip(filepath: str) -> bool:

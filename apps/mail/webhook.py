@@ -133,6 +133,7 @@ def _extract_payload(request):
         data = webhook_data
 
     request._resend_payload = data
+    request._resend_email_id = email_id
 
     fields = {
         'recipient': '',
@@ -424,6 +425,12 @@ def _handle_inbound(request):
     body_html_original = body_html or ''
     body_html_safe     = _neutralize_links_html(body_html_original)
 
+    # ── Deduplicación: si ya procesamos este email_id, salir ────────────
+    email_id = getattr(request, '_resend_email_id', '') or ''
+    if email_id and EmailMessage.objects.filter(resend_email_id=email_id).exists():
+        print(f"[webhook] email_id {email_id} ya procesado, saltando duplicado")
+        return HttpResponse("OK (duplicado)", status=200)
+
     # ── Crear el EmailMessage ──────────────────────────────────────────
     email_obj = EmailMessage.objects.create(
         alias=alias,
@@ -432,6 +439,7 @@ def _handle_inbound(request):
         body=body,
         body_html=body_html_safe,
         body_html_raw=body_html_original,
+        resend_email_id=email_id or None,
     )
     EmailAuthVerdict.objects.create(
         email=email_obj,
@@ -632,11 +640,11 @@ def _handle_inbound(request):
     email_obj.save()
 
     if final_score >= 61:
+        top_att = max(attachments_summary, key=lambda a: a.get('risk_score', 0)) if attachments_summary else None
         combined_for_alert = {
             "risk_score":  final_score,
             "threat_name": threat_name,
-            "filename":    (attachments_summary[0]["filename"]
-                            if attachments_summary else "(sin adjunto)"),
+            "filename":    top_att["filename"] if top_att else "(sin adjunto)",
             "attachment_count": len(attachments_summary),
         }
         send_threat_alert(email_obj, combined_for_alert, sandbox_id=sandbox.id)
@@ -985,10 +993,14 @@ def _send_via_resend(from_addr, to_email, subject, html_body,
 #  ALERTA DE AMENAZA VÍA RESEND
 # ══════════════════════════════════════════════════════════════════════
 
-def send_threat_alert(email_obj, result, sandbox_id=None):
+def send_threat_alert(email_obj, result, sandbox_id=None, alert_type='initial'):
     """
     Envía un correo de alerta al usuario cuando se detecta
     un archivo malicioso en uno de sus alias.
+
+    alert_type:
+      'initial' — alerta original del webhook (archivo bloqueado al llegar).
+      'unlock'  — alerta tras desbloquear un ZIP protegido (amenaza confirmada).
 
     sandbox_id: pk del SandboxAnalysis para enlazar directo al reporte.
     En producción define SITE_URL en tu .env:
@@ -1019,18 +1031,32 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
         logo_url = f"{base_url}/static/core/img/logo-purple.png"
 
         # ── Nivel de amenaza ───────────────────────────────────────────
-        if risk_score >= 81:
-            level_label  = "MALWARE DETECTADO Y BLOQUEADO"
-            level_color  = "#ef4444"
-            level_bg     = "rgba(239,68,68,0.08)"
-            level_border = "rgba(239,68,68,0.15)"
-            level_tag    = "CRÍTICO"
+        if alert_type == 'unlock':
+            if risk_score >= 81:
+                level_label  = "MALWARE CONFIRMADO TRAS DESBLOQUEO"
+                level_color  = "#ef4444"
+                level_bg     = "rgba(239,68,68,0.08)"
+                level_border = "rgba(239,68,68,0.15)"
+                level_tag    = "CRÍTICO"
+            else:
+                level_label  = "AMENAZA CONFIRMADA TRAS DESBLOQUEO"
+                level_color  = "#f97316"
+                level_bg     = "rgba(249,115,22,0.08)"
+                level_border = "rgba(249,115,22,0.15)"
+                level_tag    = "ALTO RIESGO"
         else:
-            level_label  = "ARCHIVO DE ALTO RIESGO BLOQUEADO"
-            level_color  = "#f97316"
-            level_bg     = "rgba(249,115,22,0.08)"
-            level_border = "rgba(249,115,22,0.15)"
-            level_tag    = "ALTO RIESGO"
+            if risk_score >= 81:
+                level_label  = "MALWARE DETECTADO Y BLOQUEADO"
+                level_color  = "#ef4444"
+                level_bg     = "rgba(239,68,68,0.08)"
+                level_border = "rgba(239,68,68,0.15)"
+                level_tag    = "CRÍTICO"
+            else:
+                level_label  = "ARCHIVO DE ALTO RIESGO BLOQUEADO"
+                level_color  = "#f97316"
+                level_bg     = "rgba(249,115,22,0.08)"
+                level_border = "rgba(249,115,22,0.15)"
+                level_tag    = "ALTO RIESGO"
 
         html_body = f"""<!DOCTYPE html>
 <html lang="es">
@@ -1058,7 +1084,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None):
 
                   <!-- Tagline blanco translúcido -->
                   <div style="font-size:11.5px;color:rgba(255,255,255,0.78);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;letter-spacing:0.02em;margin-bottom:14px">
-                    Detectamos una amenaza en tu alias y la bloqueamos
+                    {"El archivo desbloqueado contenía una amenaza real" if alert_type == 'unlock' else "Detectamos una amenaza en tu alias y la bloqueamos"}
                   </div>
 
                   <!-- Pill ALERTA ACTIVA centrada -->

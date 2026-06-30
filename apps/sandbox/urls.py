@@ -9,6 +9,9 @@ urlpatterns = [
     path('sandbox/analizar/<sid:email_id>/',  views.sandbox_analyze_view, name='sandbox_analyze'),
     path('sandbox/reporte/<sid:pk>/',         views.sandbox_report_view,  name='sandbox_report'),
 
+    # Desbloquear archivo protegido con contraseña
+    path('sandbox/desbloquear/<int:pk>/', views.sandbox_unlock_view, name='sandbox_unlock'),
+
     # Análisis IA bajo demanda
     path('ai-analysis/', views.ai_analysis_view, name='ai_analysis'),
 ]

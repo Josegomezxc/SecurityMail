@@ -65,7 +65,8 @@
   border-top-color: inherit;
 }
 .status-banner.blocked .status-tag { border-top-color: rgba(232,64,64,0.25); }
-.status-banner.safe    .status-tag { border-top-color: rgba(46,204,113,0.22); }
+.status-banner.safe         .status-tag { border-top-color: rgba(46,204,113,0.22); }
+.status-banner.suspicious   .status-tag { border-top-color: rgba(245,158,11,0.25); }
 .status-banner::before {
   content: '';
   position: absolute; inset: 0;
@@ -81,6 +82,10 @@
   background: linear-gradient(135deg, rgba(46,204,113,0.1), rgba(46,204,113,0.05));
   border: 1px solid rgba(46,204,113,0.25);
 }
+.status-banner.suspicious {
+  background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.06));
+  border: 1px solid rgba(245,158,11,0.3);
+}
 .status-icon-wrap {
   width: var(--sr-banner-icon); height: var(--sr-banner-icon);
   border-radius: 0.75rem;
@@ -88,7 +93,8 @@
   flex-shrink: 0;
 }
 .status-banner.blocked .status-icon-wrap { background: rgba(232,64,64,0.15); }
-.status-banner.safe    .status-icon-wrap { background: rgba(46,204,113,0.12); }
+.status-banner.safe         .status-icon-wrap { background: rgba(46,204,113,0.12); }
+.status-banner.suspicious   .status-icon-wrap { background: rgba(245,158,11,0.15); }
 .status-title {
   font-family: var(--display); font-size: 0.9375rem; font-weight: 700;
   margin-bottom: 0.1875rem;

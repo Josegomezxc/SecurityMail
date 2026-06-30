@@ -194,9 +194,14 @@
     <header class="dash-card-head">
       <div>
         <h3 class="dash-card-title">Actividad global</h3>
-        <p class="dash-card-sub">Correos procesados por día — últimos 7 días</p>
+        <p class="dash-card-sub" id="admActivitySub">{{ range_label }} — correos recibidos</p>
       </div>
-      <span class="dash-pill dash-pill-accent">{{ emails_7d }} en 7d</span>
+      <select name="period" id="admPeriodSelect" class="dash-period-select">
+        <option value="diario" {% if period == 'diario' %}selected{% endif %}>Diario</option>
+        <option value="semanal" {% if period == 'semanal' %}selected{% endif %}>Semanal</option>
+        <option value="mensual" {% if period == 'mensual' %}selected{% endif %}>Mensual</option>
+        <option value="anual" {% if period == 'anual' %}selected{% endif %}>Anual</option>
+      </select>
     </header>
     <div class="dash-chart-wrap">
       <canvas id="admActivityChart" height="220"></canvas>
@@ -297,7 +302,7 @@
 </section>
 
 
-{{ activity_7d|json_script:"admActivityData" }}
+{{ activity_data|json_script:"admActivityData" }}
 <script id="admRiskData" type="application/json">{"safe": {{ safe_count }}, "susp": {{ susp_count }}, "threats": {{ threats_total }}}</script>
 <script id="admUsersData" type="application/json">{"active": {{ users_active_regular }}, "staff": {{ users_staff }}, "inactive": {{ users_inactive }}}</script>
 
