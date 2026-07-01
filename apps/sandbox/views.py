@@ -11,6 +11,7 @@ Estas vistas solo son el controlador que muestra los resultados.
 import json
 import os
 import re
+import time
 from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
@@ -282,11 +283,19 @@ def sandbox_unlock_view(request, pk):
         return JsonResponse({'ok': False, 'error': 'Nombre de archivo requerido'}, status=400)
 
     session_key = f'unlock_attempts_{pk}'
-    attempts = request.session.get(session_key, 0)
-    if attempts >= 3:
-        return JsonResponse({
-            'ok': False, 'error': 'Demasiados intentos. Esperá unos minutos.',
-        }, status=429)
+    now = time.time()
+    attempt_data = request.session.get(session_key)
+    if isinstance(attempt_data, dict):
+        attempts = attempt_data.get('count', 0)
+        first_time = attempt_data.get('time', 0)
+        if attempts >= 3 and (now - first_time) < 600:
+            return JsonResponse({
+                'ok': False, 'error': 'Demasiados intentos. Esperá unos minutos.',
+            }, status=429)
+        if (now - first_time) >= 600:
+            attempts = 0
+    else:
+        attempts = 0
 
     # Buscar filepath del archivo específico en attachments_reports
     filepath = ''
@@ -304,8 +313,10 @@ def sandbox_unlock_view(request, pk):
     if not filepath or not os.path.exists(filepath):
         return JsonResponse({'ok': False, 'error': 'Archivo no disponible'}, status=404)
 
-    request.session[session_key] = attempts + 1
-    request.session.set_expiry(600)
+    request.session[session_key] = {
+        'count': attempts + 1,
+        'time': now if attempts == 0 else attempt_data['time'],
+    }
 
     from .service import run_sandbox_with_password
     report = run_sandbox_with_password(filepath, password)
