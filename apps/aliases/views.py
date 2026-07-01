@@ -10,6 +10,7 @@ Vistas CRUD de alias desechables:
 import os
 import re
 import tempfile
+import time
 
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
@@ -403,6 +404,10 @@ def attachment_scan_api(request):
       cuenta y notifica al admin.
 
     Si es seguro o análisis falla: {ok: true, risk_level, risk_score}
+
+    Si el archivo está protegido con contraseña:
+      - Sin password: {ok: false, password_protected: true, filename, risk_score}
+      - Con password: re-analiza con run_sandbox_with_password
     """
     if 'file' not in request.FILES:
         return JsonResponse({'ok': False, 'error': 'No se envió ningún archivo.'}, status=400)
@@ -411,6 +416,10 @@ def attachment_scan_api(request):
     if upload.size == 0:
         return JsonResponse({'ok': False, 'error': 'El archivo está vacío.'}, status=400)
 
+    password = request.POST.get('password', '').strip()
+    skip_malicious_counter = bool(password)
+    session_key = None
+
     suffix = os.path.splitext(upload.name)[1] or '.bin'
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
@@ -418,9 +427,93 @@ def attachment_scan_api(request):
             tmp.write(chunk)
         tmp.close()
 
-        report = scan_attachment(tmp.name)
+        if password:
+            # ── Re-análisis con contraseña (desbloqueo) ──
+            # Rate limit: 3 intentos / 10 min por filename
+            session_key = f'unlock_attempts_compose_{upload.name}'
+            now_ts = time.time()
+            attempt_data = request.session.get(session_key)
+            if isinstance(attempt_data, dict):
+                attempts = attempt_data.get('count', 0)
+                first_time = attempt_data.get('time', 0)
+                if attempts >= 3 and (now_ts - first_time) < 600:
+                    return JsonResponse({
+                        'ok': False,
+                        'error': 'Demasiados intentos. Esperá unos minutos.',
+                    }, status=429)
+                if (now_ts - first_time) >= 600:
+                    attempts = 0
+            else:
+                attempts = 0
 
-        risk_level = report.get('risk_level', 'unknown')
+            from apps.sandbox.service import run_sandbox_with_password
+            report = run_sandbox_with_password(tmp.name, password)
+
+            if not report:
+                return JsonResponse({'ok': False, 'error': 'Error al re-analizar el archivo.'}, status=500)
+
+            # Normalizar risk_level como lo hace scan_attachment
+            score = report.get('risk_score', 0)
+            rl = report.get('risk_level')
+            if score > 0 and rl in ('safe', 'unknown', None):
+                if score >= 90:
+                    report['risk_level'] = 'critical'
+                elif score >= 70:
+                    report['risk_level'] = 'high'
+                elif score >= 40:
+                    report['risk_level'] = 'medium'
+                else:
+                    report['risk_level'] = 'low'
+            if report.get('risk_level') == 'malware':
+                report['risk_level'] = 'critical'
+            elif report.get('risk_level') == 'suspicious':
+                report['risk_level'] = 'high'
+
+            # Verificar si sigue protegido (contraseña incorrecta)
+            still_protected = any(
+                ev.get('type') == 'password_protected'
+                for ev in (report.get('evidence') or [])
+            )
+            if still_protected:
+                request.session[session_key] = {
+                    'count': attempts + 1,
+                    'time': now_ts if attempts == 0 else attempt_data['time'],
+                }
+                remaining = max(0, 3 - (attempts + 1))
+                error_msg = 'Contraseña incorrecta.'
+                if remaining > 0:
+                    error_msg += f' Intentos restantes: {remaining}.'
+                return JsonResponse({
+                    'ok': False,
+                    'password_protected': True,
+                    'filename': upload.name,
+                    'risk_score': report.get('risk_score', 50),
+                    'error': error_msg,
+                })
+
+            # Continuar al veredicto normal
+            risk_level = report.get('risk_level', 'unknown')
+
+        else:
+            # ── Escaneo normal (sin contraseña) ──
+            report = scan_attachment(tmp.name)
+
+            # Detectar si está protegido con contraseña
+            is_password_protected = any(
+                ev.get('type') == 'password_protected'
+                for ev in (report.get('evidence') or [])
+            )
+            if is_password_protected:
+                return JsonResponse({
+                    'ok': False,
+                    'password_protected': True,
+                    'filename': upload.name,
+                    'risk_score': report.get('risk_score', 50),
+                })
+
+            risk_level = report.get('risk_level', 'unknown')
+
+        # ── Veredicto común ──
         is_malicious = risk_level in ('critical', 'high')
         is_warning = risk_level == 'warning'
 
@@ -454,39 +547,49 @@ def attachment_scan_api(request):
         }
 
         if is_malicious:
-            profile = request.user.profile
-            profile.malicious_attachment_attempts += 1
-            profile.save(update_fields=['malicious_attachment_attempts'])
-
-            result['attempts'] = profile.malicious_attachment_attempts
-
-            if profile.malicious_attachment_attempts >= 2:
-                _block_user_for_abuse(request.user)
-                result['blocked'] = True
-                result['error'] = (
-                    'Has intentado adjuntar un archivo malicioso repetidamente. '
-                    'Tu cuenta ha sido bloqueada por seguridad.'
-                )
-                _notify_admin_attachment_abuse(
-                    request.user, upload.name, report,
-                    previous_data=profile.malicious_attempt_data,
-                )
-                profile.malicious_attempt_data = {}
-                profile.save(update_fields=['malicious_attempt_data'])
-            else:
+            if skip_malicious_counter:
                 result['error'] = (
                     report.get('threat_name')
-                    or 'Archivo potencialmente malicioso detectado por DockerShield.'
+                    or 'El archivo contiene malware y no puede adjuntarse.'
                 )
-                profile.malicious_attempt_data = {
-                    'filename': upload.name,
-                    'threat': report.get('threat_name', 'Desconocido'),
-                    'score': report.get('risk_score', 0),
-                    'yara_count': len(report.get('yara_matches', [])),
-                    'risk_level': risk_level,
-                    'timestamp': timezone.now().isoformat(),
-                }
-                profile.save(update_fields=['malicious_attempt_data'])
+            else:
+                profile = request.user.profile
+                profile.malicious_attachment_attempts += 1
+                profile.save(update_fields=['malicious_attachment_attempts'])
+
+                result['attempts'] = profile.malicious_attachment_attempts
+
+                if profile.malicious_attachment_attempts >= 2:
+                    _block_user_for_abuse(request.user)
+                    result['blocked'] = True
+                    result['error'] = (
+                        'Has intentado adjuntar un archivo malicioso repetidamente. '
+                        'Tu cuenta ha sido bloqueada por seguridad.'
+                    )
+                    _notify_admin_attachment_abuse(
+                        request.user, upload.name, report,
+                        previous_data=profile.malicious_attempt_data,
+                    )
+                    profile.malicious_attempt_data = {}
+                    profile.save(update_fields=['malicious_attempt_data'])
+                else:
+                    result['error'] = (
+                        report.get('threat_name')
+                        or 'Archivo potencialmente malicioso detectado por DockerShield.'
+                    )
+                    profile.malicious_attempt_data = {
+                        'filename': upload.name,
+                        'threat': report.get('threat_name', 'Desconocido'),
+                        'score': report.get('risk_score', 0),
+                        'yara_count': len(report.get('yara_matches', [])),
+                        'risk_level': risk_level,
+                        'timestamp': timezone.now().isoformat(),
+                    }
+                    profile.save(update_fields=['malicious_attempt_data'])
+
+        # Resetear intentos de desbloqueo si hubo password y no hay bloqueo
+        if session_key and session_key in request.session:
+            del request.session[session_key]
 
         return JsonResponse(result)
     finally:
