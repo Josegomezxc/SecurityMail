@@ -86,15 +86,25 @@ def _generate_label_via_groq() -> str:
             "dos términos técnicos o corporativos unidos por un guión medio, todo en minúscula, "
             "utilizando exclusivamente letras de la a a la z del alfabeto inglés, SIN tildes, "
             "SIN la letra ñ, SIN números, SIN espacios adicionales.\n\n"
+            
             "Ejemplos válidos de la estructura y tono buscado: nodo-seguro, capa-alfa, datos-nucleo, "
             "red-hibrida, enlace-directo, casilla-virtual, bloque-codigo, nube-privada, puente-digital.\n\n"
+            
             "Restricciones absolutas que debes respetar:\n"
+            "- PROHIBIDO usar la palabra 'servidor' o variaciones de la misma.\n"  # <--- RESTRICCIÓN NUEVA
             "- PROHIBIDO nombres de animales de cualquier tipo\n"
-            "- PROHIBIDO colores, especially de fantasía o poéticos (azul, carmesi, dorado, esmeralda, rubi, zafiro, etc.)\n"
+            "- PROHIBIDO colores, especialmente de fantasía o poéticos (azul, carmesi, dorado, esmeralda, rubi, zafiro, etc.)\n"
             "- PROHIBIDO elementos de fantasía, ciencia ficción o mitología (magico, cosmico, fenix, dragon, titan, quasar, nebula, etc.)\n"
             "- PROHIBIDO nombres propios de personas, marcas conocidas o referencias culturales\n\n"
+            
+            "Instrucción de diversidad: Debes ser creativo dentro del ámbito de TI. Explora términos de "
+            "arquitectura de software, redes, ciberseguridad, almacenamiento, flujos de datos y gobernanza "
+            "(ej. matriz, flujo, nucleo, traza, indice, puerto, modulo, vector, protocolo, terminal, malla, etc.). "
+            "Asegúrate de que el alias sea único, diferente y de corte puramente institucional.\n\n" # <--- REFUERZO DE DIVERSIDAD
+            
             "El alias debe proyectar: formalidad, credibilidad institucional, lenguaje técnico-corporativo, "
             "seriedad empresarial y neutralidad profesional. Evita cualquier connotación poética, literaria, lúdica o informal.\n\n"
+            
             "Responde ÚNICAMENTE con el alias generado, en una sola línea de texto, sin comillas, sin explicaciones, "
             "sin saludos, sin formato adicional."
         )

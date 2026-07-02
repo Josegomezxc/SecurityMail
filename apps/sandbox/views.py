@@ -524,7 +524,7 @@ def _run_groq_analysis_async(prompt: str, analysis):
         from groq import Groq
         client = Groq(api_key=api_key)
         response = client.chat.completions.create(
-            model='llama-3.3-70b-versatile',
+            model='openai/gpt-oss-120b',
             messages=[{'role': 'user', 'content': prompt}],
             max_tokens=3500,
             temperature=0.4,
@@ -629,7 +629,7 @@ def ai_analysis_view(request):
         from groq import Groq
         client = Groq(api_key=api_key)
         response = client.chat.completions.create(
-            model='llama-3.3-70b-versatile',
+            model='openai/gpt-oss-120b',
             messages=[{'role': 'user', 'content': prompt}],
             max_tokens=3500,
             temperature=0.4,
