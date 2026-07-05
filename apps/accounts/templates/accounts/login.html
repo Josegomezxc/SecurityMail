@@ -132,7 +132,7 @@
         </div>
 
         {% if messages %}
-        {% for message in messages %}
+        {% with messages|last as message %}
         <div class="form-alert {% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% else %}info{% endif %}" role="alert">
           <span class="form-alert-icon">
             {% if message.tags == 'error' %}
@@ -157,7 +157,7 @@
             <span class="form-alert-msg">{{ message }}</span>
           </div>
         </div>
-        {% endfor %}
+        {% endwith %}
         {% endif %}
 
         <button type="submit" class="btn-login" id="btnLogin">

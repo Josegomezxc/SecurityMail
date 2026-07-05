@@ -10,6 +10,8 @@
    ════════════════════════════════════════════════════════════════════ */
 (function () {
     var STORAGE_KEY = 'sms_active_toasts';
+    var toastQueue = [];
+    var MAX_VISIBLE_TOASTS = 3;
 
     var TOAST_ICONS = {
         info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
@@ -109,6 +111,12 @@
         var container = document.getElementById('toast-container');
         if (!container) return null;
 
+        var visible = container.querySelectorAll('.toast:not(.removing)');
+        if (visible.length >= MAX_VISIBLE_TOASTS) {
+            toastQueue.push(opts);
+            return null;
+        }
+
         var id        = opts.id || genId();
         var type      = opts.type || 'info';
         var title     = opts.title || '';
@@ -141,7 +149,10 @@
             if (toast.classList.contains('removing')) return;
             toast.classList.add('removing');
             removeStored(id);
-            setTimeout(function () { toast.remove(); }, 320);
+            setTimeout(function () {
+                toast.remove();
+                dequeueToast();
+            }, 320);
         }
 
         var timer = setTimeout(dismiss, duration);
@@ -214,6 +225,12 @@
         }, { passive: true });
 
         return { id: id, toast: toast };
+    }
+
+    function dequeueToast() {
+        if (toastQueue.length === 0) return;
+        var next = toastQueue.shift();
+        renderToast(next);
     }
 
     /* ─── API pública: showToast ─── */

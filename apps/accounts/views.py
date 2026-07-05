@@ -710,7 +710,7 @@ def recuperar_view(request):
 
         try:
             user = User.objects.get(email__iexact=email_clean)
-        except User.DoesNotExist:
+        except (User.DoesNotExist, User.MultipleObjectsReturned):
             messages.error(request, "No encontramos una cuenta registrada con ese correo.")
             return render(request, 'accounts/recuperar.html', {'form_values': form_values})
 
@@ -850,13 +850,21 @@ def perfil_view(request):
                 messages.error(request, 'Ingresa una contraseña nueva.')
             elif password != password2:
                 messages.error(request, 'Las contraseñas no coinciden.')
-            elif len(password) < 8:
-                messages.error(request, 'La contraseña debe tener mínimo 8 caracteres.')
             else:
-                request.user.set_password(password)
-                request.user.save()
-                update_session_auth_hash(request, request.user)
-                messages.success(request, 'Contraseña actualizada correctamente.')
+                name = request.user.first_name or request.user.username or ''
+                pwd_errors = validate_password(
+                    password,
+                    email=request.user.email or '',
+                    name=name,
+                )
+                if pwd_errors:
+                    for err in pwd_errors:
+                        messages.error(request, err)
+                else:
+                    request.user.set_password(password)
+                    request.user.save()
+                    update_session_auth_hash(request, request.user)
+                    messages.success(request, 'Contraseña actualizada correctamente.')
             return redirect('perfil')
 
         # ── Subir foto de perfil ─────────────────────────────────────
