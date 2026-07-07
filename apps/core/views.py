@@ -496,7 +496,7 @@ def admin_toggle_alias_unlimited(request, pk):
 #  y el acceso denegado se maneja con redirects, no con pantallas).
 # ─────────────────────────────────────────────────────────────────────
 
-def page_not_found_view(request, _exception=None):
+def page_not_found_view(request, exception=None):
     """404 — URL no encontrada (o catch-all del urls.py raíz)."""
     return render(request, '404.html', status=404)
 

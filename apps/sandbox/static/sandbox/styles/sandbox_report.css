@@ -130,11 +130,18 @@
   position: relative; flex-shrink: 0;
   width: var(--sr-score-ring-mb); height: var(--sr-score-ring-mb);
 }
-.score-ring-wrap svg { position: absolute; top: 0; left: 0; }
+.score-ring-wrap svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
 .score-ring-num {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--display); font-size: var(--sr-score-num-mb); font-weight: 800;
+  font-family: var(--mono); font-size: var(--sr-score-num-mb); font-weight: 800;
+  line-height: 1;
 }
 .score-info { flex: 1; min-width: 0; flex-basis: 100%; }
 .score-filename {
@@ -299,7 +306,11 @@
   display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
 }
 .ai-spinner-ring { position: relative; width: 4rem; height: 4rem; }
-.ai-spinner-ring svg { animation: spin 1.4s linear infinite; }
+.ai-spinner-ring svg {
+  animation: spin 1.4s linear infinite;
+  width: 100%;
+  height: 100%;
+}
 .ai-spinner-inner {
   position: absolute; inset: 0.875rem;
   background: var(--ai-purple-soft);
@@ -1346,11 +1357,18 @@
   width: 2.625rem; height: 2.625rem;
   flex-shrink: 0;
 }
-.att-score-wrap svg { position: absolute; top: 0; left: 0; }
+.att-score-wrap svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
 .att-score-num {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--display); font-size: 0.75rem; font-weight: 800;
+  font-family: var(--mono); font-size: 0.75rem; font-weight: 800;
+  line-height: 1;
 }
 
 .att-body { min-width: 0; }
