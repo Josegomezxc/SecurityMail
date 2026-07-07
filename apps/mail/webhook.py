@@ -372,15 +372,20 @@ def _handle_inbound(request):
     # etc.) de phishers que solo escriben un From falso.
     try:
         resend_data = getattr(request, '_resend_payload', {})
-        raw_dkim_auth, raw_spf_auth = _extract_auth_status(resend_data.get('headers', {}))
+        headers_raw = resend_data.get('headers', {})
+        if isinstance(headers_raw, list):
+            headers_dict = {
+                h.get('name', '').lower(): h.get('value', '')
+                for h in headers_raw if isinstance(h, dict)
+            }
+            raw_dkim_auth, raw_spf_auth = _extract_auth_status(headers_dict)
+        else:
+            headers_dict = headers_raw if isinstance(headers_raw, dict) else {}
+            raw_dkim_auth, raw_spf_auth = _extract_auth_status(headers_raw)
         auth_post_data = {
             'SPF': raw_spf_auth or resend_data.get('spf', ''),
             'dkim': raw_dkim_auth or resend_data.get('dkim', ''),
-            'headers': (
-                json.dumps(resend_data.get('headers', {}))
-                if isinstance(resend_data.get('headers'), dict)
-                else (resend_data.get('headers', '') or '')
-            ),
+            'headers': json.dumps(headers_dict) if isinstance(headers_dict, dict) else (headers_dict or ''),
         }
         auth_result = auth_check.check_authentication(
             auth_post_data, sender_email=fields['sender'],
@@ -466,6 +471,16 @@ def _handle_inbound(request):
     except Exception as e:
         print(f"[webhook] body_analyzer falló: {e}")
         body_report = {"score": 0, "evidence": [], "threat": ""}
+
+    # ── 1.b Descargar archivos desde URLs de cloud storage ────────────
+    try:
+        from apps.sandbox.cloud_downloader import download_from_urls
+        body_urls = body_report.get('iocs', {}).get('urls', [])
+        cloud_attachments = download_from_urls(body_urls)
+        for fname, fbytes in cloud_attachments:
+            raw_attachments.append((fname, fbytes))
+    except Exception as e:
+        print(f"[cloud_downloader] error global: {e}")
 
     # ── 2. Procesar TODOS los adjuntos (ya extraídos como (nombre, bytes)) ─
     attachment_reports = []    # uno por adjunto

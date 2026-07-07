@@ -35,7 +35,7 @@ _UNICODE_CONTROL_RE = re.compile(
     '\ufffe\uffff]'
 )
 
-_EVI_FILE_RE = re.compile(r'^\[([^\]]+)\]\s*')
+_EVI_FILE_RE = re.compile(r'^\[(.+?)\]\s')
 
 
 def _group_evidence(evidence_list):
@@ -390,7 +390,7 @@ def sandbox_unlock_view(request, pk):
             all_scores.append(int(att.get('risk_score', 0)))
     final_score = max(all_scores)
     analysis.risk_score = final_score
-    analysis.risk_level = 'critical' if final_score >= 81 else ('high' if final_score >= 61 else ('medium' if final_score >= 31 else 'safe'))
+    analysis.risk_level = 'malware' if final_score >= 81 else ('danger' if final_score >= 61 else ('warning' if final_score >= 31 else 'safe'))
     analysis.threat_name = report.get('threat_name', '')
     analysis.save(update_fields=['risk_score', 'risk_level', 'threat_name'])
 

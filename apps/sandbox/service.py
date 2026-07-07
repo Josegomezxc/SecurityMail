@@ -62,10 +62,10 @@ def run_sandbox_analysis(email_message) -> dict:
             [
                 "docker", "run", "--rm",
                 "--network", "none",          # SIN red — ningún script puede llamar fuera
-                "--memory", "256m",           # un poco más de RAM para oletools/pefile
-                "--cpus", "1.0",
+                "--memory", "1g",             # RAM para archivos grandes (oletools/pefile)
+                "--cpus", "2.0",
                 "--read-only",                # filesystem de solo lectura
-                "--tmpfs", "/tmp:size=64m",   # /tmp escribible pero efímero
+                "--tmpfs", "/tmp:size=512m",  # /tmp escribible pero efímero
                 "-v", f"{docker_path}:{container_path}:ro",
                 SANDBOX_IMAGE,
                 "python", "/app/sandbox/run_analysis.py", container_path,
@@ -75,7 +75,7 @@ def run_sandbox_analysis(email_message) -> dict:
             encoding="utf-8",                 # ← fuerza UTF-8 (Windows usa cp1252 por defecto
                                               #    y rompe acentos como "detección" → "detecciÃ³n")
             errors="replace",                 # nunca crashea por bytes raros del sandbox
-            timeout=25,                       # por adjunto — previene hang en lotes
+            timeout=120,                      # por adjunto — previene hang en lotes
         )
 
         if result.returncode != 0 and not result.stdout:
@@ -128,10 +128,10 @@ def run_sandbox_with_password(filepath: str, password: str) -> dict:
             [
                 "docker", "run", "--rm",
                 "--network", "none",
-                "--memory", "256m",
-                "--cpus", "1.0",
+                "--memory", "1g",
+                "--cpus", "2.0",
                 "--read-only",
-                "--tmpfs", "/tmp:size=64m",
+                "--tmpfs", "/tmp:size=512m",
                 "-e", f"SANDBOX_PASSWORD={safe_password}",
                 "-v", f"{docker_path}:{container_path}:ro",
                 SANDBOX_IMAGE,
@@ -141,7 +141,7 @@ def run_sandbox_with_password(filepath: str, password: str) -> dict:
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=25,
+            timeout=120,
         )
 
         if result.returncode != 0 and not result.stdout:
