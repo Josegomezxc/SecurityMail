@@ -12,7 +12,6 @@ import re
 import requests
 from typing import Optional
 
-MAX_DOWNLOADS  = 2
 TIMEOUT        = 30
 MAX_FILE_SIZE  = 250 * 1024 * 1024  # 250 MB
 
@@ -29,12 +28,8 @@ def download_from_urls(urls: list) -> list:
     """Recibe lista de URLs del cuerpo del email.
     Devuelve [(filename, bytes), ...] descargados desde cloud storage."""
     results = []
-    downloaded = 0
 
     for url in urls:
-        if downloaded >= MAX_DOWNLOADS:
-            break
-
         for pattern, provider in PROVIDER_PATTERNS:
             m = pattern.search(url)
             if not m:
@@ -57,7 +52,6 @@ def download_from_urls(urls: list) -> list:
                 if result:
                     fname, data = result
                     results.append((f"[cloud]_{fname}", data))
-                    downloaded += 1
                     print(f"[cloud_downloader] descargado: {fname} ({len(data)//1024} KB)")
 
             except Exception as e:

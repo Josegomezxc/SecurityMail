@@ -42,6 +42,7 @@ from analyzers import (
     archive_analyzer,
     script_analyzer,
     yara_analyzer,
+    image_analyzer,
     dynamic_executor,
 )
 
@@ -63,6 +64,8 @@ EXT_SCRIPT     = {".sh", ".bash", ".zsh", ".ps1", ".psm1",
                   ".bat", ".cmd",
                   ".hta", ".lnk", ".reg", ".jar",
                   ".py", ".pl", ".rb", ".php"}
+EXT_IMAGE      = {".jpg", ".jpeg", ".png", ".gif", ".bmp",
+                  ".webp", ".tiff", ".tif", ".ico", ".svg"}
 
 # Extensiones siempre peligrosas (incluso sin más análisis)
 ALWAYS_RISKY = {
@@ -265,6 +268,9 @@ def analyze(filepath: str, depth: int = 0) -> dict:
                 "type": "analyzer_error", "detail": f"archive: {e}", "severity": 20,
             })
 
+    elif _is_image(ext, mime):
+        sub_results.append(_run(report, "image", image_analyzer.analyze, filepath, mime))
+
     elif _is_script(ext, mime):
         sub_results.append(_run(report, "script", script_analyzer.analyze, filepath, mime))
         # Ejecución DINÁMICA real si el script es compatible con Linux (sh/bash/py)
@@ -387,6 +393,11 @@ def _is_script(ext, mime):
         "text/x-python",
         "application/javascript",
     )
+
+def _is_image(ext, mime):
+    if ext in EXT_IMAGE:
+        return True
+    return mime.startswith("image/")
 
 def _looks_like_text(mime):
     return mime.startswith("text/") or mime == "application/javascript"

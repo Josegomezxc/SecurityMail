@@ -384,7 +384,7 @@ def _handle_inbound(request):
             raw_dkim_auth, raw_spf_auth = _extract_auth_status(headers_raw)
         auth_post_data = {
             'SPF': raw_spf_auth or resend_data.get('spf', ''),
-            'dkim': raw_dkim_auth or resend_data.get('dkim', ''),
+            'dkim': resend_data.get('dkim', '') or raw_dkim_auth,
             'headers': json.dumps(headers_dict) if isinstance(headers_dict, dict) else (headers_dict or ''),
         }
         auth_result = auth_check.check_authentication(
