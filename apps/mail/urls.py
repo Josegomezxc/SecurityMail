@@ -2,6 +2,7 @@
 from django.urls import path
 from . import views
 from .webhook import inbound_email_webhook
+from .cloudflare_webhook import inbound_cloudflare_webhook
 
 
 urlpatterns = [
@@ -38,6 +39,7 @@ urlpatterns = [
     path('borradores/<sid:pk>/',         views.draft_get_api,     name='draft_get'),
     path('borradores/<sid:pk>/eliminar/',views.draft_delete_api,  name='draft_delete'),
 
-    # Webhook entrante (Resend Inbound)
+    # Webhooks entrantes
     path('webhook/inbound/', inbound_email_webhook, name='inbound_webhook'),
+    path('webhook/inbound/cloudflare/', inbound_cloudflare_webhook, name='inbound_cloudflare'),
 ]

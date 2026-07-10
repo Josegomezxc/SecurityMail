@@ -62,8 +62,8 @@ def run_sandbox_analysis(email_message) -> dict:
             [
                 "docker", "run", "--rm",
                 "--network", "none",          # SIN red — ningún script puede llamar fuera
-                "--memory", "1g",             # RAM para archivos grandes (oletools/pefile)
-                "--cpus", "2.0",
+                "--memory", "512m",
+                "--cpus", "2.5",
                 "--read-only",                # filesystem de solo lectura
                 "--tmpfs", "/tmp:size=512m",  # /tmp escribible pero efímero
                 "-v", f"{docker_path}:{container_path}:ro",
@@ -128,8 +128,8 @@ def run_sandbox_with_password(filepath: str, password: str) -> dict:
             [
                 "docker", "run", "--rm",
                 "--network", "none",
-                "--memory", "1g",
-                "--cpus", "2.0",
+                "--memory", "512m",
+                "--cpus", "2.5",
                 "--read-only",
                 "--tmpfs", "/tmp:size=512m",
                 "-e", f"SANDBOX_PASSWORD={safe_password}",

@@ -243,5 +243,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024  # 30 MB — raw MIME via Cloudflare
+
 # URL pública del sitio (para construir links en correos)
 SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
