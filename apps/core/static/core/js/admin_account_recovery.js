@@ -74,6 +74,7 @@ function injectAction(form, value) {
 
 function arrConfirmApprove(ev, btn) {
   injectAction(btn.closest('form'), 'approve');
+  arrCloseDetail();
   return true;
 }
 function arrConfirmReject(ev, btn) {

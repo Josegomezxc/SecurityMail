@@ -2,6 +2,10 @@
 {% load static %}
 {% block title %}Iniciar sesión — DockerShield{% endblock %}
 
+{% block extra_head %}
+<script>try{localStorage.removeItem('sms_block_at');localStorage.removeItem('sms_block_at_msg');sessionStorage.removeItem('sms_compose_state')}catch(e){}</script>
+{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'accounts/styles/login.css' %}?v={% if debug %}{% now 'U' %}{% else %}close-fix-v3{% endif %}">
 {% endblock %}

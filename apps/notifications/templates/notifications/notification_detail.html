@@ -81,7 +81,7 @@
                   <div class="nd-admin-note-author">Mensaje del administrador</div>
                 </div>
               </div>
-              <div class="nd-admin-note-body">{{ parts.1|linebreaksbr }}</div>
+              <div class="nd-admin-note-body">{{ parts.1|safe|linebreaksbr }}</div>
             </aside>
           {% endwith %}
         {% else %}
@@ -98,7 +98,7 @@
                   <div class="nd-admin-note-author">Mensaje del administrador</div>
                 </div>
               </div>
-              <div class="nd-admin-note-body">{{ parts.1|linebreaksbr }}</div>
+              <div class="nd-admin-note-body">{{ parts.1|safe|linebreaksbr }}</div>
             </aside>
           {% endwith %}
         {% endif %}

@@ -18,7 +18,7 @@
   </div>
   <div class="notif-row-body">
     <div class="notif-row-title">{{ n.title }}</div>
-    {% if n.message %}<div class="notif-row-msg">{{ n.message }}</div>{% endif %}
+    {% if n.message %}<div class="notif-row-msg">{{ n.message_parts.0 }}</div>{% endif %}
   </div>
   <div class="notif-row-meta">
     <span class="notif-status-pill ns-{{ n.status }}">{{ n.get_status_display }}</span>

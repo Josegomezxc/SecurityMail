@@ -309,35 +309,31 @@ def _notify_admin_attachment_abuse(user, filename, report, previous_data=None):
 
         title = 'Cuenta bloqueada por intento de adjuntar malware'
 
-        msg = f'Usuario: {user_name} ({user.email})\n'
-        msg += '═══════════════════════════════════════════\n'
-        msg += 'RESUMEN DE LA CUENTA BLOQUEADA\n'
-        msg += '═══════════════════════════════════════════\n\n'
+        msg = f'Usuario: {user_name} ({user.email})\n\n'
+        msg += '<strong>DETALLES DE LA INTERCEPTACIÓN Y BLOQUEO DE CUENTA</strong>\n\n'
 
         # Intento 1 (desde previous_data)
         if previous_data:
             msg += (
-                f'◈ Intento 1 — {previous_data.get("timestamp", "—")}\n'
-                f'  Archivo: {previous_data.get("filename", "—")}\n'
-                f'  Amenaza: {previous_data.get("threat", "Desconocido")}\n'
-                f'  Score: {previous_data.get("score", 0)} | '
-                f'YARA: {previous_data.get("yara_count", 0)} | '
-                f'Nivel: {previous_data.get("risk_level", "unknown")}\n'
-                f'  Acción: Archivo rechazado, 1ª advertencia registrada.\n\n'
+                f'<i class="fa-solid fa-triangle-exclamation" style="color: #eab308; margin-right: 6px;"></i> <strong>PRIMER INTENTO</strong> — {previous_data.get("timestamp", "—")}\n'
+                f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Archivo:</strong> {previous_data.get("filename", "—")}\n'
+                f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Amenaza detectada:</strong> {previous_data.get("threat", "Desconocido")}\n'
+                f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Score de riesgo:</strong> {previous_data.get("score", 0)}/100 ({previous_data.get("risk_level", "unknown")})\n'
+                f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Coincidencias YARA:</strong> {previous_data.get("yara_count", 0)}\n'
+                f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Acción tomada:</strong> Archivo rechazado (1ª advertencia registrada).\n\n'
             )
         else:
-            msg += '◈ Intento 1 — (sin datos previos)\n\n'
+            msg += '<i class="fa-solid fa-triangle-exclamation" style="color: #eab308; margin-right: 6px;"></i> <strong>PRIMER INTENTO</strong> — (Sin datos previos registrados)\n\n'
 
         # Intento 2 (actual)
         msg += (
-            f'◈ Intento 2 — {timezone.now().isoformat()}\n'
-            f'  Archivo: {filename}\n'
-            f'  Amenaza: {threat2}\n'
-            f'  Score: {score2} | YARA: {yara2} | Nivel: {risk2}\n'
-            f'  Acción: Cuenta bloqueada permanentemente.\n'
-            f'  Sesión cerrada.\n'
-            f'  Redirigido al login.\n'
-            f'  El usuario deberá contactar al administrador para recuperar el acceso.\n'
+            f'<i class="fa-solid fa-circle-minus" style="color: #ef4444; margin-right: 6px;"></i> <strong>SEGUNDO INTENTO (Infracción Crítica)</strong> — {timezone.now().strftime("%Y-%m-%d %H:%M:%S")} UTC\n'
+            f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Archivo:</strong> {filename}\n'
+            f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Amenaza detectada:</strong> {threat2}\n'
+            f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Score de riesgo:</strong> {score2}/100 ({risk2})\n'
+            f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Coincidencias YARA:</strong> {yara2}\n'
+            f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Acción tomada:</strong> Bloqueo permanente de cuenta, cierre de sesión activa e inhabilitación del acceso al sistema.\n\n'
+            f'<i class="fa-solid fa-circle-info" style="color: #3b82f6; margin-right: 6px;"></i> <strong>Nota:</strong> Para restaurar el acceso, el usuario deberá contactar directamente con el administrador de la plataforma.'
         )
 
         Notification.objects.bulk_create([

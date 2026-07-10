@@ -138,9 +138,9 @@ def scan_attachment(filepath: str) -> dict:
                 report["risk_level"] = "low"
 
         # Normalizar niveles propios del sandbox (run_analysis.py) a nuestros estándares
-        if report.get("risk_level") == "malware":
+        if report.get("risk_level") in ("malware", "danger"):
             report["risk_level"] = "critical"
-        elif report.get("risk_level") == "suspicious":
+        elif report.get("risk_level") in ("suspicious", "warning"):
             report["risk_level"] = "high"
 
         print(f"[attachment-scan] → score:{report['risk_score']} level:{report['risk_level']} yara:{len(report.get('yara_matches',[]))} amenaza:{report.get('threat_name','')[:40]}", flush=True)

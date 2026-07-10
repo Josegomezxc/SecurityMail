@@ -79,6 +79,8 @@
   function updateSendButton() {
     var btn = window.__composeApi ? window.__composeApi.btnSend : document.getElementById('composeSendBtn');
     if (btn) btn.disabled = scanningFiles.length > 0 || pendingUnlock.length > 0;
+    var attachBtn = document.getElementById('composeAttachBtn');
+    if (attachBtn) attachBtn.disabled = scanningFiles.length > 0;
   }
 
   function renderAttachments() {

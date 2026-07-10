@@ -47,3 +47,4 @@
 .unlock-dialog .unlock-confirm:disabled { opacity: 0.5; cursor: default; }
 .unlock-pw-toggle { position:absolute; right:0.25rem; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0.25rem; line-height:1; display:flex; align-items:center; }
 .unlock-pw-toggle:hover { color:var(--text); }
+#composeAttachBtn:disabled { opacity: 0.4; cursor: not-allowed; }

@@ -26,6 +26,7 @@
     })();
     </script>
     <script defer src="{% static 'core/js/base.js' %}?v={% if debug %}{% now 'U' %}{% else %}loader-15{% endif %}"></script>
+    {% block extra_head %}{% endblock %}
     <style>
         /* CSS Crítico Above-The-Fold / Temas y Loader */
         :root {
