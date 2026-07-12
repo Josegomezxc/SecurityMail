@@ -1,6 +1,4 @@
-// Sandbox report — interacciones del cliente (sin sistema de ayuda).
 
-// ── Botones "copiar" en la lista de IOCs ─────────────────────────────
 document.querySelectorAll('.ioc-copy-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
     try {
@@ -13,9 +11,6 @@ document.querySelectorAll('.ioc-copy-btn').forEach(btn => {
   });
 });
 
-// ── Listas colapsables: "Ver más" progresivo de a N ───────────────────
-// Cualquier .collapsible-list con data-show="N" y data-step="M" recibe
-// un botón que revela M items cada clic, hasta mostrar todos.
 document.querySelectorAll('.collapsible-list').forEach(wrap => {
   const show  = parseInt(wrap.dataset.show, 10) || 4;
   const step  = parseInt(wrap.dataset.step, 10) || show;
@@ -48,7 +43,7 @@ document.querySelectorAll('.collapsible-list').forEach(wrap => {
   btn.addEventListener('click', () => {
     const isCollapse = shown >= items.length;
     if (isCollapse) {
-      // Colapsar a cantidad inicial
+
       for (let i = show; i < items.length; i++) {
         items[i].classList.add('collapsible-hidden');
       }
@@ -58,7 +53,7 @@ document.querySelectorAll('.collapsible-list').forEach(wrap => {
       wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       return;
     }
-    // Revelar step items más
+    
     const next = Math.min(shown + step, items.length);
     for (let i = shown; i < next; i++) {
       items[i].classList.remove('collapsible-hidden');
@@ -89,12 +84,11 @@ document.querySelectorAll('.collapsible-list').forEach(wrap => {
   const evidence     = __SBC.evidence;
   const iocs         = __SBC.iocs;
   const yaraMatches  = __SBC.yaraMatches;
-  const yaraContext  = __SBC.yaraContext || [];   // metadata real de los .yar
+  const yaraContext  = __SBC.yaraContext || [];  
   const bodyScore    = __SBC.bodyScore;
   const bodyThreat   = __SBC.bodyThreat;
   const analyzersRun = __SBC.analyzersRun;
 
-  // Tamaño legible (1024 KB, 2.3 MB, etc.) para meter en el prompt
   function _fmtSize(n) {
     if (!n || n <= 0) return "desconocido";
     if (n < 1024) return n + " B";
@@ -103,7 +97,6 @@ document.querySelectorAll('.collapsible-list').forEach(wrap => {
   }
   const fileSize = _fmtSize(fileSizeRaw);
 
-  // Top 6 evidencias por severidad para no inflar el prompt
   const topEvidence = (evidence || [])
     .slice()
     .sort((a, b) => (b.severity || 0) - (a.severity || 0))
@@ -121,9 +114,6 @@ document.querySelectorAll('.collapsible-list').forEach(wrap => {
     .filter(Boolean)
     .join(", ");
 
-  // Contexto real de las reglas YARA detectadas (extraído de los archivos
-  // .yar por el backend). Si la regla tiene description/strings, las
-  // pasamos a la IA para que pueda explicar exactamente qué hace.
   const yaraDetailedBlock = (yaraContext || [])
     .map((r) => {
       const bits = [`- Nombre: ${r.rule}`];
@@ -137,7 +127,6 @@ document.querySelectorAll('.collapsible-list').forEach(wrap => {
     })
     .join("\n\n");
 
-  // Animate steps
   const stepIds = ['step-1','step-2','step-3','step-4'];
   let si = 0;
   const stepInt = setInterval(() => {
@@ -191,12 +180,6 @@ EXPLICACION:
 RECOMENDACION:
 Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generará el párrafo continuo y fluido basado en la regla 3, pegado directamente a la frase inicial]`;
 
-  /* ──────────────────────────────────────────────────────────────────
-     Mini-renderer de Markdown
-     El prompt pide la respuesta en Markdown (### headers, **bold**,
-     viñetas •, sub-listas con `-`). Convertimos eso a HTML seguro,
-     escapando primero todo el input para evitar XSS.
-     ────────────────────────────────────────────────────────────────── */
   function _escapeHtml(s) {
     return String(s || '')
       .replace(/&/g, '&amp;')
@@ -208,16 +191,13 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
   function _renderMarkdown(raw, opts) {
     if (!raw) return '';
     opts = opts || {};
-    const groupBySections = !!opts.groupBySections;  // true → envuelve cada ### en .ai-md-section
+    const groupBySections = !!opts.groupBySections; 
 
     let s = _escapeHtml(raw.trim());
 
-    // **bold** → <strong>
     s = s.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
-    // *italic* (evitar conflictos con bold ya procesado)
-    s = s.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
 
-    // Procesamos línea por línea para headers y listas
+    s = s.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
     const lines = s.split('\n');
     const out = [];
     let listOpen = false;
@@ -232,25 +212,18 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
       if (sectionOpen) { out.push('</div>'); sectionOpen = false; }
     };
     // Reglas para detectar "viñeta principal":
-    //   • texto                  → viñeta explícita
-    //   * texto                  → viñeta explícita
-    //   - texto                  → viñeta explícita
-    //   1. texto / 2) texto      → item numerado sin viñeta
-    //   • 1. texto               → viñeta + número (lo capturamos también)
-    // El modelo a veces omite la viñeta y devuelve solo "1. xxx".
     const MAIN_BULLET_RE = /^(?:[•*\-]\s+)?(\d+[\.\)]\s+.+)$|^[•*\-]\s+(.+)$/;
     function matchMainBullet(line) {
       const m = line.match(MAIN_BULLET_RE);
       if (!m) return null;
-      return m[1] || m[2];   // contenido (sin la viñeta, manteniendo el número)
+      return m[1] || m[2];   
     }
-    // Helper: ¿hay otra viñeta principal más adelante (saltando líneas vacías)?
-    // Si es así, NO cerramos la lista — los items pertenecen a la misma lista.
+    
     function nextNonBlankIsBullet(idx) {
       for (let j = idx + 1; j < lines.length; j++) {
         const t = lines[j].trim();
         if (!t) continue;
-        if (t.match(/^###\s+/) || t.match(/^##\s+/)) return false;  // viene un header
+        if (t.match(/^###\s+/) || t.match(/^##\s+/)) return false;  
         return matchMainBullet(t) !== null;
       }
       return false;
@@ -284,9 +257,9 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
         out.push(`<h3 class="ai-md-h">${h2[1]}</h3>`);
         continue;
       }
-      // Viñeta principal: viñeta `• * -` o solo número `1. 2)` al inicio
+      
       const mainBulletContent = matchMainBullet(line);
-      // Sub-viñeta: empieza con 2+ espacios y "- " o "•"
+      
       const subBullet = line.match(/^\s{2,}[\-•*]\s+(.+)$/);
       if (subBullet) {
         if (!sublistOpen) {
@@ -305,19 +278,16 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
         out.push(`<li>${mainBulletContent}</li>`);
         continue;
       }
-      // Línea vacía:
-      //   - Si vienen más viñetas después → NO cerramos la lista (mismo grupo).
-      //   - Si no vienen más viñetas    → cerramos la lista normalmente.
+      
       if (!trimmed) {
         if (listOpen && nextNonBlankIsBullet(i)) {
-          // Mantenemos la lista abierta — los items son del mismo grupo
           continue;
         }
         closeLists();
         if (out.length && !out[out.length - 1].endsWith('</p>')) out.push('');
         continue;
       }
-      // Texto normal → párrafo
+      
       closeLists();
       out.push(`<p>${line}</p>`);
     }
@@ -325,8 +295,6 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
     return out.join('\n');
   }
 
-  /* Parser multi-línea: captura todo el contenido desde KEY: hasta la siguiente KEY:
-     Permite que EXPLICACION y RECOMENDACION ocupen varios párrafos. */
   const KEYS = ["VEREDICTO", "TIPO DE AMENAZA", "EXPLICACION", "RECOMENDACION"];
   const get = (text, key) => {
     const lines = text.split("\n");
@@ -348,10 +316,7 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
   const csrfToken = document.cookie.split(';')
     .find(c => c.trim().startsWith('csrftoken='))?.split('=')[1] || '';
 
-  /**
-   * Pide el análisis IA al backend. Si está en procesamiento,
-   * reintenta cada 3 segundos hasta 30 veces (90 segundos).
-   */
+
   async function _fetchAiResult(retries) {
     if (retries === undefined) retries = 0;
     const res  = await fetch("/ai-analysis/", {
@@ -361,7 +326,7 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
     });
     const data = await res.json().catch(() => ({}));
 
-    // Rate limit (429)
+
     if (res.status === 429 || data.code === 'rate_limit') {
       const wait = data.retry_after_min || 60;
       throw new Error(
@@ -372,7 +337,7 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
       throw new Error(data.error || `Error ${res.status} del servidor`);
     }
 
-    // El backend está procesando → poll en 3 segundos
+   
     if (data.status === 'processing') {
       if (retries >= 30) {
         throw new Error("El análisis IA tardó demasiado. Recarga la página para reintentar.");
@@ -388,7 +353,7 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
     const data = await _fetchAiResult();
     const text = data.result;
 
-    // Log discreto cuando vino del cache (solo en consola)
+   
     if (data.cached) {
       console.log('[sandbox] análisis IA cargado desde cache (sin pegar a Groq)');
     }
@@ -411,7 +376,7 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
     document.getElementById("ai-verdict-el").innerHTML =
       `<span class="ai-verdict-badge ${vClass}">${vIcon} ${v}</span>`;
 
-    // Confidence
+   
     const conf = v === "MALICIOSO" ? 94 : v === "SOSPECHOSO" ? 71 : 97;
     const confColor = v === "MALICIOSO" ? "var(--danger)" : v === "SOSPECHOSO" ? "var(--warning)" : "var(--success)";
     document.getElementById("ai-conf-pct").textContent = conf + "%";
@@ -420,7 +385,7 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
     fill.style.background = confColor;
     setTimeout(() => { fill.style.width = conf + "%"; }, 150);
 
-    // Threat chip
+   
     const isSafe = !t || t.toLowerCase().includes("no aplica");
     const tIcon = isSafe
       ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`
@@ -428,22 +393,18 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
     document.getElementById("ai-threat-el").innerHTML =
       `<span class="ai-threat-chip ${isSafe ? 'good' : 'bad'}">${tIcon} ${t || "No aplica"}</span>`;
 
-    // Timestamp
+   
     document.getElementById("ai-time-el").textContent =
       `analizado · ${new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'})}`;
 
-    // Texts — renderizados como Markdown → HTML
-    // EXPLICACION va con groupBySections=true: cada `### Header` se envuelve
-    // en un .ai-md-section, lo que permite layout de grid 2x2 en desktop.
-    // RECOMENDACION queda en flujo natural (no es grid).
-    // Forzamos un solo párrafo fluido (limpiando caché antigua que tenía viñetas o saltos)
+   
     let fluidEx = ex ? ex.replace(/^###.*$/gm, '').replace(/^[•*\-]\s*(?:\d+[\.\)]\s*)?/gm, '').replace(/\n+/g, ' ').trim() : '';
     document.getElementById("ai-expl-el").innerHTML = fluidEx ? _renderMarkdown(fluidEx) : '<p>Sin información.</p>';
     document.getElementById("ai-rec-el").innerHTML  = rc
       ? _renderMarkdown(rc)
       : '<p>Sin recomendación.</p>';
 
-    // Show
+    
     document.getElementById("ai-loading").style.display = "none";
     document.getElementById("ai-content").style.display = "block";
 
@@ -453,8 +414,7 @@ Consejo de tu analista IA: Lo que yo haría en tu lugar es [Aquí la IA generar�
     const errWrap = document.getElementById("ai-error");
     errWrap.style.display = "flex";
     const msgEl = document.getElementById("ai-error-msg");
-    // Si el mensaje ya viene formateado claro (rate limit), lo mostramos
-    // tal cual. Si es genérico, agregamos prefijo.
+   
     if (e.message && e.message.toLowerCase().includes('límite diario')) {
       msgEl.textContent = e.message;
     } else {

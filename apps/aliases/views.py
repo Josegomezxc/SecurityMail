@@ -1,12 +1,4 @@
-"""
-Vistas CRUD de alias desechables:
-  - Lista con búsqueda y filtros.
-  - Crear nuevo alias.
-  - Destruir (marcar inactivo).
-  - Componer y enviar correo desde un alias.
-  - Solicitar más cupo de alias al administrador.
-  - Escaneo de adjuntos con DockerShield.
-"""
+
 import os
 import re
 import tempfile
@@ -27,20 +19,12 @@ from .services.attachment_scanner import scan_attachment
 
 
 
-# Cuántos alias ACTIVOS puede tener un usuario común al mismo tiempo.
-# Los destruidos (is_active=False) no cuentan — quedan en la BD por
-# seguridad (el address no se puede reutilizar gracias a unique=True)
-# pero el usuario puede crear otros nuevos en su lugar.
-# Los administradores (is_staff) NO tienen límite.
+
 ALIAS_LIMIT_PER_USER = 5
 
 
 def _user_is_unlimited(user) -> bool:
-    """
-    ¿El usuario puede crear alias sin tope? Es True si:
-      - es admin (is_staff), o
-      - el admin le concedió acceso ilimitado vía profile.alias_unlimited.
-    """
+
     if user.is_staff:
         return True
     try:
@@ -50,26 +34,21 @@ def _user_is_unlimited(user) -> bool:
 
 
 def _user_alias_limit(user) -> int:
-    """
-    Cupo total de alias para `user` = base + ajuste del admin (puede ser
-    negativo). Clamp a 0 mínimo para que un ajuste muy negativo no produzca
-    valores negativos. Los usuarios ilimitados no tienen límite — se maneja
-    antes de llamar a esto.
-    """
+
     extra = 0
     try:
         extra = int(user.profile.alias_quota_extra or 0)
     except Exception:
-        # Si por alguna razón el perfil no existe (raro), usamos el base.
+        
         pass
     return max(0, ALIAS_LIMIT_PER_USER + extra)
 
 
-ALIAS_BATCH = 6   # alias por "página" en el load-more
+ALIAS_BATCH = 6   
 
 
 def _aliases_qs(user):
-    """QuerySet base de alias del usuario con conteos anotados."""
+
     return (
         Alias.objects.filter(user=user).annotate(
             emails_total  = Count('emails'),
@@ -80,23 +59,17 @@ def _aliases_qs(user):
 
 @login_required(login_url='login')
 def alias_list_view(request):
-    """
-    Lista de alias con carga diferida. Render inicial: primeros ALIAS_BATCH.
-    """
+    
     full_qs = _aliases_qs(request.user)
     total   = full_qs.count()
 
     aliases  = list(full_qs[:ALIAS_BATCH])
     has_more = total > ALIAS_BATCH
 
-    # ── Agregados sobre TODOS los alias (no solo los visibles) ──────────
-    # Para los stats usamos `full_qs.aggregate` y filtros directos en BD
-    # — son COUNT() baratos.
+
     from django.db.models import Sum
     active_count    = full_qs.filter(is_active=True).count()
     destroyed_count = total - active_count
-
-    # Sumas globales (Count anotado por alias × Sum global)
     totals = full_qs.aggregate(
         emails  = Sum('emails_total'),
         threats = Sum('threats_total'),
@@ -134,7 +107,7 @@ def alias_list_view(request):
 
 @login_required(login_url='login')
 def alias_more_api(request):
-    """Siguiente lote de alias como HTML parcial. Espera `?offset=N`."""
+
     try:
         offset = int(request.GET.get('offset') or 0)
     except ValueError:
@@ -164,22 +137,9 @@ def alias_more_api(request):
 
 @login_required(login_url='login')
 def alias_create_view(request):
-    """
-    Crea un nuevo alias con etiqueta y dirección 100% autogeneradas.
 
-    El usuario NO escribe nada — el sistema genera una etiqueta creativa
-    (adjetivo + sustantivo, ej: 'silver-tiger') y la convierte en una
-    dirección única tipo 'silver-tiger_x7k2m@dockershield.lat'.
-
-    Esto evita por completo cualquier riesgo de palabras vulgares,
-    información personal o etiquetas ofensivas.
-    """
     if request.method == 'POST':
-        # Defensa anti doble-submit + anti abuso: chequea el límite SIEMPRE
-        # en el backend (el JS del front solo es UX, no se debe confiar).
-        # El cupo se cuenta sobre TODOS los alias creados (activos +
-        # destruidos), no solo los activos — los slots se consumen al
-        # crear y no se reciclan al destruir.
+        
         if not _user_is_unlimited(request.user):
             quota_used = Alias.objects.filter(user=request.user).count()
             user_limit = _user_alias_limit(request.user)
@@ -191,10 +151,6 @@ def alias_create_view(request):
                 )
                 return redirect('alias_list')
 
-        # Genera etiqueta creativa (silver-tiger, cosmic-falcon, etc.) y
-        # dirección única. Si por mala suerte la dirección ya existe en
-        # la BD (colisión muy improbable: ~36^6 = 2.000M combinaciones
-        # por etiqueta), reintentamos hasta 5 veces.
         for _ in range(5):
             label   = generate_creative_label()
             address = generate_alias_address(label)
@@ -228,9 +184,7 @@ def alias_destroy_view(request, pk):
     return redirect('alias_list')
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  COMPOSE: enviar correo desde un alias
-# ─────────────────────────────────────────────────────────────────────
+
 
 _EMAIL_RX = re.compile(
     r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?"
@@ -253,8 +207,7 @@ ALLOWED_ATTACHMENT_NAME_RX = re.compile(r'[^A-Za-z0-9.\-_ ()áéíóúüñÁÉÍ
 
 
 def _parse_recipients(raw: str) -> list:
-    """Acepta destinatarios separados por coma, punto y coma o espacios.
-    Devuelve la lista deduplicada en minúsculas, en el orden original."""
+
     parts = re.split(r'[,;\s]+', (raw or '').strip().lower())
     seen, out = set(), []
     for p in parts:
@@ -281,16 +234,10 @@ def _safe_filename(name: str) -> str:
     return (name or 'archivo')[:120]
 
 
-# ════════════════════════════════════════════════════════════════════════
-#  NOTIFICACIÓN A ADMIN + BLOQUEO POR ABUSO (adjuntos maliciosos)
-# ════════════════════════════════════════════════════════════════════════
 
 
 def _notify_admin_attachment_abuse(user, filename, report, previous_data=None):
-    """
-    Notifica a todos los admins cuando un usuario es bloqueado por
-    intentar adjuntar malware repetidamente. Incluye detalles de ambos intentos.
-    """
+
     try:
         from apps.notifications.models import Notification
         from django.contrib.auth.models import User
@@ -301,7 +248,7 @@ def _notify_admin_attachment_abuse(user, filename, report, previous_data=None):
 
         user_name = user.get_full_name() or user.email or user.username
 
-        # Intento actual (2º)
+
         threat2 = report.get('threat_name', 'Desconocido')
         score2 = report.get('risk_score', 0)
         yara2 = len(report.get('yara_matches', []))
@@ -312,7 +259,7 @@ def _notify_admin_attachment_abuse(user, filename, report, previous_data=None):
         msg = f'Usuario: {user_name} ({user.email})\n\n'
         msg += '<strong>DETALLES DE LA INTERCEPTACIÓN Y BLOQUEO DE CUENTA</strong>\n\n'
 
-        # Intento 1 (desde previous_data)
+        
         if previous_data:
             msg += (
                 f'<i class="fa-solid fa-triangle-exclamation" style="color: #eab308; margin-right: 6px;"></i> <strong>PRIMER INTENTO</strong> — {previous_data.get("timestamp", "—")}\n'
@@ -325,7 +272,7 @@ def _notify_admin_attachment_abuse(user, filename, report, previous_data=None):
         else:
             msg += '<i class="fa-solid fa-triangle-exclamation" style="color: #eab308; margin-right: 6px;"></i> <strong>PRIMER INTENTO</strong> — (Sin datos previos registrados)\n\n'
 
-        # Intento 2 (actual)
+
         msg += (
             f'<i class="fa-solid fa-circle-minus" style="color: #ef4444; margin-right: 6px;"></i> <strong>SEGUNDO INTENTO (Infracción Crítica)</strong> — {timezone.now().strftime("%Y-%m-%d %H:%M:%S")} UTC\n'
             f'  <i class="fa-solid fa-circle" style="font-size: 6px; vertical-align: middle; margin-right: 8px; color: #a78bfa; opacity: 0.8;"></i> <strong>Archivo:</strong> {filename}\n'
@@ -348,14 +295,7 @@ def _notify_admin_attachment_abuse(user, filename, report, previous_data=None):
 
 
 def _block_user_for_abuse(user):
-    """
-    Bloquea la cuenta de `user` por intento repetido de adjuntar malware:
-      - Desactiva user.is_active
-      - Marca permanent_lock en AccountLock para que login_view muestre
-        el modal de "Solicitar recuperación" (sin contar intentos fallidos)
-      - Cierra su sesión activa
-    La notificación a admins la hace el caller.
-    """
+
     user.is_active = False
     user.save(update_fields=['is_active'])
     try:
@@ -380,31 +320,11 @@ def _block_user_for_abuse(user):
         pass
 
 
-# ════════════════════════════════════════════════════════════════════════
-#  ESCANEO DE ADJUNTOS CON DOCKERSHIELD
-# ════════════════════════════════════════════════════════════════════════
-
 
 @login_required(login_url='login')
 @require_POST
 def attachment_scan_api(request):
-    """
-    POST /alias/attachment-scan/
-    Recibe un archivo vía multipart/form-data (`file`), lo pasa por el
-    sandbox DockerShield y devuelve el veredicto.
 
-    Si es malicioso (risk_level = critical|high):
-      - 1ª vez:           {ok: false, error, attempts: 1}
-      - 2ª vez o más:     {ok: false, error, blocked: true}
-      El servidor además incrementa el contador y (en la 2ª) bloquea la
-      cuenta y notifica al admin.
-
-    Si es seguro o análisis falla: {ok: true, risk_level, risk_score}
-
-    Si el archivo está protegido con contraseña:
-      - Sin password: {ok: false, password_protected: true, filename, risk_score}
-      - Con password: re-analiza con run_sandbox_with_password
-    """
     if 'file' not in request.FILES:
         return JsonResponse({'ok': False, 'error': 'No se envió ningún archivo.'}, status=400)
 
@@ -424,8 +344,7 @@ def attachment_scan_api(request):
         tmp.close()
 
         if password:
-            # ── Re-análisis con contraseña (desbloqueo) ──
-            # Rate limit: 3 intentos / 10 min por filename
+
             session_key = f'unlock_attempts_compose_{upload.name}'
             now_ts = time.time()
             attempt_data = request.session.get(session_key)
@@ -448,7 +367,7 @@ def attachment_scan_api(request):
             if not report:
                 return JsonResponse({'ok': False, 'error': 'Error al re-analizar el archivo.'}, status=500)
 
-            # Normalizar risk_level como lo hace scan_attachment
+
             score = report.get('risk_score', 0)
             rl = report.get('risk_level')
             if score > 0 and rl in ('safe', 'unknown', None):
@@ -465,7 +384,7 @@ def attachment_scan_api(request):
             elif report.get('risk_level') == 'suspicious':
                 report['risk_level'] = 'high'
 
-            # Verificar si sigue protegido (contraseña incorrecta)
+
             still_protected = any(
                 ev.get('type') == 'password_protected'
                 for ev in (report.get('evidence') or [])
@@ -487,14 +406,13 @@ def attachment_scan_api(request):
                     'error': error_msg,
                 })
 
-            # Continuar al veredicto normal
+
             risk_level = report.get('risk_level', 'unknown')
 
         else:
-            # ── Escaneo normal (sin contraseña) ──
             report = scan_attachment(tmp.name)
 
-            # Detectar si está protegido con contraseña
+            
             is_password_protected = any(
                 ev.get('type') == 'password_protected'
                 for ev in (report.get('evidence') or [])
@@ -509,7 +427,7 @@ def attachment_scan_api(request):
 
             risk_level = report.get('risk_level', 'unknown')
 
-        # ── Veredicto común ──
+
         is_malicious = risk_level in ('critical', 'high')
         is_warning = risk_level == 'warning'
 
@@ -523,7 +441,7 @@ def attachment_scan_api(request):
                 'threat_name': report.get('threat_name'),
             })
 
-        # Detectar si el sandbox no está disponible (Docker apagado)
+
         has_service_error = any(
             e.get('type') == 'service_error'
             for e in report.get('evidence', [])
@@ -583,7 +501,7 @@ def attachment_scan_api(request):
                     }
                     profile.save(update_fields=['malicious_attempt_data'])
 
-        # Resetear intentos de desbloqueo si hubo password y no hay bloqueo
+
         if session_key and session_key in request.session:
             del request.session[session_key]
 
@@ -598,7 +516,7 @@ def attachment_scan_api(request):
 @login_required(login_url='login')
 @require_POST
 def alias_compose_view(request, pk):
-    """Envía un correo desde un alias activo del usuario."""
+
     alias = get_object_or_404(Alias, pk=pk, user=request.user)
 
     if not alias.is_active:
@@ -656,11 +574,7 @@ def alias_compose_view(request, pk):
             if dt.tzinfo is None:
                 dt = timezone.make_aware(dt, timezone.get_current_timezone())
             now = timezone.now()
-            # El frontend envía la hora con segundos en cero (granularidad
-            # de minutos). Si compararamos contra now + 60s podríamos
-            # rechazar el minuto inmediatamente siguiente cuando solo faltan
-            # ~30 segundos para cambiar de minuto. Comparamos contra el
-            # INICIO DEL PRÓXIMO MINUTO: now.replace(second=0) + 1min.
+
             next_minute = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
             if dt < next_minute:
                 errors['scheduled_at'] = 'La hora ya pasó. Elige al menos 1 minuto en el futuro.'
@@ -716,8 +630,7 @@ def alias_compose_view(request, pk):
             'error': 'No se pudo enviar el correo. Intenta de nuevo en unos segundos.',
         }, status=500)
 
-    # Guardar histórico en "Enviados". Si esto falla, no afecta al envío
-    # ya completado — solo perdemos el registro local, no el correo real.
+
     sent_payload = None
     try:
         from apps.mail.models import SentEmail
@@ -729,9 +642,7 @@ def alias_compose_view(request, pk):
                 scheduled_dt = timezone.make_aware(
                     scheduled_dt, timezone.get_current_timezone(),
                 )
-        # Metadata de adjuntos para mostrarla en la vista del correo enviado.
-        # No guardamos el `content` (base64 del archivo) — ya se envió al
-        # destinatario y conservarlo inflaría la BD. Solo nombre/tamaño/tipo.
+
         attachments_meta = []
         for att, upload in zip(resend_attachments, uploaded_files):
             attachments_meta.append({
@@ -748,8 +659,7 @@ def alias_compose_view(request, pk):
             attachments_count=len(resend_attachments),
             attachments_meta=attachments_meta,
         )
-        # Payload completo para que el frontend pueda insertar la fila
-        # al instante en /enviados/ sin recargar la página.
+
         sent_payload = {
             'id':                 sent_obj.id,
             'to':                 sent_obj.to_email,
@@ -789,31 +699,19 @@ def alias_compose_view(request, pk):
     })
 
 
-# ════════════════════════════════════════════════════════════════════════
-#  SOLICITUD DE MÁS CUPO DE ALIAS (usuario → admin)
-# ════════════════════════════════════════════════════════════════════════
 
-# Cuántos alias EXTRA puede pedir un usuario en una solicitud. Limitamos
-# para que no pidan algo absurdo (ej. +1000); el admin igual modera.
 ALIAS_REQUEST_MAX_AMOUNT = 10
 
 
 @login_required(login_url='login')
 @require_POST
 def alias_quota_request_create(request):
-    """
-    POST endpoint donde el usuario crea una solicitud de más cupo de alias.
-    Acepta:
-        amount  (1 a 10) — cuántos alias extra pide
-        reason  (texto, opcional)
-    Devuelve JSON: { ok, message, request_id }
-    Si ya hay una solicitud `pending` para este usuario, devuelve ok=false.
-    """
-    # Los admins no piden (no tienen límite). Defensa por si igual lo intentan.
+
+
     if request.user.is_staff:
         return JsonResponse({'ok': False, 'error': 'admin_no_quota'}, status=400)
 
-    # Bloquear duplicados: si ya tiene una pending, no aceptamos otra.
+
     if AliasQuotaRequest.objects.filter(user=request.user, status='pending').exists():
         return JsonResponse({
             'ok': False,
@@ -821,7 +719,7 @@ def alias_quota_request_create(request):
             'message': 'Ya tienes una solicitud pendiente. Espera la respuesta del admin.',
         }, status=400)
 
-    # Parsear amount con tope.
+
     try:
         amount = int(request.POST.get('amount', '1'))
     except (TypeError, ValueError):
@@ -841,20 +739,14 @@ def alias_quota_request_create(request):
         reason=reason,
     )
 
-    # Notificar a TODOS los admins (is_staff=True) — antes solo se subía
-    # el badge del sidebar y el admin no veía toast hasta entrar al
-    # módulo de solicitudes. Ahora le aparece la notificación en cualquier
-    # página del admin via el sistema de toasts persistentes.
+    
     try:
         from apps.notifications.models import Notification
         from django.contrib.auth.models import User
         admins = User.objects.filter(is_staff=True, is_active=True)
         user_name = (request.user.get_full_name() or request.user.email
                      or request.user.username)
-        # target_url: que el click del toast/bell abra directo el panel de
-        # solicitudes con esta solicitud destacada (modal). Sin esto el toast
-        # apuntaba al detalle de la notif y para el admin eso no es útil — el
-        # admin quiere VER la solicitud, no leer el mensaje de notif.
+
         admin_target = f'/admin-panel/solicitudes/?open={req.id}'
         notif_objs = [
             Notification(
@@ -871,7 +763,7 @@ def alias_quota_request_create(request):
         if notif_objs:
             Notification.objects.bulk_create(notif_objs)
     except Exception as e:
-        # No bloqueamos la creación de la solicitud si la notificación falla.
+
         print(f"[alias_quota_request] No se pudo notificar al admin: {e}")
 
     return JsonResponse({

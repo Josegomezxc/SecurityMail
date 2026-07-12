@@ -4,9 +4,7 @@
   const submit   = document.getElementById('submitBtn');
   const form     = document.getElementById('verifyForm');
 
-  // Bandera que evita el DOUBLE-SUBMIT (el bug del CSRF 403):
-  // si auto-submit + click manual disparan a la vez, el segundo POST
-  // llega después de que el servidor ya rotó la sesión → CSRF inválido.
+
   let isSubmitting = false;
 
   function fullCode() {
@@ -28,8 +26,7 @@
     form.submit();
   }
 
-  // Si el usuario hace click en el botón o presiona Enter, también
-  // pasamos por la misma puerta para evitar el doble envío.
+
   form.addEventListener('submit', (e) => {
     if (isSubmitting) {
       e.preventDefault();
@@ -39,13 +36,11 @@
     submit.disabled = true;
     submit.textContent = 'Verificando…';
     inputs.forEach(i => i.disabled = true);
-    // dejamos que el submit nativo continúe
   });
 
   inputs.forEach((inp, idx) => {
     inp.addEventListener('input', () => {
       if (isSubmitting) return;
-      // Permitir solo dígitos
       inp.value = (inp.value || '').replace(/[^\d]/g, '').slice(0, 1);
       refresh();
       if (inp.value && idx < inputs.length - 1) {
@@ -77,7 +72,6 @@
     });
   });
 
-  // Auto-submit cuando se completen los 6 dígitos (con guard anti-doble)
   form.addEventListener('input', () => {
     if (isSubmitting) return;
     if (fullCode().length === 6) {
@@ -87,7 +81,6 @@
 
   refresh();
 
-  /* ── Cuenta regresiva del código ── */
   const cd = document.getElementById('countdown');
   const expiresAt = cd ? new Date(cd.dataset.expiresAt) : null;
   function tick() {

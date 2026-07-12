@@ -85,9 +85,7 @@
     pwd1.addEventListener('input', () => { evaluatePwd(); updateMatch(); checkSubmit(); });
     pwd2.addEventListener('input', () => { updateMatch(); checkSubmit(); });
 
-    // ══════════════════════════════════════════════════════════════
-    //  Validación en vivo: nombre + email (clon del backend)
-    // ══════════════════════════════════════════════════════════════
+
     const nameInput = document.getElementById('name-input');
     const nameWrap  = document.getElementById('name-wrap');
     const nameErr   = document.getElementById('name-err');
@@ -98,7 +96,6 @@
     const emailErr   = document.getElementById('email-err');
     const emailErrT  = document.getElementById('email-err-text');
 
-    // Mismas reglas que validators.py para que UX y backend coincidan
     const USER_RE   = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9_\-]*$/;
     const USER_BLOCK = ['admin','administrator','administrador','root','test','testing',
                         'user','usuario','null','undefined','none','demo','guest','bot','system',
@@ -109,7 +106,6 @@
     function normalizeWS(s) {
       return (s || '').replace(/\s+/g, ' ').trim();
     }
-    // Para username: elimina TODOS los espacios (interior y borde)
     function stripSpaces(s) {
       return (s || '').replace(/\s+/g, '');
     }
@@ -128,7 +124,7 @@
 
     function validateNameLive() {
       const raw  = nameInput.value;
-      const user = stripSpaces(raw);   // quita TODOS los espacios
+      const user = stripSpaces(raw);  
       if (!user) {
         setFieldErr(nameWrap, nameErr, nameErrT, null);
         return false;
@@ -180,13 +176,11 @@
       return true;
     }
 
-    // Nombre de usuario: elimina espacios al vuelo mientras escribes
-    // y también al perder el foco, para que no pueda haber ambigüedad.
+
     nameInput.addEventListener('input', function () {
       const before = this.value;
       const after  = stripSpaces(before);
       if (before !== after) {
-        // Preserva posición del cursor (ajustada por los espacios que quitamos)
         const pos = this.selectionStart;
         const removed = before.slice(0, pos).length - stripSpaces(before.slice(0, pos)).length;
         this.value = after;
@@ -211,9 +205,7 @@
 
     function syncMasterState() {
       const acceptedCount = consents.filter(c => c.checked).length;
-      // Master = true solo si TODOS están marcados
       consentAll.checked = acceptedCount === consents.length;
-      // Estado "indeterminate" para feedback visual cuando hay algunos
       consentAll.indeterminate = acceptedCount > 0 && acceptedCount < consents.length;
     }
 
@@ -231,7 +223,6 @@
     }
     consents.forEach(c => c.addEventListener('change', checkConsents));
 
-    // Clic en "Aceptar todo" → marca o desmarca los 3
     consentAll.addEventListener('change', function () {
       consents.forEach(c => { c.checked = consentAll.checked; });
       checkConsents();

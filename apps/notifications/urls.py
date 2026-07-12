@@ -1,4 +1,3 @@
-"""URLs de la app notifications."""
 from django.urls import path
 from . import views
 

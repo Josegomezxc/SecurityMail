@@ -1,8 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════
-   SANDBOX LIST (server-side pagination)
-   Filtros y búsqueda viven en query params (?filter=, ?q=, ?page=).
-   Cada fila clickea al reporte del análisis correspondiente.
-   ══════════════════════════════════════════════════════════════════════ */
+
 
 function clearSearch() {
   const url = new URL(window.location.href);
@@ -21,9 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   syncHasValue();
 
-  /* Búsqueda en tiempo real con debounce de 350ms (mismo patrón que bandeja).
-     Cada pulsación reinicia el timer; al soltar la última tecla se navega
-     a la URL con el nuevo `?q=`. Volver a página 1 al cambiar la búsqueda. */
+
   let debounceTimer = null;
   function scheduleSearch() {
     syncHasValue();

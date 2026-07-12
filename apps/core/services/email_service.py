@@ -1,6 +1,4 @@
-"""
-Envío centralizado de correos usando la API de Resend.
-"""
+
 import os
 from typing import Tuple
 
@@ -8,9 +6,7 @@ from django.conf import settings
 
 
 def send_email(to: str, subject: str, html: str) -> Tuple[bool, str]:
-    """
-    Envía un correo HTML vía Resend. Devuelve (exito, mensaje_info).
-    """
+
     if not to:
         return False, "Destinatario vacío."
 

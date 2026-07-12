@@ -1,13 +1,4 @@
-"""
-Vistas del módulo sandbox:
-  - Lista de análisis del usuario.
-  - Reporte detallado de un análisis.
-  - Trigger manual de análisis (placeholder para UI futura).
-  - Análisis IA bajo demanda (Groq + Llama 3.3).
 
-El análisis sandbox en sí (Docker, YARA, strace…) vive en `apps/sandbox/`.
-Estas vistas solo son el controlador que muestra los resultados.
-"""
 import json
 import os
 import re
@@ -39,7 +30,6 @@ _EVI_FILE_RE = re.compile(r'^\[(.+?)\]\s')
 
 
 def _group_evidence(evidence_list):
-    """Agrupa evidencia por nombre de archivo (extraído de [archivo] prefijo)."""
     groups = {}
     for ev in evidence_list:
         detail = ev.get("detail", "")
@@ -54,8 +44,6 @@ def _group_evidence(evidence_list):
     def _has_password(items):
         return any(ev.get('type') == 'password_protected' for ev in items)
 
-    # Ordenar: primero "general", luego grupos con password (alfabético),
-    # después grupos sin password (alfabético)
     result = []
     if "__general__" in groups:
         result.append(("__general__", groups.pop("__general__")))
@@ -71,7 +59,6 @@ def _group_evidence(evidence_list):
 
 
 def _sanitize_value(obj):
-    """Recorre listas/dicts y limpia caracteres de control Unicode de strings."""
     if isinstance(obj, str):
         return _UNICODE_CONTROL_RE.sub("", obj)
     if isinstance(obj, dict):
@@ -81,33 +68,19 @@ def _sanitize_value(obj):
     return obj
 
 
-# Items por página — coincide con el resto del proyecto (bandeja, etc.)
 PAGE_SIZE = 6
 
 
 def _qs_params(request, exclude=('page',)):
-    """Query params actuales como string, para preservarlos al paginar."""
     params = {k: v for k, v in request.GET.items() if k not in exclude and v}
     return urlencode(params)
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  Sandbox: lista, análisis y reporte
-# ─────────────────────────────────────────────────────────────────────
-
 @login_required(login_url='login')
 def sandbox_list_view(request):
-    """
-    Lista de análisis sandbox paginada server-side.
 
-    Query params:
-      ?q=<texto>     busca en filename / asunto / remitente / amenaza
-      ?filter=<f>    all | malware | danger | warning | safe
-      ?page=<n>      número de página (PAGE_SIZE items)
-    """
     base_qs = SandboxAnalysis.objects.filter(email__alias__user=request.user)
 
-    # Contadores por categoría (sobre el base_qs, no sobre lo filtrado)
     counts = {
         'all':     base_qs.count(),
         'malware': base_qs.filter(risk_score__gte=81).count(),
@@ -118,7 +91,6 @@ def sandbox_list_view(request):
 
     qs = base_qs
 
-    # ── Filtro por categoría ───────────────────────────────────────────
     filter_ = (request.GET.get('filter') or 'all').strip().lower()
     if filter_ == 'malware':
         qs = qs.filter(risk_score__gte=81)
@@ -131,7 +103,6 @@ def sandbox_list_view(request):
     else:
         filter_ = 'all'
 
-    # ── Búsqueda libre ─────────────────────────────────────────────────
     q = (request.GET.get('q') or '').strip()
     if q:
         qs = qs.filter(
@@ -143,11 +114,9 @@ def sandbox_list_view(request):
 
     qs = qs.select_related('email', 'email__alias').order_by('-analyzed_at')
 
-    # ── Paginación ─────────────────────────────────────────────────────
     paginator = Paginator(qs, PAGE_SIZE)
     page_obj  = paginator.get_page(request.GET.get('page'))
 
-    # Timestamp compacto ("3 d", "53 min", "2 h"…)
     _now = timezone.now()
     for a in page_obj.object_list:
         delta = _now - a.analyzed_at
@@ -165,7 +134,6 @@ def sandbox_list_view(request):
         'q':             q,
         'filter':        filter_,
         'qs_params':     _qs_params(request),
-        # Compat: estadísticas en el hero (4 stat cards)
         'total_count':   counts['all'],
         'blocked_count': counts['danger'] + counts['malware'],
         'safe_count':    counts['safe'],
@@ -175,10 +143,7 @@ def sandbox_list_view(request):
 
 @login_required(login_url='login')
 def sandbox_analyze_view(request, email_id):
-    """
-    Dispara el análisis sandbox para un correo.
-    Si ya existe análisis, redirige al reporte existente.
-    """
+
     email_obj = get_object_or_404(
         EmailMessage, pk=email_id, alias__user=request.user,
     )
@@ -187,8 +152,6 @@ def sandbox_analyze_view(request, email_id):
     if existing:
         return redirect('sandbox_report', pk=existing.pk)
 
-    # El webhook normalmente ya dispara el análisis al recibir el correo,
-    # así que esta ruta solo queda como fallback manual desde la UI.
     messages.info(request, 'Análisis en proceso...')
     return redirect('sandbox_list')
 
@@ -204,9 +167,6 @@ def sandbox_report_view(request, pk):
     else:
         analysis = get_object_or_404(qs, pk=pk, email__alias__user=request.user)
 
-    # Contexto enriquecido de reglas YARA detectadas — se inyecta al
-    # prompt del análisis IA del cliente para que pueda explicar cada
-    # regla en lenguaje claro sin pegarle a Groq por cada `?`.
     yara_context = []
     dynamic = getattr(analysis, 'dynamic', None)
     yara_matches = dynamic.yara_matches if dynamic else []
@@ -227,8 +187,6 @@ def sandbox_report_view(request, pk):
         }
         yara_context.append(entry)
 
-    # Sanitiza evidencia y otros campos JSON para eliminar
-    # caracteres de control Unicode (RTL override, etc.)
     if dynamic:
         if dynamic.evidence:
             dynamic.evidence = _sanitize_value(dynamic.evidence)
@@ -246,15 +204,9 @@ def sandbox_report_view(request, pk):
         'evidence_groups':   evidence_groups,
     })
 
-
-# ─────────────────────────────────────────────────────────────────────
-#  Desbloquear archivo protegido con contraseña
-# ─────────────────────────────────────────────────────────────────────
-
 @login_required(login_url='login')
 @require_POST
 def sandbox_unlock_view(request, pk):
-    """POST {password: "..."} → re-analiza con contraseña, actualiza BD."""
     qs = SandboxAnalysis.objects.select_related(
         'email__alias', 'email__attachment', 'dynamic', 'file_info', 'body_analysis',
     )
@@ -297,7 +249,6 @@ def sandbox_unlock_view(request, pk):
     else:
         attempts = 0
 
-    # Buscar filepath del archivo específico en attachments_reports
     filepath = ''
     body_analysis = analysis.body_analysis
     if body_analysis and body_analysis.attachments_reports:
@@ -324,7 +275,6 @@ def sandbox_unlock_view(request, pk):
     if not report:
         return JsonResponse({'ok': False, 'error': 'Error al re-analizar'}, status=500)
 
-    # Verificar si el reporte sigue teniendo password_protected (contraseña incorrecta)
     still_protected = any(
         ev.get('type') == 'password_protected'
         for ev in (report.get('evidence') or [])
@@ -338,13 +288,10 @@ def sandbox_unlock_view(request, pk):
             'error': 'Contraseña incorrecta',
         })
 
-    # Contraseña correcta — resetear intentos y actualizar BD
     if session_key in request.session:
         del request.session[session_key]
 
     dynamic, _ = DynamicAnalysis.objects.get_or_create(analysis=analysis)
-
-    # Reemplazar solo la evidencia del archivo desbloqueado
     old_evidence = dynamic.evidence or []
     prefix = f'[{filename}]'
     new_evidence = []
@@ -366,7 +313,6 @@ def sandbox_unlock_view(request, pk):
 
     analysis.dynamic = dynamic
 
-    # Actualizar attachments_reports con el nuevo reporte del archivo desbloqueado
     if body_analysis and body_analysis.attachments_reports:
         updated = []
         for att in body_analysis.attachments_reports:
@@ -383,7 +329,6 @@ def sandbox_unlock_view(request, pk):
         body_analysis.attachments_reports = updated
         body_analysis.save(update_fields=['attachments_reports'])
 
-    # Recalcular score global como el max score de todos los attachments
     all_scores = [0]
     if body_analysis and body_analysis.attachments_reports:
         for att in body_analysis.attachments_reports:
@@ -394,11 +339,9 @@ def sandbox_unlock_view(request, pk):
     analysis.threat_name = report.get('threat_name', '')
     analysis.save(update_fields=['risk_score', 'risk_level', 'threat_name'])
 
-    # Actualizar el score en el EmailMessage para bandeja/detalle/color
     analysis.email.risk_score = final_score
     analysis.email.save(update_fields=['risk_score'])
 
-    # Actualizar la notificación existente con el nuevo score/tipo
     from apps.notifications.models import Notification
     try:
         notif = Notification.objects.filter(
@@ -427,7 +370,6 @@ def sandbox_unlock_view(request, pk):
     except Notification.DoesNotExist:
         pass
 
-    # Enviar alerta por correo si el desbloqueo reveló una amenaza real
     if final_score >= 61:
         from apps.mail.webhook import send_threat_alert
         send_threat_alert(
@@ -442,7 +384,6 @@ def sandbox_unlock_view(request, pk):
             alert_type='unlock',
         )
 
-    # Eliminar análisis IA previo para que se regenere con la nueva evidencia
     try:
         if hasattr(analysis, 'ai_result') and analysis.ai_result:
             analysis.ai_result.delete()
@@ -457,7 +398,6 @@ def sandbox_unlock_view(request, pk):
     else:
         messages.success(request, f'Seguro — Riesgo bajo ({final_score}/100)')
 
-    # Renderizar HTML de la sección de evidencia actualizada
     evidence_groups = _group_evidence(dynamic.evidence if dynamic else [])
     evidence_html = render_to_string(
         'sandbox/_evidence_section.html',
@@ -475,23 +415,12 @@ def sandbox_unlock_view(request, pk):
         'evidence_count': len(dynamic.evidence) if dynamic else 0,
     })
 
-
-# ─────────────────────────────────────────────────────────────────────
-#  Análisis IA (Groq + Llama 3.3)
-# ─────────────────────────────────────────────────────────────────────
-
 def _parse_ai_blocks(text: str) -> dict:
-    """
-    Extrae las 4 secciones (VEREDICTO, TIPO DE AMENAZA, EXPLICACION,
-    RECOMENDACION) del texto plano que devuelve la IA. Reusa el mismo
-    parser que el JS para poder cachear los campos por separado.
-    """
     keys = ['VEREDICTO', 'TIPO DE AMENAZA', 'EXPLICACION', 'RECOMENDACION']
     out = {k: '' for k in keys}
     if not text:
         return out
     lines = text.splitlines()
-    # Encontramos los índices de cada KEY: y extraemos el bloque hasta la próxima
     indices = []
     for i, line in enumerate(lines):
         s = line.strip()
@@ -507,7 +436,6 @@ def _parse_ai_blocks(text: str) -> dict:
         if not block_lines:
             continue
         first = block_lines[0]
-        # Quita el "KEY:" del inicio de la primera línea
         first_stripped = first.split(':', 1)[1].lstrip() if ':' in first else first
         rest = '\n'.join([first_stripped] + block_lines[1:]).strip()
         out[key] = rest
@@ -515,7 +443,6 @@ def _parse_ai_blocks(text: str) -> dict:
 
 
 def _run_groq_analysis_async(prompt: str, analysis):
-    """Ejecuta Groq y cachea el resultado en BD. Corre en un thread separado."""
     api_key = os.environ.get('GROQ_API_KEY', '').strip()
     if not api_key:
         print('[ia] GROQ_API_KEY no configurada')
@@ -554,21 +481,7 @@ def _run_groq_analysis_async(prompt: str, analysis):
 @login_required(login_url='login')
 @require_POST
 def ai_analysis_view(request):
-    """
-    Entrada:  {
-        "prompt":      "texto del prompt construido por el frontend",
-        "analysis_id": <int>            ← si viene, se cachea y corre async
-    }
-    Salida (cache hit):
-        { "result": "...", "cached": true }
-    Salida (cache miss + analysis_id):
-        { "status": "processing", "analysis_id": <id> }
-    Salida (sin analysis_id, síncrono):
-        { "result": "...", "cached": false }
-    Errores:
-      - 429 (rate limit): { "error": "...", "retry_after": <minutos>, "code": "rate_limit" }
-      - 500 (otros):      { "error": "..." }
-    """
+
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -577,10 +490,6 @@ def ai_analysis_view(request):
     analysis_id = data.get('analysis_id')
     prompt      = data.get('prompt', '')
 
-    # ── 1. Cache hit ──────────────────────────────────────────────────
-    # Si el reporte ya tiene análisis IA generado, devolvemos eso SIN
-    # pegarle a Groq. Esto ahorra ~5,000-8,000 tokens por visualización
-    # repetida del mismo reporte.
     cached_obj = None
     if analysis_id:
         try:
@@ -593,7 +502,6 @@ def ai_analysis_view(request):
 
         ai_result = getattr(cached_obj, 'ai_result', None) if cached_obj else None
         if ai_result and ai_result.ai_explanation:
-            # Reconstruimos el texto en el formato que espera el frontend
             parts = [
                 f'VEREDICTO: {ai_result.ai_verdict or "SEGURO"}',
                 f'TIPO DE AMENAZA: {ai_result.ai_threat_type or "No aplica"}',
@@ -605,10 +513,7 @@ def ai_analysis_view(request):
                 'cached': True,
             })
 
-    # ── 2. Cache miss → Groq ──────────────────────────────────────────
     if cached_obj is not None:
-        # Tenemos un análisis asociado → disparamos Groq en thread y
-        # respondemos inmediatamente. El resultado se cachea en BD.
         import threading
         threading.Thread(
             target=_run_groq_analysis_async,
@@ -617,7 +522,6 @@ def ai_analysis_view(request):
         ).start()
         return JsonResponse({'status': 'processing', 'analysis_id': analysis_id})
 
-    # Sin analysis_id → modo síncrono (resultado sin cachear)
     api_key = os.environ.get('GROQ_API_KEY', '').strip()
     if not api_key:
         return JsonResponse(
@@ -652,27 +556,12 @@ def ai_analysis_view(request):
     return JsonResponse({'result': raw, 'cached': False})
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  Indexado de reglas YARA — se usa en sandbox_report_view para
-#  enriquecer el contexto del análisis IA solo de las reglas que
-#  hicieron match en el reporte. NO se parsean las 870 reglas
-#  completas, solo se indexa nombre→posición (~50ms) y se extrae
-#  metadata de las 1-5 reglas que realmente aplican.
-# ─────────────────────────────────────────────────────────────────────
-
-# {nombre_regla: (nombre_archivo, byte_offset)}
 _NAME_INDEX = None
-# {nombre_archivo: contenido_str}
 _FILE_CACHE = {}
-# {nombre_regla: {description, category, severity, strings, file}}
 _META_CACHE = {}
 
 
 def _build_name_index() -> dict:
-    """
-    Escanea todos los .yar y construye un índice liviano
-    nombre_regla → (archivo, offset). Sin parsear meta blocks.
-    """
     import re
     import glob
     base = os.path.join(os.path.dirname(__file__), 'analyzers', 'rules')
@@ -694,7 +583,6 @@ def _build_name_index() -> dict:
 
 
 def _parse_single_rule_body(body: str, fkey: str) -> dict:
-    """Extrae metadata de UNA sola regla YARA desde su bloque de código."""
     desc = _extract_meta_field(body, 'description')
     cat = _extract_meta_field(body, 'category')
     sev = _extract_meta_field(body, 'severity') or _extract_meta_field(body, 'score')
@@ -709,11 +597,6 @@ def _parse_single_rule_body(body: str, fkey: str) -> dict:
 
 
 def _yara_lookup(name: str) -> dict | None:
-    """
-    Busca metadata de UNA regla YARA por nombre sin parsear las 870.
-    Construye el índice de nombres (~50ms) una sola vez y extrae el
-    bloque de la regla solicitada (~1ms).
-    """
     global _NAME_INDEX, _META_CACHE, _FILE_CACHE
     if _NAME_INDEX is None:
         try:
@@ -724,7 +607,6 @@ def _yara_lookup(name: str) -> dict | None:
     if not _NAME_INDEX:
         return None
 
-    # Cache de metadata ya extraída
     if name in _META_CACHE:
         return _META_CACHE[name]
 
@@ -743,7 +625,6 @@ def _yara_lookup(name: str) -> dict | None:
     if content is None:
         return None
 
-    # Encontrar el bloque de la regla con balanceo de llaves
     brace = content.find('{', start)
     if brace < 0:
         return None
@@ -765,11 +646,6 @@ def _yara_lookup(name: str) -> dict | None:
 
 
 def _extract_rule_strings_preview(body: str) -> list:
-    """
-    Saca los primeros strings de la sección strings: de una regla YARA.
-    Devuelve hasta 6 ejemplos truncados, suficiente para que la IA
-    intuya QUÉ patrones busca la regla (ej: /Launch, /OpenAction, ...).
-    """
     import re
     seg = re.search(
         r'\bstrings\s*:\s*(.+?)\bcondition\s*:',
@@ -803,7 +679,6 @@ def _extract_rule_strings_preview(body: str) -> list:
 
 
 def _extract_meta_field(body: str, field: str) -> str:
-    """Saca un campo meta tipo `description = "..."` del cuerpo de la regla."""
     import re
     pat = re.compile(
         rf'\b{re.escape(field)}\s*=\s*(["\']|)([^"\'\n\r]*?)\1\s*(?:$|\n|,)',
@@ -819,8 +694,6 @@ def _extract_meta_field(body: str, field: str) -> str:
 
 
 def _extract_rule_name_from_detail(detail: str) -> str | None:
-    """Extrae el nombre de la regla YARA del detail si tiene formato
-    'YARA `nombre_regla`: ...'."""
     import re
     if not detail:
         return None

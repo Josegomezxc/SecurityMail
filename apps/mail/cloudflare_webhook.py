@@ -1,10 +1,4 @@
-"""
-apps/mail/cloudflare_webhook.py
-Endpoint para recibir correos entrantes vía Cloudflare Email Routing.
 
-Cloudflare recibe el email → Worker lo reenvía como raw MIME →
-este endpoint parsea, analiza y guarda igual que el webhook de Resend.
-"""
 
 import os
 import json
@@ -57,10 +51,7 @@ def inbound_cloudflare_webhook(request):
 
 
 def _parse_raw_mime(raw_bytes: bytes) -> dict:
-    """
-    Parsea un email crudo en formato RFC 822 (MIME) y devuelve un dict
-    con los mismos campos que Resend.
-    """
+   
     msg = email.message_from_bytes(raw_bytes, policy=policy.default)
 
     sender = str(msg.get('From', ''))
@@ -125,7 +116,6 @@ def _parse_raw_mime(raw_bytes: bytes) -> dict:
 
 
 def _verify_raw_email(raw_bytes: bytes, sender_email: str) -> dict:
-    """Verifica DKIM/SPF/DMARC desde el raw MIME (Cloudflare lo pasa intacto)."""
     import dkim as dkim_module
 
     sender_domain = _bare_email(sender_email).split('@')[-1].lower() if '@' in _bare_email(sender_email) else ''
