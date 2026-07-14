@@ -1,6 +1,7 @@
 (function () {
   const bar = document.getElementById('readBar');
-
+  /* Throttle del scroll con requestAnimationFrame: 1 update/frame en vez de
+     1 update/pixel scrolleado. */
   let ticking = false;
   function onScroll() {
     if (ticking) return;
@@ -24,7 +25,7 @@
     });
   });
 
-
+  /* Un solo IntersectionObserver para resaltar TOC (eliminado el de fade-in). */
   const sections = document.querySelectorAll('.legal-section[id]');
   const obs = new IntersectionObserver(entries => {
     entries.forEach(entry => {

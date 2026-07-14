@@ -1,4 +1,27 @@
+/*
+   ════════════════════════════════════════════════════════════════════
+   maldocs.yar — Reglas para documentos maliciosos
+   ════════════════════════════════════════════════════════════════════
 
+   Categoría: documentos Office (DOC/DOCX, XLS/XLSX, PPT/PPTX),
+              PDF, OneNote, RTF — todos con macros, exploits o
+              técnicas de phishing comunes en correo electrónico.
+
+   Fuentes:
+     • signature-base (Neo23x0/Florian Roth) — CC BY-NC 4.0
+     • Yara-Rules/rules (maldocs/) — GPL-2.0
+
+   Importado: 2026-05-17
+   Mantenimiento: revisar cada 6 meses contra las fuentes originales.
+   ════════════════════════════════════════════════════════════════════
+*/
+
+
+
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_bad_pdf.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 rule SUSP_Bad_PDF {
    meta:
@@ -17,7 +40,10 @@ rule SUSP_Bad_PDF {
 }
 
 
-
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_brooxml_dec24.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 
 rule Brooxml_Hunting {
@@ -40,6 +66,7 @@ rule Brooxml_Hunting {
 
         $word = "word/"
 
+        // Negations for FPs / unwanted file types
         $ole = {d0 cf 11 e0}
         $tef = {78 9f 3e 22}
     condition:
@@ -74,7 +101,43 @@ rule Brooxml_Phishing {
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_dde_in_office_docs.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
+
+// YARA rules Office DDE
+// NVISO 2017/10/10 - 2017/10/12
+// https://sensepost.com/blog/2017/macro-less-code-exec-in-msword/
+
+/* slowing down scanning
+rule Office_DDEAUTO_field {
+   meta:
+      description = "Detects DDE in MS Office documents"
+      author = "NVISO Labs"
+      reference = "https://blog.nviso.be/2017/10/11/detecting-dde-in-ms-office-documents/"
+      date = "2017-10-12"
+      score = 60
+   strings:
+      $a = /<w:fldChar\s+?w:fldCharType="begin"\/>.{1,1000}?\b[Dd][Dd][Ee][Aa][Uu][Tt][Oo]\b.{1,1000}?<w:fldChar\s+?w:fldCharType="end"\/>/
+   condition:
+      $a
+}
+
+rule Office_DDE_field {
+   meta:
+      description = "Detects DDE in MS Office documents"
+      author = "NVISO Labs"
+      reference = "https://blog.nviso.be/2017/10/11/detecting-dde-in-ms-office-documents/"
+      date = "2017-10-12"
+      score = 40
+   strings:
+      $a = /<w:fldChar\s+?w:fldCharType="begin"\/>.+?\b[Dd][Dd][Ee]\b.+?<w:fldChar\s+?w:fldCharType="end"\/>/
+   condition:
+      $a
+}
+*/
 
 rule Office_OLE_DDEAUTO {
    meta:
@@ -108,7 +171,10 @@ rule Office_OLE_DDE {
 }
 
 
-
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_doc_follina.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 
 rule SUSP_PS1_Msdt_Execution_May22 {
@@ -130,6 +196,7 @@ rule SUSP_PS1_Msdt_Execution_May22 {
       $sb2 = "-af " ascii wide
       $sb3 = "IT_BrowseForFile=" ascii wide
 
+      /* OriginalFilename pcwrun.exe */
       $fp1 = { 4F 00 72 00 69 00 67 00 69 00 6E 00 61 00 6C 00
                46 00 69 00 6C 00 65 00 6E 00 61 00 6D 00 65 00
                00 00 70 00 63 00 77 00 72 00 75 00 6E 00 2E 00
@@ -143,6 +210,7 @@ rule SUSP_PS1_Msdt_Execution_May22 {
       and 1 of ($sa*)
       and 1 of ($sb*)
       and not 1 of ($fp*)
+      // not JSON
       and not uint8(0) == 0x7B
 }
 
@@ -162,8 +230,8 @@ rule SUSP_Doc_WordXMLRels_May22 {
 
       $x1 = ".html!" ascii
       $x2 = ".htm!" ascii
-      $x3 = "%2E%68%74%6D%6C%21" ascii 
-      $x4 = "%2E%68%74%6D%21" ascii 
+      $x3 = "%2E%68%74%6D%6C%21" ascii /* encoded version of .html! */
+      $x4 = "%2E%68%74%6D%21" ascii /* encoded version of .htm! */
    condition:
       filesize < 50KB
       and all of ($a*)
@@ -201,7 +269,7 @@ rule EXPL_Follina_CVE_2022_30190_Msdt_MSProtocolURI_May22 {
       id = "62e67c25-a420-5dac-9d1c-b0648ea6b574"
    strings:
       $re1 = /location\.href\s{0,20}=\s{0,20}"ms-msdt:/
-      $a1 = "%6D%73%2D%6D%73%64%74%3A%2F" ascii 
+      $a1 = "%6D%73%2D%6D%73%64%74%3A%2F" ascii /* URL encoded "ms-msdt:/" */
    condition:
       filesize > 3KB and
       filesize < 100KB and
@@ -220,20 +288,21 @@ rule SUSP_Doc_RTF_OLE2Link_Jun22 {
    strings:
       $sa = "\\objdata" ascii nocase
 
-      $sb1 = "4f4c45324c696e6b" ascii 
+      $sb1 = "4f4c45324c696e6b" ascii /* OLE2Link */
       $sb2 = "4F4C45324C696E6B" ascii
 
-      $sc1 = "d0cf11e0a1b11ae1" ascii 
+      $sc1 = "d0cf11e0a1b11ae1" ascii /* docfile magic - doc file albilae */
       $sc2 = "D0CF11E0A1B11AE1" ascii
 
-      $x1 = "68007400740070003a002f002f00" ascii 
+      $x1 = "68007400740070003a002f002f00" ascii /* http:// */
       $x2 = "68007400740070003A002F002F00" ascii
-      $x3 = "680074007400700073003a002f002f00" ascii 
+      $x3 = "680074007400700073003a002f002f00" ascii /* https:// */
       $x4 = "680074007400700073003A002F002F00" ascii
-      $x5 = "6600740070003a002f002f00" ascii 
+      $x5 = "6600740070003a002f002f00" ascii /* ftp:// */
       $x6 = "6600740070003A002F002F00" ascii
+      /* TODO: more protocols */
    condition:
-      ( uint32be(0) == 0x7B5C7274 or uint32be(0) == 0x7B5C2A5C ) 
+      ( uint32be(0) == 0x7B5C7274 or uint32be(0) == 0x7B5C2A5C ) /* RTF */
       and $sa
       and 1 of ($sb*)
       and 1 of ($sc*)
@@ -250,10 +319,12 @@ rule SUSP_Doc_RTF_OLE2Link_EMAIL_Jun22 {
       score = 75
       id = "48cde505-3ce4-52ef-b338-0c08ac4f63de"
    strings:
+      /* \objdata" */
       $sa1 = "XG9iamRhdG" ascii
       $sa2 = "xvYmpkYXRh" ascii
       $sa3 = "cb2JqZGF0Y" ascii
 
+      /* OLE2Link */
       $sb1 = "NGY0YzQ1MzI0YzY5NmU2Y" ascii
       $sb2 = "RmNGM0NTMyNGM2OTZlNm" ascii
       $sb3 = "0ZjRjNDUzMjRjNjk2ZTZi" ascii
@@ -261,6 +332,7 @@ rule SUSP_Doc_RTF_OLE2Link_EMAIL_Jun22 {
       $sb5 = "RGNEM0NTMyNEM2OTZFNk" ascii
       $sb6 = "0RjRDNDUzMjRDNjk2RTZC" ascii
 
+      /* docfile magic - doc file albilae */
       $sc1 = "ZDBjZjExZTBhMWIxMWFlM" ascii
       $sc2 = "QwY2YxMWUwYTFiMTFhZT" ascii
       $sc3 = "kMGNmMTFlMGExYjExYWUx" ascii
@@ -268,24 +340,28 @@ rule SUSP_Doc_RTF_OLE2Link_EMAIL_Jun22 {
       $sc5 = "QwQ0YxMUUwQTFCMTFBRT" ascii
       $sc6 = "EMENGMTFFMEExQjExQUUx" ascii
 
+      /* http:// */
       $x1 = "NjgwMDc0MDA3NDAwNzAwMDNhMDAyZjAwMmYwM" ascii
       $x2 = "Y4MDA3NDAwNzQwMDcwMDAzYTAwMmYwMDJmMD" ascii
       $x3 = "2ODAwNzQwMDc0MDA3MDAwM2EwMDJmMDAyZjAw" ascii
       $x4 = "NjgwMDc0MDA3NDAwNzAwMDNBMDAyRjAwMkYwM" ascii
       $x5 = "Y4MDA3NDAwNzQwMDcwMDAzQTAwMkYwMDJGMD" ascii
       $x6 = "2ODAwNzQwMDc0MDA3MDAwM0EwMDJGMDAyRjAw" ascii
+      /* https:// */
       $x7 = "NjgwMDc0MDA3NDAwNzAwMDczMDAzYTAwMmYwMDJmMD" ascii
       $x8 = "Y4MDA3NDAwNzQwMDcwMDA3MzAwM2EwMDJmMDAyZjAw" ascii
       $x9 = "2ODAwNzQwMDc0MDA3MDAwNzMwMDNhMDAyZjAwMmYwM" ascii
       $x10 = "NjgwMDc0MDA3NDAwNzAwMDczMDAzQTAwMkYwMDJGMD" ascii
       $x11 = "Y4MDA3NDAwNzQwMDcwMDA3MzAwM0EwMDJGMDAyRjAw" ascii
       $x12 = "2ODAwNzQwMDc0MDA3MDAwNzMwMDNBMDAyRjAwMkYwM" ascii
+      /* ftp:// */
       $x13 = "NjYwMDc0MDA3MDAwM2EwMDJmMDAyZjAw" ascii
       $x14 = "Y2MDA3NDAwNzAwMDNhMDAyZjAwMmYwM" ascii
       $x15 = "2NjAwNzQwMDcwMDAzYTAwMmYwMDJmMD" ascii
       $x16 = "NjYwMDc0MDA3MDAwM0EwMDJGMDAyRjAw" ascii
       $x17 = "Y2MDA3NDAwNzAwMDNBMDAyRjAwMkYwM" ascii
       $x18 = "2NjAwNzQwMDcwMDAzQTAwMkYwMDJGMD" ascii
+      /* TODO: more protocols */
    condition:
       filesize < 10MB
       and 1 of ($sa*)
@@ -303,12 +379,15 @@ rule SUSP_DOC_RTF_ExternalResource_EMAIL_Jun22 {
       score = 70
       id = "3ddc838c-8520-5572-9652-8cb823f83e27"
    strings:
+      /* <Relationships */
       $sa1 ="PFJlbGF0aW9uc2hpcH" ascii
       $sa2 ="xSZWxhdGlvbnNoaXBz" ascii
       $sa3 ="8UmVsYXRpb25zaGlwc" ascii
+      /* TargetMode="External" */
       $sb1 ="VGFyZ2V0TW9kZT0iRXh0ZXJuYWwi" ascii
       $sb2 ="RhcmdldE1vZGU9IkV4dGVybmFsI" ascii
       $sb3 ="UYXJnZXRNb2RlPSJFeHRlcm5hbC" ascii
+      /* .html!" */
       $sc1 ="Lmh0bWwhI" ascii
       $sc2 ="5odG1sIS" ascii
       $sc3 ="uaHRtbCEi" ascii
@@ -335,7 +414,7 @@ rule SUSP_Msdt_Artefact_Jun22_2 {
       $x2 = "$(Invoke-Expression" ascii
       $x3 = "$(IEX(" ascii nocase
    condition:
-      uint32(0) == 0x6D783F3C 
+      uint32(0) == 0x6D783F3C /* <?xm */
       and $a1
       and 1 of ($x*)
 }
@@ -361,6 +440,10 @@ rule SUSP_LNK_Follina_Jun22 {
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_excel_auto_open_evasion.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 rule gen_excel_auto_open_evasion
 {
@@ -389,6 +472,11 @@ rule gen_excel_auto_open_evasion
         and $auto_open and #plain_auto_open == 0
 }
 
+
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_excel_xll_addin_suspicious.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 import "pe"
 
@@ -456,7 +544,12 @@ rule gen_Excel_xll_addin_suspicious
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_excel_xor_obfuscation_velvetsweatshop.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
+/* Slightly modified by Florian Roth */
 
 rule gen_excel_xor_obfuscation_velvetsweatshop {
     meta:
@@ -482,6 +575,11 @@ rule gen_excel_xor_obfuscation_velvetsweatshop {
         $FilePass_XOR_Obfuscation_VelvetSweatshop
 }
 
+
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_Excel4Macro_Sharpshooter.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 rule MAL_Sharpshooter_Excel4 {
    meta:
@@ -522,12 +620,28 @@ rule SUSP_Excel4Macro_AutoOpen
         $header_docf = { D0 CF 11 E0 }
         $s1 = "Excel" fullword
 
+        // 2fb198f6ad33d0f26fb94a1aa159fef7296e0421da68887b8f2548bbd227e58f
+        // ' 0018     23 LABEL : Cell Value, String Constant - build-in-name 1 Auto_Open
+        // 00002d80:
+        // 20 00 00 01 07 00 00 00 00 00 00 00 00 00 00 01 3a 01 00 16 00 07 00
 
+        // f4c01e26eb88b72d38be3d6331fafe03b1ae53fdbff57d610173ed797fa26e73
+        // 00003460: 00 00 18 00 17 00 20 00 00 01 07 00 00 00 00 00  ...... .........
+        // 00003470: 00 00 00 00 00 01 3a 00 00 3f 02 8d 00 c1 01 08  ......:..?......
+
+        // ccef64586d25ffcb2b28affc1f64319b936175c4911e7841a0e28ee6d6d4a02d
+        // ' 0018     23 LABEL : Cell Value, String Constant - build-in-name 1 Auto_Open
+        // 00003560: 00 00 00 00 00 18 00 17 00 aa 03 00 01 07 00 00  ................
+        // 00003570: 00 00 00 00 00 00 00 00 01 3a 00 00 04 00 65 00  .........:....e.
 
         $Auto_Open  = {18 00 17 00 20 00 00 01 07 00 00 00 00 00 00 00 00 00 00 01 3a }
         $Auto_Close = {18 00 17 00 20 00 00 01 07 00 00 00 00 00 00 00 00 00 00 02 3a }
         $Auto_Open1 = {18 00 17 00 aa 03 00 01 07 00 00 00 00 00 00 00 00 00 00 01 3a }
         $Auto_Close1= {18 00 17 00 aa 03 00 01 07 00 00 00 00 00 00 00 00 00 00 02 3a }
+
+        // some Excel4 files don't have auto_open names e.g.:
+        // b8b80e9458ff0276c9a37f5b46646936a08b83ce050a14efb93350f47aa7d269
+        // 079be05edcd5793e1e3596cdb5f511324d0bcaf50eb47119236d3cb8defdfa4c
 
 
     condition:
@@ -537,6 +651,11 @@ rule SUSP_Excel4Macro_AutoOpen
         and any of ($Auto_*)
 }
 
+
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_macro_builders.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 
 rule SUSP_MalDoc_ExcelMacro {
@@ -559,6 +678,10 @@ rule SUSP_MalDoc_ExcelMacro {
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_macro_ShellExecute_action.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 rule gen_macro_ShellExecute_action
 {
@@ -589,12 +712,16 @@ rule gen_macro_ShellExecute_action
         $s4 = "GetObject" fullword
     condition:
     	filesize < 1MB
-        and (uint32be(0) == 0x41747472 or uint32be(0) == 0x61747472 or uint32be(0) == 0x41545452)
+        and (uint32be(0) == 0x41747472 or uint32be(0) == 0x61747472 or uint32be(0) == 0x41545452)  //File start with Attribute
         and all of ($s*)
         and (all of ($com1*) or all of ($com2*))
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_macro_staroffice_suspicious.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 rule SUSP_Macro_StarOffice {
    meta:
@@ -629,12 +756,17 @@ rule SUSP_Macro_StarOffice {
         $fp1 = "LibreOffice project" ascii
     condition:
         filesize < 1MB
-        and uint32be(0) == 0x3c3f786d
+        and uint32be(0) == 0x3c3f786d // <?xm
         and all of ($r*)
         and 1 of ($s*)
         and not 1 of ($fp*)
 }
 
+
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_maldoc.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 rule SUSP_Doc_WindowsInstaller_Call_Feb22_1 {
     meta:
@@ -654,6 +786,10 @@ rule SUSP_Doc_WindowsInstaller_Call_Feb22_1 {
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: signature-base/gen_onenote_phish.yar
+   License: CC BY-NC 4.0
+   ────────────────────────────────────────────────────────────────── */
 
 
 rule SUSP_Email_Suspicious_OneNote_Attachment_Jan23_1 {
@@ -665,21 +801,27 @@ rule SUSP_Email_Suspicious_OneNote_Attachment_Jan23_1 {
       score = 65
       id = "492b74c2-3b81-5dff-9244-8528565338c6"
    strings:
+      /* OneNote FileDataStoreObject GUID https://blog.didierstevens.com/ */
       $ge1 = "5xbjvWUmEUWkxI1NC3qer"
       $ge2 = "cW471lJhFFpMSNTQt6nq"
       $ge3 = "nFuO9ZSYRRaTEjU0Lep6s"
+
+      /* PE file DOS header */
       $sp1 = "VGhpcyBwcm9ncmFtIGNhbm5vdCBiZSBydW4gaW4gRE9TIG1vZG"
       $sp2 = "RoaXMgcHJvZ3JhbSBjYW5ub3QgYmUgcnVuIGluIERPUyBtb2Rl"
       $sp3 = "UaGlzIHByb2dyYW0gY2Fubm90IGJlIHJ1biBpbiBET1MgbW9kZ"
       $sp4 = "VGhpcyBwcm9ncmFtIG11c3QgYmUgcnVuIHVuZGVy"
       $sp5 = "RoaXMgcHJvZ3JhbSBtdXN0IGJlIHJ1biB1bmRlc"
       $sp6 = "UaGlzIHByb2dyYW0gbXVzdCBiZSBydW4gdW5kZX"
+      /* @echo off */
       $se1 = "QGVjaG8gb2Zm"
       $se2 = "BlY2hvIG9mZ"
       $se3 = "AZWNobyBvZm"
+      /* <HTA:APPLICATION */
       $se4 = "PEhUQTpBUFBMSUNBVElPTi"
       $se5 = "xIVEE6QVBQTElDQVRJT04g"
       $se6 = "8SFRBOkFQUExJQ0FUSU9OI"
+      /* LNK file magic header */
       $se7 = "TAAAAAEUAg"
       $se8 = "wAAAABFAIA"
       $se9 = "MAAAAARQCA"
@@ -698,7 +840,9 @@ rule SUSP_Email_Suspicious_OneNote_Attachment_Jan23_2 {
       score = 65
       id = "f8c58c73-2404-5ce6-8e8f-99b0dad84ad0"
    strings:
+      /* .one\n\n5FJce */
       $hc1 = { 2E 6F 6E 65 22 0D 0A 0D 0A 35 46 4A 63 65 }
+
       $x01 = " attachment; filename=\"Invoice" nocase
       $x02 = " attachment; filename=\"ORDER" nocase
       $x03 = " attachment; filename=\"PURCHASE" nocase
@@ -719,36 +863,37 @@ rule SUSP_OneNote_Embedded_FileDataStoreObject_Type_Jan23_1 {
       score = 65
       id = "b8ea8c7b-052f-5a97-9577-99903462ea84"
    strings:
+      /* GUID FileDataStoreObject https://blog.didierstevens.com/ */
       $x1 = { e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac 
               ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
-              ?? ?? ?? ?? 4d 5a }
+              ?? ?? ?? ?? 4d 5a } // PE
       $x2 = { e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac 
               ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
-              ?? ?? ?? ?? [0-4] 40 65 63 68 6f }
+              ?? ?? ?? ?? [0-4] 40 65 63 68 6f } // @echo off
       $x3 = { e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac 
               ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
-              ?? ?? ?? ?? [0-4] 40 45 43 48 4f }
+              ?? ?? ?? ?? [0-4] 40 45 43 48 4f } // @ECHO OFF
       $x4 = { e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac 
               ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
-              ?? ?? ?? ?? [0-4] 4F 6E 20 45 }
+              ?? ?? ?? ?? [0-4] 4F 6E 20 45 } // On Error Resume
       $x5 = { e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac 
               ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
-              ?? ?? ?? ?? [0-4] 6F 6E 20 65 }
+              ?? ?? ?? ?? [0-4] 6F 6E 20 65 } // on error resume
       $x6 = { e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac
               ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
-              ?? ?? ?? ?? 4c 00 00 00 }
+              ?? ?? ?? ?? 4c 00 00 00 } // LNK file
       $x7 = { e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac
               ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
-              ?? ?? ?? ?? 49 54 53 46 }
+              ?? ?? ?? ?? 49 54 53 46 } // CHM file
       $x8 = { e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac
               ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
-              ?? ?? ?? ?? [6-200] 3C 68 74 61 3A }
+              ?? ?? ?? ?? [6-200] 3C 68 74 61 3A } // hta:
       $x9 = { e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac
               ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
-              ?? ?? ?? ?? [6-200] 3C 48 54 41 3A }
+              ?? ?? ?? ?? [6-200] 3C 48 54 41 3A } // HTA:
       $x10 = { e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac
               ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
-              ?? ?? ?? ?? [6-200] 3C 6A 6F 62 20 }
+              ?? ?? ?? ?? [6-200] 3C 6A 6F 62 20 } // WSF file "<job "
    condition:
       filesize < 10MB and 1 of them
 }
@@ -762,6 +907,7 @@ rule SUSP_OneNote_Embedded_FileDataStoreObject_Type_Jan23_2 {
       score = 65
       id = "0664d202-ab4c-57b6-91ee-ea21ac08909e"
    strings:
+      /* GUID FileDataStoreObject https://blog.didierstevens.com/ */
       $a1 = { 00 e7 16 e3 bd 65 26 11 45 a4 c4 8d 4d 0b 7a 9e ac }
 
       $s1 = "<HTA:APPLICATION "
@@ -772,6 +918,15 @@ rule SUSP_OneNote_Embedded_FileDataStoreObject_Type_Jan23_2 {
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_PDF.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
+
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
+
+*/
 
 rule malicious_author : PDF raw
 {
@@ -831,6 +986,7 @@ weight = 3
     strings:
             $magic = { 25 50 44 46 }
             $attrib = /\/Filter.*(\/ASCIIHexDecode\W+|\/LZWDecode\W+|\/ASCII85Decode\W+|\/FlateDecode\W+|\/RunLengthDecode){2}/ 
+            // left out: /CCITTFaxDecode, JBIG2Decode, DCTDecode, JPXDecode, Crypt
 
     condition: 
             $magic in (0..1024) and $attrib
@@ -943,7 +1099,7 @@ rule shellcode_blob_metadata : PDF raw
         strings:
                 $magic = { 25 50 44 46 }
 
-                $reg_keyword = /\/Keywords.?\(([a-zA-Z0-9]{200,})/ 
+                $reg_keyword = /\/Keywords.?\(([a-zA-Z0-9]{200,})/ //~6k was observed in BHEHv2 PDF exploits holding the shellcode
                 $reg_author = /\/Author.?\(([a-zA-Z0-9]{200,})/
                 $reg_title = /\/Title.?\(([a-zA-Z0-9]{200,})/
                 $reg_producer = /\/Producer.?\(([a-zA-Z0-9]{200,})/
@@ -1007,7 +1163,7 @@ rule suspicious_embed : PDF raw
 		$magic = { 25 50 44 46 }
 		
 		$meth0 = /\/Launch/
-		$meth1 = /\/GoTo(E|R)/
+		$meth1 = /\/GoTo(E|R)/ //means go to embedded or remote
 		$attrib0 = /\/URL /
 		$attrib1 = /\/Action/
 		$attrib2 = /\/Filespec/
@@ -1060,6 +1216,7 @@ rule invalid_trailer_structure : PDF raw
 		
         strings:
                 $magic = { 25 50 44 46 }
+				// Required for a valid PDF
                 $reg0 = /trailer\r?\n?.*\/Size.*\r?\n?\.*/
                 $reg1 = /\/Root.*\r?\n?.*startxref\r?\n?.*\r?\n?%%EOF/
 
@@ -1257,7 +1414,14 @@ rule PDF_Embedded_Exe : PDF
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_DDE.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
 
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as long as you use it under this license.
+*/
 
 rule Contains_DDE_Protocol
 {
@@ -1270,14 +1434,25 @@ rule Contains_DDE_Protocol
         
         strings:
                 $doc = {D0 CF 11 E0 A1 B1 1A E1}
-                $s1 = { 13 64 64 65 61 75 74 6F 20 }
-                $s2 = { 13 64 64 65 20 }
+                $s1 = { 13 64 64 65 61 75 74 6F 20 } // !!ddeauto
+                $s2 = { 13 64 64 65 20 } // !!dde
                 $s3 = "dde" nocase
                 $s4 = "ddeauto" nocase
 
         condition:
                 ($doc at 0) and 2 of ($s1, $s2, $s3, $s4)
 }
+
+
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_VBA_macro_code.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
+
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
+
+*/
 
 
 rule Contains_VBA_macro_code
@@ -1294,7 +1469,7 @@ rule Contains_VBA_macro_code
 
 		$97str1 = "_VBA_PROJECT_CUR" wide
 		$97str2 = "VBAProject"
-		$97str3 = { 41 74 74 72 69 62 75 74 00 65 20 56 42 5F }
+		$97str3 = { 41 74 74 72 69 62 75 74 00 65 20 56 42 5F } // Attribute VB_
 
 		$xmlstr1 = "vbaProject.bin"
 		$xmlstr2 = "vbaData.xml"
@@ -1304,6 +1479,15 @@ rule Contains_VBA_macro_code
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_Hidden_PE_file.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
+
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
+
+*/
 
 rule Contains_hidden_PE_File_inside_a_sequence_of_numbers : maldoc
 {
@@ -1316,15 +1500,24 @@ rule Contains_hidden_PE_File_inside_a_sequence_of_numbers : maldoc
 		filetype = "decompressed VBA macro code"
 		
 	strings:
-		$a = "= Array("
-		$b = "77, 90,"
-		$c = "33, 84, 104, 105, 115, 32, 112, 114, 111, 103, 114, 97, 109, 32, 99, 97, 110, 110, 111, 116, 32, 98, 101, 32, 114, 117, 110, 32, 105, 110, 32, 68, 79, 83, 32, 109, 111, 100, 101, 46,"
+		$a = "= Array(" // Array of bytes
+		$b = "77, 90," // MZ
+		$c = "33, 84, 104, 105, 115, 32, 112, 114, 111, 103, 114, 97, 109, 32, 99, 97, 110, 110, 111, 116, 32, 98, 101, 32, 114, 117, 110, 32, 105, 110, 32, 68, 79, 83, 32, 109, 111, 100, 101, 46," // !This program cannot be run in DOS mode.
 	
 	condition:
 	 	all of them
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_PowerPointMouse.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
+
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
+
+*/
 rule ppaction {
 
 meta:
@@ -1346,6 +1539,14 @@ $a
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_Suspicious_OLE_target.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
+
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as long as you use it under this license.
+*/
 
 rule Maldoc_Suspicious_OLE_target {
   meta:
@@ -1361,6 +1562,17 @@ rule Maldoc_Suspicious_OLE_target {
   condition:
     any of them
 }
+
+
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_UserForm.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
+
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
+
+*/
 
 
 rule Contains_UserForm_Object
@@ -1382,8 +1594,27 @@ rule Contains_UserForm_Object
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_Contains_VBE_File.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
 
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
 
+*/
+
+/*
+  Version 0.0.1 2016/03/21
+  Source code put in public domain by Didier Stevens, no Copyright
+  https://DidierStevens.com
+  Use at your own risk
+
+  Shortcomings, or todo's ;-) :
+
+  History:
+    2016/03/21: start
+*/
 
 rule Contains_VBE_File : maldoc
 {
@@ -1398,8 +1629,15 @@ rule Contains_VBE_File : maldoc
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_MIME_ActiveMime_b64.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
 
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
 
+*/
 
 rule MIME_MSO_ActiveMime_base64 : maldoc
 {
@@ -1420,6 +1658,15 @@ rule MIME_MSO_ActiveMime_base64 : maldoc
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_malrtf_ole2link.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
+
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
+
+*/
 rule malrtf_ole2link : exploit
 {
 	meta:
@@ -1427,22 +1674,46 @@ rule malrtf_ole2link : exploit
 		description = "Detect weaponized RTF documents with OLE2Link exploit"
 
 	strings:
+		//normal rtf beginning
 		$rtf_format_00 = "{\\rtf1"
+		//malformed rtf can have for example {\\rtA1
 		$rtf_format_01 = "{\\rt"
+
+		//having objdata structure
 		$rtf_olelink_01 = "\\objdata" nocase
+
+		//hex encoded OLE2Link
 		$rtf_olelink_02 = "4f4c45324c696e6b" nocase
+
+		//hex encoded docfile magic - doc file albilae
 		$rtf_olelink_03 = "d0cf11e0a1b11ae1" nocase
+
+		//hex encoded "http://"
 		$rtf_payload_01 = "68007400740070003a002f002f00" nocase
+
+		//hex encoded "https://"
 		$rtf_payload_02 = "680074007400700073003a002f002f00" nocase
+
+		//hex encoded "ftp://"
 		$rtf_payload_03 = "6600740070003a002f002f00" nocase
 
 
 	condition:
+		//new_file and
 		any of ($rtf_format_*)
 		and all of ($rtf_olelink_*)
 		and any of ($rtf_payload_*)
 }
 
+
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_Word_2007_XML_Flat_OPC.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
+
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as long as you use it under this license.
+*/
 
 rule Word_2007_XML_Flat_OPC : maldoc
 {
@@ -1457,18 +1728,26 @@ rule Word_2007_XML_Flat_OPC : maldoc
 		filetype = "Office documents"
 		
 	strings:
-		$xml = "<?xml" 
-		$WordML = "<?mso-application progid=\"Word.Document\"?>" 
-		$OPC = "<pkg:package" 
-		$xmlns = "http://schemas.microsoft.com/office/2006/xmlPackage" 
-		$binaryData = "<pkg:binaryData>0M8R4KGxGuE" 
-		$docm = "pkg:name=\"/word/vbaProject.bin\"" 
+		$xml = "<?xml" // XML declaration
+		$WordML = "<?mso-application progid=\"Word.Document\"?>" // XML processing instruction => A Windows OS with Microsoft Office installed will recognize the file as a MS Word document.
+		$OPC = "<pkg:package" // Open XML Package
+		$xmlns = "http://schemas.microsoft.com/office/2006/xmlPackage" // XML namespace => Microsoft Office 2007 XML Schema Reference
+		$binaryData = "<pkg:binaryData>0M8R4KGxGuE" // Binary Part (Microsoft Office 2007+ document encoded in a Base64 string, broken into lines of 76 characters) => D0 CF 11 E0 A1 B1 1A E1 (vbaProject.bin / DOCM)
+		$docm = "pkg:name=\"/word/vbaProject.bin\"" // Binary Object
 		
 	condition:
 	 	$xml at 0 and $WordML and $OPC and $xmlns and $binaryData and $docm
 }
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_CVE-2017-0199.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
 
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
+
+*/
 rule rtf_objdata_urlmoniker_http {
 meta:
 	ref = "https://blog.nviso.be/2017/04/12/analysis-of-a-cve-2017-0199-malicious-rtf-document/"
@@ -1481,6 +1760,15 @@ meta:
  $header at 0 and $objdata and $urlmoniker and $http
  }
 
+
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_CVE_2017_11882.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
+
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as long as you use it under this license.
+*/
 
 rule Maldoc_CVE_2017_11882 : Exploit {
     meta:
@@ -1499,7 +1787,22 @@ rule Maldoc_CVE_2017_11882 : Exploit {
 }
 
 
+/* ──────────────────────────────────────────────────────────────────
+   Source: yara-rules-old/maldocs/Maldoc_CVE_2017_8759.yar
+   License: GPL-2.0
+   ────────────────────────────────────────────────────────────────── */
 
+/*
+    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
+
+*/
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2017-09-14
+   Identifier: Detects malicious files in releation with CVE-2017-8759
+   Reference: https://github.com/Voulnet/CVE-2017-8759-Exploit-sample
+*/
 
 private rule RTFFILE {
    meta:
@@ -1508,6 +1811,7 @@ private rule RTFFILE {
       uint32be(0) == 0x7B5C7274
 }
 
+/* Rule Set ----------------------------------------------------------------- */
 
 rule CVE_2017_8759_Mal_HTA {
    meta:

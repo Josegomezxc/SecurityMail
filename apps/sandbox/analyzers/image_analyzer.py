@@ -1,4 +1,15 @@
+"""
+Analizador de imágenes — detecta amenazas en formatos gráficos.
 
+Cobertura: JPEG, PNG, GIF, BMP, WebP, TIFF, ICO, SVG.
+
+Detecciones:
+  • SVG: <script>, event handlers, <foreignObject>, data:text/javascript, referencias externas
+  • Estructural: dimensiones inválidas (0, negativo, extremo), archivo corrupto/truncado
+  • Datos extra: bytes después del marcador de fin de imagen (posible stego)
+  • Metadatos: EXIF con campos sospechosos (muy largos, software raro)
+  • Tamaño anómalo: archivo demasiado grande para sus dimensiones
+"""
 import os
 import struct
 import re
@@ -14,6 +25,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
     if raw is None:
         return result
 
+    # ── 1. Validación estructural básica ──────────────────────────────
     _check_magic_bytes(raw, ext, result)
     dims = _parse_dimensions(raw, ext)
     if dims:
@@ -26,15 +38,15 @@ def analyze(filepath: str, mime: str = "") -> dict:
             ))
             result["score"] = max(result["score"], 20)
 
-
+    # ── 2. SVG-specific checks ────────────────────────────────────────
     if ext == ".svg":
         _analyze_svg(raw, result)
 
-    
+    # ── 3. Metadatos EXIF (JPEG, TIFF, WebP) ──────────────────────────
     if ext in (".jpg", ".jpeg", ".tiff", ".tif", ".webp"):
         _analyze_exif(filepath, result)
 
-    
+    # ── 4. Datos extra después del marcador de fin ────────────────────
     extra = _check_trailing_data(raw, ext)
     if extra:
         result["evidence"].append(evidence(
@@ -44,6 +56,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
         ))
         result["score"] = max(result["score"], min(50, 10 + len(extra) // 1024))
 
+    # ── 5. Threat name ────────────────────────────────────────────────
     if result["score"] >= 80:
         result["threat"] = "Imagen maliciosa"
     elif result["score"] >= 60:
@@ -54,7 +67,9 @@ def analyze(filepath: str, mime: str = "") -> dict:
     return result
 
 
-
+# ═══════════════════════════════════════════════════════════════════════
+#  Magic bytes por formato
+# ═══════════════════════════════════════════════════════════════════════
 
 MAGIC = {
     ".jpg":  (b"\xff\xd8\xff",       "JPEG"),
@@ -68,20 +83,27 @@ MAGIC = {
     ".ico":  (b"\x00\x00\x01\x00",    "ICO"),
 }
 
+# Marcadores de fin de imagen por formato
 END_MARKERS = {
-    ".jpg":  b"\xff\xd9",           
+    ".jpg":  b"\xff\xd9",           # EOI (End of Image)
     ".jpeg": b"\xff\xd9",
-    ".png":  b"\x49\x45\x4e\x44",  
-    ".gif":  b"\x00\x3b",           
-    ".bmp":  None,                   
+    ".png":  b"\x49\x45\x4e\x44",   # IEND chunk
+    ".gif":  b"\x00\x3b",           # GIF trailer
+    ".bmp":  None,                   # no marcador fijo
     ".webp": None,
     ".tiff": None,
     ".tif":  None,
     ".ico":  None,
 }
 
+# Rangos de dimensión válidos (ancho/alto)
 MIN_DIM = 1
 MAX_DIM = 100000
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  Helpers de lectura
+# ═══════════════════════════════════════════════════════════════════════
 
 def _safe_read(filepath: str, limit: int = 50 * 1024 * 1024) -> Optional[bytes]:
     try:
@@ -93,6 +115,10 @@ def _safe_read(filepath: str, limit: int = 50 * 1024 * 1024) -> Optional[bytes]:
     except Exception:
         return None
 
+
+# ═══════════════════════════════════════════════════════════════════════
+#  1. Magic bytes
+# ═══════════════════════════════════════════════════════════════════════
 
 def _check_magic_bytes(raw: bytes, ext: str, result: dict):
     expected = MAGIC.get(ext)
@@ -111,6 +137,9 @@ def _check_magic_bytes(raw: bytes, ext: str, result: dict):
             result["score"] = max(result["score"], 40)
 
 
+# ═══════════════════════════════════════════════════════════════════════
+#  2. Dimensiones
+# ═══════════════════════════════════════════════════════════════════════
 
 def _parse_dimensions(raw: bytes, ext: str) -> Optional[tuple]:
     try:
@@ -134,6 +163,7 @@ def _parse_dimensions(raw: bytes, ext: str) -> Optional[tuple]:
 
 
 def _jpg_dims(raw: bytes) -> Optional[tuple]:
+    """Lee dimensiones desde el marco SOF0 (Start of Frame)."""
     i = 2
     while i < len(raw) - 1:
         if raw[i] != 0xff:
@@ -188,6 +218,7 @@ def _webp_dims(raw: bytes) -> Optional[tuple]:
         return None
     fmt = raw[12:16]
     if fmt == b"VP8 " and len(raw) >= 26:
+        # VP8 keyframe
         w = struct.unpack("<H", raw[24:26])[0] & 0x3fff
         h = struct.unpack("<H", raw[26:28])[0] & 0x3fff
         return (w, h)
@@ -259,6 +290,7 @@ def _check_dimensions(dims: tuple, result: dict):
 
 
 def _check_size_vs_dimensions(filepath: str, dims: tuple, result: dict):
+    """Detecta tamaño anómalo (posible stego: archivo muy grande para su resolución)."""
     try:
         size = os.path.getsize(filepath)
         w, h = dims
@@ -277,7 +309,9 @@ def _check_size_vs_dimensions(filepath: str, dims: tuple, result: dict):
         pass
 
 
-
+# ═══════════════════════════════════════════════════════════════════════
+#  3. SVG analysis
+# ═══════════════════════════════════════════════════════════════════════
 
 SVG_PATTERNS = [
     (re.compile(rb'<script[\s>]', re.IGNORECASE), 85, "image_svg_script", "SVG con <script> — JavaScript embebido"),
@@ -299,7 +333,9 @@ def _analyze_svg(raw: bytes, result: dict):
             result["score"] = max(result["score"], severity)
 
 
-
+# ═══════════════════════════════════════════════════════════════════════
+#  4. EXIF metadata analysis (JPEG, TIFF, WebP)
+# ═══════════════════════════════════════════════════════════════════════
 
 def _analyze_exif(filepath: str, result: dict):
     try:
@@ -317,6 +353,7 @@ def _analyze_exif(filepath: str, result: dict):
     if not exif:
         return
 
+    # Revisar campos EXIF sospechosos
     for tag_id, value in exif.items():
         tag_name = TAGS.get(tag_id, str(tag_id))
         val_str = str(value)
@@ -353,6 +390,9 @@ def _analyze_exif(filepath: str, result: dict):
     img.close()
 
 
+# ═══════════════════════════════════════════════════════════════════════
+#  5. Trailing data after end marker
+# ═══════════════════════════════════════════════════════════════════════
 
 def _check_trailing_data(raw: bytes, ext: str) -> Optional[bytes]:
     marker = END_MARKERS.get(ext)

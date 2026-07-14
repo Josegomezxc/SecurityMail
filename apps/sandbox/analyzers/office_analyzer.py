@@ -1,7 +1,11 @@
-
+"""
+Analizador de documentos Office (Word/Excel/PowerPoint, formatos OLE y OOXML).
+Detecta macros VBA, auto-execute, OLE objects, IOCs (URLs/IPs/comandos).
+"""
 import re
 from .base import empty_result, evidence
 
+# Palabras clave VBA típicas de macros maliciosas
 VBA_AUTO_EXEC = {
     "AutoOpen":           ("Auto-ejecuta al abrir el documento", 80),
     "Auto_Open":          ("Auto-ejecuta al abrir el documento", 80),
@@ -16,6 +20,7 @@ VBA_AUTO_EXEC = {
     "Worksheet_Activate": ("Auto-ejecuta al activar la hoja", 70),
 }
 
+# APIs y comandos peligrosos invocables desde VBA
 VBA_DANGEROUS = {
     "Shell":              ("Ejecuta comandos del sistema",                 80),
     "WScript.Shell":      ("Acceso a Windows Script Host (shell)",          80),
@@ -44,6 +49,7 @@ VBA_DANGEROUS = {
 def analyze(filepath: str, mime: str = "") -> dict:
     result = empty_result("office")
 
+    # Intento principal: oletools
     try:
         from oletools.olevba import VBA_Parser, TYPE_OLE, TYPE_OpenXML, TYPE_Word2003_XML, TYPE_MHTML
     except Exception as e:
@@ -73,6 +79,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
     ))
 
     if not vba.detect_vba_macros():
+        # Documento sin macros — riesgo bajo, pero igual buscamos OLE objects
         _scan_ole_objects(vba, result)
         try:
             vba.close()
@@ -80,6 +87,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
             pass
         return result
 
+    # Hay macros — riesgo base
     result["evidence"].append(evidence("vba_macros", "Macros VBA detectadas", 60))
     result["score"] = max(result["score"], 60)
     result["threat"] = "Documento Office con macros"
@@ -91,6 +99,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
                 continue
             all_macro_code += "\n" + vba_code
 
+            # Comprueba auto-execute
             for kw, (detail, sev) in VBA_AUTO_EXEC.items():
                 if kw in vba_code:
                     result["evidence"].append(evidence(
@@ -99,6 +108,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
                     result["score"] = max(result["score"], sev)
                     result["threat"] = "Macro VBA con auto-ejecución"
 
+            # Comprueba APIs peligrosas
             for kw, (detail, sev) in VBA_DANGEROUS.items():
                 if kw in vba_code:
                     result["evidence"].append(evidence(
@@ -111,6 +121,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
             "vba_extract_error", f"Error al extraer macros: {e}", 50,
         ))
 
+    # Reusa el detector de mraptt de oletools si está disponible
     try:
         results = vba.analyze_macros()
         for kw_type, keyword, description in results[:25]:
@@ -125,6 +136,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
     except Exception:
         pass
 
+    # Extrae IOCs (URLs / IPs) de las macros
     if all_macro_code:
         urls = re.findall(r'https?://[^\s"\'<>)]+', all_macro_code)
         ips = re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', all_macro_code)
@@ -148,6 +160,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
 
 
 def _scan_ole_objects(vba, result: dict) -> None:
+    """Busca OLE objects embebidos (común para esconder ejecutables)."""
     try:
         ole_objs = vba.get_olestreams()
         if ole_objs and len(ole_objs) > 0:
@@ -161,9 +174,10 @@ def _scan_ole_objects(vba, result: dict) -> None:
 
 
 def _fallback_string_scan(filepath: str, result: dict) -> dict:
+    """Si oletools falla, busca patrones sospechosos a nivel de bytes."""
     try:
         with open(filepath, "rb") as f:
-            data = f.read(5 * 1024 * 1024)
+            data = f.read(5 * 1024 * 1024)            # primeros 5 MB
     except Exception:
         return result
 

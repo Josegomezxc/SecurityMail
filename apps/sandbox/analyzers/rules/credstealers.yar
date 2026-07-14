@@ -1,4 +1,22 @@
+/*
+   ════════════════════════════════════════════════════════════════════
+   credstealers.yar — Bankers, info-stealers, RATs y trojanos
+   ════════════════════════════════════════════════════════════════════
 
+   Cubre familias que llegan por correo y roban credenciales o
+   establecen acceso remoto: Emotet, Trickbot, IcedID, GuLoader,
+   ZLoader, HawkEye, Crimson RAT, etc.
+
+   Fuentes:
+     • signature-base (Neo23x0/Florian Roth) — CC BY-NC 4.0
+
+   Importado: 2026-05-17
+   ════════════════════════════════════════════════════════════════════
+*/
+
+
+
+/* ── Source: signature-base/crime_emotet.yar — CC BY-NC 4.0 ── */
 
 
 rule MAL_Emotet_JS_Dropper_Oct19_1 {
@@ -86,15 +104,20 @@ rule EXT_MAL_SystemBC_Mar22_1 {
         $sx1 = "-WindowStyle Hidden -ep bypass -file" ascii
         $sx2 = "BEGINDATA" ascii
         $sx3 = "GET %s HTTP/1.0" ascii
-
+        /*
+        $s1 = "TOR:" ascii
+        $s2 = "PORT1:" ascii
+        $s3 = "HOST1:" ascii 
+        */
         $s5 = "User-Agent:" ascii
+        /* $s6 = "powershell" ascii */
         $s8 = "ALLUSERSPROFILE" ascii
     condition:
         ( uint16(0) == 0x5a4d and filesize < 30KB and 2 of ($sx*) ) or all of them
 }
 
 
-
+/* ── Source: signature-base/crime_trickbot.yar — CC BY-NC 4.0 ── */
 
 import "pe"
 
@@ -213,6 +236,7 @@ rule MAL_Trickbot_Oct19_6 {
 }
 
 
+/* ── Source: signature-base/crime_icedid.yar — CC BY-NC 4.0 ── */
 
 rule MAL_IcedID_Fake_GZIP_Bokbot_202104 {
    meta:
@@ -310,6 +334,8 @@ rule MAL_IceId_Core_202104 {
 }
 
 
+/* ── Source: signature-base/crime_guloader.yar — CC BY-NC 4.0 ── */
+
 
 rule MAL_crime_win32_loader_guloader_1_experimental {
    meta:
@@ -327,6 +353,7 @@ rule MAL_crime_win32_loader_guloader_1_experimental {
 }
 
 
+/* ── Source: signature-base/crime_zloader_maldocs.yar — CC BY-NC 4.0 ── */
 
 
 rule MAL_DOC_ZLoader_Oct20_1 {
@@ -352,6 +379,7 @@ rule MAL_DOC_ZLoader_Oct20_1 {
 }
 
 
+/* ── Source: signature-base/gen_hawkeye.yar — CC BY-NC 4.0 ── */
 
 
 rule HawkEye_Keylogger_Feb18_1 {
@@ -389,6 +417,7 @@ rule MAL_HawkEye_Keylogger_Gen_Dec18 {
 }
 
 
+/* ── Source: signature-base/crime_credstealer_generic.yar — CC BY-NC 4.0 ── */
 
 
 rule CredentialStealer_Generic_Backdoor {
@@ -416,7 +445,10 @@ rule CredentialStealer_Generic_Backdoor {
 }
 
 
+/* ── Source: signature-base/crime_malware_generic.yar — CC BY-NC 4.0 ── */
 
+
+/* Malware ----------------------------------------------------------------- */
 
 rule TrojanDownloader {
 	meta:
@@ -457,9 +489,16 @@ rule TrojanDownloader {
 		$x1 and $x2 and ( all of ($s*) ) and filesize < 35000
 }
 
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2017-08-01
+   Identifier: IsmDoor
+   Reference: https://twitter.com/Voulnet/status/892104753295110145
+   License: http://creativecommons.org/licenses/by-nc-sa/4.0/
+*/
 
-
-
+/* Rule Set ----------------------------------------------------------------- */
 
 rule IsmDoor_Jul17_A2 {
    meta:
@@ -520,8 +559,17 @@ rule MAL_unspecified_Jan18_1 {
 }
 
 
+/* ── Source: signature-base/gen_crimson_rat.yar — CC BY-NC 4.0 ── */
 
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2018-03-06
+   Identifier: CrimsonRAT
+   Reference: Internal Research
+*/
 
+/* Rule Set ----------------------------------------------------------------- */
 
 rule CrimsonRAT_Mar18_1 {
    meta:

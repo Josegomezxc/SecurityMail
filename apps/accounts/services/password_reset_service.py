@@ -1,4 +1,12 @@
+"""
+Lógica de recuperación de contraseña:
+  - create_token(user, ip)      → genera un token y lo guarda en BD.
+  - get_valid_token(token_str)  → valida un token recibido por URL.
+  - send_reset_email(user, t)   → envía el correo HTML con el link.
+  - invalidate_other_tokens     → marca como usados los demás tokens del user.
 
+Todas las expiraciones están en UTC (USE_TZ=True en settings).
+"""
 import secrets
 from datetime import timedelta
 from typing import Optional, Tuple
@@ -11,13 +19,17 @@ from apps.core.services.email_service import send_email, get_site_url
 
 
 TOKEN_VALIDITY_HOURS = 24
-TOKEN_BYTES          = 32 
+TOKEN_BYTES          = 32  # → 43 caracteres en base64-url
 
+# Rate limit: máximo de tokens que un usuario puede pedir por hora
 MAX_TOKENS_PER_HOUR = 5
 
 
 def create_token(user: User, ip: Optional[str] = None) -> Optional[PasswordResetToken]:
-
+    """
+    Genera un token nuevo y lo guarda. Devuelve None si el usuario ha
+    superado el rate limit (demasiados tokens en la última hora).
+    """
     last_hour = timezone.now() - timedelta(hours=1)
     recent_count = PasswordResetToken.objects.filter(
         user=user, created_at__gte=last_hour,
@@ -35,7 +47,7 @@ def create_token(user: User, ip: Optional[str] = None) -> Optional[PasswordReset
 
 
 def get_valid_token(token_str: str) -> Optional[PasswordResetToken]:
-
+    """Devuelve el token si existe y sigue siendo válido. None en caso contrario."""
     if not token_str or len(token_str) > 64:
         return None
     try:
@@ -46,7 +58,7 @@ def get_valid_token(token_str: str) -> Optional[PasswordResetToken]:
 
 
 def invalidate_other_tokens(user: User, except_pk: Optional[int] = None):
-
+    """Marca como usados los demás tokens activos del mismo usuario."""
     qs = PasswordResetToken.objects.filter(user=user, used_at__isnull=True)
     if except_pk is not None:
         qs = qs.exclude(pk=except_pk)
@@ -54,7 +66,7 @@ def invalidate_other_tokens(user: User, except_pk: Optional[int] = None):
 
 
 def send_reset_email(user: User, token: PasswordResetToken) -> Tuple[bool, str]:
-
+    """Envía el correo HTML con el link de recuperación."""
     base_url  = get_site_url()
     reset_url = f"{base_url}/reset-password/{token.token}/"
     expires   = token.expires_at.strftime('%d/%m/%Y · %H:%M UTC')
@@ -67,13 +79,18 @@ def send_reset_email(user: User, token: PasswordResetToken) -> Tuple[bool, str]:
     )
 
 
+# ─────────────────────────────────────────────────────────────────────
+#  Plantilla HTML del correo
+# ─────────────────────────────────────────────────────────────────────
 
 def _build_reset_email_html(user, reset_url: str, expires: str, token_short: str) -> str:
     from apps.core.services.email_service import get_site_url
     display_name = (user.first_name or user.email or 'Usuario').strip()
     logo_url = f"{get_site_url()}/static/core/img/logo-dark-card.png"
 
-
+    # Email HTML — diseño profesional basado en tables (máx compat con Gmail,
+    # Outlook, iOS Mail, etc.) + estilos 100% inline (muchos clientes strippean
+    # <style>). Sin JavaScript, sin SVG, sin fuentes externas.
     return f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="es">
 <head>

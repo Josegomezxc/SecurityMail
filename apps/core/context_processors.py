@@ -1,3 +1,4 @@
+# apps/core/context_processors.py
 
 import time
 
@@ -8,7 +9,7 @@ from apps.sandbox.models import SandboxAnalysis
 from apps.accounts.models import AccountRecoveryRequest
 from apps.accounts.services.profile_service import get_user_initials, get_user_color
 
-CACHE_TTL = 30  
+CACHE_TTL = 30  # segundos
 
 
 def _get_cached_counts(request):
@@ -26,7 +27,12 @@ def _set_cached_counts(request, data):
 
 
 def sidebar_counts(request):
-
+    """
+    Inyecta los contadores del sidebar en TODOS los templates automáticamente.
+    Se registra en settings.py → TEMPLATES → OPTIONS → context_processors.
+    Los conteos se cachean 30s en el objeto request.user para no repetir
+    queries en cada página.
+    """
     if not request.user.is_authenticated:
         return {
             'alias_count':         0,
@@ -46,12 +52,14 @@ def sidebar_counts(request):
 
     user = request.user
 
-
+    # Alias activos: siempre frescos (1 query pequeña, no se cachea en sesión
+    # porque los objetos Alias no son serializables).
     active_aliases = list(
         Alias.objects.filter(user=user, is_active=True).order_by('-created_at')
     )
     alias_count = len(active_aliases)
 
+    # Cache: solo los conteos (enteros) se cachean 30s en sesión.
     cached = _get_cached_counts(request)
     if cached is not None:
         return {

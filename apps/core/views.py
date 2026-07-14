@@ -1,4 +1,16 @@
+"""
+Vistas del panel de administración (solo `is_staff=True`).
 
+Vive en `apps.core` porque cruza dominios (usuarios + alias + correos
++ amenazas) — no pertenece exclusivamente a una sola app.
+
+Incluye:
+  - Dashboard global (stats del sistema completo).
+  - Lista de usuarios con stats por usuario.
+  - Detalle de un usuario.
+  - Promover/degradar a admin.
+  - Vista global de amenazas y alias.
+"""
 from urllib.parse import urlencode
 
 from django.contrib.auth.models import User
@@ -19,23 +31,25 @@ from apps.accounts.services.auth_service import admin_required
 from apps.core.services.stats_service import admin_global_stats
 
 
+# Items por página en las listas paginadas del admin.
 ADMIN_PAGE_SIZE  = 6
-ADMIN_REQ_BATCH  = 6  
+ADMIN_REQ_BATCH  = 6   # solicitudes de cupo (load-more)
 
 
 def _admin_qs_params(request, exclude=('page',)):
-
+    """Preserva los query params actuales (excepto los excluidos) al paginar."""
     params = {k: v for k, v in request.GET.items() if k not in exclude and v}
     return urlencode(params)
 
 
 @admin_required
 def admin_dashboard_view(request):
+    """Panel global — estadísticas agregadas del sistema entero."""
     from apps.core.services.stats_service import activity_data_for_user
 
     stats = admin_global_stats()
 
-    period = 'semanal'
+    period = 'diario'
     activity_data, range_label = activity_data_for_user(None, period)
 
     top_users = (
@@ -67,18 +81,25 @@ def admin_dashboard_view(request):
 
 @admin_required
 def admin_activity_api(request):
-
+    """GET ?period=diario|semanal|mensual|anual → JSON con actividad global."""
     from apps.core.services.stats_service import activity_data_for_user
-    period = request.GET.get('period', 'semanal')
+    period = request.GET.get('period', 'diario')
     if period not in ('diario', 'semanal', 'mensual', 'anual'):
-        period = 'semanal'
+        period = 'diario'
     data, label = activity_data_for_user(None, period)
     return JsonResponse({'activity_data': data, 'range_label': label})
 
 
 @admin_required
 def admin_users_view(request):
+    """
+    Lista de usuarios paginada server-side.
 
+    Query params:
+      ?q=<texto>     busca en email / first_name / username
+      ?role=<r>      all | admin | user | threats
+      ?page=<n>      paginación (ADMIN_PAGE_SIZE)
+    """
     base_qs = (
         User.objects.annotate(
             aliases_count = Count('aliases', distinct=True),
@@ -91,6 +112,7 @@ def admin_users_view(request):
         )
     )
 
+    # Contadores GLOBALES (sobre todo el universo de usuarios)
     counts = {
         'all':     base_qs.count(),
         'admin':   base_qs.filter(is_staff=True).count(),
@@ -100,7 +122,7 @@ def admin_users_view(request):
 
     qs = base_qs
 
-
+    # ── Filtro por rol ─────────────────────────────────────────────────
     role = (request.GET.get('role') or 'all').strip().lower()
     if role == 'admin':
         qs = qs.filter(is_staff=True)
@@ -111,7 +133,7 @@ def admin_users_view(request):
     else:
         role = 'all'
 
-
+    # ── Búsqueda libre ─────────────────────────────────────────────────
     q = (request.GET.get('q') or '').strip()
     if q:
         qs = qs.filter(
@@ -138,6 +160,7 @@ def admin_users_view(request):
 @admin_required
 @require_POST
 def admin_toggle_staff(request, pk):
+    """Promueve o degrada a administrador a un usuario específico."""
     target = get_object_or_404(User, pk=pk)
 
     if target == request.user:
@@ -148,7 +171,7 @@ def admin_toggle_staff(request, pk):
         role = "administrador" if target.is_staff else "usuario normal"
         messages.success(request, f"{target.email} ahora es {role}.")
 
-
+    # Redirige según origen: tabla de usuarios → a la lista, detalle → al detalle
     referer = request.META.get('HTTP_REFERER', '')
     if '/admin-panel/usuario/' in referer:
         return redirect('admin_user_detail', pk=target.pk)
@@ -158,7 +181,13 @@ def admin_toggle_staff(request, pk):
 @admin_required
 @require_POST
 def admin_toggle_alias(request, pk):
+    """
+    Permite al admin DESACTIVAR (o reactivar) un alias de cualquier usuario.
 
+    Útil cuando un alias se está usando para spam o el dueño lo abandonó.
+    No borra el alias — solo lo marca como inactivo (la dirección queda
+    bloqueada en BD para que jamás pueda regenerarse).
+    """
     alias = get_object_or_404(Alias, pk=pk)
     target_id = alias.user_id
 
@@ -184,7 +213,14 @@ def admin_toggle_alias(request, pk):
 
 @admin_required
 def admin_threats_view(request):
+    """
+    Vista global de amenazas (score ≥ 61) paginada server-side.
 
+    Query params:
+      ?q=<texto>     busca en remitente / asunto / alias / email del usuario
+      ?level=<l>     all | critical (≥81) | high (61-80)
+      ?page=<n>      paginación (ADMIN_PAGE_SIZE)
+    """
     qs = EmailMessage.objects.filter(risk_score__gte=61).select_related(
         'alias', 'alias__user', 'analysis',
     ).order_by('-received_at')
@@ -204,7 +240,7 @@ def admin_threats_view(request):
             Q(alias__user__email__icontains=q)
         )
 
-    
+    # Stats del hero (sobre el base sin filtros, totales reales)
     from datetime import timedelta
     base = EmailMessage.objects.filter(risk_score__gte=61)
     total_threats   = base.count()
@@ -217,19 +253,21 @@ def admin_threats_view(request):
     paginator = Paginator(qs, ADMIN_PAGE_SIZE)
     page_obj  = paginator.get_page(request.GET.get('page'))
 
+    # Formato compacto para la columna "Recibido" — "23m", "23h", "1d", "4sem".
+    # Usamos UNA sola unidad (la mayor que aplique), sin combinar h+m ni d+h.
     _now = timezone.now()
     for t in page_obj.object_list:
         delta = _now - t.received_at
         secs  = int(delta.total_seconds())
         if secs < 60:
             t.time_short = 'ahora'
-        elif secs < 3600:                       
+        elif secs < 3600:                       # < 1 h  → "23m"
             t.time_short = f'{secs // 60}m'
-        elif secs < 86400:                      
+        elif secs < 86400:                      # < 1 d  → "23h"
             t.time_short = f'{secs // 3600}h'
-        elif secs < 86400 * 7:                 
+        elif secs < 86400 * 7:                  # < 1 sem → "6d"
             t.time_short = f'{secs // 86400}d'
-        else:                                   
+        else:                                    # ≥ 1 sem → "4sem"
             t.time_short = f'{secs // (86400 * 7)}sem'
 
     return render(request, 'core/admin_threats.html', {
@@ -247,11 +285,16 @@ def admin_threats_view(request):
 
 @admin_required
 def admin_aliases_view(request):
+    """
+    Vista global de TODOS los alias del sistema. Permite al admin ver
+    todo lo registrado, con búsqueda y filtros por estado.
+    """
     qs = Alias.objects.select_related('user').annotate(
         emails_total  = Count('emails'),
         threats_total = Count('emails', filter=Q(emails__risk_score__gte=61)),
     ).order_by('-created_at')
 
+    # Filtro por estado
     state = (request.GET.get('state') or '').strip()
     if state == 'active':
         qs = qs.filter(is_active=True)
@@ -260,7 +303,7 @@ def admin_aliases_view(request):
     elif state == 'with_threats':
         qs = qs.filter(threats_total__gt=0)
 
-    
+    # Búsqueda
     q = (request.GET.get('q') or '').strip()
     if q:
         qs = qs.filter(
@@ -269,7 +312,7 @@ def admin_aliases_view(request):
             Q(user__email__icontains=q)
         )
 
-    
+    # Stats del header (totales sin filtros)
     base = Alias.objects.all()
     total_count       = base.count()
     active_count      = base.filter(is_active=True).count()
@@ -293,7 +336,7 @@ def admin_aliases_view(request):
 
 @admin_required
 def admin_user_detail_view(request, pk):
-
+    """Detalle de un usuario: sus aliases, correos recientes y amenazas."""
     target = get_object_or_404(User, pk=pk)
 
     aliases = (
@@ -312,7 +355,8 @@ def admin_user_detail_view(request, pk):
             .order_by('-received_at')[:15]
     )
 
-    
+    # Info para el editor de cupo de alias. quota_used cuenta TODOS los
+    # alias creados (activos + destruidos) porque el cupo no se recicla.
     target_quota_used     = Alias.objects.filter(user=target).count()
     target_quota_limit    = _user_alias_limit(target)
     target_quota_extra    = target.profile.alias_quota_extra if hasattr(target, 'profile') else 0
@@ -342,7 +386,16 @@ def admin_user_detail_view(request, pk):
 @admin_required
 @require_POST
 def admin_set_alias_quota(request, pk):
+    """
+    Permite al admin ajustar el cupo TOTAL de alias de un usuario (puede
+    subirlo o bajarlo). Internamente guardamos la diferencia respecto al
+    base global (ALIAS_LIMIT_PER_USER) en UserProfile.alias_quota_extra,
+    así si más adelante se aprueba/rechaza una solicitud, todo sigue
+    consistente.
 
+    POST:
+        new_limit  → entero entre 1 y 50 (cupo TOTAL deseado)
+    """
     target = get_object_or_404(User, pk=pk)
 
     if target.is_staff:
@@ -363,6 +416,7 @@ def admin_set_alias_quota(request, pk):
     profile.alias_quota_extra = new_limit - ALIAS_LIMIT_PER_USER
     profile.save(update_fields=['alias_quota_extra'])
 
+    # Notifica al usuario del cambio (solo si efectivamente cambió).
     if new_limit != old_limit:
         delta = new_limit - old_limit
         if delta > 0:
@@ -387,7 +441,12 @@ def admin_set_alias_quota(request, pk):
 @admin_required
 @require_POST
 def admin_toggle_alias_unlimited(request, pk):
-
+    """
+    Marca o desmarca al usuario como "alias sin límite". Cuando está
+    activado, el usuario puede crear alias sin tope (igual que un staff,
+    pero sin promoverlo a admin). El cupo numérico (alias_quota_extra)
+    queda pausado mientras esté activo — al desactivarlo vuelve a regir.
+    """
     target = get_object_or_404(User, pk=pk)
 
     if target.is_staff:
@@ -425,6 +484,17 @@ def admin_toggle_alias_unlimited(request, pk):
     return redirect('admin_user_detail', pk=pk)
 
 
+# ─────────────────────────────────────────────────────────────────────
+#  Handlers de error — renderizan páginas custom con la estética del
+#  proyecto. Los templates viven en `templates/` raíz (ver base_error.html).
+#  Django los invoca automáticamente cuando DEBUG=False; en DEBUG=True
+#  Django muestra su pantalla técnica, así que añadimos un catch-all en
+#  config/urls.py para igual capturar las URLs inválidas.
+#
+#  Solo 404 y 500 — el proyecto no renderiza 400 ni 403 como páginas
+#  (todos los errores de validación devuelven JSON desde endpoints AJAX,
+#  y el acceso denegado se maneja con redirects, no con pantallas).
+# ─────────────────────────────────────────────────────────────────────
 
 def page_not_found_view(request, exception=None):
     """404 — URL no encontrada (o catch-all del urls.py raíz)."""
@@ -446,6 +516,9 @@ def csrf_failure_view(request, reason=""):
     return render(request, '403.html', {'reason': reason}, status=403)
 
 
+# ─────────────────────────────────────────────────────────────────────
+#  ADMIN — Solicitudes de cupo de alias
+# ─────────────────────────────────────────────────────────────────────
 
 @admin_required
 def admin_alias_requests_view(request):
@@ -461,7 +534,7 @@ def admin_alias_requests_view(request):
         'user', 'user__profile', 'resolved_by',
     )
 
-
+    # Contadores GLOBALES (no dependen del filtro actual)
     counts = {
         'all':      base_qs.count(),
         'pending':  base_qs.filter(status='pending').count(),
@@ -485,7 +558,9 @@ def admin_alias_requests_view(request):
             Q(reason__icontains=q)
         )
 
-    
+    # Ordenamos: pending arriba (por created_at desc), después resueltas
+    # (por resolved_at o created_at desc). Lo hacemos en Python sobre el
+    # queryset paginado-pre-orden — luego paginamos el resultado.
     all_rows = list(qs)
     pending  = sorted(
         (r for r in all_rows if r.status == 'pending'),
@@ -500,6 +575,7 @@ def admin_alias_requests_view(request):
     paginator = Paginator(ordered, ADMIN_PAGE_SIZE)
     page_obj  = paginator.get_page(request.GET.get('page'))
 
+    # Tiempo corto ("23m", "23h", "1d", "4sem") para la columna "Tiempo"
     _now = timezone.now()
     for r in page_obj.object_list:
         ref = r.resolved_at or r.created_at
@@ -524,7 +600,14 @@ def admin_alias_requests_view(request):
 @admin_required
 @require_POST
 def admin_alias_request_resolve(request, pk):
-
+    """
+    Aprueba o rechaza una solicitud de cupo. El admin manda:
+        action       = 'approve' | 'reject'
+        granted      = entero (solo si approve; default = requested_amount)
+        admin_note   = texto opcional
+    Al aprobar: bumpea UserProfile.alias_quota_extra y notifica al usuario.
+    Al rechazar: marca rejected y notifica al usuario con la nota del admin.
+    """
     req = get_object_or_404(AliasQuotaRequest, pk=pk)
 
     if req.status != 'pending':
@@ -535,17 +618,20 @@ def admin_alias_request_resolve(request, pk):
     admin_note = (request.POST.get('admin_note') or '').strip()[:2000]
 
     if action == 'approve':
-
+        # Cuánto le concedemos. Por defecto, lo que pidió. El admin puede
+        # subir o bajar la cantidad en el formulario (1 a 10).
         try:
             granted = int(request.POST.get('granted') or req.requested_amount)
         except (TypeError, ValueError):
             granted = req.requested_amount
         granted = max(1, min(granted, 10))
 
-
+        # Bumpea el cupo extra del perfil del usuario.
         profile = req.user.profile
         profile.alias_quota_extra = (profile.alias_quota_extra or 0) + granted
         profile.save(update_fields=['alias_quota_extra'])
+
+        # Marca la solicitud como aprobada.
         req.status         = 'approved'
         req.granted_amount = granted
         req.admin_note     = admin_note
@@ -553,6 +639,10 @@ def admin_alias_request_resolve(request, pk):
         req.resolved_at    = timezone.now()
         req.save()
 
+        # Notifica al usuario (campana global). status='done' porque no
+        # requiere acción del usuario — solo es informativo.
+        # Separador '\n\n' entre mensaje del sistema y nota del admin para
+        # que el detalle los renderice como bloques distintos.
         msg_user = f"Tu solicitud fue aprobada: +{granted} alias adicionales."
         if admin_note:
             msg_user += f"\n\n{admin_note}"
@@ -572,7 +662,7 @@ def admin_alias_request_resolve(request, pk):
         req.resolved_at = timezone.now()
         req.save()
 
-        
+        # Notifica al usuario.
         msg_user = "Tu solicitud de más alias fue rechazada."
         if admin_note:
             msg_user += f"\n\n{admin_note}"
@@ -591,11 +681,16 @@ def admin_alias_request_resolve(request, pk):
     return redirect('admin_alias_requests')
 
 
-
+# ═════════════════════════════════════════════════════════════════════
+#  SOLICITUDES DE RECUPERACIÓN DE CUENTA BLOQUEADA — admin
+# ═════════════════════════════════════════════════════════════════════
 
 @admin_required
 def admin_account_recovery_requests_view(request):
-
+    """
+    Lista de solicitudes de recuperación de cuenta paginada server-side.
+    Mismo patrón visual y de filtros que admin_alias_requests.
+    """
     from apps.accounts.models import AccountRecoveryRequest
 
     base_qs = AccountRecoveryRequest.objects.select_related(
@@ -663,7 +758,15 @@ def admin_account_recovery_requests_view(request):
 @admin_required
 @require_POST
 def admin_account_recovery_request_resolve(request, pk):
+    """
+    Aprueba o rechaza una solicitud de recuperación de cuenta. Form params:
+        action      = 'approve' | 'reject'
+        admin_note  = texto opcional (notificación al usuario)
 
+    Al APROBAR: User.is_active = True, se limpian todos los campos de lock
+    del profile (failed attempts, temp lock, permanent lock).
+    Al RECHAZAR: la cuenta queda bloqueada. El usuario recibe notificación.
+    """
     from apps.accounts.models import AccountRecoveryRequest
     from apps.accounts.services.login_lock_service import unlock_user_after_recovery
 
@@ -697,7 +800,8 @@ def admin_account_recovery_request_resolve(request, pk):
             status='done',
         )
 
-
+        # Email al usuario avisando que su cuenta fue reactivada — no rompe
+        # el flujo si falla (la cuenta ya fue desbloqueada en BD).
         try:
             from apps.accounts.services.recovery_email_service import (
                 send_account_reactivated_email,

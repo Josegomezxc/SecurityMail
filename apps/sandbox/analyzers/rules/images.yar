@@ -1,4 +1,13 @@
+/*
+   images.yar — Reglas YARA para detección de amenazas en imágenes
+   (SVG, JPEG, PNG, GIF, BMP, WebP, TIFF, ICO)
 
+   Detecta:
+     • SVG con JavaScript/event handlers
+     • SVG con contenido MVG/PostScript (ImageTragick)
+     • SVG que referencia recursos externos
+     • Marcadores de exploits conocidos en imágenes
+*/
 
 rule IMG_SVG_ScriptTag {
 	meta:
@@ -126,9 +135,9 @@ rule IMG_Malformed_PNG_Chunks {
 		category = "image_exploit"
 	strings:
 		$png = { 89 50 4E 47 0D 0A 1A 0A }
-		$chunk_cArI = { 63 41 72 49 }  
-		$chunk_evil = { 65 76 69 6C }   
-		$extra_data = /[^\x00]{200,}$/  
+		$chunk_cArI = { 63 41 72 49 }   /* chunk no estándar sospechoso */
+		$chunk_evil = { 65 76 69 6C }   /* 'evil' en chunk */
+		$extra_data = /[^\x00]{200,}$/  /* datos largos al final del archivo */
 	condition:
 		$png at 0 and ($chunk_cArI or $chunk_evil or $extra_data)
 }

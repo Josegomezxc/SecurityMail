@@ -13,6 +13,7 @@ _UNICODE_CONTROL = re.compile(
 )
 
 _EVIDENCE_TYPE_LABELS = {
+    # ── Archive/compressed ──
     "archive_depth":         "Anidamiento",
     "zip_bomb":              "Zip bomb",
     "password_protected":    "Cifrado",
@@ -21,6 +22,7 @@ _EVIDENCE_TYPE_LABELS = {
     "archive_contents":      "Contenido",
     "dangerous_inside":      "Ejecutable embebido",
     "recurse_error":         "Error análisis interno",
+    # ── URL ──
     "url_parse_error":       "URL inválida",
     "url_credentials_in_url":"Credenciales en URL",
     "url_ip_host":           "URL con IP",
@@ -31,15 +33,20 @@ _EVIDENCE_TYPE_LABELS = {
     "url_excessive_length":  "URL extensa",
     "url_many_subdomains":   "Múltiples subdominios",
     "url_underscore_host":   "Guion bajo en host",
+    # ── YARA ──
     "yara_unavailable":      "YARA no disponible",
     "yara_no_rules":         "Sin reglas YARA",
     "yara_error":            "Error YARA",
+    # yara_* → "Regla YARA" (catch-all below)
+    # ── PDF ──
     "format":                "Formato",
     "pdf_pattern":           "Patrón PDF",
     "pdf_structure":         "Estructura PDF",
     "ioc_url":               "URL embebida",
+    # ── Script / LNK ──
     "script_pattern":        "Patrón script",
     "lnk_target":            "Acceso directo LNK",
+    # ── Office ──
     "oletools_missing":      "oletools no disponible",
     "office_parse_error":    "Error parseo Office",
     "vba_macros":            "Macros VBA",
@@ -48,6 +55,8 @@ _EVIDENCE_TYPE_LABELS = {
     "vba_extract_error":     "Error extracción VBA",
     "ole_objects":           "Objeto OLE",
     "string_match":          "Cadena sospechosa",
+    # olevba_* → "Análisis olevba" (catch-all below)
+    # ── Executable ──
     "binary":                "Binario",
     "pe_parse_error":        "Error parseo PE",
     "suspicious_import":     "API sospechosa",
@@ -55,6 +64,7 @@ _EVIDENCE_TYPE_LABELS = {
     "high_entropy":          "Alta entropía",
     "unsigned":              "Sin firma digital",
     "suspicious_string":     "Cadena sospechosa",
+    # ── Dynamic analysis ──
     "dynamic_timeout":       "Timeout ejecución",
     "dynamic_error":         "Error ejecución",
     "dynamic_network":       "Conexión de red",
@@ -66,7 +76,9 @@ _EVIDENCE_TYPE_LABELS = {
     "dynamic_chmod":         "Cambio permisos",
     "dynamic_stdout":        "Salida script",
     "dynamic_exit":          "Código salida",
+    # ── Obfuscation ──
     "obfuscation":           "Ofuscación",
+    # ── General ──
     "read_error":            "Error de lectura",
 }
 
@@ -92,7 +104,9 @@ def sanitize_text(value):
 
 
 _YARA_RULE_TRANSLATIONS = [
+    # 1) Underscores → espacios (primero para todo lo demás)
     (re.compile(r'_+'),                                      ' '),
+    # 2) Nombres completos compuestos (mejor traducción posible)
     (re.compile(r'^suspicious launch action\b', re.I),       'Acción de lanzamiento sospechosa'),
     (re.compile(r'^invalid trailer structure\b', re.I),      'Estructura de tráiler inválida'),
     (re.compile(r'^invalid xobject js\b', re.I),             'XObject JS inválido'),
@@ -211,6 +225,7 @@ _YARA_RULE_TRANSLATIONS = [
     (re.compile(r'^expl susp outlook cve 2023 23397', re.I), 'CVE-2023-23397 en Outlook'),
     (re.compile(r'^expl cve 2024 21413 microsoft outlook', re.I),'CVE-2024-21413 (Outlook RCE)'),
     (re.compile(r'^ext expl zth lnk exploit a\b', re.I),     'Exploit LNK'),
+    # ── Prefijos de severidad / tipo ──
     (re.compile(r'^suspicious ', re.I),                      'Sospechoso: '),
     (re.compile(r'^invalid ', re.I),                         'Inválido: '),
     (re.compile(r'^malicious ', re.I),                       'Malicioso: '),
@@ -219,6 +234,7 @@ _YARA_RULE_TRANSLATIONS = [
     (re.compile(r'^embedded ', re.I),                        'Embebido: '),
     (re.compile(r'^hidden ', re.I),                          'Oculto: '),
     (re.compile(r'^obfuscat\w+ ', re.I),                     'Ofuscado '),
+    # ── Prefijos de categoría ──
     (re.compile(r'^mal ', re.I),                             'Malware: '),
     (re.compile(r'^expl ', re.I),                            'Exploit: '),
     (re.compile(r'^susp ', re.I),                            'Sospechoso: '),
@@ -234,6 +250,7 @@ _YARA_RULE_TRANSLATIONS = [
     (re.compile(r'^jsp ', re.I),                             'JSP: '),
     (re.compile(r'^webshell ', re.I),                        'Webshell: '),
     (re.compile(r'^reflective ', re.I),                      'Reflectivo: '),
+    # ── CVE: CVE 2022 30190 → CVE-2022-30190 ──
     (re.compile(r'\bCVE (\d{4}) (\d{4,})\b'),               r'CVE-\1-\2'),
     (re.compile(r'\bCVE (\d{4}) (\d+) (\w+)\b'),            r'CVE-\1-\2 (\3)'),
 ]
@@ -244,6 +261,7 @@ _YARA_EVI_RE = re.compile(r"^YAR[EA]? `(.+?)`: (.+)$", re.DOTALL)
 
 @register.filter
 def format_evidence_detail(detail, ev_type):
+    """Sanitiza texto; si el tipo es YARA, extrae el nombre de regla y lo traduce."""
     detail = _UNICODE_CONTROL.sub("", str(detail))
     if str(ev_type).startswith("yara_"):
         m = _YARA_EVI_RE.match(detail)
@@ -266,8 +284,10 @@ def translate_yara_rule(value):
     if not value:
         return ""
     s = str(value).strip()
+    # Aplica cada traducción
     for pattern, replacement in _YARA_RULE_TRANSLATIONS:
         s = pattern.sub(replacement, s)
+    # Capitaliza primera letra y limpia espacios múltiples
     s = re.sub(r'\s+', ' ', s).strip()
     if s:
         s = s[0].upper() + s[1:]

@@ -1,3 +1,4 @@
+/* Confirmación bonita antes de desactivar/reactivar un alias del usuario. */
 document.addEventListener('submit', function (e) {
   var form = e.target.closest('.js-admin-toggle-alias');
   if (!form || form.dataset.confirmed === '1') return;
@@ -24,7 +25,13 @@ document.addEventListener('submit', function (e) {
 });
 
 
+/* ════════════════════════════════════════════════════════════════════
+   Cupo de alias — botones +/-, solo dígitos en el input, clamp al rango.
 
+   El input es type="text" + inputmode="numeric" (en vez de type="number")
+   para tener control TOTAL sobre lo que se puede teclear. Bloqueamos
+   letras, "e", "+", "-", ".", y todo lo que no sea 0-9.
+   ════════════════════════════════════════════════════════════════════ */
 
 function _quotaInputBounds(input) {
   var min = parseInt(input.dataset.min || input.min || '1', 10);
@@ -40,9 +47,11 @@ function adjQuota(delta) {
   input.value = String(Math.max(b.min, Math.min(b.max, v + delta)));
 }
 
-
+/* onkeydown: bloquea cualquier tecla que no sea dígito o tecla de control.
+   Devuelve false para cancelar el keypress en navegadores viejos. */
 function quotaOnlyDigits(e) {
-
+  /* Permitidas: dígitos 0-9 (top row + numpad), Backspace, Delete, Tab,
+     Escape, Enter, Home, End, flechas, copy/cut/paste con Ctrl. */
   var ctrl = e.ctrlKey || e.metaKey;
   var allowedKeys = [
     'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
@@ -50,12 +59,13 @@ function quotaOnlyDigits(e) {
   ];
   if (allowedKeys.indexOf(e.key) !== -1) return true;
   if (ctrl && ['a', 'c', 'v', 'x', 'z', 'A', 'C', 'V', 'X', 'Z'].indexOf(e.key) !== -1) return true;
+  /* Solo dígitos */
   if (/^[0-9]$/.test(e.key)) return true;
   e.preventDefault();
   return false;
 }
 
-
+/* onpaste: si el usuario pega texto, dejamos solo los dígitos. */
 function quotaOnPaste(e) {
   e.preventDefault();
   var data = (e.clipboardData || window.clipboardData).getData('text') || '';
@@ -66,20 +76,23 @@ function quotaOnPaste(e) {
   if (!isNaN(v)) input.value = String(Math.max(b.min, Math.min(b.max, v)));
 }
 
-
+/* Limpieza final al teclear (defensa adicional) + clamp suave al rango. */
 document.addEventListener('input', function (e) {
   if (e.target && e.target.id === 'newLimitInput') {
-
+    /* 1) quita cualquier carácter no dígito que se haya colado */
     var cleaned = (e.target.value || '').replace(/\D/g, '').slice(0, 3);
     if (cleaned !== e.target.value) e.target.value = cleaned;
-
+    /* 2) si supera el max, lo clampeamos. NO clampeamos al min mientras
+       teclea porque sería molesto (ej. quieren escribir "10" y al teclear
+       "1" les saltaría a "1" sin poder seguir si min=10). El submit del
+       backend ya valida y el blur también clampea. */
     var b = _quotaInputBounds(e.target);
     var v = parseInt(e.target.value, 10);
     if (!isNaN(v) && v > b.max) e.target.value = String(b.max);
   }
 });
 
-
+/* Al perder foco, clampeamos al mínimo si quedó vacío o por debajo. */
 document.addEventListener('blur', function (e) {
   if (e.target && e.target.id === 'newLimitInput') {
     var b = _quotaInputBounds(e.target);
@@ -90,6 +103,10 @@ document.addEventListener('blur', function (e) {
 }, true);
 
 
+/* ════════════════════════════════════════════════════════════════════
+   Toggle "alias ilimitados" — confirmación con confirmDialog antes de
+   conceder o retirar el acceso. Reutilizamos el modal global del proyecto.
+   ════════════════════════════════════════════════════════════════════ */
 document.addEventListener('submit', function (e) {
   var form = e.target.closest('.js-toggle-unlimited');
   if (!form || form.dataset.confirmed === '1') return;
@@ -100,7 +117,7 @@ document.addEventListener('submit', function (e) {
 
   var opts;
   if (action === 'enable') {
-    
+    /* Conceder — advertencia FUERTE (es un permiso elevado). */
     opts = {
       danger:      true,
       icon:        'warning',
@@ -113,7 +130,7 @@ document.addEventListener('submit', function (e) {
       cancelText:  'Cancelar',
     };
   } else {
-
+    /* Revocar — más suave, es la acción "segura". */
     opts = {
       danger:      false,
       icon:        'question',
@@ -141,7 +158,9 @@ document.addEventListener('submit', function (e) {
   });
 });
 
-
+/* ════════════════════════════════════════════════════════════════════
+   Promover / degradar admin en detalle — modal danger + loader.
+   ════════════════════════════════════════════════════════════════════ */
 document.addEventListener('submit', function (e) {
   var form = e.target.closest('form[action*="toggle-staff"]');
   if (!form || form.dataset.confirmed === '1') return;

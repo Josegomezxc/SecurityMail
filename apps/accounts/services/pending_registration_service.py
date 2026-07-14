@@ -1,4 +1,31 @@
+"""
+Servicio para el registro DIFERIDO: los datos del formulario y el código
+de verificación viven en `PendingRegistration`. El `auth_user` solo se
+crea cuando el dueño del buzón ingresa el código correcto.
 
+API pública:
+  - create_pending_registration(email, first_name, password)
+        Crea un pending nuevo + código + token. Invalida los anteriores
+        del mismo email. Devuelve la instancia o None si hay rate limit.
+
+  - get_valid_pending_by_token(token)
+        Devuelve el PendingRegistration vigente (no usado/expirado).
+
+  - verify_pending_code(token, code_input)
+        Valida el código. Si OK: crea el User real + UserProfile, marca
+        el pending como usado y devuelve (True, '', user). Si error:
+        (False, err_code, None).
+
+  - can_resend_pending(pending)
+        Cooldown anti-spam para "Reenviar código".
+
+  - send_pending_registration_email(pending)
+        Mail con el código (reusa la plantilla del flujo anterior).
+
+  - cleanup_expired_pending_registrations()
+        Borra los rows expirados. Llamable desde la vista de registro
+        para mantener limpia la tabla.
+"""
 from __future__ import annotations
 
 import secrets
@@ -12,22 +39,27 @@ from django.utils import timezone
 from apps.accounts.models import PendingRegistration
 
 
+# ── Configuración ────────────────────────────────────────────────────
 CODE_VALIDITY_MINUTES   = 15
-TOKEN_BYTES             = 32   
+TOKEN_BYTES             = 32   # → 43 chars en base64-url
 RESEND_COOLDOWN_SECS    = 60
-MAX_PENDING_PER_HOUR    = 6    
-EXPIRED_AFTER_MINUTES   = 60   
+MAX_PENDING_PER_HOUR    = 6    # rate limit anti spam por email
+EXPIRED_AFTER_MINUTES   = 60   # tras esto, se puede purgar el row
 
 
 def _generate_code() -> str:
-
+    """Devuelve un string de 6 dígitos aleatorios con RNG criptográfico."""
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
 def create_pending_registration(
     email: str, first_name: str, password: str,
 ) -> Optional[PendingRegistration]:
-
+    """
+    Crea un registro pendiente con código nuevo. Invalida los pendientes
+    anteriores del mismo email (un solo código vivo a la vez).
+    Devuelve None si excede el rate limit.
+    """
     email_norm = (email or '').strip().lower()
     if not email_norm:
         return None
@@ -39,6 +71,7 @@ def create_pending_registration(
     if recent >= MAX_PENDING_PER_HOUR:
         return None
 
+    # Invalida los pendientes previos del mismo email
     PendingRegistration.objects.filter(
         email__iexact=email_norm, used_at__isnull=True,
     ).update(used_at=timezone.now())
@@ -54,7 +87,7 @@ def create_pending_registration(
 
 
 def get_valid_pending_by_token(token_str: str) -> Optional[PendingRegistration]:
-
+    """Devuelve el pending si existe y sigue válido. None en caso contrario."""
     if not token_str:
         return None
     try:
@@ -65,6 +98,7 @@ def get_valid_pending_by_token(token_str: str) -> Optional[PendingRegistration]:
 
 
 def get_pending_by_token_any(token_str: str) -> Optional[PendingRegistration]:
+    """Devuelve el pending por token aunque esté expirado/usado (para resend)."""
     if not token_str:
         return None
     try:
@@ -76,7 +110,18 @@ def get_pending_by_token_any(token_str: str) -> Optional[PendingRegistration]:
 def verify_pending_code(
     token_str: str, code_input: str,
 ) -> Tuple[bool, str, Optional[User]]:
+    """
+    Verifica el código. En caso de éxito CREA el User real con la
+    contraseña que guardó el pending, marca email_verified=True y
+    devuelve (True, '', user).
 
+    Códigos de error:
+      'no_encontrado' → token inválido o ya usado
+      'expirado'      → código vigente expiró
+      'demasiados'    → 5 intentos fallidos
+      'incorrecto'    → código no coincide (incrementa attempts)
+      'email_tomado'  → race con otro registro que tomó el email
+    """
     if not token_str or not code_input:
         return False, 'no_encontrado', None
 
@@ -98,9 +143,12 @@ def verify_pending_code(
         pr.save(update_fields=['attempts'])
         return False, 'incorrecto', None
 
+    # ── Race check: en el lapso entre el form y aquí, ¿alguien tomó el email?
     if User.objects.filter(email__iexact=pr.email).exists():
         pr.mark_used()
         return False, 'email_tomado', None
+
+    # ── Crear el User real
     user = User(
         username=pr.email,
         email=pr.email,
@@ -108,14 +156,20 @@ def verify_pending_code(
         last_name='',
         is_active=True,
     )
+    # La contraseña ya viene hasheada con make_password → la asignamos directo
     user.password = pr.password_hash
     user.save()
+
+    # El signal post_save de User ya creó un UserProfile (is_active default).
+    # Lo actualizamos con email_verified=True (1 query en vez de signal + update).
     from apps.accounts.models import UserProfile
     UserProfile.objects.update_or_create(
         user=user, defaults={'email_verified': True},
     )
 
+    # Marca este pending como usado
     pr.mark_used()
+    # Invalida los demás pendings del mismo email (otros browsers, typos…)
     PendingRegistration.objects.filter(
         email__iexact=pr.email, used_at__isnull=True,
     ).exclude(pk=pr.pk).update(used_at=timezone.now())
@@ -124,6 +178,7 @@ def verify_pending_code(
 
 
 def can_resend_pending(pr: Optional[PendingRegistration]) -> Tuple[bool, int]:
+    """Cooldown de RESEND_COOLDOWN_SECS desde la creación del último pending."""
     if pr is None:
         return False, RESEND_COOLDOWN_SECS
     elapsed = (timezone.now() - pr.created_at).total_seconds()
@@ -133,7 +188,11 @@ def can_resend_pending(pr: Optional[PendingRegistration]) -> Tuple[bool, int]:
 
 
 def cleanup_expired_pending_registrations() -> int:
-
+    """
+    Borra pendientes expirados con más de EXPIRED_AFTER_MINUTES de antigüedad.
+    Devuelve cuántos eliminó. Se llama al entrar a /registro/ para que la
+    tabla no crezca indefinidamente.
+    """
     cutoff = timezone.now() - timedelta(minutes=EXPIRED_AFTER_MINUTES)
     qs = PendingRegistration.objects.filter(created_at__lt=cutoff)
     count = qs.count()
@@ -142,7 +201,15 @@ def cleanup_expired_pending_registrations() -> int:
     return count
 
 
+# ─────────────────────────────────────────────────────────────────────
+#  Envío del correo con el código
+# ─────────────────────────────────────────────────────────────────────
+
 def send_pending_registration_email(pr: PendingRegistration) -> bool:
+    """
+    Envía el correo HTML con el código al `pr.email`. Reusa la misma
+    plantilla y proveedor (Resend) del flujo anterior.
+    """
     from django.conf import settings
     from apps.mail.webhook import _send_via_resend
 
@@ -159,6 +226,7 @@ def send_pending_registration_email(pr: PendingRegistration) -> bool:
 
 
 def _build_verification_html(pr: PendingRegistration) -> str:
+    """HTML del correo con el código en una caja grande y destacada."""
     from apps.core.services.email_service import get_site_url
     code = pr.code
     minutes = CODE_VALIDITY_MINUTES

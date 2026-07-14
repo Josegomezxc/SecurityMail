@@ -1,3 +1,4 @@
+/* Búsqueda server-side con debounce 350ms (mismo patrón que bandeja/sandbox). */
 (function () {
   const form  = document.getElementById('th-search-form');
   const input = document.getElementById('threatsSearchInput');

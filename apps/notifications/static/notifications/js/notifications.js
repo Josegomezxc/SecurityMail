@@ -1,4 +1,6 @@
-
+/* ════════════════════════════════════════════════════════════════════
+   FILTROS + VACIAR LISTA
+   ════════════════════════════════════════════════════════════════════ */
 (function () {
   const container = document.getElementById('notif-list-container');
   const filtersBar = document.getElementById('notif-filters');
@@ -11,12 +13,15 @@
     return c ? c.split('=')[1] : '';
   }
 
+  /* ── Filtrado client-side ── */
   function applyFilter(filter) {
     activeFilter = filter;
+    // Botones activos
     filtersBar.querySelectorAll('.notif-filter-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.filter === filter);
     });
 
+    // Mostrar / ocultar filas
     let visible = 0;
     container.querySelectorAll('.notif-row').forEach(row => {
       const type   = row.dataset.type;
@@ -31,6 +36,13 @@
       if (show) visible++;
     });
 
+    // Mensaje "sin notificaciones en este filtro" — usa la misma
+    // estructura que .notif-empty (server-side empty state): el
+    // icono propio del módulo (campana) en grande dentro de la card,
+    // un título y un subtítulo. Asi queda visualmente idéntico al
+    // empty-state que aparece cuando no hay notificaciones del todo.
+    // El TÍTULO y el SUBTÍTULO cambian según el filtro activo para que
+    // el usuario sepa exactamente qué tipo de notificación falta.
     const COPY = {
       all: {
         title: 'No hay notificaciones',
@@ -73,7 +85,8 @@
         emptyMsg.innerHTML = html;
         container.appendChild(emptyMsg);
       }
-
+      // Si el usuario cambió de filtro pero el bloque ya existe, refrescamos
+      // los textos para que el copy coincida con el filtro actual.
       const msgEl  = emptyMsg.querySelector('.notif-empty-msg');
       const hintEl = emptyMsg.querySelector('.notif-empty-hint');
       if (msgEl)  msgEl.textContent  = copy.title;
@@ -83,10 +96,12 @@
     }
   }
 
-
+  // Click en pills de filtro
   filtersBar.querySelectorAll('.notif-filter-btn').forEach(btn => {
     btn.addEventListener('click', () => applyFilter(btn.dataset.filter));
   });
+
+  /* ── Recalcula los counts del toolbar a partir del DOM ── */
   function recountFilters() {
     const rows = container.querySelectorAll('.notif-row');
     const counts = { all: rows.length, unread: 0, pending: 0, forwarded: 0, discarded: 0 };
@@ -104,7 +119,7 @@
     });
   }
 
-  
+  /* ── Dropdown "Vaciar" ── */
   const clearBtn  = document.getElementById('notif-clear-btn');
   const clearMenu = document.getElementById('notif-clear-menu');
   const clearWrap = document.getElementById('notif-clear-wrap');
@@ -122,6 +137,7 @@
   });
   clearMenu.addEventListener('click', e => e.stopPropagation());
 
+  /* ── Acciones de vaciar ── */
   const SCOPE_META = {
     read: {
       title:   'Borrar notificaciones leídas',
@@ -170,6 +186,7 @@
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || 'error');
 
+        // Decide qué filas borrar según el scope
         const toRemove = [];
         container.querySelectorAll('.notif-row').forEach(row => {
           if (scope === 'read'      && row.dataset.read === '1') toRemove.push(row);
@@ -177,13 +194,15 @@
           else if (scope === 'all'  && !(row.dataset.type === 'forward_request' && row.dataset.status === 'pending')) toRemove.push(row);
         });
 
+        // Animación de salida
         toRemove.forEach((row, i) => {
           setTimeout(() => {
             row.classList.add('removing-out');
             setTimeout(() => row.remove(), 300);
-          }, i * 35);
+          }, i * 35);   // efecto cascada
         });
 
+        // Actualizar counts y mostrar toast
         setTimeout(() => {
           recountFilters();
           applyFilter(activeFilter);
@@ -210,6 +229,9 @@
     });
   });
 
+  /* ══════════════════════════════════════════
+     VER MÁS / VER MENOS (load-more con toggle)
+  ══════════════════════════════════════════ */
   let notifLoadingMore = false;
 
   window.loadMoreNotif = function () {
@@ -233,7 +255,7 @@
         if (!data || !data.ok) throw new Error('bad response');
 
         if (data.count > 0) {
-
+          // Append antes del empty-state si existe
           const emptyState = document.getElementById('notif-empty-state');
           const tmp = document.createElement('div');
           tmp.innerHTML = data.html.trim();
@@ -253,7 +275,7 @@
         if (!data.has_more) btn.style.display = 'none';
         if (collapse)       collapse.style.display = '';
 
-
+        // Re-aplicar el filtro activo a las filas recién insertadas
         applyFilter(activeFilter);
       })
       .catch(() => {

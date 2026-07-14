@@ -1,4 +1,19 @@
+/* ══════════════════════════════════════════════════════════════════════
+   INBOX (server-side pagination)
+   ───────────────────────────────────────────────────────────────────────
+   Filtros y búsqueda ahora viven en query params (?filter=, ?q=, ?page=).
+   Este JS solo se encarga de:
+     - Abrir el panel lateral con el detalle del correo + iframe del HTML
+     - Cerrar el panel (X / overlay / ESC / swipe a la derecha en mobile)
+     - "Responder" → abre el compose modal pre-llenado
+     - "Mover a papelera" (soft delete) — con animación de salida de la fila
+     - "Vaciar bandeja" — dropdown con scopes (read/threats/safe/all)
+     - Botón clear de la búsqueda (navega a la misma URL sin ?q=)
+   ══════════════════════════════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════
+   BÚSQUEDA — clear button
+══════════════════════════════════════════ */
 function clearSearch() {
   const url = new URL(window.location.href);
   url.searchParams.delete('q');
@@ -16,7 +31,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   syncHasValue();
 
-
+  /* ── Búsqueda en tiempo real ──────────────────────────────────────────
+     Cada pulsación arranca un timer de 350ms. Si el usuario sigue
+     escribiendo, se cancela y reinicia (debounce). Al soltar la última
+     tecla el timer dispara la navegación: una sola URL con ?q=... que
+     refresca la página con los resultados paginados del servidor. */
   let debounceTimer = null;
   function scheduleSearch() {
     syncHasValue();
@@ -28,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const url = new URL(window.location.href);
     if (q) url.searchParams.set('q', q);
     else   url.searchParams.delete('q');
-    url.searchParams.delete('page');   
+    url.searchParams.delete('page');   // nueva búsqueda → vuelve a página 1
     if (url.toString() !== window.location.href) {
       window.location.href = url.toString();
     }
@@ -36,6 +55,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   searchInput.addEventListener('input', scheduleSearch);
 
+  /* Enter sigue funcionando (dispara la búsqueda inmediatamente sin
+     esperar al debounce) — submitSearch hace el navigation directo. */
   searchWrap.addEventListener('submit', function (e) {
     e.preventDefault();
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -43,11 +64,15 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
+/* ══════════════════════════════════════════
+   ABRIR EMAIL (panel lateral)
+══════════════════════════════════════════ */
 function openEmail(id) {
   var data = document.getElementById('detail-' + id);
   if (!data) return;
 
-
+  /* Marcar como leído — primero en el DOM (feedback inmediato),
+     luego persistir en el backend. */
   var row = document.querySelector('.inbox-row[data-id="' + id + '"]');
   if (row && row.dataset.read === 'false') {
     row.classList.remove('unread');
@@ -64,13 +89,13 @@ function openEmail(id) {
     }).catch(function (e) { console.debug('[read] persist error:', e); });
   }
 
-
+  /* Rellenar panel */
   document.getElementById('panel-subject').textContent = data.dataset.subject;
   document.getElementById('panel-from').textContent    = data.dataset.from;
   document.getElementById('panel-alias').textContent   = data.dataset.alias;
   document.getElementById('panel-time').textContent    = data.dataset.time;
 
-
+  /* ── Render del cuerpo: HTML si existe (lazy fetch), texto plano si no ── */
   var emailId      = data.dataset.id;
   var hasHtml      = data.dataset.hasHtml === '1';
   var plainBody    = data.dataset.body || '';
@@ -153,6 +178,7 @@ function openEmail(id) {
 
   if (hasHtml) showHtml(); else showPlain();
 
+  /* Riesgo */
   var risk = parseInt(data.dataset.risk) || 0;
   var analysisUrl = data.dataset.analysisUrl || '';
   var riskSection = document.getElementById('panel-risk-section');
@@ -186,7 +212,7 @@ function openEmail(id) {
     riskSection.style.display = 'none';
   }
 
-
+  /* Adjunto */
   var attName = data.dataset.attachment;
   var attSection = document.getElementById('panel-att-section');
   if (attName) {
@@ -208,7 +234,9 @@ function openEmail(id) {
   document.body.style.overflow = 'hidden';
 }
 
-
+/* ══════════════════════════════════════════
+   CERRAR PANEL
+══════════════════════════════════════════ */
 function closeDetail() {
   document.getElementById('detail-panel').classList.remove('open');
   document.getElementById('overlay').classList.remove('open');
@@ -220,7 +248,9 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') closeDetail();
 });
 
-
+/* ══════════════════════════════════════════
+   SWIPE-TO-CLOSE (mobile)
+══════════════════════════════════════════ */
 (function setupDetailPanelSwipe() {
   var panel = document.getElementById('detail-panel');
   if (!panel) return;
@@ -268,7 +298,9 @@ document.addEventListener('keydown', function (e) {
   });
 })();
 
-
+/* ══════════════════════════════════════════
+   RESPONDER CORREO
+══════════════════════════════════════════ */
 function replyFromButton(btn) {
   if (!btn) return;
   if (btn.classList.contains('disabled') || btn.disabled) {
@@ -344,6 +376,9 @@ function replyFromButton(btn) {
   }
 }
 
+/* ══════════════════════════════════════════
+   MOVER A PAPELERA
+══════════════════════════════════════════ */
 function trashEmail(btn, kind) {
   var id = btn.dataset.emailId;
   if (!id) return;
@@ -403,7 +438,11 @@ function trashEmail(btn, kind) {
 }
 
 
-
+/* ════════════════════════════════════════════════════════════════════
+   VACIAR BANDEJA — dropdown con scopes (read / threats / safe / all)
+   Tras éxito recargamos la página: con paginación server-side la lista
+   actual puede haber cambiado drásticamente, mejor releer.
+   ════════════════════════════════════════════════════════════════════ */
 (function () {
   const wrap   = document.getElementById('inbox-clear-wrap');
   const btn    = document.getElementById('inbox-clear-btn');
@@ -485,6 +524,7 @@ function trashEmail(btn, kind) {
             duration: 2500,
           });
         }
+        // Releer la lista paginada con los datos actualizados
         setTimeout(function () { window.location.reload(); }, 350);
       } catch (err) {
         if (window.showToast) {

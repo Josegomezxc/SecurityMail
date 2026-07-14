@@ -1,7 +1,35 @@
+/*
+   ════════════════════════════════════════════════════════════════════
+   loaders.yar — Reglas para loaders / droppers / scripts maliciosos
+   ════════════════════════════════════════════════════════════════════
+
+   Categoría: PowerShell ofuscado, scripts batch/cmd con técnicas
+              de evasión, HTA, JavaScript con stage download.
+              Típico en correos con .zip → .js / .lnk / .ps1.
+
+   Fuentes:
+     • signature-base (Neo23x0/Florian Roth) — CC BY-NC 4.0
+
+   Importado: 2026-05-17
+   ════════════════════════════════════════════════════════════════════
+*/
+
+
+
+/* ── Source: signature-base/gen_loaders.yar — CC BY-NC 4.0 ── */
+
+/*
+   Yara Rule Set
+   Copyright: Florian Roth
+   Date: 2017-06-25
+   Identifier: Rules that detect different malware characteristics
+   Reference: Internal Research
+   License: GPL
+*/
 
 import "pe"
 
-
+/* Rule Set ----------------------------------------------------------------- */
 
 rule ReflectiveLoader {
    meta:
@@ -32,7 +60,15 @@ rule ReflectiveLoader {
       and not 1 of ($fp*)
 }
 
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2017-08-20
+   Identifier: Reflective DLL Loader
+   Reference: Internal Research
+*/
 
+/* Rule Set ----------------------------------------------------------------- */
 
 rule Reflective_DLL_Loader_Aug17_1 {
    meta:
@@ -160,6 +196,7 @@ rule Reflective_DLL_Loader_Aug17_4 {
 }
 
 
+/* ── Source: signature-base/gen_cmd_script_obfuscated.yar — CC BY-NC 4.0 ── */
 
 
 rule MAL_CMD_Script_Obfuscated_Feb19_1 {
@@ -181,7 +218,17 @@ rule MAL_CMD_Script_Obfuscated_Feb19_1 {
 }
 
 
+/* ── Source: signature-base/gen_hta_anomalies.yar — CC BY-NC 4.0 ── */
 
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2017-06-20
+   Identifier: HTA Anomalies
+   Reference: Internal Research
+*/
+
+/* Rule Set ----------------------------------------------------------------- */
 
 rule HTA_with_WScript_Shell {
    meta:
@@ -217,6 +264,7 @@ rule HTA_Embedded {
 }
 
 
+/* ── Source: signature-base/gen_javascript_powershell.yar — CC BY-NC 4.0 ── */
 
 
 rule Malware_JS_powershell_obfuscated {
@@ -235,7 +283,10 @@ rule Malware_JS_powershell_obfuscated {
 }
 
 
+/* ── Source: signature-base/gen_mal_scripts.yar — CC BY-NC 4.0 ── */
 
+
+/* Various rules - see the references */
 
 rule PS_AMSI_Bypass : FILE {
    meta:
@@ -301,7 +352,7 @@ rule JavaScript_Run_Suspicious {
       all of them
 }
 
-
+/* Certutil Rule Improved */
 
 rule Certutil_Decode_OR_Download {
    meta:
@@ -392,6 +443,7 @@ rule VBS_Obfuscated_Mal_Feb18_1  {
 }
 
 
+/* ── Source: signature-base/gen_phish_attachments.yar — CC BY-NC 4.0 ── */
 
 
 rule SUSP_ZIP_LNK_PhishAttachment_Pattern_Jun22_1 {
@@ -536,7 +588,17 @@ rule SUSP_Archive_Phishing_Attachment_Characteristics_Jun22_1 {
 }
 
 
+/* ── Source: signature-base/gen_powershell_obfuscation.yar — CC BY-NC 4.0 ── */
 
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2017-06-22
+   Identifier: ISESteroids
+   Reference: https://twitter.com/danielhbohannon/status/877953970437844993
+*/
+
+/* Rule Set ----------------------------------------------------------------- */
 
 rule PowerShell_ISESteroids_Obfuscation {
    meta:
@@ -605,6 +667,7 @@ rule SUSP_OBFUSC_PowerShell_True_Jun20_1 {
 }
 
 
+/* ── Source: signature-base/gen_powershell_invocation.yar — CC BY-NC 4.0 ── */
 
 
 rule PowerShell_Susp_Parameter_Combo : HIGHVOL FILE {
@@ -617,11 +680,13 @@ rule PowerShell_Susp_Parameter_Combo : HIGHVOL FILE {
       score = 60
       id = "17c707f3-7f51-5772-9874-a96c220960a7"
    strings:
+      /* Encoded Command */
       $sa1 = " -enc " ascii wide nocase
       $sa2 = " -EncodedCommand " ascii wide nocase
       $sa3 = " /enc " ascii wide nocase
       $sa4 = " /EncodedCommand " ascii wide nocase
 
+      /* Window Hidden */
       $sb1 = " -w hidden " ascii wide nocase
       $sb2 = " -window hidden " ascii wide nocase
       $sb3 = " -windowstyle hidden " ascii wide nocase
@@ -629,16 +694,19 @@ rule PowerShell_Susp_Parameter_Combo : HIGHVOL FILE {
       $sb5 = " /window hidden " ascii wide nocase
       $sb6 = " /windowstyle hidden " ascii wide nocase
 
-
+      /* Non Profile */
       $sc1 = " -nop " ascii wide nocase
       $sc2 = " -noprofile " ascii wide nocase
       $sc3 = " /nop " ascii wide nocase
       $sc4 = " /noprofile " ascii wide nocase
+
+      /* Non Interactive */
       $sd1 = " -noni " ascii wide nocase
       $sd2 = " -noninteractive " ascii wide nocase
       $sd3 = " /noni " ascii wide nocase
       $sd4 = " /noninteractive " ascii wide nocase
 
+      /* Exec Bypass */
       $se1 = " -ep bypass " ascii wide nocase
       $se2 = " -exec bypass " ascii wide nocase
       $se3 = " -executionpolicy bypass " ascii wide nocase
@@ -648,6 +716,7 @@ rule PowerShell_Susp_Parameter_Combo : HIGHVOL FILE {
       $se7 = " /executionpolicy bypass " ascii wide nocase
       $se8 = " /exec bypass " ascii wide nocase
 
+      /* Single Threaded - PowerShell Empire */
       $sf1 = " -sta " ascii wide
       $sf2 = " /sta " ascii wide
 
@@ -656,7 +725,7 @@ rule PowerShell_Susp_Parameter_Combo : HIGHVOL FILE {
       $fp3 = "\\Local\\Temp\\en-US.ps1" ascii wide
       $fp4 = "Lenovo Vantage - Battery Gauge Helper" wide fullword
       $fp5 = "\\LastPass\\lpwinmetro\\AppxUpgradeUwp.ps1" ascii
-      $fp6 = "# use the encoded form to mitigate quoting complications that full scriptblock transfer exposes" ascii 
+      $fp6 = "# use the encoded form to mitigate quoting complications that full scriptblock transfer exposes" ascii /* MS TSSv2 - https://docs.microsoft.com/en-us/troubleshoot/windows-client/windows-troubleshooters/introduction-to-troubleshootingscript-toolset-tssv2 */
       $fp7 = "Write-AnsibleLog \"INFO - s" ascii
       $fp8 = "\\Packages\\Matrix42\\" ascii
       $fp9 = "echo " ascii
@@ -675,5 +744,5 @@ rule PowerShell_Susp_Parameter_Combo : HIGHVOL FILE {
       $fpa6 = "Help" fullword
       $fpa7 = "COPYRIGHT"
    condition:
-      filesize < 3000KB and 4 of ($s*) and not 1 of ($fp*) and uint32be(0) != 0x456C6646 
+      filesize < 3000KB and 4 of ($s*) and not 1 of ($fp*) and uint32be(0) != 0x456C6646 /* EVTX - we don't wish to mix the entries together */
 }

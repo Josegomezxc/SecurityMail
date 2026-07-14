@@ -3,6 +3,7 @@ function getCsrfTok() {
   return c ? c.split('=')[1] : '';
 }
 
+/* Estado actual de la pestaña — global para reaplicarla tras load-more. */
 var currentTrashTab = 'all';
 
 function switchTab(name) {
@@ -11,7 +12,9 @@ function switchTab(name) {
     b.classList.toggle('active', b.dataset.tab === name);
   });
 
-
+  /* La lista es una sola, ordenada por deleted_at desc en el backend.
+     Filtramos por data-kind: "all" muestra todas las filas, las demás
+     pestañas solo las filas de su tipo. */
   var rows    = document.querySelectorAll('#trash-list .trash-row');
   var visible = 0;
   rows.forEach(function (r) {
@@ -20,7 +23,8 @@ function switchTab(name) {
     if (show) visible++;
   });
 
-
+  /* Empty-state: mostramos uno solo según el filtro, y solo si esa
+     pestaña no tiene filas visibles. */
   ['empty-all', 'empty-inbound', 'empty-outbound', 'empty-draft'].forEach(function (id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -32,12 +36,14 @@ function switchTab(name) {
   }
 }
 
-
+/* Activa "Todos" por defecto al cargar la papelera. */
 document.addEventListener('DOMContentLoaded', function () {
   switchTab('all');
 });
 
-
+/* ══════════════════════════════════════════
+   VER MÁS / VER MENOS — load-more con toggle
+══════════════════════════════════════════ */
 var trashLoadingMore = false;
 
 function loadMoreTrash() {
@@ -61,7 +67,9 @@ function loadMoreTrash() {
       if (!data || !data.ok) throw new Error('bad response');
 
       if (data.count > 0) {
-       
+        // Las filas nuevas van DENTRO de #trash-list, ANTES de los
+        // empty-state placeholders. Buscamos el primer empty-state hijo
+        // de #trash-list como referencia.
         var firstEmpty = list.querySelector('.empty-state');
         var tmp = document.createElement('div');
         tmp.innerHTML = data.html.trim();
@@ -81,6 +89,7 @@ function loadMoreTrash() {
       if (!data.has_more) btn.style.display = 'none';
       if (collapse)       collapse.style.display = '';
 
+      // Re-aplicar la pestaña activa a las filas nuevas
       switchTab(currentTrashTab);
     })
     .catch(function () {
@@ -143,7 +152,10 @@ function restoreEmail(kind, pk) {
         setTimeout(function () { row.remove(); }, 280);
       }
       if (window.showToast) {
-       
+        // El destino del toast clicable depende de dónde volvió el ítem:
+        // - inbound → /bandeja/
+        // - outbound → /enviados/
+        // - draft → /borradores/
         var restoreHref =
           kind === 'outbound' ? '/enviados/' :
           kind === 'draft'    ? '/borradores/' :

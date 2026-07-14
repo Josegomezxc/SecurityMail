@@ -1,4 +1,20 @@
+"""
+Códigos de verificación por correo para flujos sobre Users que YA EXISTEN.
 
+NOTA IMPORTANTE: este módulo NO se usa para verificar el registro.
+El registro usa `pending_registration_service` (los datos viven en
+`PendingRegistration` y el User se crea recién al verificar el código,
+para evitar llenar `auth_user` con cuentas inactivas).
+
+Acá viven los códigos para acciones sensibles sobre usuarios reales:
+  - create_verification_code(user, purpose='delete_account')
+  - verify_deletion_code(user, code) → eliminar cuenta
+  - can_resend(user, purpose=...)    → cooldown
+
+Las helpers `cleanup_abandoned_registrations`, `verify_code` y
+`get_valid_code_by_token` quedan disponibles solo por retro-compat con
+datos legacy y NO se usan en las vistas actuales.
+"""
 import secrets
 from datetime import timedelta
 from typing import Optional, Tuple
@@ -9,23 +25,32 @@ from django.utils import timezone
 from apps.accounts.models import EmailVerificationCode
 
 
+# ── Configuración ────────────────────────────────────────────────────
 CODE_VALIDITY_MINUTES   = 15
-TOKEN_BYTES             = 32   
-RESEND_COOLDOWN_SECS    = 60  
-MAX_CODES_PER_HOUR      = 6    
-ABANDONED_AFTER_MINUTES = 30   
+TOKEN_BYTES             = 32   # → 43 chars en base64-url
+RESEND_COOLDOWN_SECS    = 60   # mínimo entre reenvíos del mismo usuario
+MAX_CODES_PER_HOUR      = 6    # rate limit anti spam
+ABANDONED_AFTER_MINUTES = 30   # tras esto, borramos la cuenta no verificada
 
 
 def _generate_code() -> str:
+    """Devuelve un string de 6 dígitos aleatorios usando RNG criptográfico."""
+    # secrets.randbelow es uniforme y criptográficamente seguro
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
-
+# Alias retro-compat: código viejo importa `_generate_six_digit_code`.
 _generate_six_digit_code = _generate_code
 
 
 def create_verification_code(user: User, purpose: str = 'register') -> Optional[EmailVerificationCode]:
+    """
+    Genera un código nuevo y lo guarda. Invalida códigos anteriores del mismo
+    usuario PARA EL MISMO PURPOSE (los códigos de registro no se mezclan con
+    los de eliminación de cuenta). Devuelve None si excede el rate limit.
 
+    `purpose`: 'register' (default) o 'delete_account'.
+    """
     last_hour = timezone.now() - timedelta(hours=1)
     recent_count = EmailVerificationCode.objects.filter(
         user=user, purpose=purpose, created_at__gte=last_hour,
@@ -33,10 +58,13 @@ def create_verification_code(user: User, purpose: str = 'register') -> Optional[
     if recent_count >= MAX_CODES_PER_HOUR:
         return None
 
-
+    # Marcamos los códigos previos no usados como "usados" para invalidarlos
+    # (solo del mismo purpose — no afectamos códigos de otro flujo).
     EmailVerificationCode.objects.filter(
         user=user, purpose=purpose, used_at__isnull=True,
     ).update(used_at=timezone.now())
+
+    # Los códigos de eliminación expiran más rápido (más sensible)
     validity = 10 if purpose == 'delete_account' else CODE_VALIDITY_MINUTES
 
     return EmailVerificationCode.objects.create(
@@ -49,7 +77,10 @@ def create_verification_code(user: User, purpose: str = 'register') -> Optional[
 
 
 def get_valid_code_by_token(token_str: str) -> Optional[EmailVerificationCode]:
-
+    """
+    Devuelve el EmailVerificationCode si existe y sigue siendo válido
+    (no usado, no expirado, attempts < 5). None en caso contrario.
+    """
     if not token_str:
         return None
     try:
@@ -60,7 +91,16 @@ def get_valid_code_by_token(token_str: str) -> Optional[EmailVerificationCode]:
 
 
 def verify_code(token_str: str, code_input: str) -> Tuple[bool, str, Optional[User]]:
+    """
+    Verifica si el código ingresado por el usuario coincide.
 
+    Devuelve (ok, mensaje_error, user):
+      • (True,  '',                user)  → válido. La vista debe activar la cuenta.
+      • (False, 'expirado',        None)  → el código expiró
+      • (False, 'no_encontrado',   None)  → token inválido
+      • (False, 'demasiados',      None)  → demasiados intentos fallidos
+      • (False, 'incorrecto',      None)  → código mal escrito (incrementa attempts)
+    """
     if not token_str or not code_input:
         return False, 'no_encontrado', None
 
@@ -82,12 +122,27 @@ def verify_code(token_str: str, code_input: str) -> Tuple[bool, str, Optional[Us
         ev.save(update_fields=['attempts'])
         return False, 'incorrecto', None
 
+    # ¡Éxito! Marca el código como usado.
     ev.mark_used()
     return True, '', ev.user
 
 
 def cleanup_abandoned_registrations() -> int:
+    """
+    Borra de la BD las cuentas que nunca completaron la verificación.
 
+    Una cuenta se considera "abandonada" si:
+      • is_active = False  (nunca se activó)
+      • email_verified = False  (nunca verificó el correo)
+      • date_joined es de hace más de ABANDONED_AFTER_MINUTES
+
+    Esto cubre el caso típico: usuario escribe mal su correo, no le llega
+    el código, vuelve a registrarse. La cuenta vieja queda como basura
+    en la BD; este helper la limpia.
+
+    Se llama automáticamente al entrar a /registro/ para mantener limpio
+    el panel de administración. Devuelve cuántas cuentas borró.
+    """
     from datetime import timedelta
     cutoff = timezone.now() - timedelta(minutes=ABANDONED_AFTER_MINUTES)
 
@@ -103,7 +158,12 @@ def cleanup_abandoned_registrations() -> int:
 
 
 def can_resend(user: User, purpose: str = 'register') -> Tuple[bool, int]:
-
+    """
+    Devuelve (puede_reenviar, segundos_para_proximo_envio).
+    Implementa el cooldown de RESEND_COOLDOWN_SECS entre reenvíos.
+    El cooldown es por (user, purpose), así que pedir un código de
+    eliminación no afecta el cooldown de un código de registro.
+    """
     last = (
         EmailVerificationCode.objects
         .filter(user=user, purpose=purpose)
@@ -118,12 +178,28 @@ def can_resend(user: User, purpose: str = 'register') -> Tuple[bool, int]:
     return False, int(RESEND_COOLDOWN_SECS - elapsed)
 
 
+# ─────────────────────────────────────────────────────────────────────
+#  Helpers específicos para CONFIRMAR ELIMINACIÓN DE CUENTA
+#  Reusa la misma tabla EmailVerificationCode pero con purpose='delete_account'.
+# ─────────────────────────────────────────────────────────────────────
+
 def create_deletion_code(user: User) -> Optional[EmailVerificationCode]:
+    """Genera un código de 6 dígitos para confirmar la eliminación de cuenta."""
     return create_verification_code(user, purpose='delete_account')
 
 
 def verify_deletion_code(user: User, code_input: str) -> Tuple[bool, str]:
+    """
+    Verifica un código de eliminación contra el ÚLTIMO código vigente
+    del usuario con purpose='delete_account'.
 
+    Devuelve (ok, mensaje_error):
+      • (True,  '')             → código válido, listo para borrar cuenta
+      • (False, 'no_encontrado') → no hay código activo (expiró o nunca se generó)
+      • (False, 'expirado')      → el código existe pero ya expiró
+      • (False, 'demasiados')    → demasiados intentos fallidos
+      • (False, 'incorrecto')    → código mal escrito (incrementa attempts)
+    """
     if not code_input:
         return False, 'no_encontrado'
 
@@ -150,7 +226,16 @@ def verify_deletion_code(user: User, code_input: str) -> Tuple[bool, str]:
     return True, ''
 
 
+# ─────────────────────────────────────────────────────────────────────
+#  Envío del correo con el código
+# ─────────────────────────────────────────────────────────────────────
+
 def send_verification_email(user: User, ev: EmailVerificationCode) -> bool:
+    """
+    Envía el correo HTML con el código de verificación al user.email.
+    Usa Resend (a través del helper que ya usa el webhook para alertas).
+    Devuelve True si se envió, False si falló.
+    """
     from django.conf import settings
     from apps.mail.webhook import _send_via_resend
 
@@ -167,7 +252,7 @@ def send_verification_email(user: User, ev: EmailVerificationCode) -> bool:
 
 
 def _build_verification_html(user: User, ev: EmailVerificationCode) -> str:
-
+    """HTML del correo con el código en una caja grande y destacada."""
     from apps.core.services.email_service import get_site_url
     code = ev.code
     minutes = CODE_VALIDITY_MINUTES

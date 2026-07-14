@@ -1,4 +1,34 @@
+"""
+DockerShield — Orquestador de análisis dentro del sandbox Docker.
 
+Este script se ejecuta como entrypoint del contenedor. Recibe la ruta de
+un fichero, detecta su tipo REAL (no por extensión) y delega en los
+analizadores especializados de `analyzers/`.
+
+Salida: JSON único en stdout con el formato:
+{
+    "filename":         "factura.pdf.exe",
+    "size":             123456,
+    "sha256":           "...",
+    "md5":              "...",
+    "real_mime":        "application/x-dosexec",
+    "extension":        ".exe",
+    "extension_spoof":  true,
+    "category":         "executable",
+    "risk_score":       0..100,
+    "risk_level":       "safe" | "warning" | "danger" | "malware",
+    "threat_name":      "Ejecutable Windows con APIs de inyección",
+    "evidence":         [ { "type": "...", "detail": "...", "severity": 0..100 }, ... ],
+    "iocs":             { "urls": [...], "ips": [...], "domains": [...], "hashes": [...] },
+    "analyzers_run":    ["yara", "executable", ...],
+
+    # Compatibilidad con el modelo SandboxAnalysis existente:
+    "yara_matches":         [...]
+    "network_connections":  [...]
+    "child_processes":      [...]
+    "file_writes":          [...]
+}
+"""
 import sys
 import os
 import json
@@ -17,6 +47,9 @@ from analyzers import (
 )
 
 
+# ───────────────────────────────────────────────────────────────────────
+#  Mapas de extensiones → categoría
+# ───────────────────────────────────────────────────────────────────────
 
 EXT_EXECUTABLE = {".exe", ".dll", ".scr", ".sys", ".com", ".pif", ".cpl", ".msi", ".efi"}
 EXT_OFFICE     = {".doc", ".docx", ".docm", ".dot", ".dotm",
@@ -34,7 +67,7 @@ EXT_SCRIPT     = {".sh", ".bash", ".zsh", ".ps1", ".psm1",
 EXT_IMAGE      = {".jpg", ".jpeg", ".png", ".gif", ".bmp",
                   ".webp", ".tiff", ".tif", ".ico", ".svg"}
 
-
+# Extensiones siempre peligrosas (incluso sin más análisis)
 ALWAYS_RISKY = {
     ".exe": 88, ".scr": 90, ".com": 85, ".pif": 90, ".cpl": 80,
     ".bat": 75, ".cmd": 75, ".ps1": 80, ".vbs": 80, ".vbe": 85,
@@ -45,13 +78,16 @@ ALWAYS_RISKY = {
     ".ace": 65,
 }
 
-
+# Extensiones que parecen documentos pero suelen esconder ejecutables
 DOUBLE_EXT_TRAP = {
     ".pdf.exe", ".doc.exe", ".docx.exe", ".xls.exe", ".jpg.exe", ".png.exe",
     ".pdf.scr", ".pdf.cmd", ".pdf.bat", ".pdf.js",
 }
 
 
+# ───────────────────────────────────────────────────────────────────────
+#  Funciones auxiliares
+# ───────────────────────────────────────────────────────────────────────
 
 def hash_file(filepath: str):
     sha = hashlib.sha256()
@@ -72,6 +108,7 @@ def detect_real_mime(filepath: str) -> str:
 
 
 def is_extension_spoofed(ext: str, mime: str) -> bool:
+    """Detecta extension-spoofing (ej. factura.pdf que en realidad es PE)."""
     spoof_map = {
         ".pdf":  ("application/pdf",),
         ".doc":  ("application/msword", "application/vnd.openxmlformats", "application/vnd.ms"),
@@ -97,7 +134,12 @@ def to_risk_level(score: int) -> str:
     return "malware"
 
 
+# ───────────────────────────────────────────────────────────────────────
+#  Orquestador principal
+# ───────────────────────────────────────────────────────────────────────
+
 def analyze(filepath: str, depth: int = 0) -> dict:
+    """Devuelve el reporte canónico. `depth` se usa para recursión de archivos."""
     report = {
         "filename":        os.path.basename(filepath),
         "size":            0,
@@ -114,6 +156,7 @@ def analyze(filepath: str, depth: int = 0) -> dict:
         "iocs":            {"urls": [], "ips": [], "domains": [], "hashes": []},
         "analyzers_run":   [],
 
+        # Campos legacy del modelo SandboxAnalysis:
         "yara_matches":        [],
         "network_connections": [],
         "child_processes":     [],
@@ -133,13 +176,16 @@ def analyze(filepath: str, depth: int = 0) -> dict:
             "type": "hash_error", "detail": str(e), "severity": 30,
         })
 
+    # Tipo real
     mime = detect_real_mime(filepath)
     report["real_mime"] = mime
 
+    # Extensión y posibles trampas
     name_lower = os.path.basename(filepath).lower()
     ext = os.path.splitext(name_lower)[1]
     report["extension"] = ext
 
+    # Detección de extensión doble (ej. factura.pdf.exe)
     matched_double = None
     for double_ext in DOUBLE_EXT_TRAP:
         if name_lower.endswith(double_ext):
@@ -154,7 +200,7 @@ def analyze(filepath: str, depth: int = 0) -> dict:
         report["risk_score"] = max(report["risk_score"], 90)
         report["threat_name"] = "Doble extensión engañosa"
 
-
+    # Extension spoofing (parece pdf pero no es)
     if is_extension_spoofed(ext, mime):
         report["extension_spoof"] = True
         report["evidence"].append({
@@ -166,6 +212,7 @@ def analyze(filepath: str, depth: int = 0) -> dict:
         if not report["threat_name"]:
             report["threat_name"] = "Extensión engañosa"
 
+    # Castigo por extensión "siempre peligrosa"
     if ext in ALWAYS_RISKY:
         sev = ALWAYS_RISKY[ext]
         report["evidence"].append({
@@ -175,9 +222,10 @@ def analyze(filepath: str, depth: int = 0) -> dict:
         })
         report["risk_score"] = max(report["risk_score"], sev)
 
+    # ── DISPATCH a analizadores ────────────────────────────────────────
     sub_results = []
 
-
+    # YARA siempre se ejecuta (es barato)
     try:
         yr = yara_analyzer.analyze(filepath, mime)
         if yr.get("evidence") or yr.get("score"):
@@ -195,7 +243,7 @@ def analyze(filepath: str, depth: int = 0) -> dict:
             "type": "analyzer_error", "detail": f"yara: {e}", "severity": 20,
         })
 
-
+    # Por categoría
     if _is_executable(ext, mime):
         sub_results.append(_run(report, "executable", executable_analyzer.analyze, filepath, mime))
 
@@ -206,6 +254,7 @@ def analyze(filepath: str, depth: int = 0) -> dict:
         sub_results.append(_run(report, "pdf", pdf_analyzer.analyze, filepath, mime))
 
     elif _is_archive(ext, mime):
+        # archivo comprimido — pasamos la función recursiva
         try:
             ar = archive_analyzer.analyze(
                 filepath, mime,
@@ -224,14 +273,17 @@ def analyze(filepath: str, depth: int = 0) -> dict:
 
     elif _is_script(ext, mime):
         sub_results.append(_run(report, "script", script_analyzer.analyze, filepath, mime))
+        # Ejecución DINÁMICA real si el script es compatible con Linux (sh/bash/py)
         if dynamic_executor.can_execute(filepath):
             sub_results.append(_run(report, "dynamic", dynamic_executor.run, filepath))
 
+    # Si no encajó en nada, intenta detectar como script genérico
     elif _looks_like_text(mime):
         sub_results.append(_run(report, "script", script_analyzer.analyze, filepath, mime))
         if dynamic_executor.can_execute(filepath):
             sub_results.append(_run(report, "dynamic", dynamic_executor.run, filepath))
 
+    # ── Merge de todos los sub-reportes ────────────────────────────────
     for sr in sub_results:
         if not sr:
             continue
@@ -246,6 +298,7 @@ def analyze(filepath: str, depth: int = 0) -> dict:
         if sr.get("category") and report["category"] == "unknown":
             report["category"] = sr["category"]
 
+    # Si tras todo no hay threat name pero hay score, derivamos uno
     if not report["threat_name"]:
         if report["risk_score"] >= 81:
             report["threat_name"] = "Archivo malicioso"
@@ -254,19 +307,21 @@ def analyze(filepath: str, depth: int = 0) -> dict:
         elif report["risk_score"] >= 31:
             report["threat_name"] = "Archivo sospechoso"
 
+    # Llenar campos legacy según evidencia (incluye dynamic_* del executor real)
     for ev in report["evidence"]:
         t = ev.get("type", "")
         d = ev.get("detail", "")
+        # Conexiones de red (estáticas por IOCs o dinámicas por strace)
         if t.startswith("ioc_url") or t == "dynamic_network" or t == "dynamic_socket" or "url" in t.lower():
             if d not in report["network_connections"]:
                 report["network_connections"].append(d)
-
+        # Procesos (llamadas a APIs, patrones de ejecución o execve del strace)
         elif (t.startswith("vba_") or t.startswith("script_pattern")
               or t == "dynamic_process" or t == "dynamic_stdout" or t == "dynamic_forks"
               or "process" in t.lower() or "exec" in t.lower()):
             if d not in report["child_processes"]:
                 report["child_processes"].append(d)
-
+        # Archivos (accesos, eliminaciones, chmods del strace o IOCs de archivo)
         elif (t.startswith("dynamic_file_") or t == "dynamic_chmod"
               or "file" in t.lower() or "write" in t.lower() or "ole" in t.lower()):
             if d not in report["file_writes"]:
@@ -289,6 +344,8 @@ def _run(report, name, fn, *args, **kwargs):
         })
         return None
 
+
+# ── Detectores de tipo ─────────────────────────────────────────────────
 
 def _is_executable(ext, mime):
     if ext in EXT_EXECUTABLE:
@@ -346,6 +403,9 @@ def _looks_like_text(mime):
     return mime.startswith("text/") or mime == "application/javascript"
 
 
+# ───────────────────────────────────────────────────────────────────────
+#  Entry point
+# ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

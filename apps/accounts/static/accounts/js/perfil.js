@@ -1,4 +1,6 @@
-
+  /* ══════════════════════════════════════════════
+     Avatar: click foto = preview, cámara = menú
+     ══════════════════════════════════════════════ */
   function onAvatarClick() {
     var box = document.getElementById('avatarBox');
     if (box && box.dataset.hasAvatar === '1') {
@@ -33,6 +35,7 @@
     overlay.classList.remove('visible');
     document.body.style.overflow = '';
   }
+  // Cerrar menú al hacer click fuera (botón cámara y menú son hermanos del avatar)
   document.addEventListener('click', function (e) {
     var menu  = document.getElementById('avatarMenu');
     var box   = document.getElementById('avatarBox');
@@ -43,11 +46,14 @@
     if (btn && btn.contains(e.target)) return;
     closeAvatarMenu();
   });
+  // Cerrar preview con Escape
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeAvatarPreview();
   });
 
-
+  // Fallback local de getCsrf por si base.html no lo expone en window
+  // (defensivo — el modal de eliminar cuenta NO puede quedar bloqueado
+  // por un ReferenceError silencioso).
   function getCsrf() {
     if (typeof window.getCsrf === 'function' && window.getCsrf !== getCsrf) {
       return window.getCsrf();
@@ -58,11 +64,21 @@
     return c ? c.split('=')[1] : '';
   }
 
-
+  /* ══════════════════════════════════════════════
+     Botón "Eliminar mi cuenta" → modal con password + reto "ELIMINAR"
+     ══════════════════════════════════════════════
+     Flujo:
+       1) Usuario aplasta "Eliminar mi cuenta"
+       2) Aparece modal con: lista de qué se borrará, input password,
+          input "escribe ELIMINAR", botones Cancelar/Eliminar
+       3) El botón Eliminar se habilita SOLO si los dos campos están válidos
+       4) Submit AJAX → backend borra y devuelve {ok, redirect}
+       5) Redirige al login (con mensaje de éxito) */
   (function () {
     var btn = document.getElementById('deleteAccountBtn');
     if (!btn) return;
     var overlay  = document.getElementById('deleteAccountOverlay');
+    // Paso 1
     var formEl   = document.getElementById('deleteAccountForm');
     var pwdEl    = document.getElementById('deleteAccountPwd');
     var pwdEye   = document.getElementById('deleteAccountPwdEye');
@@ -71,11 +87,13 @@
     var cancelEl = document.getElementById('deleteAccountCancel');
     var closeEl  = document.getElementById('deleteAccountClose');
     var errorEl  = document.getElementById('deleteAccountError');
+    // Paso 2
     var codeFormEl  = document.getElementById('deleteAccountCodeForm');
     var codeInputEl = document.getElementById('deleteAccountCode');
     var codeSubmitEl = document.getElementById('deleteAccountConfirmFinal');
     var codeResendEl = document.getElementById('deleteAccountResend');
     var codeErrorEl  = document.getElementById('deleteAccountCodeError');
+    // Textos del header
     var sub1 = document.getElementById('da-sub-step1');
     var sub2 = document.getElementById('da-sub-step2');
     var impactEl = document.getElementById('da-impact');
@@ -100,6 +118,7 @@
       codeFormEl.style.display = '';
       if (sub1) sub1.style.display = 'none';
       if (sub2) sub2.style.display = '';
+      // En el paso 2 ocultamos el bloque de stats — distrae del foco (código).
       if (impactEl) impactEl.style.display = 'none';
       clearErrors();
       codeInputEl.value = '';
@@ -142,6 +161,7 @@
     });
     pwdEl.addEventListener('input', refreshSubmit);
 
+    // ── Input de confirmación: solo letras ──────────────────────────
     function isLetter(ch) { return /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]$/.test(ch); }
     function sanitizeConfirm(s) { return (s || '').replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g, ''); }
 
@@ -165,6 +185,7 @@
       refreshSubmit();
     });
 
+    // ── Toggle ojo de la password ──────────────────────────────────
     pwdEye.addEventListener('click', function () {
       var hidden = pwdEl.type === 'password';
       pwdEl.type = hidden ? 'text' : 'password';
@@ -172,6 +193,7 @@
       pwdEye.querySelector('.eye-closed').style.display = hidden ? ''     : 'none';
     });
 
+    // ── Input código: solo dígitos, 6 chars ────────────────────────
     function sanitizeCode(s) { return (s || '').replace(/\D/g, '').slice(0, 6); }
     codeInputEl.addEventListener('input', function () {
       var clean = sanitizeCode(codeInputEl.value);
@@ -185,6 +207,7 @@
       refreshCodeSubmit();
     });
 
+    // ── Helper genérico para fetch JSON con timeout ────────────────
     function postForm(url, fd, onResp, onErr, errorTarget, retryBtn) {
       var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
       var timeoutId = setTimeout(function () { if (ctrl) ctrl.abort(); }, 20000);
@@ -224,6 +247,7 @@
       });
     }
 
+    // ── PASO 1: enviar password + confirm_text → recibe código por email ──
     formEl.addEventListener('submit', function (e) {
       e.preventDefault();
       if (submitEl.disabled) return;
@@ -240,6 +264,7 @@
         fd,
         function (resp) {
           if (resp.data && resp.data.ok) {
+            // Código enviado → pasamos al paso 2
             showStep2();
             submitEl.classList.remove('loading');
             if (window.showToast) {
@@ -265,6 +290,7 @@
       );
     });
 
+    // ── PASO 2: enviar el código → backend hace soft delete ────────
     codeFormEl.addEventListener('submit', function (e) {
       e.preventDefault();
       if (codeSubmitEl.disabled) return;
@@ -298,6 +324,7 @@
             codeErrorEl.classList.add('show');
             codeSubmitEl.classList.remove('loading');
             refreshCodeSubmit();
+            // Si el código expiró o no existe, lo más útil es que vuelva al paso 1
             var state = resp.data && resp.data.code_state;
             if (state === 'no_encontrado' || state === 'expirado' || state === 'demasiados') {
               setTimeout(function () { showStep1(); }, 1500);
@@ -313,7 +340,10 @@
       );
     });
 
+    // ── Reenviar código (vuelve a pegarle al endpoint del paso 1) ──
     codeResendEl.addEventListener('click', function () {
+      // El password ya no está en el form, pero el endpoint paso 1 lo
+      // requiere. Volvemos al paso 1 para que el usuario re-confirme.
       showStep1();
       if (window.showToast) {
         window.showToast({
@@ -334,7 +364,10 @@
     btn.querySelector('.eye-closed').style.display = isHidden ? ''     : 'none';
   }
 
-
+  /* ══════════════════════════════════════════════
+     Validación del nombre de usuario en el perfil
+     (mismas reglas que validators.py — backend autoritativo)
+     ══════════════════════════════════════════════ */
   (function () {
     const USER_RE   = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9_\-]*$/;
     const USER_BLOCK = ['admin','administrator','administrador','root','test','testing',
@@ -364,6 +397,7 @@
       return !msg;
     }
 
+    /* Elimina espacios al vuelo mientras escribes */
     input.addEventListener('input', function () {
       const before = this.value;
       const after  = stripSpaces(before);
@@ -389,7 +423,12 @@
     }
   })();
 
-  
+  /* ══════════════════════════════════════════════
+     CAMBIAR CONTRASEÑA — mismas métricas que register:
+     barra de fortaleza (4 segmentos), checklist con
+     check verde, hint de coincidencia con icono
+     dinámico, caps lock detection.
+     ══════════════════════════════════════════════ */
   (function () {
     const pwd1 = document.getElementById('pwd1');
     const pwd2 = document.getElementById('pwd2');

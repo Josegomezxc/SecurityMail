@@ -184,7 +184,7 @@
       </div>
       <select name="period" id="dashPeriodSelect" class="dash-period-select">
         <option value="diario" {% if period == 'diario' %}selected{% endif %}>Diario</option>
-        <option value="semanal" selected>Semanal</option>
+        <option value="semanal" {% if period == 'semanal' %}selected{% endif %}>Semanal</option>
         <option value="mensual" {% if period == 'mensual' %}selected{% endif %}>Mensual</option>
         <option value="anual" {% if period == 'anual' %}selected{% endif %}>Anual</option>
       </select>

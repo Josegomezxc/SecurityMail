@@ -1,3 +1,4 @@
+/* Click en chip → llena el textarea + marca chip activo + actualiza contador */
 function recSetReason(btn, text) {
   var ta = document.getElementById('reason-input');
   if (!ta) return;

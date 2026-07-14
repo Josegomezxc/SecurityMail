@@ -2,7 +2,7 @@
 <article class="dr-row" id="draft-row-{{ d.id|sign_id }}"
      data-has-recipient="{% if d.to_email %}1{% else %}0{% endif %}"
      data-scheduled="{% if d.scheduled_at %}1{% else %}0{% endif %}"
-      tabindex="0"
+     tabindex="0"
      role="button"
      aria-label="Continuar editando borrador"
      onclick="resumeDraft('{{ d.id|sign_id }}')">

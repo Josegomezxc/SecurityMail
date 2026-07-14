@@ -1,9 +1,16 @@
+"""
+Analizador de scripts (.sh, .ps1, .vbs, .js, .jse, .wsf, .py, .bat, .cmd,
+.hta, .lnk, .reg).
 
+NUNCA ejecuta el script. Sólo análisis estático: lee el contenido, busca
+patrones maliciosos y técnicas de ofuscación.
+"""
 import os
 import re
 from .base import empty_result, evidence
 
-
+# Patrones por familia de script.
+# Formato: (regex, descripción legible, severidad)
 
 POWERSHELL_PATTERNS = [
     (r'IEX\s*\(',                        "PowerShell IEX (Invoke-Expression) — ejecución dinámica", 85),
@@ -77,7 +84,7 @@ SH_PATTERNS = [
     (r'\bsudo\s',                          "Uso de sudo",                          30),
 ]
 
-
+# LNK = Windows Shortcut. No tiene texto, su análisis es a nivel binario.
 LNK_TARGETS_DANGEROUS = [
     (b"powershell",     "LNK que apunta a PowerShell", 85),
     (b"cmd.exe",        "LNK que apunta a cmd.exe",    75),
@@ -93,11 +100,11 @@ def analyze(filepath: str, mime: str = "") -> dict:
     result = empty_result("script")
     ext = os.path.splitext(filepath)[1].lower()
 
-    
+    # LNK = binario, tratar aparte
     if ext == ".lnk":
         return _analyze_lnk(filepath, result)
 
-
+    # HTA = HTML application — puede contener cualquier script
     if ext == ".hta":
         result["evidence"].append(evidence(
             "format", "HTML Application (.hta) — ejecuta como app local con permisos completos", 80,
@@ -105,6 +112,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
         result["score"] = max(result["score"], 80)
         result["threat"] = "HTML Application — ejecuta scripts con permisos elevados"
 
+    # REG = clave de registro
     if ext == ".reg":
         result["evidence"].append(evidence(
             "format", "Archivo .reg — modifica el registro de Windows al doble click", 65,
@@ -112,6 +120,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
         result["score"] = max(result["score"], 65)
         result["threat"] = "Modificación del registro al ejecutarse"
 
+    # JAR = ejecutable Java
     if ext == ".jar":
         result["evidence"].append(evidence(
             "format", "Archivo .jar — ejecutable Java", 70,
@@ -119,7 +128,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
         result["score"] = max(result["score"], 70)
         result["threat"] = "Ejecutable Java"
 
-
+    # Lee contenido (asumimos texto)
     try:
         with open(filepath, "rb") as f:
             raw = f.read(2 * 1024 * 1024)
@@ -127,10 +136,12 @@ def analyze(filepath: str, mime: str = "") -> dict:
         result["evidence"].append(evidence("read_error", str(e), 30))
         return result
 
-
+    # Heurística de codificación
     text = raw.decode("utf-8", errors="ignore")
     if not text.strip():
         text = raw.decode("utf-16", errors="ignore")
+
+    # Selecciona los patrones según extensión / contenido
     patterns = []
     if ext in (".ps1", ".psm1"):
         patterns = POWERSHELL_PATTERNS
@@ -145,10 +156,10 @@ def analyze(filepath: str, mime: str = "") -> dict:
     elif ext in (".hta",):
         patterns = JS_PATTERNS + VBS_PATTERNS
     else:
-        
+        # Mezcla: prueba todo (pueden ser scripts sin extensión clara)
         patterns = POWERSHELL_PATTERNS + VBS_PATTERNS + JS_PATTERNS + BAT_PATTERNS + SH_PATTERNS
 
-
+    # Aplica los patrones
     for pattern, detail, sev in patterns:
         try:
             if re.search(pattern, text, re.IGNORECASE):
@@ -157,7 +168,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
         except re.error:
             continue
 
-
+    # Heurística general: longitud / ofuscación
     long_lines = [l for l in text.splitlines() if len(l) > 800]
     if long_lines:
         result["evidence"].append(evidence(
@@ -167,7 +178,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
         ))
         result["score"] = max(result["score"], 55)
 
-    
+    # Cantidad de variables tipo $a$b$c (ofuscación PowerShell típica)
     var_obf = len(re.findall(r'\$[a-zA-Z_]\w?\b', text))
     if var_obf > 200:
         result["evidence"].append(evidence(
@@ -177,7 +188,9 @@ def analyze(filepath: str, mime: str = "") -> dict:
         ))
         result["score"] = max(result["score"], 60)
 
-
+    # Extracción de IOCs (URLs / IPs)
+    # Nota: list() es necesario — dict.fromkeys() devuelve un dict que no
+    # soporta slicing, dispara KeyError(slice(None, 20, None)).
     for u in list(dict.fromkeys(re.findall(r'https?://[^\s"\'<>)]+', text)))[:20]:
         result["iocs"]["urls"].append(u)
     for ip in list(dict.fromkeys(re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', text)))[:20]:
@@ -195,7 +208,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
 
 
 def _analyze_lnk(filepath: str, result: dict) -> dict:
-    
+    """Análisis de un Windows Shortcut (.lnk) — formato binario."""
     result["evidence"].append(evidence(
         "format", "Windows Shortcut (.lnk) — puede ejecutar comandos arbitrarios al doble click", 70,
     ))

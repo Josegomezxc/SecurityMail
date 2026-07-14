@@ -1,4 +1,6 @@
-
+"""
+Analizador YARA — corre las reglas de `analyzers/rules/*.yar` sobre el archivo.
+"""
 import os
 import glob
 from .base import empty_result, evidence
@@ -8,13 +10,14 @@ _RULES_DIR = os.path.join(os.path.dirname(__file__), "rules")
 
 
 def _load_rules():
+    """Carga y compila las reglas YARA una sola vez por proceso."""
     global _RULES
     if _RULES is not None:
         return _RULES
     try:
         import yara
     except Exception:
-        _RULES = False  
+        _RULES = False    # marca que no está disponible
         return _RULES
 
     rule_files = glob.glob(os.path.join(_RULES_DIR, "*.yar"))

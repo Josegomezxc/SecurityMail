@@ -1,4 +1,8 @@
-
+  /* ══════════════════════════════════════════
+     ABRIR DETALLE DE CORREO ENVIADO
+     ══════════════════════════════════════════
+     Click en un correo enviado → abre el compose modal global en
+     readonly con los datos del envío ya cargados. */
   function openSent(id) {
     var data = document.getElementById('sent-detail-' + id);
     if (!data) return;
@@ -90,12 +94,24 @@
     if (e.key === 'Escape') closeAliasPicker();
   });
 
-
+  /* ══════════════════════════════════════════
+     COMPOSE:SENT — al enviar un nuevo correo, lo mejor es recargar
+     la página para que el load-more empiece "limpio" desde el batch 1
+     ══════════════════════════════════════════ */
   document.addEventListener('compose:sent', function () {
     setTimeout(function () { window.location.reload(); }, 250);
   });
 
-
+  /* ══════════════════════════════════════════
+     VER MÁS / VER MENOS
+     ──────────────────────────────────────────
+     "Ver más"  → pide el siguiente lote al backend y lo appendea.
+                  Cada fila nueva queda marcada con data-loaded="1"
+                  para poder distinguir las server-rendered de las
+                  cargadas dinámicamente.
+     "Ver menos" → quita TODAS las filas con data-loaded="1" y
+                  restaura el offset al inicial (las 6 originales).
+     ══════════════════════════════════════════ */
   var loadingMore = false;
 
   function loadMoreSent() {
@@ -119,13 +135,15 @@
         if (!data || !data.ok) throw new Error('bad response');
 
         if (data.count > 0) {
-  
+          // Append antes del placeholder #sent-no-results para que las
+          // nuevas filas queden dentro de la lista pero arriba del
+          // mensaje "Sin resultados".
           var noRes = document.getElementById('sent-no-results');
           var tmp = document.createElement('div');
           tmp.innerHTML = data.html.trim();
           while (tmp.firstChild) {
             var node = tmp.firstChild;
-          
+            // Marca solo los .sent-row appendeados (no los wrappers vacíos)
             if (node.nodeType === 1 && node.classList && node.classList.contains('sent-row')) {
               node.dataset.loaded = '1';
             }
@@ -136,11 +154,12 @@
         list.dataset.nextOffset = String(data.next_offset);
         list.dataset.hasMore    = data.has_more ? '1' : '0';
 
-   
+        // Ver más se oculta si ya no hay más; Ver menos aparece porque
+        // hay rows extra cargados.
         if (!data.has_more) btn.style.display = 'none';
         if (collapse)       collapse.style.display = '';
 
-   
+        // Re-aplicar filtro/búsqueda actuales a las filas recién insertadas
         applySentFilters();
       })
       .catch(function () {
@@ -167,25 +186,29 @@
     var list     = document.getElementById('sent-list');
     if (!list || !wrap) return;
 
+    // Quita todas las filas appendeadas vía AJAX
     list.querySelectorAll('.sent-row[data-loaded="1"]').forEach(function (r) {
       r.remove();
     });
 
-  
+    // Restaura el offset al inicial (lo que server-side trajo en el GET)
     var initial = parseInt(wrap.dataset.initialCount || '0', 10) || 0;
     list.dataset.nextOffset = String(initial);
     list.dataset.hasMore    = '1';
 
-    
+    // Ver más vuelve a aparecer; Ver menos se esconde
     if (btn)      btn.style.display = '';
     if (collapse) collapse.style.display = 'none';
 
+    // Re-aplicar filtros + scroll suave al inicio de la lista
     applySentFilters();
     list.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-
-  var sentFilter = 'all';     
+  /* ══════════════════════════════════════════
+     FILTROS + BÚSQUEDA — operan sobre el DOM cargado (client-side)
+     ══════════════════════════════════════════ */
+  var sentFilter = 'all';      // all | attach | scheduled
   var sentSearchQ = '';
 
   function applySentFilters() {
@@ -234,7 +257,7 @@
       noRes.style.display = 'none';
     }
 
-    
+    /* Ocultar separadores de fecha cuyos grupos quedaron vacíos */
     document.querySelectorAll('.date-divider').forEach(function (div) {
       var sib = div.nextElementSibling;
       var hasVisible = false;
@@ -301,7 +324,9 @@
     }
   }
 
-
+  /* ══════════════════════════════════════════
+     NUEVO CORREO — picker de alias + abrir compose
+     ══════════════════════════════════════════ */
   function toggleAliasPicker(e) {
     if (e) e.stopPropagation();
     var picker = document.getElementById('aliasPicker');
@@ -338,7 +363,9 @@
     }
   }
 
-
+  /* ══════════════════════════════════════════
+     MOVER ENVIADO A PAPELERA
+     ══════════════════════════════════════════ */
   function sentTrashEmail(btn) {
     var id = btn.dataset.emailId;
     if (!id) return;

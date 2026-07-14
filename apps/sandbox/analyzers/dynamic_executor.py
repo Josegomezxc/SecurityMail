@@ -1,4 +1,26 @@
+"""
+Ejecución DINÁMICA real dentro del contenedor sandbox.
 
+Ejecuta scripts compatibles con Linux bajo `strace` para capturar el
+comportamiento real (qué syscalls invoca, qué archivos abre, a qué red
+intenta conectarse, qué procesos hijos lanza).
+
+Ejecutables que SÍ corre (son nativos de Linux):
+  - bash / sh (.sh, .bash)
+  - Python    (.py)
+
+NO corre nunca:
+  - PE (.exe/.dll/.scr) — son Windows, imposible en Linux sin Wine/VM
+  - Office (.docx)      — las macros solo las ejecuta MS Office
+  - PDF                 — los vectores se analizan por regex estático
+  - Scripts de Windows (.ps1/.bat/.vbs/.js) — corren en PowerShell/cscript
+
+Garantías del contenedor (ya aplicadas en service.py):
+  --network none          → ninguna conexión funciona aunque lo intente
+  --read-only --tmpfs /tmp → no puede escribir fuera de /tmp
+  --memory 256m --cpus 1  → límite de recursos
+  timeout interno de 5 s  → no puede correr más de eso
+"""
 import os
 import subprocess
 import re
@@ -6,9 +28,10 @@ import signal
 from .base import empty_result, evidence
 
 
-
+# Máximo 5 segundos de ejecución
 EXEC_TIMEOUT = 5
 
+# Extensiones que SÍ se ejecutan en Linux
 EXECUTABLE_EXTS = {
     ".sh":   ["bash"],
     ".bash": ["bash"],
@@ -22,6 +45,10 @@ def can_execute(filepath: str) -> bool:
 
 
 def run(filepath: str) -> dict:
+    """
+    Ejecuta el archivo bajo strace y devuelve un reporte con el
+    comportamiento observado (formato canónico de analyzers.base).
+    """
     result = empty_result("dynamic")
 
     ext = os.path.splitext(filepath)[1].lower()
@@ -29,11 +56,17 @@ def run(filepath: str) -> dict:
     if not interp:
         return result
 
+    # Permiso de ejecución (por si viene sin el flag x)
     try:
         os.chmod(filepath, 0o755)
     except OSError:
         pass
 
+    # Comando final:
+    #   strace -f                → sigue procesos hijos
+    #         -e trace=%network,openat,execve,connect,socket,unlink,chmod,clone,fork
+    #         -s 128             → trunca strings largos a 128 chars
+    #   bash <filepath>
     strace_cmd = [
         "strace", "-f",
         "-e", "trace=network,openat,execve,connect,socket,unlink,chmod,clone,fork,vfork",
@@ -63,6 +96,7 @@ def run(filepath: str) -> dict:
         ))
         result["score"] = max(result["score"], 65)
     except FileNotFoundError:
+        # strace no disponible — caímos al fallback sin monitoreo
         return _run_fallback(filepath, interp)
     except Exception as e:
         result["evidence"].append(evidence(
@@ -70,12 +104,19 @@ def run(filepath: str) -> dict:
         ))
         return result
 
-    _parse_strace(stderr, result)      
+    # ── ANÁLISIS DEL OUTPUT ──────────────────────────────────────────
+    _parse_strace(stderr, result)      # strace escribe a stderr por defecto
     _parse_stdout(stdout, result)
     _score_behavior(rc, timed_out, result)
 
     return result
 
+
+# ───────────────────────────────────────────────────────────────────────
+#  Parsing de la salida de strace
+# ───────────────────────────────────────────────────────────────────────
+
+# Detecta llamadas socket, connect, conexiones a IPs
 RE_CONNECT    = re.compile(r'connect\([^,]+,\s*\{[^\}]*?inet_addr\("([^"]+)"\)[^}]*sin_port=htons\((\d+)\)')
 RE_CONNECT_ALT= re.compile(r'connect\([^,]+,\s*\{[^\}]*?inet_addr\("([^"]+)"\)')
 RE_SOCKET     = re.compile(r'socket\(([^,]+),')
@@ -87,6 +128,7 @@ RE_CHMOD      = re.compile(r'(?:f?chmod(?:at)?)\([^,]+,\s*"([^"]+)"?,?\s*(\d+)?'
 
 
 def _parse_strace(text: str, result: dict) -> None:
+    # 1. Conexiones de red — aunque `--network none` las rechace, el syscall se registra
     connections = set()
     for m in RE_CONNECT.finditer(text):
         ip, port = m.group(1), m.group(2)
@@ -103,7 +145,7 @@ def _parse_strace(text: str, result: dict) -> None:
         result["iocs"]["ips"].append(c.split(":")[0])
         result["score"] = max(result["score"], 85)
 
-
+    # 2. Sockets abiertos (intento de salir, aunque la red esté cortada)
     sock_families = set(RE_SOCKET.findall(text))
     dangerous_fams = {"AF_INET", "AF_INET6", "AF_NETLINK"}
     if sock_families & dangerous_fams:
@@ -114,7 +156,7 @@ def _parse_strace(text: str, result: dict) -> None:
         ))
         result["score"] = max(result["score"], 65)
 
-
+    # 3. Procesos hijo (execve distintos al interprete inicial)
     execs = [m.group(1) for m in RE_EXECVE.finditer(text)]
     suspicious_bins = {
         "/bin/nc", "/usr/bin/nc", "/bin/ncat", "/usr/bin/ncat",
@@ -125,7 +167,7 @@ def _parse_strace(text: str, result: dict) -> None:
         "/usr/bin/ssh", "/usr/bin/scp",
     }
     spawned = set()
-    for e in execs[1:]:   
+    for e in execs[1:]:   # el primero es el intérprete, ignorar
         spawned.add(e)
     for child in list(spawned)[:15]:
         sev = 80 if child in suspicious_bins else 55
@@ -137,7 +179,7 @@ def _parse_strace(text: str, result: dict) -> None:
         ))
         result["score"] = max(result["score"], sev)
 
-    
+    # 4. Clone/fork (masivo = forkbomb)
     clones = len(RE_CLONE.findall(text))
     if clones > 15:
         result["evidence"].append(evidence(
@@ -147,7 +189,7 @@ def _parse_strace(text: str, result: dict) -> None:
         ))
         result["score"] = max(result["score"], 90)
 
-
+    # 5. Archivos tocados
     sensitive = [
         ("/etc/passwd",   "Lectura de /etc/passwd",                        80),
         ("/etc/shadow",   "Lectura de /etc/shadow (hashes de contraseñas)", 95),
@@ -169,7 +211,7 @@ def _parse_strace(text: str, result: dict) -> None:
                 ))
                 result["score"] = max(result["score"], sev)
 
-    
+    # 6. Eliminaciones y chmods sospechosos
     for m in RE_UNLINK.finditer(text):
         target = m.group(1).strip()
         if target and target not in files_seen:
@@ -192,8 +234,10 @@ def _parse_strace(text: str, result: dict) -> None:
 
 
 def _parse_stdout(text: str, result: dict) -> None:
+    """Si el script imprime cosas, las agregamos como evidencia débil."""
     if not text.strip():
         return
+    # Truncamos a 3 líneas como máximo para no inflar el reporte
     lines = [l.strip() for l in text.splitlines() if l.strip()][:3]
     for line in lines:
         result["evidence"].append(evidence(
@@ -204,9 +248,12 @@ def _parse_stdout(text: str, result: dict) -> None:
 
 
 def _score_behavior(rc: int, timed_out: bool, result: dict) -> None:
+    """Ajusta la amenaza final según el comportamiento observado."""
     if timed_out:
+        # Ya se marcó antes
         result["threat"] = result["threat"] or "Script con ejecución prolongada (posible backdoor/loop)"
     elif rc != 0 and not timed_out and result["score"] < 30:
+        # Fallo no sospechoso por sí solo
         result["evidence"].append(evidence(
             "dynamic_exit",
             f"El script terminó con código {rc}",
@@ -222,6 +269,7 @@ def _score_behavior(rc: int, timed_out: bool, result: dict) -> None:
 
 
 def _run_fallback(filepath: str, interp) -> dict:
+    """Si strace no está disponible, ejecuta sin monitoreo rico."""
     result = empty_result("dynamic")
     try:
         proc = subprocess.run(

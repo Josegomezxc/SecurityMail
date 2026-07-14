@@ -1,9 +1,21 @@
+"""
+Análisis del CUERPO del correo (no requiere sandbox Docker — todo es texto).
 
+Detecta:
+  - URLs sospechosas (acortadores, IPs, IDN, brand impersonation, ...)
+  - Discrepancia entre el texto del enlace y su href real
+  - HTML con elementos peligrosos (iframe, script, form de credenciales)
+  - Headers de suplantación (From != Reply-To, dominios diferentes)
+  - Lenguaje típico de phishing ("urgente", "verifica tu cuenta", ...)
+
+Devuelve el mismo formato canónico de los analizadores del sandbox.
+"""
 import re
 import html as htmllib
 from urllib.parse import urlparse
 
 
+# Mismo formato canónico que el sandbox
 def _empty():
     return {
         "category": "body",
@@ -18,7 +30,7 @@ def _ev(etype, detail, severity):
     return {"type": etype, "detail": detail[:500], "severity": max(0, min(100, severity))}
 
 
-
+# Diccionarios reutilizados (copiados aquí para no acoplar con sandbox)
 URL_SHORTENERS = {
     "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly",
     "rebrand.ly", "cutt.ly", "shorte.st", "bc.vc", "adf.ly", "tiny.cc",
@@ -54,6 +66,7 @@ PHISHING_KEYWORDS = [
     ("bitcoin",                  40),
     ("transferencia pendiente",  55),
     ("factura adjunta",          40),
+    # Inglés (aplica si reciben spam EN)
     ("verify your account",      65),
     ("account suspended",        65),
     ("click here to confirm",    55),
@@ -69,16 +82,19 @@ def analyze(body_text: str = "", body_html: str = "",
             from_addr: str = "", reply_to: str = "",
             subject: str = "",
             dkim_status: str = "", spf_status: str = "") -> dict:
-
+    """Punto de entrada principal."""
     result = _empty()
 
     body_text = body_text or ""
     body_html = body_html or ""
     combined = f"{subject}\n{body_text}\n{body_html}".lower()
 
+    # 1. URLs (en text y href)
     urls_text = re.findall(r'https?://[^\s<>"\']+', body_text)
     urls_html_raw = re.findall(r'href\s*=\s*["\']([^"\']+)["\']', body_html, re.IGNORECASE)
-    
+    # Descartar esquemas no-web. mailto:/tel:/cid:… no son URLs phisheables y
+    # urlparse los confunde con credenciales embebidas (user@host) tras el
+    # parche "http://" — disparaba falso positivo 85/100 en respuestas de Gmail.
     urls_html = [
         u for u in urls_html_raw
         if not u.strip().lower().startswith(
@@ -96,7 +112,7 @@ def analyze(body_text: str = "", body_html: str = "",
                 if item not in result["iocs"][k]:
                     result["iocs"][k].append(item)
 
-
+    # 2. Link spoofing — texto del <a> diferente del href
     if body_html:
         for match in re.finditer(
             r'<a[^>]+href\s*=\s*["\']([^"\']+)["\'][^>]*>(.*?)</a>',
@@ -106,11 +122,14 @@ def analyze(body_text: str = "", body_html: str = "",
             text = re.sub(r'<[^>]+>', '', match.group(2)).strip()
             text = htmllib.unescape(text)
 
+            # ¿El texto parece una URL pero apunta a otra cosa?
             if re.match(r'^https?://', text):
                 href_host = (urlparse(href).hostname or "").lower()
                 text_host = (urlparse(text).hostname or "").lower()
                 if href_host and text_host and href_host != text_host:
-                    
+                    # Tracking legítimo: si el dominio visible coincide con el
+                    # del remitente Y Resend verificó DKIM+SPF, es un servicio
+                    # de tracking (SES, SendGrid, etc.), no phishing.
                     sender_domain = _email_domain(from_addr) if from_addr else ""
                     text_primary = ".".join(text_host.split(".")[-2:])
                     sender_primary = ".".join(sender_domain.split(".")[-2:]) if sender_domain else ""
@@ -128,7 +147,7 @@ def analyze(body_text: str = "", body_html: str = "",
                         ))
                         result["score"] = max(result["score"], 90)
 
-    
+    # 3. HTML peligroso
     if body_html:
         if re.search(r'<iframe\b', body_html, re.IGNORECASE):
             result["evidence"].append(_ev(
@@ -146,7 +165,7 @@ def analyze(body_text: str = "", body_html: str = "",
             ))
             result["score"] = max(result["score"], 70)
 
-
+        # Form que pide contraseña
         if re.search(r'<form\b[^>]*>', body_html, re.IGNORECASE) \
                 and re.search(r'type\s*=\s*["\']password["\']', body_html, re.IGNORECASE):
             result["evidence"].append(_ev(
@@ -165,12 +184,13 @@ def analyze(body_text: str = "", body_html: str = "",
                 10,
             ))
 
-    
+    # 4. Lenguaje típico de phishing
     triggered_keywords = []
     for kw, sev in PHISHING_KEYWORDS:
         if kw in combined:
             triggered_keywords.append((kw, sev))
 
+    # Solo aumentar score si hay 2+ keywords combinadas (evita falsos positivos)
     if len(triggered_keywords) >= 2:
         max_sev = max(s for _, s in triggered_keywords)
         kw_list = ", ".join(f'"{k}"' for k, _ in triggered_keywords[:5])
@@ -185,10 +205,11 @@ def analyze(body_text: str = "", body_html: str = "",
         result["evidence"].append(_ev(
             "phishing_language",
             f'Frase típica de phishing: "{kw}"',
-            min(sev, 40),
+            min(sev, 40),    # un solo término no es muy fuerte
         ))
         result["score"] = max(result["score"], min(sev, 40))
 
+    # 5. From vs Reply-To (suplantación clásica)
     if from_addr and reply_to:
         from_dom = _email_domain(from_addr)
         reply_dom = _email_domain(reply_to)
@@ -200,7 +221,7 @@ def analyze(body_text: str = "", body_html: str = "",
             ))
             result["score"] = max(result["score"], 75)
 
-
+    # 6. From con display-name imitando una marca
     display_name_match = re.match(r'^"?([^"<]+)"?\s*<[^>]+>$', from_addr or "")
     if display_name_match:
         display = display_name_match.group(1).strip().lower()
@@ -215,6 +236,7 @@ def analyze(body_text: str = "", body_html: str = "",
                 result["score"] = max(result["score"], 80)
                 break
 
+    # 7. ASUNTO con técnicas comunes
     if subject:
         subj_lower = subject.lower()
         if any(c in subject for c in ["⚠", "🚨", "‼", "❗", "❓"]) and \
@@ -226,6 +248,7 @@ def analyze(body_text: str = "", body_html: str = "",
             ))
             result["score"] = max(result["score"], 55)
 
+    # Threat name agregado
     if result["score"] >= 80:
         result["threat"] = "Phishing — alta confianza"
     elif result["score"] >= 60:
@@ -236,14 +259,20 @@ def analyze(body_text: str = "", body_html: str = "",
     return result
 
 
+# ───────────────────────────────────────────────────────────────────────
+#  Helpers
+# ───────────────────────────────────────────────────────────────────────
+
 def _email_domain(addr: str) -> str:
+    """Extrae el dominio de un email tipo `Nombre <foo@bar.com>` o `foo@bar.com`."""
     m = re.search(r'<([^>]+)>', addr or "")
     email = m.group(1) if m else addr
     return (email or "").split("@")[-1].strip().lower()
 
 
 def _domains_align(d1: str, d2: str) -> bool:
-
+    """True si ambos dominios pertenecen a la misma organización
+    (comparten el dominio registrado)."""
     if d1 == d2:
         return True
     p1 = d1.lower().split(".")
@@ -252,7 +281,7 @@ def _domains_align(d1: str, d2: str) -> bool:
 
 
 def _analyze_url(url: str) -> dict:
-
+    """Versión inline del url_analyzer (para no depender del paquete sandbox)."""
     result = _empty()
     result["iocs"]["urls"].append(url)
 

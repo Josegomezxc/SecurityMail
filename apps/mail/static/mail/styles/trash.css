@@ -113,7 +113,6 @@
   flex-wrap: wrap;
   animation: fadeUp 0.4s ease 0.05s both;
 }
-
 .tabs {
   display: flex;
   gap: 0.25rem;

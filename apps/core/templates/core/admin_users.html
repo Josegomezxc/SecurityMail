@@ -21,14 +21,13 @@
 
 
 <div class="users-toolbar">
-  <form method="get" action="" class="search-bar" role="search" id="adm-users-search-form" onsubmit="return false;">
+  <form method="get" action="" class="search-bar" role="search" id="adm-users-search-form">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
     <label for="userSearch" class="sr-only">Buscar usuarios por correo o nombre</label>
     <input type="search" id="userSearch" name="q" value="{{ q }}"
-           placeholder="Buscar por correo o nombre..." autocomplete="off"
-           oninput="filterUsers(this.value)">
+           placeholder="Buscar por correo o nombre..." autocomplete="off">
     {% if role and role != 'all' %}<input type="hidden" name="role" value="{{ role }}">{% endif %}
   </form>
 

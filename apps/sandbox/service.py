@@ -1,10 +1,14 @@
-
+"""
+Servicio que invoca el sandbox Docker desde Django.
+Recibe un EmailMessage, devuelve el reporte canónico.
+"""
 import subprocess
 import json
 import os
 
 SANDBOX_IMAGE = "email_seguro_sandbox"
 
+# Empty report en el formato nuevo (compatible con el orquestador)
 EMPTY_REPORT = {
     "filename":            "",
     "size":                0,
@@ -24,6 +28,7 @@ EMPTY_REPORT = {
     "network_connections": [],
     "child_processes":     [],
     "file_writes":         [],
+    # Compatibilidad con código viejo:
     "real_mime":           "",
 }
 
@@ -43,6 +48,7 @@ def run_sandbox_analysis(email_message) -> dict:
     if not filepath or not os.path.exists(filepath):
         return _empty("No hay adjunto que analizar")
 
+    # Convertir ruta Windows → Docker (C:\foo → /c/foo)
     docker_path = filepath.replace("\\", "/")
     if len(docker_path) > 1 and docker_path[1] == ":":
         drive = docker_path[0].lower()
@@ -55,20 +61,21 @@ def run_sandbox_analysis(email_message) -> dict:
         result = subprocess.run(
             [
                 "docker", "run", "--rm",
-                "--network", "none",          
+                "--network", "none",          # SIN red — ningún script puede llamar fuera
                 "--memory", "512m",
                 "--cpus", "2.5",
-                "--read-only",               
-                "--tmpfs", "/tmp:size=512m", 
+                "--read-only",                # filesystem de solo lectura
+                "--tmpfs", "/tmp:size=512m",  # /tmp escribible pero efímero
                 "-v", f"{docker_path}:{container_path}:ro",
                 SANDBOX_IMAGE,
                 "python", "/app/sandbox/run_analysis.py", container_path,
             ],
             capture_output=True,
             text=True,
-            encoding="utf-8",                 
-            errors="replace",                
-            timeout=120,                      
+            encoding="utf-8",                 # ← fuerza UTF-8 (Windows usa cp1252 por defecto
+                                              #    y rompe acentos como "detección" → "detecciÃ³n")
+            errors="replace",                 # nunca crashea por bytes raros del sandbox
+            timeout=120,                      # por adjunto — previene hang en lotes
         )
 
         if result.returncode != 0 and not result.stdout:
@@ -81,6 +88,7 @@ def run_sandbox_analysis(email_message) -> dict:
             print("SANDBOX BAD JSON:", result.stdout[:500])
             return _empty("Sandbox devolvió JSON inválido")
 
+        # Backwards compat: si el sandbox antiguo devuelve sólo `score` interno
         if "risk_score" not in report and "score" in report:
             report["risk_score"] = report["score"]
 

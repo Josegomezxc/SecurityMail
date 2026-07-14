@@ -1,15 +1,24 @@
+"""
+Analizador de archivos comprimidos (.zip, .rar, .7z, .iso).
+Extrae el contenido en un directorio temporal con límites estrictos
+(profundidad máxima, tamaño máximo, número de ficheros máximo) y delega
+el análisis a la función pasada por el orquestador.
 
+NOTA: requiere `recurse_fn(path, mime)` que devuelve el dict canónico,
+para evitar dependencias circulares con run_analysis.py.
+"""
 import os
 import tempfile
 import zipfile
 import shutil
 from .base import empty_result, evidence
 
-MAX_DEPTH        = 2         
-MAX_FILES        = 50         
-MAX_TOTAL_BYTES  = 250 * 1024 * 1024  
-MAX_FILE_BYTES   = 100 * 1024 * 1024 
+MAX_DEPTH        = 2          # No anidar contenedores más allá de 2 niveles
+MAX_FILES        = 50         # Límite de ficheros a extraer
+MAX_TOTAL_BYTES  = 250 * 1024 * 1024  # 250 MB descomprimidos máximo (anti zip-bomb)
+MAX_FILE_BYTES   = 100 * 1024 * 1024  # 100 MB por fichero individual
 
+# Extensiones que SIEMPRE son alarmantes dentro de un comprimido
 INSIDE_DANGEROUS_EXT = {
     ".exe": 88, ".scr": 88, ".com": 85, ".pif": 85, ".cpl": 80,
     ".dll": 75, ".sys": 80, ".msi": 75, ".bat": 80, ".cmd": 80,
@@ -29,6 +38,7 @@ def analyze(filepath: str, mime: str = "", recurse_fn=None, depth: int = 0) -> d
         ))
         return result
 
+    # Decidir tipo de archivo
     ext = os.path.splitext(filepath)[1].lower()
 
     extract_dir = tempfile.mkdtemp(prefix="sandbox_arc_")
@@ -97,10 +107,12 @@ def analyze(filepath: str, mime: str = "", recurse_fn=None, depth: int = 0) -> d
             10,
         ))
 
+        # Analiza cada fichero extraído
         for inner_path in extracted:
             inner_ext = os.path.splitext(inner_path)[1].lower()
             inner_name = os.path.basename(inner_path)
 
+            # Marcador rápido por extensión
             if inner_ext in INSIDE_DANGEROUS_EXT:
                 sev = INSIDE_DANGEROUS_EXT[inner_ext]
                 result["evidence"].append(evidence(
@@ -111,6 +123,7 @@ def analyze(filepath: str, mime: str = "", recurse_fn=None, depth: int = 0) -> d
                 result["score"] = max(result["score"], sev)
                 result["threat"] = f"Comprimido contiene ejecutable peligroso ({inner_ext})"
 
+            # Análisis profundo si tenemos la función recursiva
             if recurse_fn:
                 try:
                     sub = recurse_fn(inner_path, depth=depth + 1)
@@ -139,6 +152,10 @@ def analyze(filepath: str, mime: str = "", recurse_fn=None, depth: int = 0) -> d
     return result
 
 
+# ───────────────────────────────────────────────────────────────────────
+#  Extracción
+# ───────────────────────────────────────────────────────────────────────
+
 class _ZipBombError(Exception):
     pass
 
@@ -147,6 +164,7 @@ class _ProtectedError(Exception):
 
 
 def _extract(filepath: str, ext: str, dest: str, result: dict) -> list:
+    """Devuelve la lista de paths extraídos (solo ficheros, no directorios)."""
     if ext == ".zip" or _looks_like_zip(filepath):
         return _extract_zip(filepath, dest)
     if ext == ".7z":
@@ -157,6 +175,7 @@ def _extract(filepath: str, ext: str, dest: str, result: dict) -> list:
 
 
 def _extract_with_password(filepath: str, ext: str, dest: str, password: str) -> list:
+    """Extrae un archivo comprimido protegido con la contraseña dada."""
     if ext == ".zip" or _looks_like_zip(filepath):
         return _extract_zip_with_password(filepath, dest, password)
     if ext == ".7z":
@@ -167,6 +186,7 @@ def _extract_with_password(filepath: str, ext: str, dest: str, password: str) ->
 
 
 def _extract_zip_with_password(filepath: str, dest: str, password: str) -> list:
+    # Zip bomb check con zipfile (solo metadata, no necesita password)
     with zipfile.ZipFile(filepath, "r") as z:
         compressed = sum(i.compress_size for i in z.infolist())
         uncompressed = sum(i.file_size for i in z.infolist())
@@ -184,6 +204,7 @@ def _extract_zip_with_password(filepath: str, dest: str, password: str) -> list:
                     f"Tamaño descomprimido > {MAX_TOTAL_BYTES//1024//1024} MB"
                 )
 
+    # 7z CLI para la extracción real (soporta ZipCrypto + AES-256 y todos los formatos)
     import subprocess
     try:
         result = subprocess.run(
@@ -240,10 +261,12 @@ def _extract_zip(filepath: str, dest: str) -> list:
     total_bytes = 0
 
     with zipfile.ZipFile(filepath, "r") as z:
+        # ¿Cifrado?
         for info in z.infolist():
             if info.flag_bits & 0x1:
                 raise _ProtectedError("ZIP con contraseña")
 
+        # Comprueba ratio de compresión
         compressed = sum(i.compress_size for i in z.infolist())
         uncompressed = sum(i.file_size for i in z.infolist())
         if compressed > 0 and uncompressed / compressed > 100 and uncompressed > 10 * 1024 * 1024:
@@ -261,6 +284,7 @@ def _extract_zip(filepath: str, dest: str) -> list:
                 raise _ZipBombError(
                     f"Tamaño descomprimido > {MAX_TOTAL_BYTES//1024//1024} MB"
                 )
+            # Path traversal protection
             target = os.path.normpath(os.path.join(dest, info.filename))
             if not target.startswith(dest):
                 continue

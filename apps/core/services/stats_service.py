@@ -1,4 +1,9 @@
+"""
+Cálculos estadísticos reutilizables.
 
+Usado por dashboard, perfil, y panel de admin. Mantiene las consultas
+centralizadas para no duplicar lógica.
+"""
 import calendar
 from datetime import datetime, timedelta
 
@@ -11,8 +16,13 @@ from apps.mail.models import EmailMessage
 from apps.sandbox.models import SandboxAnalysis
 
 
-def _build_activity(user, period, ref_date):
+# ─────────────────────────────────────────────────────────────────────
+#  Stats del usuario logueado (usado por el dashboard normal)
+# ─────────────────────────────────────────────────────────────────────
 
+def _build_activity(user, period, ref_date):
+    """Construye la serie de actividad según período y fecha de referencia.
+    Si user=None → actividad GLOBAL (sin filtro por usuario)."""
     today = timezone.now().date()
     _filter = {} if user is None else {'alias__user': user}
 
@@ -85,17 +95,24 @@ def _build_activity(user, period, ref_date):
 
 
 def activity_data_for_user(user, period='diario'):
+    """Wrapper público para obtener solo los datos del chart de actividad."""
     today = timezone.now().date()
     return _build_activity(user, period, today)
 
 
 def dashboard_stats(user, period='diario', ref_str=None) -> dict:
-
+    """
+    Devuelve todas las métricas que el dashboard del usuario necesita:
+    contadores principales, tendencia 24h, tasa de bloqueo, serie de
+    actividad dinámica según período (diario/semanal/mensual/anual) y
+    distribución por nivel de riesgo (para el donut).
+    """
     now       = timezone.now()
     today     = now.date()
     cutoff_1d = now - timedelta(days=1)
     cutoff_2d = now - timedelta(days=2)
 
+    # ── Parsear fecha de referencia ──────────────────────────────────
     if ref_str:
         try:
             ref_date = datetime.strptime(ref_str, '%Y-%m-%d').date()
@@ -106,6 +123,7 @@ def dashboard_stats(user, period='diario', ref_str=None) -> dict:
     if ref_date > today:
         ref_date = today
 
+    # ── Query 1: todos los conteos en UNA consulta ─────────────────
     agg = EmailMessage.objects.filter(alias__user=user).aggregate(
         total_emails=Count('id'),
         threats_count=Count('id', filter=Q(risk_score__gte=61)),
@@ -121,12 +139,15 @@ def dashboard_stats(user, period='diario', ref_str=None) -> dict:
         )),
     )
 
+    # ── Query 2: actividad según período ────────────────────────────
     activity_data, range_label = _build_activity(user, period, ref_date)
 
+    # ── Query 3: conteo SandboxAnalysis seguro ──────────────────────
     safe_count = SandboxAnalysis.objects.filter(
         email__alias__user=user, risk_score__lte=30,
     ).count()
 
+    # ── Query 4: alias activos ──────────────────────────────────────
     alias_count = Alias.objects.filter(user=user, is_active=True).count()
 
     total_emails  = agg['total_emails']
@@ -172,8 +193,12 @@ def _trend_pct(current: int, previous: int) -> int:
     return round((current - previous) / previous * 100)
 
 
-def admin_global_stats() -> dict:
+# ─────────────────────────────────────────────────────────────────────
+#  Stats globales del sistema (panel de administración)
+# ─────────────────────────────────────────────────────────────────────
 
+def admin_global_stats() -> dict:
+    """Métricas agregadas de TODO el sistema para el panel admin."""
     from django.contrib.auth.models import User
 
     now       = timezone.now()
@@ -183,12 +208,13 @@ def admin_global_stats() -> dict:
     received_qs   = EmailMessage.objects.all()
     emails_total  = received_qs.count()
 
+    # ── Distribución de correos por nivel de riesgo ──
     safe_count    = received_qs.filter(risk_score__lte=30).count()
     susp_count    = received_qs.filter(
                         risk_score__gt=30, risk_score__lt=61).count()
     threats_total = received_qs.filter(risk_score__gte=61).count()
 
-    
+    # Porcentajes (evita divisiones por 0)
     if emails_total > 0:
         safe_pct    = round(safe_count    / emails_total * 100)
         susp_pct    = round(susp_count    / emails_total * 100)
@@ -204,7 +230,7 @@ def admin_global_stats() -> dict:
     users_staff = User.objects.filter(is_staff=True).count()
     users_active = User.objects.filter(is_active=True).count()
 
-
+    # ── Actividad: correos por día en los últimos 7 días ──
     activity_7d = []
     max_in_day  = 0
     for i in range(6, -1, -1):
@@ -219,10 +245,14 @@ def admin_global_stats() -> dict:
             'label': day_start.strftime('%a %d').lower(),
             'count': count,
         })
-
+    # Calculamos el % de altura de la barra para el gráfico
     for d in activity_7d:
         d['bar_pct'] = round(d['count'] / max_in_day * 100) if max_in_day else 0
 
+    # ── Top 5 dominios atacantes (de dónde vienen las amenazas) ──
+    # Extraemos el dominio del campo from_email de los correos con
+    # score >= 61. Lo hacemos en Python porque sqlite/postgres no tienen
+    # SUBSTRING_INDEX nativo igual.
     threat_emails = received_qs.filter(
         risk_score__gte=61,
     ).values_list('from_email', flat=True)
@@ -230,7 +260,7 @@ def admin_global_stats() -> dict:
     for addr in threat_emails:
         if not addr:
             continue
-
+        # Extrae solo el dominio: 'foo@bar.com' -> 'bar.com'
         if '@' in addr:
             domain = addr.split('@')[-1].strip().lower().rstrip('>').strip()
         else:
@@ -243,7 +273,7 @@ def admin_global_stats() -> dict:
         for d, c in sorted(domain_counts.items(), key=lambda x: -x[1])[:5]
     ]
 
-
+    # ── Tendencia: comparación 7 días actuales vs 7 días anteriores ──
     cutoff_14d = now - timedelta(days=14)
     emails_prev_7d = received_qs.filter(
         received_at__gte=cutoff_14d, received_at__lt=cutoff_7d,
@@ -264,7 +294,11 @@ def admin_global_stats() -> dict:
     emails_trend  = _trend_pct(received_qs.filter(received_at__gte=cutoff_7d).count(), emails_prev_7d)
     threats_trend = _trend_pct(threats_7d, threats_prev_7d)
 
-
+    # ── Desglose de usuarios para el donut del panel admin ────────────
+    # Tres slices:
+    #   - regulares activos = activos y NO staff
+    #   - staff (admins, todos cuentan activos para esta visualización)
+    #   - inactivos = no activos (bloqueados por intentos o soft-deleted)
     users_active_regular = max(0, users_active - users_staff)
     users_inactive       = max(0, users_total  - users_active)
 
@@ -286,25 +320,29 @@ def admin_global_stats() -> dict:
         "threats_7d":      threats_7d,
         "sandbox_total":   SandboxAnalysis.objects.count(),
         "sandbox_blocked": SandboxAnalysis.objects.filter(risk_score__gte=81).count(),
-
+        # Distribución de riesgo
         "safe_count":      safe_count,
         "susp_count":      susp_count,
         "safe_pct":        safe_pct,
         "susp_pct":        susp_pct,
         "threats_pct":     threats_pct,
-
+        # Actividad
         "activity_7d":     activity_7d,
         "max_in_day":      max_in_day,
-
+        # Top dominios atacantes
         "top_attacker_domains": top_attacker_domains,
+        # Tendencias
         "emails_trend":    emails_trend,
         "threats_trend":   threats_trend,
     }
 
 
+# ─────────────────────────────────────────────────────────────────────
+#  Stats del perfil (conteos básicos por usuario)
+# ─────────────────────────────────────────────────────────────────────
 
 def profile_stats(user) -> dict:
-
+    """Contadores mostrados en la tarjeta del perfil."""
     return {
         "alias_count":   Alias.objects.filter(user=user, is_active=True).count(),
         "total_emails":  EmailMessage.objects.filter(alias__user=user).count(),
