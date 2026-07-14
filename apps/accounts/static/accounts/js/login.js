@@ -26,14 +26,13 @@
     pwdInput.addEventListener('keyup', checkCaps);
     pwdInput.addEventListener('blur', () => capsWarn.classList.remove('show'));
 
-    // Normaliza el identificador: trim + lowercase (no dañamos la contraseña)
     const emailField = document.getElementById('email-input');
     emailField.addEventListener('blur', function () {
       this.value = this.value.trim().toLowerCase();
     });
 
     form.addEventListener('submit', function (e) {
-      // Normaliza al vuelo antes de enviar
+
       emailField.value = emailField.value.trim().toLowerCase();
 
       const ident = emailField.value;
@@ -54,12 +53,9 @@
         return;
       }
       btnLogin.classList.add('loading');
-      // El handler global de base.js (data-ds-loader en el <form>) se encarga
-      // de mostrar el loader y disparar el submit programático.
     });
   })();
 
-// Evita "Confirmar reenvío del formulario" al usar atrás/adelante
 if (window.history.replaceState) {
   window.history.replaceState(null, null, window.location.href);
 }

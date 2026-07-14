@@ -1,14 +1,4 @@
-"""
-Servicio específico para escanear adjuntos de correos salientes
-desde el compose modal de alias. Es una copia adaptada de
-apps/sandbox/service.py con dos diferencias:
 
-  1. Toma filepath directamente (sin wrapper de EmailMessage).
-  2. Deriva risk_level desde risk_score cuando el sandbox no lo
-     incluye (el original deja el default "safe").
-
-El archivo original NO se modifica.
-"""
 import subprocess
 import json
 import os
@@ -47,7 +37,6 @@ def _empty(error: str = "") -> dict:
 
 
 def _empty_timeout() -> dict:
-    """Cuando el análisis excede el timeout, lo marcamos como advertencia."""
     out = _empty()
     out["risk_score"] = 50
     out["risk_level"] = "warning"
@@ -61,7 +50,7 @@ def _empty_timeout() -> dict:
 
 
 def _normalize(report: dict) -> dict:
-    """Garantiza que todas las claves esperadas existen."""
+
     base = _empty()
     for k, v in base.items():
         if k not in report or report.get(k) is None:
@@ -70,14 +59,10 @@ def _normalize(report: dict) -> dict:
 
 
 def scan_attachment(filepath: str) -> dict:
-    """
-    Punto de entrada. Recibe la ruta absoluta de un archivo temporal,
-    lo pasa por el sandbox Docker y devuelve el reporte canónico.
-    """
+
     if not filepath or not os.path.exists(filepath):
         return _empty("No hay adjunto que analizar")
 
-    # Convertir ruta Windows → Docker (C:\foo → /c/foo)
     docker_path = filepath.replace("\\", "/")
     if len(docker_path) > 1 and docker_path[1] == ":":
         drive = docker_path[0].lower()
@@ -116,16 +101,12 @@ def scan_attachment(filepath: str) -> dict:
             print("[attachment-scan] SANDBOX BAD JSON:", result.stdout[:500])
             return _empty("Sandbox devolvió JSON inválido")
 
-        # Backwards compat: si el sandbox antiguo devuelve sólo `score` interno
         if "risk_score" not in report and "score" in report:
             report["risk_score"] = report["score"]
 
         report = _normalize(report)
 
-        # ── DIFERENCIA CLAVE con sandbox/service.py ──
-        # El sandbox suele devolver `score` pero NO `risk_level`.
-        # _normalize lo rellena con "safe" (default de EMPTY_REPORT).
-        # Aquí lo derivamos del score numérico.
+
         score = report.get("risk_score", 0)
         if score > 0 and report.get("risk_level") in ("safe", "unknown"):
             if score >= 90:
@@ -137,7 +118,6 @@ def scan_attachment(filepath: str) -> dict:
             else:
                 report["risk_level"] = "low"
 
-        # Normalizar niveles propios del sandbox (run_analysis.py) a nuestros estándares
         if report.get("risk_level") in ("malware", "danger"):
             report["risk_level"] = "critical"
         elif report.get("risk_level") in ("suspicious", "warning"):

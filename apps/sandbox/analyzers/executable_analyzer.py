@@ -1,11 +1,7 @@
-"""
-Analizador estático de ejecutables (PE para Windows, ELF para Unix).
-Nunca ejecuta el binario — solo lee su estructura.
-"""
+
 import os
 from .base import empty_result, evidence
 
-# APIs de Windows típicamente abusadas por malware
 SUSPICIOUS_PE_IMPORTS = {
     "VirtualAllocEx":      ("Reserva memoria en otro proceso (inyección)", 70),
     "WriteProcessMemory":  ("Escribe en memoria de otro proceso (inyección)", 75),
@@ -29,7 +25,6 @@ SUSPICIOUS_PE_IMPORTS = {
     "GetProcAddress":      ("Resolución dinámica de API (evasión estática)", 35),
 }
 
-# Firmas de packers/cryptors comunes
 KNOWN_PACKERS = {
     "UPX":          ("Empaquetado con UPX", 45),
     "MPRESS":       ("Empaquetado con MPRESS", 50),
@@ -43,7 +38,6 @@ KNOWN_PACKERS = {
 
 
 def analyze(filepath: str, mime: str = "") -> dict:
-    """Punto de entrada. Decide si es PE, ELF u otro y dispatcha."""
     result = empty_result("executable")
 
     try:
@@ -67,7 +61,6 @@ def analyze(filepath: str, mime: str = "") -> dict:
 
 
 def _analyze_pe(filepath: str, result: dict) -> dict:
-    """Análisis estático de PE (.exe/.dll/.scr/.sys/.cpl)."""
     result["category"] = "executable"
     result["score"] = 75
     result["threat"] = "Ejecutable Windows (PE)"
@@ -87,7 +80,7 @@ def _analyze_pe(filepath: str, result: dict) -> dict:
         ))
         return result
 
-    # Imports sospechosos (uno de los indicadores más fuertes)
+
     suspicious_found = []
     if hasattr(pe, "DIRECTORY_ENTRY_IMPORT"):
         for entry in pe.DIRECTORY_ENTRY_IMPORT:
@@ -99,7 +92,7 @@ def _analyze_pe(filepath: str, result: dict) -> dict:
                     detail, sev = SUSPICIOUS_PE_IMPORTS[name]
                     suspicious_found.append((name, detail, sev))
 
-    for name, detail, sev in suspicious_found[:15]:        # tope para no inundar
+    for name, detail, sev in suspicious_found[:15]:       
         result["evidence"].append(evidence(
             "suspicious_import", f"{name}: {detail}", sev,
         ))
@@ -109,7 +102,6 @@ def _analyze_pe(filepath: str, result: dict) -> dict:
         result["threat"] = "Ejecutable Windows con APIs de inyección/evasión"
         result["score"] = max(result["score"], 88)
 
-    # Detección de packers por nombres de sección
     section_names = []
     for section in pe.sections:
         try:
@@ -123,7 +115,6 @@ def _analyze_pe(filepath: str, result: dict) -> dict:
             result["evidence"].append(evidence("packer", detail, sev))
             result["score"] = max(result["score"], sev)
 
-    # Secciones con nombres anómalos (.text/.data/.rdata son normales)
     weird_sections = [
         s for s in section_names
         if s and s not in (".text", ".data", ".rdata", ".bss", ".rsrc", ".reloc",
@@ -137,7 +128,6 @@ def _analyze_pe(filepath: str, result: dict) -> dict:
         ))
         result["score"] = max(result["score"], 55)
 
-    # Entropía alta = probable cifrado/empaquetado
     high_entropy_sections = []
     for section in pe.sections:
         try:
@@ -155,7 +145,6 @@ def _analyze_pe(filepath: str, result: dict) -> dict:
         ))
         result["score"] = max(result["score"], 60)
 
-    # Sin firma digital
     try:
         if pe.OPTIONAL_HEADER.DATA_DIRECTORY[
             pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_SECURITY"]
@@ -172,7 +161,6 @@ def _analyze_pe(filepath: str, result: dict) -> dict:
 
 
 def _analyze_elf(filepath: str, head: bytes, result: dict) -> dict:
-    """Análisis muy básico de ELF (Linux)."""
     result["category"] = "executable"
     result["score"] = 70
     result["threat"] = "Ejecutable Linux (ELF)"
@@ -180,10 +168,9 @@ def _analyze_elf(filepath: str, head: bytes, result: dict) -> dict:
         "binary", "Binario ELF de Linux detectado", 70,
     ))
 
-    # Buscar strings sospechosas (técnica clásica)
     try:
         with open(filepath, "rb") as f:
-            data = f.read(2 * 1024 * 1024)            # primeros 2 MB
+            data = f.read(2 * 1024 * 1024)            
     except Exception:
         return result
 

@@ -1,15 +1,4 @@
-"""
-Notificación por correo cuando un usuario elimina su cuenta.
 
-  - send_account_deleted_email(...) → envía un correo HTML al correo
-    PERSONAL del usuario (NO a un alias — los alias se acaban de borrar).
-    Incluye un resumen de lo eliminado, la fecha/IP de la operación y un
-    aviso de seguridad por si la acción no fue suya.
-
-Es una notificación informativa: si el envío falla NO debemos romper la
-eliminación de la cuenta (que ya se hizo). Por eso esta función nunca
-levanta excepciones — devuelve (ok, info) y los errores se loguean.
-"""
 from typing import Tuple, Optional
 
 from apps.core.services.email_service import send_email, get_site_url
@@ -25,11 +14,7 @@ def send_account_deleted_email(
     deleted_at_str: str,
     ip: Optional[str] = None,
 ) -> Tuple[bool, str]:
-    """
-    Envía la confirmación de eliminación al correo personal del usuario.
-    Todos los datos se pasan ya resueltos (el caller los captura antes
-    del delete porque el objeto User ya no existe cuando enviamos).
-    """
+
     if not to_email:
         return False, 'sin destinatario'
     try:
@@ -57,12 +42,7 @@ def send_deletion_code_email(
     code: str,
     minutes: int = 10,
 ) -> Tuple[bool, str]:
-    """
-    Envía el código de 6 dígitos para CONFIRMAR la eliminación de la
-    cuenta. Tono de alerta (header rojo) porque es destructivo, aunque
-    en realidad ahora es soft delete y reversible mientras esté en el
-    período de recuperación.
-    """
+
     if not to_email:
         return False, 'sin destinatario'
     try:
@@ -81,7 +61,7 @@ def send_deletion_code_email(
 
 
 def _build_deletion_code_html(*, display_name: str, code: str, minutes: int) -> str:
-    """HTML con el código en caja grande y advertencia roja."""
+    
     base_url = get_site_url()
     logo_url = f"{base_url}/static/core/img/logo-red.png"
     name_safe = (display_name or 'Usuario').strip() or 'Usuario'
@@ -183,9 +163,7 @@ def _build_deletion_code_html(*, display_name: str, code: str, minutes: int) -> 
 </html>"""
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  Plantilla HTML (mismo lenguaje visual que password_reset_service)
-# ─────────────────────────────────────────────────────────────────────
+
 
 def _build_account_deleted_html(
     *,

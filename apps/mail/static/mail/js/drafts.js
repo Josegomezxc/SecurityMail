@@ -3,7 +3,6 @@ function getCsrfTok() {
   return c ? c.split('=')[1] : '';
 }
 
-/* Reanuda el borrador en el compose modal global (incluido por base.html). */
 function resumeDraft(draftId) {
   if (typeof window.openDraft === 'function') {
     window.openDraft(draftId);
@@ -17,8 +16,7 @@ function resumeDraft(draftId) {
   }
 }
 
-/* Mueve el borrador a la papelera (soft-delete). Lo puedes restaurar
-   desde /papelera/ durante 30 días. */
+
 function deleteDraft(id) {
   fetch('/borradores/' + id + '/eliminar/', {
     method: 'POST',
@@ -56,12 +54,9 @@ function deleteDraft(id) {
   });
 }
 
-/* Estado actual del filtro de pestañas (se persiste entre cargas) */
+
 var currentDraftFilter = 'all';
 
-/* Filtra la lista de borradores: 'all' | 'no-recipient' | 'scheduled'.
-   Cuando `btn` es null, no toca los botones (lo usamos al re-aplicar
-   el filtro tras un load-more). */
 function filterDrafts(filter, btn) {
   currentDraftFilter = filter;
   if (btn) {
@@ -93,9 +88,7 @@ function filterDrafts(filter, btn) {
   }
 }
 
-/* ══════════════════════════════════════════
-   VER MÁS / VER MENOS (load-more con toggle)
-══════════════════════════════════════════ */
+
 var draftsLoadingMore = false;
 
 function loadMoreDrafts() {
@@ -137,7 +130,6 @@ function loadMoreDrafts() {
       if (!data.has_more) btn.style.display = 'none';
       if (collapse)       collapse.style.display = '';
 
-      // Re-aplicar el filtro activo a las filas nuevas
       filterDrafts(currentDraftFilter, null);
     })
     .catch(function () {
@@ -179,7 +171,6 @@ function collapseDrafts() {
   list.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-/* Manda TODOS los borradores activos a la papelera. */
 function emptyDrafts() {
   var doIt = function () {
     fetch('/borradores/vaciar/', {

@@ -1,12 +1,8 @@
 (function () {
-    // Mismas métricas que register.js — fortaleza con 4 segmentos,
-    // requisitos con check, match hint con icono dinámico, caps lock,
-    // toggle ojo. Mantiene UX consistente entre crear cuenta y cambiar
-    // contraseña.
+
     const eyeOpenSVG  = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
     const eyeCloseSVG = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
 
-    // ── Toggle mostrar/ocultar contraseña ─────────────────────────────
     document.querySelectorAll('.eye-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const input = document.getElementById(btn.dataset.target);
@@ -21,7 +17,6 @@
     const pwd2 = document.getElementById('pwd2');
     const capsWarn = document.getElementById('capsWarning');
 
-    // ── Caps Lock detection ───────────────────────────────────────────
     function checkCaps(e) {
         if (e.getModifierState && e.getModifierState('CapsLock')) {
             capsWarn.classList.add('show');
@@ -33,7 +28,6 @@
     pwd1.addEventListener('keyup', checkCaps);
     pwd1.addEventListener('blur', () => capsWarn.classList.remove('show'));
 
-    // ── Barra de fortaleza (4 segmentos) ──────────────────────────────
     const bars = document.querySelectorAll('#strengthBar span');
     const levelLabel = document.getElementById('strengthLevel');
     const reqList = document.getElementById('reqList');
@@ -68,7 +62,6 @@
         }
     }
 
-    // ── Hint de coincidencia (con icono dinámico) ─────────────────────
     const matchHint = document.getElementById('matchHint');
     const matchText = document.getElementById('matchText');
     const matchIcon = document.getElementById('matchIcon');
@@ -94,7 +87,6 @@
     pwd1.addEventListener('input', () => { evaluatePwd(); updateMatch(); checkSubmit(); });
     pwd2.addEventListener('input', () => { updateMatch(); checkSubmit(); });
 
-    // ── Submit: bloqueo si no coinciden o son débiles ─────────────────
     const submitBtn = document.getElementById('submitBtn');
     function checkSubmit() {
         const pwdOk = pwd1.value.length >= 8 && pwd1.value === pwd2.value;

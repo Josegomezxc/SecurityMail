@@ -1,13 +1,4 @@
-"""
-Análisis de URLs / dominios.
-Detecta:
-  - URLs IP-only (sin DNS)
-  - Acortadores (bit.ly, t.co, ...)
-  - Dominios homógrafos (caracteres confusos)
-  - TLDs sospechosos comunes en phishing
-  - Credentials-in-URL (user:pass@host)
-  - Discrepancia entre texto y href
-"""
+
 import re
 from urllib.parse import urlparse
 from .base import empty_result, evidence
@@ -19,10 +10,10 @@ URL_SHORTENERS = {
 }
 
 SUSPICIOUS_TLDS = {
-    "tk", "ml", "ga", "cf", "gq",      # antiguos free TLD muy abusados
+    "tk", "ml", "ga", "cf", "gq",     
     "top", "click", "loan", "win",
     "review", "country", "stream", "kim", "men", "racing", "download",
-    "zip", "mov",                       # nuevos TLD problemáticos (zip = confusión con archivo)
+    "zip", "mov",                       
 }
 
 KNOWN_BRANDS = {
@@ -34,7 +25,6 @@ KNOWN_BRANDS = {
 
 
 def analyze_url(url: str) -> dict:
-    """Devuelve un dict con score y evidencia para una URL concreta."""
     result = empty_result("url")
     result["iocs"]["urls"].append(url)
 
@@ -48,7 +38,7 @@ def analyze_url(url: str) -> dict:
     if host:
         result["iocs"]["domains"].append(host)
 
-    # 1. Credenciales en la URL (user:pass@host) — clásico phishing
+    
     if "@" in (parsed.netloc or ""):
         result["evidence"].append(evidence(
             "url_credentials_in_url",
@@ -57,7 +47,7 @@ def analyze_url(url: str) -> dict:
         ))
         result["score"] = max(result["score"], 85)
 
-    # 2. IP en lugar de dominio
+    
     if host and re.fullmatch(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', host):
         result["iocs"]["ips"].append(host)
         result["evidence"].append(evidence(
@@ -67,7 +57,7 @@ def analyze_url(url: str) -> dict:
         ))
         result["score"] = max(result["score"], 70)
 
-    # 3. Acortador
+    
     if host in URL_SHORTENERS:
         result["evidence"].append(evidence(
             "url_shortener",
@@ -76,7 +66,7 @@ def analyze_url(url: str) -> dict:
         ))
         result["score"] = max(result["score"], 55)
 
-    # 4. TLD sospechoso
+    
     tld = host.rsplit(".", 1)[-1] if host else ""
     if tld in SUSPICIOUS_TLDS:
         result["evidence"].append(evidence(
@@ -86,7 +76,7 @@ def analyze_url(url: str) -> dict:
         ))
         result["score"] = max(result["score"], 60)
 
-    # 5. Marca conocida en subdominio (ej. paypal.evilsite.com)
+    
     if host:
         parts = host.split(".")
         if len(parts) >= 3:
@@ -101,7 +91,7 @@ def analyze_url(url: str) -> dict:
                     result["score"] = max(result["score"], 80)
                     break
 
-    # 6. Caracteres no-ASCII (IDN homógrafos)
+    
     if any(ord(c) > 127 for c in host):
         result["evidence"].append(evidence(
             "url_idn_homograph",
@@ -110,7 +100,7 @@ def analyze_url(url: str) -> dict:
         ))
         result["score"] = max(result["score"], 75)
 
-    # 7. URL excesivamente larga
+    
     if len(url) > 200:
         result["evidence"].append(evidence(
             "url_excessive_length",
@@ -119,7 +109,7 @@ def analyze_url(url: str) -> dict:
         ))
         result["score"] = max(result["score"], 20)
 
-    # 8. Muchos subdominios (a.b.c.d.e.com)
+    
     if host.count(".") >= 4:
         result["evidence"].append(evidence(
             "url_many_subdomains",
@@ -128,7 +118,7 @@ def analyze_url(url: str) -> dict:
         ))
         result["score"] = max(result["score"], 30)
 
-    # 9. URL con guion bajo en host (no es válido pero técnica de phishing)
+    
     if "_" in host:
         result["evidence"].append(evidence(
             "url_underscore_host",
@@ -141,13 +131,12 @@ def analyze_url(url: str) -> dict:
 
 
 def analyze_urls(urls) -> dict:
-    """Analiza una lista de URLs y devuelve un resultado agregado."""
     result = empty_result("url")
     if not urls:
         return result
 
     threats = set()
-    for u in list(dict.fromkeys(urls))[:30]:    # dedup, máx 30
+    for u in list(dict.fromkeys(urls))[:30]:   
         sub = analyze_url(u)
         result["score"] = max(result["score"], sub["score"])
         result["evidence"].extend(sub["evidence"])

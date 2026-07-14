@@ -1,11 +1,4 @@
-"""
-Descarga archivos desde URLs de cloud storage (Google Drive, Dropbox)
-y los devuelve como (filename, bytes) para que el sandbox los analice.
 
-Variables de entorno necesarias:
-  GOOGLE_DRIVE_SERVICE_ACCOUNT (opcional) — JSON de la service account.
-    Si no está configurada, se usa descarga directa (solo archivos públicos).
-"""
 
 import os
 import re
@@ -13,7 +6,7 @@ import requests
 from typing import Optional
 
 TIMEOUT        = 30
-MAX_FILE_SIZE  = 250 * 1024 * 1024  # 250 MB
+MAX_FILE_SIZE  = 250 * 1024 * 1024  
 
 PROVIDER_PATTERNS = [
     (re.compile(r'drive\.google\.com/file/d/([^/?#&]+)'),    'gdrive'),
@@ -25,8 +18,6 @@ PROVIDER_PATTERNS = [
 
 
 def download_from_urls(urls: list) -> list:
-    """Recibe lista de URLs del cuerpo del email.
-    Devuelve [(filename, bytes), ...] descargados desde cloud storage."""
     results = []
 
     for url in urls:
@@ -63,7 +54,6 @@ def download_from_urls(urls: list) -> list:
 
 
 def _get_gdrive_service():
-    """Crea cliente autenticado para Google Drive API v3 con service account."""
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
 
@@ -81,8 +71,6 @@ def _get_gdrive_service():
 
 
 def _gdrive_download_api(file_id: str) -> Optional[tuple]:
-    """Descarga archivo de Google Drive usando API v3 con service account.
-    Devuelve (filename, bytes) o None."""
     from googleapiclient.http import MediaIoBaseDownload
     import io
 
@@ -111,7 +99,6 @@ def _gdrive_download_api(file_id: str) -> Optional[tuple]:
 
 
 def _gdrive_download_direct(file_id: str) -> Optional[tuple]:
-    """Fallback sin API: descarga directa para archivos públicos."""
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
     session = requests.Session()
     resp = session.get(url, timeout=TIMEOUT, allow_redirects=True)
@@ -132,7 +119,6 @@ def _gdrive_download_direct(file_id: str) -> Optional[tuple]:
 
 
 def _dropbox_download(file_id: str, filename: str) -> Optional[tuple]:
-    """Descarga directa de Dropbox con ?dl=1."""
     url = f"https://www.dropbox.com/s/{file_id}/{filename.split('/')[-1]}?dl=1"
     resp = requests.get(url, timeout=TIMEOUT, allow_redirects=True)
     resp.raise_for_status()

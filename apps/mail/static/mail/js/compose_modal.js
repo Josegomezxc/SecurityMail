@@ -1,12 +1,10 @@
-/* ════════════════════════════════════════════════════════════════════
-   COMPOSE MODAL — JS con persistencia entre páginas (sessionStorage)
-   ════════════════════════════════════════════════════════════════════ */
+
 (function () {
   var overlay     = document.getElementById('composeOverlay');
   var win         = document.getElementById('composeWindow');
   var fromAddr    = document.getElementById('composeFromAddr');
-  var inputTo       = document.getElementById('composeTo');         // hidden, valor real (chips coma-joined)
-  var inputToTyping = document.getElementById('composeToTyping');    // visible, donde el usuario teclea
+  var inputTo       = document.getElementById('composeTo');         
+  var inputToTyping = document.getElementById('composeToTyping');    
   var chipsBox     = document.getElementById('composeChips');
   var suggestBox   = document.getElementById('composeSuggestions');
   var inputSubj    = document.getElementById('composeSubject');
@@ -26,16 +24,16 @@
 
   if (!win || !form) return;
 
-  // ── Estado interno ──
+
   var STATE_KEY = 'sms_compose_state';
   var currentAliasId   = null;
   var currentAliasAddr = '';
   var currentAliasLabel = '';
   var currentDraftId   = null;
-  var recipients       = [];                 // chips committed [{email, label}]
-  var suggestActive    = -1;                 // índice resaltado en el dropdown
-  var suggestItems     = [];                 // resultados actuales del dropdown
-  var attachedFiles    = [];                 // File[] (no se persiste)
+  var recipients       = [];                 
+  var suggestActive    = -1;                 
+  var suggestItems     = [];                 
+  var attachedFiles    = [];                 
   var attachedTotalBytes = 0;
   var MAX_TOTAL_BYTES  = 25 * 1024 * 1024;
   var MAX_FILES        = 10;
@@ -47,18 +45,12 @@
     return c ? c.split('=')[1] : '';
   }
 
-  // ── Persistencia: sessionStorage ──
-  // Guardamos el estado del compose entre navegaciones para que el usuario
-  // pueda navegar por la web con el correo abierto/minimizado y al cerrar
-  // explícitamente con la X se borra. NO se guardan adjuntos (File objects
-  // no son serializables) — el usuario los pierde al navegar.
+
   function saveState() {
     if (!win.classList.contains('open')) return;
     var isMin = win.classList.contains('minimized');
     var isMax = win.classList.contains('maximized');
-    // Si está minimizado, la clase 'maximized' fue removida temporalmente
-    // pero queremos persistir la intención del usuario para restaurarla
-    // al des-minimizar (incluso después de navegar de página).
+
     var maxIntent = isMin ? wasMaximizedBeforeMinimize : isMax;
     try {
       sessionStorage.setItem(STATE_KEY, JSON.stringify({
@@ -95,7 +87,7 @@
     return '<p>Hola,</p><p><br></p><p><br></p><p>Saludos,<br>Enviado desde mi alias seguro de DockerShield.</p>';
   }
 
-  // ── Toolbar de formato ──
+
   if (toolbar) {
     toolbar.addEventListener('click', function (e) {
       var btn = e.target.closest('.ctb');
@@ -141,11 +133,9 @@
       document.execCommand('insertText', false, text);
     });
   }
-  // El input de "Para" (visible) tiene su propio listener más abajo en el
-  // bloque de CHIPS, que llama a saveState() después de sincronizar.
   inputSubj.addEventListener('input', saveState);
 
-  // ── Adjuntos ──
+
   function fmtSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
@@ -214,7 +204,7 @@
     });
   }
 
-  // ── Programar envío (popover + custom) ──
+
   var sendWrap        = document.getElementById('composeSendWrap');
   var btnSendArrow    = document.getElementById('composeSendArrow');
   var schedulePopover = document.getElementById('schedulePopover');
@@ -290,9 +280,6 @@
   function relativeText(target) {
     var diffMs = target.getTime() - Date.now();
     if (diffMs <= 0) return 'En el pasado';
-    /* Round UP en lugar de round: si faltan 27 segundos a las 14:45 y
-       el usuario eligió 14:45, mostramos "En 1 min" en vez de "En 0
-       min" (que sonaba a que ya estaba pasando o ya pasó). */
     var totalMin = Math.max(1, Math.ceil(diffMs / 60000));
     if (totalMin < 60) return 'En ' + totalMin + ' min';
     var hours = Math.floor(totalMin / 60);
@@ -302,20 +289,14 @@
     var hrs = hours % 24;
     return hrs ? 'En '+days+' d '+hrs+' h' : 'En '+days+' d';
   }
-  /* ────────────────────────────────────────────────────────────────
-     Helpers de formato 12h: el estado interno (sched.selected) sigue
-     siendo 24h (es lo que JS Date expone), pero el INPUT y el resumen
-     muestran 12h + AM/PM.
-       to12h(h24) → 0→12, 1-11→1-11, 12→12, 13-23→1-11
-       to24h(h12, isPm) → reconstruye 0-23
-     ──────────────────────────────────────────────────────────────── */
+
   function to12h(h24) {
     var h = h24 % 12;
     return h === 0 ? 12 : h;
   }
   function to24h(h12, isPm) {
-    var h = h12 % 12;        // 12 → 0
-    return isPm ? h + 12 : h; // AM keeps, PM +12
+    var h = h12 % 12;        
+    return isPm ? h + 12 : h; 
   }
   function fmt12(d) {
     var h12 = to12h(d.getHours());
@@ -331,11 +312,7 @@
     summaryWhen.textContent = weekday + ', ' + dayStr + ' · ' + fmt12(d);
     summaryRel.textContent  = relativeText(d);
     var now = Date.now();
-    /* El selector zeroea los segundos del momento elegido (14:45:00).
-       Si comparamos contra now+60s con now=14:44:33, min=14:45:33 y el
-       usuario quedaba inválido eligiendo 14:45 aunque fuera 1 minuto
-       en el futuro. Validamos contra el INICIO DEL PRÓXIMO MINUTO
-       redondeando now hacia arriba al minuto siguiente. */
+
     var min = now - (now % 60000) + 60000;
     var max = now + 72 * 60 * 60 * 1000;
     var valid = d.getTime() >= min && d.getTime() <= max;
@@ -350,8 +327,6 @@
     sched.selected.setSeconds(0, 0);
     sched.viewYear = sched.selected.getFullYear();
     sched.viewMonth = sched.selected.getMonth();
-    /* Input visible en 12h (1-12). El toggle AM/PM refleja el estado
-       interno (24h). Si la hora interna es ≥12 → PM. */
     var h24 = sched.selected.getHours();
     hourInput.value = pad2x(to12h(h24));
     minuteInput.value = pad2x(sched.selected.getMinutes());
@@ -394,8 +369,6 @@
       var target = btn.dataset.target;
       var d = new Date(sched.selected);
       if (target === 'hour') {
-        /* Cicla 1-12 manteniendo AM/PM. Pasar de 12 a 1 (o 1 a 12)
-           NO cambia el meridiano — para eso está el toggle dedicado. */
         var isPm = d.getHours() >= 12;
         var h12  = to12h(d.getHours()) + step;
         if (h12 > 12) h12 = 1;
@@ -407,7 +380,6 @@
     });
   });
 
-  /* Toggle AM/PM: alterna el meridiano del estado interno. */
   if (ampmToggle) {
     ampmToggle.addEventListener('click', function () {
       if (!sched.selected) return;
@@ -439,8 +411,6 @@
       if (sched.selected) {
         var d = new Date(sched.selected);
         if (isHour) {
-          /* v viene en 12h (1-12). Reconstruye 24h con el meridiano
-             actual del estado interno (no del toggle por separado). */
           var isPm = d.getHours() >= 12;
           d.setHours(to24h(v, isPm));
         } else {
@@ -451,7 +421,6 @@
     });
     input.addEventListener('focus', function () { input.select(); });
   }
-  /* Hora ahora va 1-12 (formato AM/PM); minutos siguen 0-59. */
   bindNumInput(hourInput, 1, 12, true);
   bindNumInput(minuteInput, 0, 59, false);
 
@@ -558,8 +527,7 @@
       if (!sched.selected) return;
       var now = Date.now();
       var t = sched.selected.getTime();
-      /* Mismo criterio que updateSummary: validamos contra el inicio
-         del próximo minuto (segundos zeroed) en vez de now+60s. */
+
       var minAllowed = now - (now % 60000) + 60000;
       if (t < minAllowed) {
         customError.textContent = 'La hora ya pasó. Elige al menos 1 minuto en el futuro.';
@@ -574,9 +542,7 @@
     });
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  //  CHIPS DE DESTINATARIOS + AUTOCOMPLETADO
-  // ══════════════════════════════════════════════════════════════════
+
   var EMAIL_RX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 
   function escText(s) {
@@ -584,9 +550,7 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  // El hidden input `inputTo` refleja siempre: chips + lo que el usuario
-  // está tecleando ahora. Así el código existente que lee `inputTo.value`
-  // (saveState, saveDraftRemote, form submit) sigue funcionando.
+
   function syncHiddenTo() {
     var typed = (inputToTyping.value || '').trim().replace(/[,;]+$/, '');
     var emails = recipients.map(function (r) { return r.email; });
@@ -638,8 +602,7 @@
     return ok;
   }
 
-  // Llamado desde openCompose / openDraft / restoreState para reconstruir
-  // los chips a partir de un string coma-separado.
+
   function setToValue(str) {
     recipients = [];
     if (inputToTyping) inputToTyping.value = '';
@@ -653,13 +616,11 @@
     syncHiddenTo();
   }
 
-  // Expuesto para flujos externos (botón "Responder" del inbox, openSent):
-  // recibe un string con uno o varios correos y los pinta como chips.
   window.composeSetRecipients = setToValue;
 
-  // ── Dropdown de sugerencias (autocompletado) ──
+
   var suggestTimer = null;
-  var suggestCache = {};   // query → results (cache simple)
+  var suggestCache = {};   
 
   function fetchSuggestions(q) {
     clearTimeout(suggestTimer);
@@ -719,7 +680,7 @@
       suggestBox.querySelectorAll('.compose-suggestion'),
       function (el) {
         el.addEventListener('mousedown', function (e) {
-          e.preventDefault();   // evita que el blur del input cierre el dropdown
+          e.preventDefault();
           pickSuggestion(parseInt(el.dataset.i, 10));
         });
         el.addEventListener('mouseenter', function () {
@@ -750,7 +711,7 @@
     suggestItems = []; suggestActive = -1;
   }
 
-  // ── Eventos del input de tipeo ──
+
   if (inputToTyping) {
     inputToTyping.addEventListener('input', function () {
       syncHiddenTo();
@@ -761,7 +722,7 @@
     });
 
     inputToTyping.addEventListener('keydown', function (e) {
-      // Navegación del dropdown
+
       if (suggestBox && !suggestBox.hidden && suggestItems.length) {
         if (e.key === 'ArrowDown') {
           e.preventDefault();
@@ -782,8 +743,6 @@
         }
         if (e.key === 'Escape') { e.preventDefault(); hideSuggestions(); return; }
       }
-      // Confirmar chip con Enter / Tab / coma / punto y coma / espacio
-      // (espacio solo si hay '@' — evita convertir palabras en chip)
       var isSpace = e.key === ' ' || e.key === 'Spacebar';
       var typedNow = (inputToTyping.value || '').trim();
       if (e.key === 'Enter' || e.key === 'Tab' || e.key === ',' || e.key === ';'
@@ -795,7 +754,7 @@
         }
         return;
       }
-      // Backspace en input vacío → quita el último chip
+
       if (e.key === 'Backspace' && !inputToTyping.value && recipients.length) {
         recipients.pop();
         renderChips();
@@ -806,7 +765,7 @@
     });
 
     inputToTyping.addEventListener('blur', function () {
-      // Pequeño delay para que el mousedown del dropdown registre primero
+
       setTimeout(function () {
         if ((inputToTyping.value || '').trim()) commitTyped();
         hideSuggestions();
@@ -829,26 +788,19 @@
     });
   }
 
-  // Click en el contenedor de chips (no en un chip) enfoca el input tipeo
+
   if (chipsBox) {
     chipsBox.addEventListener('click', function (e) {
       if (e.target === chipsBox) inputToTyping.focus();
     });
   }
 
-  // ── Helpers de borrador ────────────────────────────────────────
-  // Un borrador se guarda SOLO si hay al menos un destinatario válido en
-  // "Para" Y texto real en el cuerpo. Asunto solo o cuerpo solo NO bastan
-  // — evita borradores fantasma al abrir y cerrar el compose sin escribir.
+
   function hasDraftContent() {
     var to   = (inputTo.value   || '').trim();
     var text = (editor.innerText || '').trim();
     return !!(to && text);
   }
-
-  // Guarda (o actualiza) el borrador de forma síncrona. Usa
-  // navigator.sendBeacon si está disponible para que también funcione
-  // cuando el usuario cierra la pestaña/recarga la página.
   function saveDraftRemote(opts) {
     if (!hasDraftContent()) return Promise.resolve(null);
     var fd = new FormData();
@@ -894,14 +846,10 @@
     }).catch(function () { return null; });
   }
 
-  // ── Apertura / cierre / minimizar ──
   window.openCompose = function (aliasId, address, label, opts) {
     currentAliasId    = aliasId;
     currentAliasAddr  = address;
     currentAliasLabel = label || '';
-    /* Si abrimos para reanudar un borrador (opts.draftId), arrastramos
-       el id para que las próximas guardas/edición vayan al MISMO registro
-       y no se dupliquen. Si se omite, empieza un borrador nuevo. */
     currentDraftId    = (opts && opts.draftId) ? opts.draftId : null;
     var readonly     = !!(opts && opts.readonly);
     fromAddr.textContent = address;
@@ -918,11 +866,7 @@
     btnSend.classList.remove('loading');
     btnSend.disabled = false;
 
-    /* ── Modo solo-lectura ──
-       Marcamos la ventana, ponemos los inputs en readOnly y el editor
-       no editable, y cambiamos el título a "Correo enviado".
-       Al abrir un correo enviado desde /enviados/ no debe permitirse
-       editar ni reenviar — solo verlo. */
+
     if (readonly) {
       win.classList.add('readonly');
       if (inputToTyping) inputToTyping.readOnly = true;
@@ -949,9 +893,7 @@
     saveState();
   };
 
-  /* Abre el compose ya cargado con un borrador existente. Llamado desde
-     /borradores/ al hacer click en un row. Hace fetch al backend para
-     traer los campos y luego rellena el editor sobre el modal abierto. */
+
   window.openDraft = function (draftId) {
     if (!draftId) return;
     fetch('/borradores/' + draftId + '/', {
@@ -972,10 +914,7 @@
         return;
       }
       var d = data.draft;
-      /* Si el borrador tiene alias asociado y sigue activo, lo usamos.
-         Si el alias fue destruido o nunca se eligió, mostramos un toast
-         para que el usuario sepa que tiene que reseleccionar — abrimos el
-         compose vacío para que escoja desde la lista. */
+
       if (!d.alias_id || !d.alias_active) {
         if (window.showToast) {
           window.showToast({
@@ -988,7 +927,6 @@
         return;
       }
       window.openCompose(d.alias_id, d.alias_address, d.alias_label, { draftId: d.id });
-      /* Rellena los campos después de abrir (openCompose los reseteó). */
       setToValue(d.to || '');
       inputSubj.value = d.subject || '';
       if (d.body_html) editor.innerHTML = d.body_html;
@@ -997,10 +935,7 @@
   };
 
   function closeCompose() {
-    /* Si el modal estaba en modo solo-lectura (viendo un correo enviado),
-       cerramos sin guardar nada como borrador — el usuario solo estaba
-       viendo, no escribiendo. También limpiamos la clase para que la
-       próxima apertura del compose sea editable normalmente. */
+
     var wasReadonly = win.classList.contains('readonly');
     if (wasReadonly) {
       win.classList.remove('readonly');
@@ -1010,8 +945,7 @@
       editor.removeAttribute('aria-readonly');
       var titleEl3 = document.getElementById('composeTitle');
       if (titleEl3) titleEl3.textContent = 'Nuevo mensaje';
-      /* Limpiar los chips de adjuntos visuales que pintó openSent — si no,
-         la próxima vez que abras "Nuevo correo" aparecerían arrastrados. */
+
       if (attachList) attachList.innerHTML = '';
       overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true');
       win.classList.remove('open'); win.setAttribute('aria-hidden','true');
@@ -1021,17 +955,11 @@
       return;
     }
 
-    /* Antes de cerrar, si hay contenido y no se envió, lo guardamos como
-       borrador (estilo Gmail: la X conserva el correo en Borradores). */
     var willSaveDraft = hasDraftContent();
-    /* Si el usuario ya está en /borradores/, no tiene sentido mostrar el
-       toast "Lo encuentras en la sección Borradores" — está ahí mismo.
-       Refrescamos la lista para que el borrador aparezca/se actualice. */
     var onDraftsPage = window.location.pathname.replace(/\/+$/, '') === '/borradores';
     if (willSaveDraft) {
       saveDraftRemote().then(function () {
         if (onDraftsPage) {
-          /* Refresh silencioso para que el nuevo borrador se vea en la lista */
           window.location.reload();
           return;
         }
@@ -1052,35 +980,25 @@
     currentDraftId = null;
     clearState();
   }
-  // Recordamos si estaba ampliado al minimizar para poder restaurarlo
-  // exactamente al estado anterior cuando se vuelve a abrir.
   var wasMaximizedBeforeMinimize = false;
   function setMinimized(min) {
     if (min) {
-      // Si estaba en modo ampliado, recordamos para restaurarlo después
-      // y QUITAMOS la clase maximized — si no, el chip minimizado heredaría
-      // el alto del viewport y se vería como una caja vertical vacía.
       wasMaximizedBeforeMinimize = win.classList.contains('maximized');
       win.classList.remove('maximized');
       win.classList.add('minimized');
       win.setAttribute('aria-expanded','false');
-      // CLAVE: al minimizar, quitamos el overlay (oscuro + blur) para que
-      // el usuario pueda seguir navegando y haciendo click en la web con
-      // total normalidad. La ventana minimizada queda flotando abajo a
-      // la derecha como un widget independiente, sin bloquear nada.
+
       overlay.classList.remove('open');
       overlay.setAttribute('aria-hidden','true');
       btnMinimize.title = 'Restaurar';
       btnMinimize.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>';
     } else {
       win.classList.remove('minimized');
-      // Si estaba ampliado antes de minimizar, restauramos ese modo.
       if (wasMaximizedBeforeMinimize) {
         win.classList.add('maximized');
         wasMaximizedBeforeMinimize = false;
       }
       win.setAttribute('aria-expanded','true');
-      // Al restaurar (solo si la ventana sigue abierta), regresa el overlay.
       if (win.classList.contains('open')) {
         overlay.classList.add('open');
         overlay.setAttribute('aria-hidden','false');
@@ -1092,10 +1010,7 @@
   }
 
   btnClose.addEventListener('click', function (e) { e.stopPropagation(); closeCompose(); });
-  // Click en el overlay (zona borrosa a los lados): MINIMIZA en lugar de
-  // cerrar. Cerrar borraría todo el contenido del correo (destinatario,
-  // texto, asunto, programación, ...) — minimizar es la acción no destructiva
-  // y consistente con Gmail/Proton. Para cerrar definitivamente está la X.
+
   overlay.addEventListener('click', function () {
     if (!win.classList.contains('open')) return;
     if (win.classList.contains('minimized')) return;
@@ -1105,16 +1020,12 @@
     e.stopPropagation();
     setMinimized(!win.classList.contains('minimized'));
   });
-  // Botón "Ampliar" (↗): toggle del modo horizontal/ampliado.
-  // - Si está minimizado → restaura Y aplica el modo ampliado.
-  // - Si está en tamaño normal → cambia a ampliado.
-  // - Si ya está ampliado → vuelve al tamaño normal.
+
   var btnExpand = document.getElementById('composeExpand');
   if (btnExpand) {
     btnExpand.addEventListener('click', function (e) {
       e.stopPropagation();
       if (win.classList.contains('minimized')) {
-        // Restaurar saliendo del modo minimizado y entrar a ampliado
         win.classList.remove('minimized');
         win.setAttribute('aria-expanded', 'true');
         if (win.classList.contains('open')) {
@@ -1125,7 +1036,6 @@
         btnMinimize.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
         win.classList.add('maximized');
       } else {
-        // Toggle del modo ampliado
         win.classList.toggle('maximized');
       }
       saveState();
@@ -1136,8 +1046,7 @@
     composeHead.addEventListener('click', function (e) {
       if (!win.classList.contains('minimized')) return;
       if (e.target.closest('.compose-head-btn')) return;
-      // Click en cabecera → restaurar al tamaño NORMAL (sin ampliar).
-      // Solo el botón ↗ activa el modo ampliado.
+
       win.classList.remove('maximized');
       setMinimized(false);
     });
@@ -1149,7 +1058,6 @@
     }
   });
 
-  // ── Submit ──
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     if (!currentAliasId) return;
@@ -1223,11 +1131,7 @@
     });
   });
 
-  // ── Restaurar estado al cargar la página ──
-  // Si el usuario estaba con el compose abierto y navegó a otra página,
-  // restauramos todo (alias, texto, asunto, programación, minimizado).
-  // No restauramos los adjuntos (se pierden al navegar — es el trade-off
-  // de no poder serializar `File` objects en sessionStorage).
+
   function restoreState() {
     var raw = null;
     try { raw = sessionStorage.getItem(STATE_KEY); } catch (e) {}
@@ -1255,18 +1159,13 @@
         }
       } catch (e) {}
     }
-    // La ventana siempre se marca como "abierta"; el overlay lo decide
-    // setMinimized() según el estado guardado: si estaba minimizado al
-    // navegar, NO mostramos el overlay (sin borroso, sin bloquear clicks).
     win.classList.add('open');
     win.setAttribute('aria-hidden','false');
     if (s.maximized && !s.minimized) {
-      // Estaba ampliado y NO minimizado → aplicamos maximized directamente.
       win.classList.add('maximized');
       wasMaximizedBeforeMinimize = false;
     } else if (s.maximized && s.minimized) {
-      // Estaba minimizado pero con intención de ampliado → guardamos la
-      // intención para que al des-minimizar vuelva al modo ampliado.
+
       win.classList.remove('maximized');
       wasMaximizedBeforeMinimize = true;
     } else {
@@ -1281,7 +1180,6 @@
     restoreState();
   }
 
-  // ═══ API expuesta para compose_attachment_scanner.js ═══
   window.__composeApi = {
     addFile: function (f) { attachedFiles.push(f); attachedTotalBytes += f.size; renderAttachments(); },
     removeFile: function (i) { var r = attachedFiles.splice(i, 1)[0]; if (r) attachedTotalBytes -= r.size; renderAttachments(); },

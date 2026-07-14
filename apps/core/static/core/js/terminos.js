@@ -1,6 +1,5 @@
 (function () {
-  /* Barra de progreso: una sola actualización por frame con rAF.
-     Antes: dispara en CADA pixel scrolleado → cientos de updates por segundo. */
+
   const bar = document.getElementById('readBar');
   let ticking = false;
   function onScroll() {
@@ -16,7 +15,7 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
-  /* Scroll suave al click del TOC */
+  
   const links = document.querySelectorAll('.toc-link');
   links.forEach(link => {
     link.addEventListener('click', e => {
@@ -26,8 +25,7 @@
     });
   });
 
-  /* UN SOLO IntersectionObserver para resaltar TOC.
-     (Antes: 2 observers — uno para active state, otro para fade-in.) */
+  
   const sections = document.querySelectorAll('.legal-section[id]');
   const obs = new IntersectionObserver(entries => {
     entries.forEach(entry => {

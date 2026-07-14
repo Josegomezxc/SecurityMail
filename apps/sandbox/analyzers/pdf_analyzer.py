@@ -1,14 +1,8 @@
-"""
-Analizador de PDFs.
-Busca patrones que abren JavaScript embebido, lanzan archivos externos,
-abren URLs automáticamente o embeben otros archivos (técnica clásica de
-exfiltración / loader).
-"""
+
 import re
 import zlib
 from .base import empty_result, evidence
 
-# Cada patrón (regex) tiene un detalle y una severidad
 PDF_INDICATORS = [
     (rb'/JS\b',                    "Acción /JS (JavaScript embebido)",                75),
     (rb'/JavaScript\b',            "Bloque /JavaScript embebido",                     75),
@@ -35,7 +29,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
 
     try:
         with open(filepath, "rb") as f:
-            raw = f.read(20 * 1024 * 1024)            # primeros 20 MB
+            raw = f.read(20 * 1024 * 1024)
     except Exception as e:
         result["evidence"].append(evidence("read_error", str(e), 30))
         return result
@@ -45,10 +39,8 @@ def analyze(filepath: str, mime: str = "") -> dict:
 
     result["evidence"].append(evidence("format", "Documento PDF detectado", 5))
 
-    # Descomprime streams Flate (donde suele esconderse el JS)
     decoded = raw + b"\n" + _decode_flate_streams(raw)
 
-    # Buscar patrones
     for pattern, detail, sev in PDF_INDICATORS:
         matches = re.findall(pattern, decoded)
         if matches:
@@ -59,7 +51,7 @@ def analyze(filepath: str, mime: str = "") -> dict:
             ))
             result["score"] = max(result["score"], sev)
 
-    # Cuenta de objetos / streams (PDFs muy ofuscados tienen patrones raros)
+
     n_obj = len(re.findall(rb'\bobj\b', decoded))
     n_stream = len(re.findall(rb'\bstream\b', decoded))
     if n_obj > 0:
@@ -71,7 +63,6 @@ def analyze(filepath: str, mime: str = "") -> dict:
                 40,
             ))
 
-    # Extraer URLs presentes en el PDF
     urls = re.findall(
         rb'https?://[^\s<>"\'()\[\]]+',
         decoded,
@@ -87,7 +78,6 @@ def analyze(filepath: str, mime: str = "") -> dict:
         except Exception:
             continue
 
-    # Conclusión
     if result["score"] >= 80:
         result["threat"] = "PDF con acciones automáticas peligrosas"
     elif result["score"] >= 60:
@@ -99,18 +89,14 @@ def analyze(filepath: str, mime: str = "") -> dict:
 
 
 def _decode_flate_streams(raw: bytes) -> bytes:
-    """
-    Descomprime los streams comprimidos con FlateDecode dentro del PDF
-    para que los regex encuentren patrones que estarían "ocultos".
-    """
+
     out = b""
-    # Localiza pares 'stream\n...endstream'
+
     for match in re.finditer(rb'stream\r?\n(.*?)\r?\nendstream', raw, re.DOTALL):
         chunk = match.group(1)
         try:
             decompressed = zlib.decompress(chunk)
             out += decompressed + b"\n"
         except Exception:
-            # No era Flate o estaba corrupto — sigue
             continue
     return out

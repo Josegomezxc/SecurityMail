@@ -1,7 +1,4 @@
-/* ════════════════════════════════════════════════════════════════════
-   ESCANEO DE ADJUNTOS CON DOCKERSHIELD
-   Se carga después de compose_modal.js y usa window.__composeApi
-   ════════════════════════════════════════════════════════════════════ */
+
 (function () {
   var MAX_FILES = window.__composeApi ? window.__composeApi.MAX_FILES : 5;
   var MAX_TOTAL_BYTES = window.__composeApi ? window.__composeApi.MAX_TOTAL_BYTES : 25 * 1024 * 1024;
@@ -14,14 +11,12 @@
   var attachList = document.getElementById('composeAttachments');
   var editor = document.querySelector('#composeWindow [contenteditable]');
 
-  // ── Input propio (no toca el original de compose_modal.js) ──
   var scannerInput = document.createElement('input');
   scannerInput.type = 'file';
   scannerInput.multiple = true;
   scannerInput.style.display = 'none';
   document.body.appendChild(scannerInput);
 
-  // ── Crear error row dinámicamente ──
   var errAtt = null;
   var errMsg = document.getElementById('composeErrMessage');
   if (errMsg && errMsg.parentNode) {
@@ -31,7 +26,6 @@
     errMsg.parentNode.insertBefore(errAtt, errMsg.nextSibling);
   }
 
-  // ── Limpiar errAtt al abrir el modal (clearErrors nativo no lo cubre) ──
   var _origOpenCompose = window.openCompose;
   if (_origOpenCompose) {
     window.openCompose = function () {
@@ -40,12 +34,10 @@
     };
   }
 
-  // ── stripBidi ──
+
   function stripBidi(s) {
     return String(s || '').replace(/[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069]/g, '');
   }
-
-  // ── Patch confirmDialog para cancelText: '' (oculta botón cancelar) ──
   var _origCd = window.confirmDialog;
   if (_origCd) {
     window.confirmDialog = function (opts) {
@@ -127,7 +119,6 @@
     attachList.innerHTML = html;
   }
 
-  // ── Modal de desbloqueo ──
   var unlockModal = null;
   var unlockResolve = null;
 
@@ -213,7 +204,6 @@
         if (idx === -1) { renderAttachments(); return; }
 
         if (r.status === 200 && r.data.ok) {
-          // Desbloqueo exitoso + seguro
           var api = window.__composeApi;
           pendingUnlock.splice(idx, 1);
           if (api) api.addFile(pendingItem.file);
@@ -221,16 +211,13 @@
           updateSendButton();
           renderAttachments();
         } else if (r.data && r.data.password_protected) {
-          // Contraseña incorrecta — volver a mostrar chip con botón desbloquear
           renderAttachments();
           var errMsg = r.data.error || 'Contraseña incorrecta.';
           if (window.showToast) {
             window.showToast({ type: 'warning', title: 'Contraseña Incorrecta', message: errMsg, duration: 5000 });
           }
-          // Mostrar modal de nuevo (reintentar)
           unlockFile(pendingItem);
         } else if (r.data && r.data.warning) {
-          // Desbloqueo exitoso pero archivo sospechoso
           pendingUnlock.splice(idx, 1);
           if (window.showToast) {
             window.showToast({ type: 'warning', title: 'Archivo Sospechoso', message: r.data.error, duration: 6000 });
@@ -239,7 +226,6 @@
           updateSendButton();
           renderAttachments();
         } else if (r.data && r.data.blocked) {
-          // Desbloqueo exitoso pero malware (2ª vez)
           pendingUnlock.splice(idx, 1);
           updateSendButton();
           var blockMsg = 'Motivo: Intento de adjuntar archivo malicioso repetidamente.\n'
@@ -254,7 +240,6 @@
           }
           renderAttachments();
         } else if (r.data && r.data.attempts) {
-          // Desbloqueo exitoso pero malware (1ª vez)
           pendingUnlock.splice(idx, 1);
           updateSendButton();
           var threat = r.data.threat_name || 'desconocido';
@@ -275,7 +260,6 @@
           if (errAtt) { errAtt.textContent = 'Archivo bloqueado por seguridad.'; errAtt.classList.add('show'); }
           renderAttachments();
         } else if (r.data && !r.data.sandbox_down) {
-          // Desbloqueo reveló malware (sin penalización)
           pendingUnlock.splice(idx, 1);
           updateSendButton();
           var threatMsg = r.data.error || r.data.threat_name || 'El archivo contiene malware y no puede adjuntarse.';
@@ -285,7 +269,6 @@
           if (errAtt) { errAtt.textContent = threatMsg; errAtt.classList.add('show'); }
           renderAttachments();
         } else {
-          // Otro error (sandbox_down, etc.)
           pendingUnlock.splice(idx, 1);
           updateSendButton();
           var msg = (r.data && r.data.error) || 'Error al desbloquear el archivo.';
@@ -358,7 +341,6 @@
         updateSendButton();
         renderAttachments();
       } else if (r.data && r.data.password_protected) {
-        // Archivo protegido con contraseña → pasar a pendiente de desbloqueo
         pendingUnlock.push({ scanId: scanId, file: file, name: file.name, size: file.size });
         updateSendButton();
         renderAttachments();
@@ -441,7 +423,6 @@
     }
   });
 
-  // ── Interceptar btnAttach en capturing phase ──
   if (btnAttach) {
     btnAttach.addEventListener('click', function (e) {
       var api = window.__composeApi;
@@ -459,7 +440,6 @@
     }, true);
   }
 
-  // ── Event delegation: botón desbloquear y quitar de pendingUnlock ──
   if (attachList) {
     attachList.addEventListener('click', function (e) {
       var unlockBtn = e.target.closest('.compose-unlock-btn');
@@ -485,7 +465,6 @@
     });
   }
 
-  // ── Drag & drop ──
   if (editor) {
     ['dragover', 'drop'].forEach(function (evt) {
       editor.addEventListener(evt, function (e) { e.preventDefault(); });

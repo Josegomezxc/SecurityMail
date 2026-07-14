@@ -1,4 +1,3 @@
-/* Filtros combinados: búsqueda por texto + filtro por rol */
 var currentRoleFilter = 'all';
 var currentSearch     = '';
 
@@ -32,7 +31,6 @@ function applyAllFilters() {
     (visible === 0 && rows.length > 0) ? 'block' : 'none';
 }
 
-/* Calcula los contadores de cada filtro y los muestra en los pills */
 (function () {
   var rows = document.querySelectorAll('#usersTbody tr[data-search]');
   var admins = 0, users = 0, threats = 0;
@@ -47,13 +45,11 @@ function applyAllFilters() {
   if ($u) $u.textContent = users;
   if ($t) $t.textContent = threats;
 
-  /* Listeners de los pills */
   document.querySelectorAll('.users-filter-btn').forEach(function (b) {
     b.addEventListener('click', function () { setRoleFilter(b.dataset.roleFilter, b); });
   });
 })();
 
-/* Confirmación con modal danger antes de promover/degradar admin */
 document.addEventListener('submit', function (e) {
   var form = e.target.closest('form[action*="toggle-staff"]');
   if (!form || form.dataset.confirmed === '1') return;

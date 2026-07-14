@@ -1,10 +1,4 @@
-"""
-Vistas del módulo mail:
-  - Dashboard principal (render server-side).
-  - Bandeja de entrada (render + marcado de leído, vaciar).
 
-Toda la lógica de scoring/sandbox vive en apps.sandbox y apps.mail.webhook.
-"""
 import re
 from datetime import timedelta
 from urllib.parse import urlencode
@@ -24,7 +18,6 @@ from apps.core.url_signer import decode_id, encode_id
 from .models import EmailMessage, SentEmail, Draft
 
 
-# Items por página en todas las listas. Subir/bajar global desde aquí.
 PAGE_SIZE = 6
 
 
@@ -38,29 +31,24 @@ def _qs_params(request, exclude=('page',)):
     return urlencode(params)
 
 
-# ═════════════════════════════════════════════════════════════════════
-#  DASHBOARD
-# ═════════════════════════════════════════════════════════════════════
+
+
 
 @login_required(login_url='login')
 def dashboard_view(request):
     """Dashboard principal — métricas + listas recientes."""
-    period = request.GET.get('period', 'diario')
+    period = request.GET.get('period', 'semanal')
     ref = request.GET.get('ref')
     stats = dashboard_stats(request.user, period=period, ref_str=ref)
 
     aliases         = Alias.objects.filter(user=request.user, is_active=True)[:5]
-    # 20 correos = 5 páginas de 4 en la tabla "Actividad reciente".
-    # La paginación se hace en el cliente (todas las filas en DOM).
+
     recent_emails   = list(
         EmailMessage.objects.select_related('alias').filter(
             alias__user=request.user, deleted_at__isnull=True,
         ).order_by('-received_at')[:20]
     )
-    # Pre-computamos un timestamp compacto para la columna "Hora" — Django
-    # `timesince` devuelve "4 minutos, 30 segundos" y queda feo cuando lo
-    # truncamos en el template. Acá decidimos la unidad correcta y la
-    # abreviamos en 4-5 chars.
+
     _now = timezone.now()
     for em in recent_emails:
         delta = _now - em.received_at
@@ -98,30 +86,15 @@ def dashboard_view(request):
     })
 
 
-# ═════════════════════════════════════════════════════════════════════
-#  INBOX
-# ═════════════════════════════════════════════════════════════════════
+
 
 @login_required(login_url='login')
 def inbox_view(request):
-    """
-    Bandeja de entrada paginada (server-side).
 
-    Query params soportados:
-      ?q=<texto>     búsqueda en remitente / asunto / preview
-      ?filter=<f>    all | unread | attachment | danger | safe
-      ?page=<n>      número de página (PAGE_SIZE items)
-
-    El filtrado y la búsqueda se hacen en BD para que el paginado tenga
-    sentido: solo se traen 25 filas por request, no la bandeja entera.
-    """
     base_qs = EmailMessage.objects.filter(
         alias__user=request.user, deleted_at__isnull=True,
     )
 
-    # Contadores por categoría (se calculan UNA vez sobre el base_qs y se
-    # muestran en los tabs). Son SELECT COUNT — baratos, pero los podemos
-    # convertir a aggregate único si la tabla crece mucho.
     counts = {
         'all':        base_qs.count(),
         'unread':     base_qs.filter(read=False).count(),
@@ -132,7 +105,7 @@ def inbox_view(request):
 
     qs = base_qs
 
-    # ── Filtro por categoría ───────────────────────────────────────────
+
     filter_ = (request.GET.get('filter') or 'all').strip().lower()
     if filter_ == 'unread':
         qs = qs.filter(read=False)
@@ -145,7 +118,7 @@ def inbox_view(request):
     else:
         filter_ = 'all'
 
-    # ── Búsqueda libre ─────────────────────────────────────────────────
+
     q = (request.GET.get('q') or '').strip()
     if q:
         qs = qs.filter(
@@ -156,13 +129,11 @@ def inbox_view(request):
 
     qs = qs.select_related('alias').order_by('-received_at')
 
-    # ── Paginación ─────────────────────────────────────────────────────
+    
     paginator = Paginator(qs, PAGE_SIZE)
     page_obj  = paginator.get_page(request.GET.get('page'))
 
-    # Pre-computa un timestamp compacto ("3 d", "53 min", "2 h"…) para la
-    # columna "Recibido". `timesince` devuelve cosas largas como "3 días,
-    # 4 horas" que quedan feas en una celda.
+
     _now = timezone.now()
     for em in page_obj.object_list:
         delta = _now - em.received_at
@@ -175,7 +146,7 @@ def inbox_view(request):
 
     return render(request, 'mail/inbox.html', {
         'page_obj':   page_obj,
-        'emails':     page_obj.object_list,    # compat con código que itera flat
+        'emails':     page_obj.object_list,  
         'counts':     counts,
         'q':          q,
         'filter':     filter_,
@@ -186,15 +157,7 @@ def inbox_view(request):
 @login_required(login_url='login')
 @require_POST
 def mark_email_read_api(request, pk):
-    """
-    Marca un correo como leído. Solo el dueño del alias puede hacerlo.
-    También marca como leídas las notificaciones asociadas a ese correo —
-    si el usuario ya abrió el correo y vio el análisis, no tiene sentido
-    seguir recordándoselo en la campana / lista de notificaciones.
 
-    Devuelve {ok, unread_count, notif_unread_count} para que el cliente
-    actualice los dos badges (correos no leídos + bell).
-    """
     try:
         em = EmailMessage.objects.select_related('alias').get(
             pk=pk, alias__user=request.user,
@@ -206,10 +169,7 @@ def mark_email_read_api(request, pk):
         em.read = True
         em.save(update_fields=['read'])
 
-    # Marcar leídas las notificaciones de ese correo. No tocamos el `status`
-    # (una forward_request sigue 'pending' hasta que el usuario decida
-    # reenviar/descartar) — solo el flag `read`, que es lo que cuenta el
-    # badge de la campana.
+
     from apps.notifications.models import Notification
     Notification.objects.filter(
         user=request.user, related_email=em, read=False,
@@ -231,13 +191,7 @@ def mark_email_read_api(request, pk):
 
 @login_required(login_url='login')
 def email_html_api(request, pk):
-    """
-    Devuelve el body_html de un correo (texto/html plano).
 
-    Solo accesible por el dueño del alias. Se usa en la bandeja para
-    cargar el HTML bajo demanda dentro del iframe sandbox — así no
-    embebemos megabytes de HTML en cada render del inbox.
-    """
     try:
         em = EmailMessage.objects.select_related('alias').only(
             'body_html', 'alias__user_id',
@@ -245,8 +199,7 @@ def email_html_api(request, pk):
     except EmailMessage.DoesNotExist:
         return HttpResponseNotFound("not_found")
 
-    # text/html sirve directo al iframe srcdoc; cache 1 día porque el body
-    # es inmutable una vez guardado.
+    
     resp = HttpResponse(em.body_html or '', content_type='text/html; charset=utf-8')
     resp['Cache-Control'] = 'private, max-age=86400'
     return resp
@@ -255,15 +208,8 @@ def email_html_api(request, pk):
 @login_required(login_url='login')
 @require_POST
 def inbox_clear_api(request):
-    """
-    Vacía correos del usuario según el filtro:
-      - read    → solo los leídos
-      - threats → solo amenazas (risk_score >= 61)
-      - safe    → solo seguros (risk_score <= 30)
-      - all     → TODOS los correos del usuario
-    """
+
     scope = request.POST.get('scope', 'read')
-    # Solo aplicamos sobre correos VIVOS (no los que ya están en papelera).
     qs = EmailMessage.objects.filter(alias__user=request.user, deleted_at__isnull=True)
 
     if scope == 'read':
@@ -273,24 +219,21 @@ def inbox_clear_api(request):
     elif scope == 'safe':
         qs = qs.filter(risk_score__lte=30)
     elif scope == 'all':
-        pass    # qs queda con TODOS los vivos
+        pass
     else:
         return JsonResponse({'ok': False, 'error': 'invalid_scope'}, status=400)
 
-    # En vez de borrado físico, mandamos a papelera (soft delete).
+
     moved = qs.update(deleted_at=timezone.now())
     return JsonResponse({'ok': True, 'deleted': moved, 'trashed': True})
 
 
-# ═════════════════════════════════════════════════════════════════════
-#  ENVIADOS
-# ═════════════════════════════════════════════════════════════════════
 
-SENT_BATCH = 6   # cuántos correos por "página" en el load-more
+
+SENT_BATCH = 6   
 
 
 def _sent_qs(user):
-    """QuerySet base de enviados (excluye papelera, select_related al alias)."""
     return (
         SentEmail.objects
             .filter(alias__user=user, deleted_at__isnull=True)
@@ -300,14 +243,13 @@ def _sent_qs(user):
 
 
 def _prepare_sent_for_render(emails):
-    """Anota cada SentEmail con metadata pre-serializada para el template."""
     import json as _json
     for em in emails:
         em.attachments_meta_json = _json.dumps(em.attachments_meta or [])
 
 
 def _group_sent_by_date(emails):
-    """Agrupa la lista de enviados en Hoy / Ayer / Esta semana / Anteriores."""
+
     today    = timezone.now().date()
     yday     = today - timedelta(days=1)
     week_ago = today - timedelta(days=7)
@@ -330,17 +272,7 @@ def _group_sent_by_date(emails):
 
 @login_required(login_url='login')
 def sent_view(request):
-    """
-    Lista de enviados.
 
-    Render inicial muestra solo los SENT_BATCH primeros. El front pide
-    los siguientes lotes vía `sent_more_api` (botón "Cargar más"). Así
-    no cargamos los miles de correos del usuario en cada visita.
-
-    Filtros y búsqueda se mantienen client-side sobre lo que está
-    cargado en el DOM. Si el usuario filtra y ve pocos resultados, basta
-    con que pulse "Cargar más" para que entren nuevos batches.
-    """
     full_qs = _sent_qs(request.user)
     total_sent = full_qs.count()
 
@@ -350,12 +282,10 @@ def sent_view(request):
     _prepare_sent_for_render(sent_emails)
     groups = _group_sent_by_date(sent_emails)
 
-    # Aliases activos para el compose
+
     active_aliases = Alias.objects.filter(
         user=request.user, is_active=True,
     ).order_by('-created_at')
-
-    # Contadores para los filtros del sidebar (sobre TODOS los enviados)
     attach_count    = full_qs.filter(attachments_count__gt=0).count()
     scheduled_count = full_qs.filter(scheduled_at__isnull=False).count()
 
@@ -374,13 +304,7 @@ def sent_view(request):
 
 @login_required(login_url='login')
 def sent_more_api(request):
-    """
-    Devuelve el siguiente lote de enviados como HTML parcial listo para
-    appendear. Espera `?offset=<n>` (cuántos ya están en pantalla).
 
-    Respuesta JSON:
-      { ok, html, count, next_offset, has_more }
-    """
     try:
         offset = int(request.GET.get('offset') or 0)
     except ValueError:
@@ -409,7 +333,7 @@ def sent_more_api(request):
 @login_required(login_url='login')
 @require_POST
 def sent_empty_api(request):
-    """Manda TODOS los enviados activos del usuario a la papelera."""
+
     qs = SentEmail.objects.filter(alias__user=request.user, deleted_at__isnull=True)
     count = qs.count()
     qs.update(deleted_at=timezone.now())
@@ -421,19 +345,9 @@ _CONTACT_EMAIL_RX = re.compile(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,
 
 @login_required(login_url='login')
 def compose_contacts_api(request):
-    """Autocompletado de destinatarios al escribir en el campo "Para".
 
-    Fuente: destinatarios previos del usuario (SentEmail.to_email, que ahora
-    puede ser comma-separated) + remitentes que han escrito a sus alias
-    (EmailMessage.from_email, extrayendo el correo del "Nombre <correo>").
-
-    Devuelve hasta 8 sugerencias ordenadas por uso reciente, filtradas por
-    `q` (substring case-insensitive en el email o en el nombre).
-    """
     q = ((request.POST.get('q') or request.GET.get('q', '')) or '').strip().lower()
 
-    # Email → {label, last_seen}. Nos quedamos con el label más informativo
-    # y el timestamp más reciente para ordenar.
     contacts: dict = {}
 
     def _bump(email: str, label: str, when):
@@ -450,7 +364,6 @@ def compose_contacts_api(request):
         elif label and not cur['label']:
             cur['label'] = label
 
-    # 1. Destinatarios de correos enviados (los más relevantes)
     for s in (SentEmail.objects
               .filter(alias__user=request.user)
               .order_by('-sent_at')
@@ -459,7 +372,7 @@ def compose_contacts_api(request):
         for addr in (to_field or '').split(','):
             _bump(addr.strip(), '', when)
 
-    # 2. Remitentes de correos recibidos en los alias del usuario
+
     for em in (EmailMessage.objects
                .filter(alias__user=request.user)
                .order_by('-received_at')
@@ -467,18 +380,15 @@ def compose_contacts_api(request):
         raw, when = em
         if not raw:
             continue
-        # Soporta "Nombre <correo>" y correo pelado
         m = _CONTACT_EMAIL_RX.search(raw)
         if not m:
             continue
         email = m.group(0).lower()
-        # Display name = lo que viene antes del < (si existe)
         label = ''
         if '<' in raw:
             label = raw.split('<', 1)[0].strip().strip('"').strip()
         _bump(email, label, when)
 
-    # Filtrar por query
     items = list(contacts.values())
     if q:
         items = [c for c in items
@@ -495,19 +405,12 @@ def compose_contacts_api(request):
     })
 
 
-# ═════════════════════════════════════════════════════════════════════
-#  PAPELERA — soft delete + auto-cleanup tras 30 días
-# ═════════════════════════════════════════════════════════════════════
 
-# Días que un correo permanece en la papelera antes de ser borrado de
-# forma permanente — mismo comportamiento que Gmail.
+
 TRASH_RETENTION_DAYS = 30
 
 
 def _cleanup_expired_trash(user):
-    """Borra de forma permanente los items del usuario que llevan más de
-    TRASH_RETENTION_DAYS días en la papelera. Llamado lazy en cada visita
-    a la vista de papelera — no necesita cron job."""
     cutoff = timezone.now() - timedelta(days=TRASH_RETENTION_DAYS)
     EmailMessage.objects.filter(
         alias__user=user, deleted_at__lt=cutoff,
@@ -523,7 +426,6 @@ def _cleanup_expired_trash(user):
 @login_required(login_url='login')
 @require_POST
 def email_trash_api(request, pk):
-    """Mueve un correo recibido a la papelera (soft delete)."""
     try:
         em = EmailMessage.objects.select_related('alias').get(
             pk=pk, alias__user=request.user, deleted_at__isnull=True,
@@ -539,7 +441,6 @@ def email_trash_api(request, pk):
 @login_required(login_url='login')
 @require_POST
 def sent_trash_api(request, pk):
-    """Mueve un correo enviado a la papelera."""
     try:
         em = SentEmail.objects.select_related('alias').get(
             pk=pk, alias__user=request.user, deleted_at__isnull=True,
@@ -553,8 +454,6 @@ def sent_trash_api(request, pk):
 
 
 def _trash_lookup(kind, pk, user):
-    """Devuelve el queryset filtrado al ítem de papelera correspondiente.
-    Maneja inbound/outbound (correos por alias) y draft (asociado al user)."""
     if kind == 'inbound':
         return EmailMessage.objects.filter(
             pk=pk, alias__user=user, deleted_at__isnull=False,
@@ -573,7 +472,6 @@ def _trash_lookup(kind, pk, user):
 @login_required(login_url='login')
 @require_POST
 def trash_restore_api(request):
-    """Restaura un item de la papelera. POST con {kind: 'inbound'|'outbound'|'draft', pk}."""
     kind = request.POST.get('kind', '')
     try:
         pk = int(request.POST.get('pk', '0'))
@@ -596,7 +494,6 @@ def trash_restore_api(request):
 @login_required(login_url='login')
 @require_POST
 def trash_delete_api(request):
-    """Borra permanentemente un item de la papelera. POST con {kind, pk}."""
     kind = request.POST.get('kind', '')
     try:
         pk = int(request.POST.get('pk', '0'))
@@ -616,7 +513,6 @@ def trash_delete_api(request):
 @login_required(login_url='login')
 @require_POST
 def trash_empty_api(request):
-    """Vacía completamente la papelera del usuario (recibidos, enviados y borradores)."""
     inbound_n  = EmailMessage.objects.filter(
         alias__user=request.user, deleted_at__isnull=False,
     ).count()
@@ -644,15 +540,10 @@ def trash_empty_api(request):
     })
 
 
-TRASH_BATCH = 6   # ítems por lote en "Ver más" de papelera
+TRASH_BATCH = 6   
 
 
 def _trash_items(user):
-    """
-    Devuelve la lista mixta (recibidos + enviados + borradores) en
-    papelera, anotada con `kind` y `expires_at` y ordenada por
-    deleted_at descendente.
-    """
     inbound = list(
         EmailMessage.objects
             .filter(alias__user=user, deleted_at__isnull=False)
@@ -691,8 +582,6 @@ def _trash_items(user):
 
 @login_required(login_url='login')
 def trash_view(request):
-    """Lista la papelera. Carga diferida: primer lote en server-side,
-    siguientes vía `trash_more_api`."""
     _cleanup_expired_trash(request.user)
 
     all_trash, inbound, outbound, drafts = _trash_items(request.user)
@@ -702,7 +591,7 @@ def trash_view(request):
 
     return render(request, 'mail/trash.html', {
         'all_trash':        page,
-        'inbound_trash':    inbound,     # se usa solo para contadores
+        'inbound_trash':    inbound,     
         'outbound_trash':   outbound,
         'drafts_trash':     drafts,
         'total_trash':      total,
@@ -715,8 +604,6 @@ def trash_view(request):
 
 @login_required(login_url='login')
 def trash_more_api(request):
-    """Siguiente lote de items de papelera como HTML parcial.
-    Espera `?offset=N`."""
     try:
         offset = int(request.GET.get('offset') or 0)
     except ValueError:
@@ -740,15 +627,8 @@ def trash_more_api(request):
     })
 
 
-# ═════════════════════════════════════════════════════════════════════
-#  BORRADORES
-# ═════════════════════════════════════════════════════════════════════
 
 def _draft_has_content(to, body_html):
-    """Un borrador se guarda SOLO si el usuario llenó AMBOS campos:
-    destinatario (`to`) Y cuerpo con texto real. Si abre el compose y lo
-    cierra sin escribir nada, o solo pone el asunto, no se guarda nada
-    en borradores. Evita los "borradores fantasma" del refactor anterior."""
     if not (to or '').strip():
         return False
     plain = re.sub(r'<[^>]+>', '', body_html or '').strip()
@@ -758,18 +638,7 @@ def _draft_has_content(to, body_html):
 @login_required(login_url='login')
 @require_POST
 def draft_save_api(request):
-    """Crea o actualiza un borrador.
 
-    POST:
-        draft_id    (opcional) → si viene, actualiza; si no, crea
-        alias_id    (opcional)
-        to          (opcional)
-        subject     (opcional)
-        message_html(opcional)
-        scheduled_at(opcional, ISO)
-
-    Devuelve: {ok, draft_id, updated_at}
-    """
     raw_id = (request.POST.get('draft_id') or '').strip()
     alias_id = (request.POST.get('alias_id') or '').strip()
     to            = (request.POST.get('to', '') or '').strip()
@@ -777,12 +646,8 @@ def draft_save_api(request):
     message_html  = (request.POST.get('message_html', '') or '').strip()
     scheduled_raw = (request.POST.get('scheduled_at', '') or '').strip()
 
-    # Si no hay nada que valga la pena guardar (requiere destinatario +
-    # cuerpo con texto real), no creamos el borrador.
     if not _draft_has_content(to, message_html):
         return JsonResponse({'ok': True, 'draft_id': None, 'empty': True})
-
-    # Resolver alias (debe pertenecer al usuario)
     alias = None
     try:
         alias_pk = decode_id(alias_id)
@@ -791,7 +656,6 @@ def draft_save_api(request):
     if alias_pk is not None:
         alias = Alias.objects.filter(id=alias_pk, user=request.user).first()
 
-    # Parse scheduled_at si llegó
     scheduled_dt = None
     if scheduled_raw:
         try:
@@ -803,7 +667,6 @@ def draft_save_api(request):
         except (ValueError, TypeError):
             scheduled_dt = None
 
-    # Update si nos dieron un id válido y el borrador es nuestro
     draft = None
     try:
         draft_pk = decode_id(raw_id)
@@ -812,10 +675,6 @@ def draft_save_api(request):
     if draft_pk is not None:
         draft = Draft.objects.filter(id=draft_pk, user=request.user).first()
 
-    # Deduplicación: si NO nos dieron draft_id (borrador "nuevo") pero ya
-    # existe uno con el MISMO alias + destinatario + asunto, lo reusamos.
-    # Esto evita que cerrar/reabrir el compose y escribir lo mismo cree
-    # 3 entradas duplicadas en /borradores/ — Gmail funciona igual.
     if not draft:
         existing_qs = Draft.objects.filter(
             user=request.user,
@@ -851,7 +710,6 @@ def draft_save_api(request):
 
 @login_required(login_url='login')
 def draft_get_api(request, pk):
-    """Devuelve un borrador para que el compose modal lo cargue."""
     try:
         d = Draft.objects.select_related('alias').get(pk=pk, user=request.user)
     except Draft.DoesNotExist:
@@ -877,18 +735,12 @@ def draft_get_api(request, pk):
 @login_required(login_url='login')
 @require_POST
 def draft_delete_api(request, pk):
-    """Borra un borrador. Distingue dos casos:
-       - hard=1 → eliminación permanente (lo usan los flujos internos:
-         envío exitoso del compose).
-       - default → soft delete: lo manda a la papelera (estilo Gmail).
-    """
     hard = request.POST.get('hard') == '1'
     qs = Draft.objects.filter(pk=pk, user=request.user)
     if hard:
         deleted, _ = qs.delete()
         return JsonResponse({'ok': True, 'deleted': deleted, 'hard': True})
 
-    # Soft delete: lo movemos a papelera
     qs = qs.filter(deleted_at__isnull=True)
     obj = qs.first()
     if not obj:
@@ -901,18 +753,16 @@ def draft_delete_api(request, pk):
 @login_required(login_url='login')
 @require_POST
 def drafts_empty_api(request):
-    """Manda TODOS los borradores activos del usuario a la papelera."""
     qs = Draft.objects.filter(user=request.user, deleted_at__isnull=True)
     count = qs.count()
     qs.update(deleted_at=timezone.now())
     return JsonResponse({'ok': True, 'moved': count})
 
 
-DRAFTS_BATCH = 6   # cuántos borradores por "página" en el load-more
+DRAFTS_BATCH = 6   
 
 
 def _drafts_qs(user):
-    """QuerySet base de borradores activos (no en papelera)."""
     return (
         Draft.objects
             .filter(user=user, deleted_at__isnull=True)
@@ -923,18 +773,13 @@ def _drafts_qs(user):
 
 @login_required(login_url='login')
 def drafts_view(request):
-    """
-    Lista de borradores con carga diferida.
-    Render inicial: solo los DRAFTS_BATCH primeros. El front pide los
-    siguientes lotes vía `drafts_more_api`.
-    """
     full_qs = _drafts_qs(request.user)
     total   = full_qs.count()
 
     drafts   = list(full_qs[:DRAFTS_BATCH])
     has_more = total > DRAFTS_BATCH
 
-    # Contadores GLOBALES (no solo del lote visible)
+
     no_recipient_count = full_qs.filter(to_email='').count()
     scheduled_count    = full_qs.filter(scheduled_at__isnull=False).count()
 
@@ -951,7 +796,6 @@ def drafts_view(request):
 
 @login_required(login_url='login')
 def drafts_more_api(request):
-    """Siguiente lote de borradores como HTML parcial. Espera `?offset=N`."""
     try:
         offset = int(request.GET.get('offset') or 0)
     except ValueError:
@@ -977,9 +821,8 @@ def drafts_more_api(request):
 
 @login_required(login_url='login')
 def dashboard_activity_api(request):
-    """GET → {activity_data: [...], range_label: '...'} para el chart."""
-    period = request.GET.get('period', 'diario')
+    period = request.GET.get('period', 'semanal')
     if period not in ('diario', 'semanal', 'mensual', 'anual'):
-        period = 'diario'
+        period = 'semanal'
     data, label = activity_data_for_user(request.user, period)
     return JsonResponse({'activity_data': data, 'range_label': label})

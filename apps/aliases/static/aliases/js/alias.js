@@ -9,8 +9,7 @@ function copyAlias(btn, address) {
   });
 }
 
-/* Abre el compose modal global (definido en base.html) prellenado con
-   los datos del alias seleccionado. */
+
 function aliasOpenCompose(btn) {
   var id    = btn.dataset.aliasId;
   var addr  = btn.dataset.aliasAddress;
@@ -27,7 +26,6 @@ function aliasOpenCompose(btn) {
   }
 }
 
-/* ── BÚSQUEDA + FILTROS ── */
 var aliasCurrentFilter = 'all';
 var aliasCurrentSearch = '';
 
@@ -83,9 +81,7 @@ function aliasApply() {
   }
 }
 
-/* ── Anti doble-submit del botón "Generar alias" ──
-   El usuario ya no escribe nada, así que solo bloqueamos que un doble
-   click cree dos alias gastando cuota innecesariamente. */
+
 (function () {
   var form = document.getElementById('alias-create-form');
   var btn  = document.getElementById('alias-create-btn');
@@ -107,7 +103,7 @@ function aliasApply() {
   });
 })();
 
-/* ── Confirmación bonita al destruir un alias (reemplaza window.confirm) ── */
+
 document.addEventListener('submit', function (e) {
   var form = e.target.closest('.js-destroy-alias');
   if (!form || form.dataset.confirmed === '1') return;
@@ -128,9 +124,6 @@ document.addEventListener('submit', function (e) {
 });
 
 
-/* ════════════════════════════════════════════════════════════════════
-   MODAL: solicitar más cupo de alias al administrador
-   ════════════════════════════════════════════════════════════════════ */
 
 function openAliasRequestModal() {
   var overlay = document.getElementById('aliasReqOverlay');
@@ -157,51 +150,40 @@ function closeAliasRequestModal() {
 (function () {
   var overlay = document.getElementById('aliasReqOverlay');
   if (!overlay) return;
-  /* Click fuera del modal cierra. */
+
   overlay.addEventListener('click', function (e) {
     if (e.target === overlay) closeAliasRequestModal();
   });
-  /* Escape cierra. */
+
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && overlay.classList.contains('open')) {
       closeAliasRequestModal();
     }
   });
-  /* Slider: fill visual via --p y número grande. */
   var slider = document.getElementById('aliasReqAmount');
   if (slider) {
     slider.addEventListener('input', _aliasReqUpdateSliderFill);
     _aliasReqUpdateSliderFill();
   }
-  /* Textarea: contador en vivo. */
   var ta = document.getElementById('aliasReqReason');
   if (ta) ta.addEventListener('input', _aliasReqUpdateReasonCount);
 })();
 
-/* ── Quick-picks (+1, +3, +5, +10) ──────────────────────────────────
-   Sincronizan el slider, el número grande y el preview. También marcan
-   visualmente el chip seleccionado. */
+
 function aliasReqSetAmount(n) {
   var slider = document.getElementById('aliasReqAmount');
   if (!slider) return;
   n = Math.max(parseInt(slider.min, 10), Math.min(parseInt(slider.max, 10), n));
   slider.value = String(n);
-  /* Disparamos el handler nativo del oninput para que actualice todo. */
   aliasReqOnSliderChange(n);
 }
-
-/* Handler central del slider: actualiza número, fill, preview, y
-   el highlight del quick-pick si coincide con un valor "redondo". */
 function aliasReqOnSliderChange(value) {
   var n = parseInt(value, 10) || 1;
-  /* Número grande de la derecha */
   var numEl = document.getElementById('aliasReqAmountVal');
   if (numEl) numEl.textContent = n;
-  /* Fill del slider */
+
   _aliasReqUpdateSliderFill();
-  /* Preview "Si te aprueban" */
   _aliasReqUpdatePreview(n);
-  /* Quick-picks: activamos el que coincide */
   var quicks = document.querySelectorAll('.aliasreq-quick');
   quicks.forEach(function (b) {
     var match = parseInt(b.dataset.amount, 10) === n;
@@ -217,32 +199,19 @@ function _aliasReqUpdatePreview(n) {
   prevEl.textContent = String(current + n);
 }
 
-/* ── Chips de razón predefinida ────────────────────────────────────
-   El textarea es readonly: el usuario NO puede escribir libre. Sólo
-   puede elegir un chip. Click pone el texto del chip en el textarea y
-   marca al chip como activo (los demás se desmarcan). */
 function aliasReqSetReason(btn, text) {
-  /* Defensa: la firma cambió de (text) → (btn, text). Detectamos qué
-     vino y lo acomodamos. Nunca escribimos un HTMLElement en el textarea. */
   if (typeof btn === 'string') {
-    /* Llamada legacy: aliasReqSetReason('texto') */
     text = btn;
     btn = null;
   } else if (btn && btn.nodeType === 1 && typeof text !== 'string') {
-    /* Recibimos el botón pero NO texto. Intentamos sacar el texto del
-       label del propio botón como fallback decente (en lugar de imprimir
-       "[object HTMLButtonElement]" en el textarea). */
     text = (btn.textContent || '').trim();
   }
-  /* Si aun así no es string, abortamos para no contaminar el textarea. */
   if (typeof text !== 'string') return;
 
   var ta = document.getElementById('aliasReqReason');
   if (!ta) return;
   ta.value = text;
   _aliasReqUpdateReasonCount();
-
-  /* Activo: el chip clickeado. Los demás vuelven a estado normal. */
   if (btn && btn.classList) {
     var all = document.querySelectorAll('.aliasreq-chip');
     all.forEach(function (c) { c.classList.remove('active'); });
@@ -275,10 +244,6 @@ function _aliasReqCsrfToken() {
   return c ? c.split('=')[1] : '';
 }
 
-/* Flag a nivel módulo: garantiza UNA sola petición y UN solo reload.
-   Sin esto, en algunos casos el submit puede dispararse dos veces (cache
-   stale del JS, doble click rápido, evento submit duplicado) y la página
-   acaba recargándose dos veces. */
 var __aliasReqSending = false;
 var __aliasReqReloadScheduled = false;
 
@@ -287,8 +252,6 @@ function submitAliasRequest(ev) {
     ev.preventDefault();
     if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
   }
-  /* Lock: si ya hay un submit en vuelo, ignoramos cualquier intento
-     adicional (doble click, Enter encolado, etc.). */
   if (__aliasReqSending) return false;
   __aliasReqSending = true;
 
@@ -341,7 +304,6 @@ function submitAliasRequest(ev) {
           duration: 5000,
         });
       }
-      /* Recargamos UNA sola vez para mostrar el pill "Solicitud pendiente". */
       _scheduleReload();
     } else {
       if (window.showToast) {
@@ -370,9 +332,7 @@ function submitAliasRequest(ev) {
   return false;
 }
 
-/* ══════════════════════════════════════════
-   VER MÁS / VER MENOS (load-more con toggle)
-══════════════════════════════════════════ */
+
 var aliasLoadingMore = false;
 
 function loadMoreAlias() {
@@ -396,7 +356,6 @@ function loadMoreAlias() {
       if (!data || !data.ok) throw new Error('bad response');
 
       if (data.count > 0) {
-        // Append antes del placeholder #alias-no-results
         var noRes = document.getElementById('alias-no-results');
         var tmp = document.createElement('div');
         tmp.innerHTML = data.html.trim();
@@ -416,7 +375,6 @@ function loadMoreAlias() {
       if (!data.has_more) btn.style.display = 'none';
       if (collapse)       collapse.style.display = '';
 
-      // Re-aplicar filtro+búsqueda a las tarjetas recién insertadas
       if (typeof aliasApply === 'function') aliasApply();
     })
     .catch(function () {

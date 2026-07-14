@@ -1,12 +1,4 @@
-"""
-apps/mail/webhook.py
-Endpoint para recibir correos entrantes vía Resend Inbound.
 
-Resend recibe los correos en el dominio dockershield.lat y los reenvía
-a /webhook/inbound/ como POST JSON.
-
-Para enviar (alertas + reenvíos) usamos también Resend (Email API).
-"""
 
 import os
 import json
@@ -33,12 +25,7 @@ from apps.sandbox.models import FileInfo, DynamicAnalysis, BodyAnalysis, IAResul
 @csrf_exempt
 @require_POST
 def inbound_email_webhook(request):
-    """
-    Wrapper que captura cualquier excepción del pipeline y loguea con detalle.
-    Siempre devuelve 200 para que Resend no reintente en bucle por un bug
-    transitorio.
 
-    """
 
     try:
         return _handle_inbound(request)
@@ -65,7 +52,6 @@ def _save_minimal_email(request, reason=""):
     if not recipient:
         return
     try:
-        # Case-insensitive: los MTAs normalizan el destinatario a minúsculas
         alias = Alias.objects.get(address__iexact=recipient, is_active=True)
     except Alias.DoesNotExist:
         return
@@ -77,25 +63,16 @@ def _save_minimal_email(request, reason=""):
     )
 
 
-# ──────────────────────────────────────────────────────────────────────
-#  Parser del payload de Resend Inbound (JSON)
-# ──────────────────────────────────────────────────────────────────────
+
 
 def _extract_payload(request):
-    """
-    Devuelve  (fields_dict, attachments_list).
 
-    fields_dict = {
-        'recipient', 'sender', 'subject', 'body', 'body_html', 'reply_to'
-    }
-    attachments_list = [(filename, bytes), ...]
-    """
     try:
         raw = request.body
         if isinstance(raw, bytes):
             raw = raw.decode('utf-8', errors='replace')
         envelope = json.loads(raw)
-        # Resend envía el payload envuelto en { type, created_at, data: { ... } }
+
         webhook_data = envelope.get('data', envelope)
     except Exception as e:
         print(f"[webhook] error parseando JSON de Resend: {e}")
@@ -103,9 +80,6 @@ def _extract_payload(request):
 
     email_id = webhook_data.get('email_id', '')
 
-    # Resend webhooks solo traen metadata — hay que llamar a la API
-    # para obtener el cuerpo completo (html, text, headers).
-    # Documentación: https://resend.com/docs/dashboard/receiving/get-email-content
     api_key = os.environ.get('RESEND_API_KEY', '').strip()
     if email_id and api_key:
         try:
@@ -156,7 +130,6 @@ def _extract_payload(request):
     elif isinstance(to_list, str):
         fields['recipient'] = to_list
 
-    # Descargar adjuntos desde Resend si tienen download_url
     attachments = []
     if email_id and api_key:
         for att in data.get('attachments', []):
@@ -177,8 +150,6 @@ def _extract_payload(request):
             except Exception as e:
                 print(f"[webhook] error descargando adjunto {att_id}: {e}")
 
-    # Fallback: si algún attachment trae content base64 directo
-    # (Resend nunca lo envía así — útil para test_webhook)
     for att in data.get('attachments', []):
         content_b64 = att.get('content', '') if isinstance(att, dict) else ''
         if content_b64:
@@ -193,13 +164,9 @@ def _extract_payload(request):
     return fields, attachments[:15]
 
 
-# ──────────────────────────────────────────────────────────────────────
-# _parse_raw_mime y _decode_part fueron eliminadas — Resend entrega
-# todos los campos parseados directamente en JSON.
 
 
 def _bare_email(value: str) -> str:
-    """ 'Name <a@b.com>' → 'a@b.com' lowercase. """
     if not value:
         return ''
     if '<' in value and '>' in value:
@@ -208,7 +175,6 @@ def _bare_email(value: str) -> str:
 
 
 def _extract_auth_status(headers):
-    """Extrae dkim/spf del header Authentication-Results que Resend incluye en headers."""
     if not isinstance(headers, dict):
         return '', ''
     auth = ''
@@ -225,29 +191,19 @@ def _extract_auth_status(headers):
 
 
 def _neutralize_links_html(html: str) -> str:
-    """
-    Quita la capacidad de navegar de los <a> del HTML del correo:
-      - Borra el atributo href (el ctrl+click ya no abre nada).
-      - Borra target/rel.
-      - Marca el original como data-blocked-href para auditoría.
-      - Añade clase 'sms-blocked-link' + title con motivo.
-    Las imágenes externas también se neutralizan (no se cargan tracking pixels).
-    Esto es defensa en profundidad: además del sandbox del iframe,
-    los <a> ya no son clicables.
-    """
+
     if not html:
         return html
     import re
 
     def _process_anchor(match):
-        # Capturamos el contenido del tag <a ...>, lo limpiamos
+
         attrs = match.group(1)
         href_match = re.search(r'''href\s*=\s*["']([^"']*)["']''', attrs, re.IGNORECASE)
         original_href = href_match.group(1) if href_match else ''
-        # Quitamos href, target, rel, onclick, etc.
+
         cleaned = re.sub(r'''\s*(href|target|rel|onclick|onmouseover|onmouseout)\s*=\s*["'][^"']*["']''',
                          '', attrs, flags=re.IGNORECASE)
-        # Inline style + title con el href original
         safe_title = original_href.replace('"', '&quot;').replace('<', '&lt;')[:300]
         block_attrs = (
             f' class="sms-blocked-link"'
@@ -259,17 +215,15 @@ def _neutralize_links_html(html: str) -> str:
         )
         return f'<a{cleaned}{block_attrs}>'
 
-    # Procesa <a ...> de apertura (no toca el contenido ni el cierre)
+
     html = re.sub(r'<a\b([^>]*)>', _process_anchor, html, flags=re.IGNORECASE)
 
-    # Quita imágenes externas (tracking pixels, blob, etc.) — solo deja inline data:
     def _process_img(match):
         attrs = match.group(1)
         src_match = re.search(r'''src\s*=\s*["']([^"']*)["']''', attrs, re.IGNORECASE)
         src = src_match.group(1) if src_match else ''
         if src.startswith('data:'):
-            return match.group(0)  # Imagen inline, no es tracking → la dejamos
-        # Reemplazamos por placeholder visible
+            return match.group(0)
         return ('<span style="display:inline-block;background:#f3f4f6;color:#6b7280;'
                 'font-family:monospace;font-size:10px;padding:8px 14px;'
                 'border:1px dashed #9ca3af;border-radius:4px;'
@@ -278,14 +232,12 @@ def _neutralize_links_html(html: str) -> str:
 
     html = re.sub(r'<img\b([^>]*)>', _process_img, html, flags=re.IGNORECASE)
 
-    # Inyecta CSS al principio del HTML para reforzar el bloqueo y dar feedback visual
     block_css = (
         '<style>'
         'a.sms-blocked-link:hover{background:#fee2e2 !important;outline:1px dashed #dc2626;}'
         'a[href]{pointer-events:none !important;cursor:not-allowed !important;}'
         '</style>'
     )
-    # Si hay <head>, insertamos ahí; si no, al principio del documento
     if '<head>' in html.lower():
         html = re.sub(r'<head([^>]*)>', r'<head\1>' + block_css, html, count=1, flags=re.IGNORECASE)
     else:
@@ -295,11 +247,7 @@ def _neutralize_links_html(html: str) -> str:
 
 
 def _decode_unicode_escapes(text: str) -> str:
-    """
-    Algunos remitentes (Gamma, ciertas plataformas SaaS) mandan el body
-    con secuencias unicode literales tipo  \\u002D  o  \\u000D\\u000A  en
-    vez de los caracteres reales. Las decodificamos a su carácter Unicode.
-    """
+
     if not text or '\\u' not in text:
         return text
     try:
@@ -314,36 +262,25 @@ def _decode_unicode_escapes(text: str) -> str:
 
 
 def _html_to_text(html: str) -> str:
-    """
-    Convierte HTML a texto plano legible. Útil para mostrar en la bandeja
-    cuando el correo viene solo en HTML (caso típico de Reddit, newsletters…).
-    Limpia <style>, <script>, comentarios, y colapsa whitespace agresivamente
-    para evitar bloques masivos de líneas vacías de tablas anidadas.
-    """
     if not html:
         return ''
     import re
     import html as _html_lib
     from django.utils.html import strip_tags
 
-    # Eliminar bloques con contenido no útil
     html = re.sub(r'<style[^>]*>.*?</style>',   '', html, flags=re.DOTALL | re.IGNORECASE)
     html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
     html = re.sub(r'<head[^>]*>.*?</head>',     '', html, flags=re.DOTALL | re.IGNORECASE)
     html = re.sub(r'<!--.*?-->',                '', html, flags=re.DOTALL)
 
-    # Convertir tags estructurales en saltos antes de quitar
     html = re.sub(r'<br\s*/?>',                 '\n',  html, flags=re.IGNORECASE)
     html = re.sub(r'</(p|div|li|h[1-6]|tr)>',   '\n',  html, flags=re.IGNORECASE)
 
-    # Quitar tags y decodificar entidades
     text = _html_lib.unescape(strip_tags(html))
 
-    # Limpieza por línea: trim cada una, eliminar las vacías,
-    # y colapsar runs de blancos múltiples → un solo salto entre párrafos.
     lines = [ln.strip() for ln in text.split('\n')]
     out = []
-    prev_blank = True   # no dejar líneas vacías al principio
+    prev_blank = True
     for ln in lines:
         if ln:
             out.append(re.sub(r'[ \t ]+', ' ', ln))
@@ -354,22 +291,13 @@ def _html_to_text(html: str) -> str:
     return '\n'.join(out).strip()
 
 
-# ──────────────────────────────────────────────────────────────────────
-#  Handler principal
-# ──────────────────────────────────────────────────────────────────────
-
 def _handle_inbound(request):
 
-    # ── 1. Parsear payload del POST de Resend Inbound ──────────────────
     fields, raw_attachments = _extract_payload(request)
 
     if not fields['recipient'] or not fields['sender']:
         return HttpResponseBadRequest("Faltan campos requeridos")
 
-    # ── 1.b Verificar autenticidad criptográfica (SPF/DKIM/DMARC) ──────
-    # Resend ya hace estos chequeos y los entrega en el JSON del webhook.
-    # Los usamos para distinguir correos legítimos (Netflix, Google,
-    # etc.) de phishers que solo escriben un From falso.
     try:
         resend_data = getattr(request, '_resend_payload', {})
         headers_raw = resend_data.get('headers', {})
@@ -404,19 +332,16 @@ def _handle_inbound(request):
     body_html = fields['body_html']
     reply_to  = fields['reply_to']
 
-    # Decodifica escapes unicode literales que algunos remitentes envían
-    # sin procesar (ej. la cadena "-" en vez del carácter "-").
+
     body      = _decode_unicode_escapes(body)
     body_html = _decode_unicode_escapes(body_html)
 
-    # Si el correo solo trae HTML (típico de Reddit, Amazon, newsletters…),
-    # extraemos texto plano para que la bandeja muestre algo legible.
+
     if not (body or '').strip() and body_html:
         body = _html_to_text(body_html)
 
-    # ── 2. Buscar el alias destino ─────────────────────────────────────
-    # Los MTAs normalizan el destinatario a minúsculas en el transporte.
-    # Usamos __iexact para que coincida sin importar el case.
+
+
     alias_address = _bare_email(fields['recipient'])
     try:
         alias = Alias.objects.get(address__iexact=alias_address, is_active=True)
@@ -424,19 +349,17 @@ def _handle_inbound(request):
         print(f"[webhook] alias desconocido: {alias_address} (correo descartado)")
         return HttpResponse("OK", status=200)
 
-    # Neutraliza enlaces e imágenes externas SOLO para mostrar en la bandeja.
-    # Guardamos también la versión RAW para poder reenviarla intacta al correo
-    # real cuando el usuario lo apruebe (y sepa lo que está pidiendo).
+
     body_html_original = body_html or ''
     body_html_safe     = _neutralize_links_html(body_html_original)
 
-    # ── Deduplicación: si ya procesamos este email_id, salir ────────────
+
     email_id = getattr(request, '_resend_email_id', '') or ''
     if email_id and EmailMessage.objects.filter(resend_email_id=email_id).exists():
         print(f"[webhook] email_id {email_id} ya procesado, saltando duplicado")
         return HttpResponse("OK (duplicado)", status=200)
 
-    # ── Crear el EmailMessage ──────────────────────────────────────────
+
     email_obj = EmailMessage.objects.create(
         alias=alias,
         from_email=sender,
@@ -455,7 +378,6 @@ def _handle_inbound(request):
         auth_signed_by=(auth_result.get('dkim_domain') or '')[:120],
     )
 
-    # ── 1. Analizar el CUERPO del correo (siempre) ─────────────────────
     try:
         resend_data = getattr(request, '_resend_payload', {})
         raw_dkim, raw_spf = _extract_auth_status(resend_data.get('headers', {}))
@@ -472,7 +394,6 @@ def _handle_inbound(request):
         print(f"[webhook] body_analyzer falló: {e}")
         body_report = {"score": 0, "evidence": [], "threat": ""}
 
-    # ── 1.b Descargar archivos desde URLs de cloud storage ────────────
     try:
         from apps.sandbox.cloud_downloader import download_from_urls
         body_urls = body_report.get('iocs', {}).get('urls', [])
@@ -482,9 +403,9 @@ def _handle_inbound(request):
     except Exception as e:
         print(f"[cloud_downloader] error global: {e}")
 
-    # ── 2. Procesar TODOS los adjuntos (ya extraídos como (nombre, bytes)) ─
-    attachment_reports = []    # uno por adjunto
-    attachments_summary = []   # lo que se guarda en SandboxAnalysis.attachments_reports
+
+    attachment_reports = []    
+    attachments_summary = []   
 
     for i, (att_name, att_bytes) in enumerate(raw_attachments, start=1):
         print(f"[sandbox] adjunto {i}/{len(raw_attachments)}: {att_name}", flush=True)
@@ -493,7 +414,6 @@ def _handle_inbound(request):
             saved_name = default_storage.save(save_path, ContentFile(att_bytes))
             full_path  = default_storage.path(saved_name)
 
-            # En el 1er adjunto llenamos los campos en EmailAttachment
             if i == 1:
                 EmailAttachment.objects.update_or_create(
                     email=email_obj,
@@ -504,8 +424,6 @@ def _handle_inbound(request):
                     },
                 )
 
-            # Punto clave: damos un EmailMessage "proxy" al sandbox con la ruta
-            # correcta para este adjunto (sin romper al 1er adjunto).
             proxy = _AttachmentProxy(full_path)
             report = run_sandbox_analysis(proxy)
             print(f"[sandbox] → score:{report['risk_score']} amenaza:{report.get('threat_name','')[:40]}", flush=True)
@@ -516,7 +434,7 @@ def _handle_inbound(request):
         except Exception as e:
             print(f"[webhook] adjunto {att_name} falló: {e}")
             print(traceback.format_exc())
-            # Seguimos con los demás adjuntos en vez de caer
+            
             attachments_summary.append({
                 "filename": att_name,
                 "filepath": "",
@@ -533,7 +451,7 @@ def _handle_inbound(request):
                 "yara_matches": [], "analyzers_run": [],
             })
 
-    # ── 3. URLs consolidadas (body + todos los adjuntos) ───────────────
+
     all_urls = list(body_report.get('iocs', {}).get('urls', []))
     for rep in attachment_reports:
         for u in (rep.get('iocs', {}) or {}).get('urls', []):
@@ -548,19 +466,11 @@ def _handle_inbound(request):
         except Exception as e:
             print("URL analyzer error:", e)
 
-    # ── 4. Combinar todos los reportes ─────────────────────────────────
+
     final_score, threat_name, evidence_list, iocs, category, analyzers_run = \
         _combine_many(attachment_reports, body_report, url_report)
 
-    # ── 4.b Ajustar score con el veredicto de autenticación ────────────
-    # IMPORTANTE: la verificación SPF/DKIM/DMARC solo dice QUIÉN envió el
-    # correo, NO si el contenido es peligroso. Un atacante puede firmar
-    # legítimamente con DKIM su propio dominio y mandar malware desde ahí.
-    #
-    # Por eso aplicamos el ajuste cripto SOLO al score del contenido textual
-    # (cuerpo del correo + URLs). El score del SANDBOX/YARA del adjunto
-    # NUNCA se baja por DKIM — si hay malware, hay malware, sin importar
-    # quién firmó el correo.
+
     attachment_max_score = max(
         [int(r.get('risk_score', 0)) for r in (attachment_reports or []) if r] + [0]
     )
@@ -572,37 +482,26 @@ def _handle_inbound(request):
     adjusted_non_attachment, auth_evidence = auth_check.apply_to_score(
         non_attachment_score, auth_result,
     )
-    # El veredicto final es el peor entre el adjunto (intacto) y el
-    # contenido textual (ajustado por DKIM). Así, si llega malware con
-    # firma DKIM válida, el score sigue siendo 100 y se bloquea.
+
     final_score = max(adjusted_non_attachment, attachment_max_score)
 
-    # Solo metemos la evidencia del auth si afectó al veredicto final.
-    # Si el adjunto domina con score 100, no tiene sentido decir
-    # "score reducido" porque el correo se bloquea igual.
+
     if auth_evidence and final_score != pre_auth_score:
         evidence_list.append(auth_evidence)
         if 'auth' not in analyzers_run:
             analyzers_run.append('auth')
 
-    # Si la auth bajó el score a "safe" Y no había malware en adjuntos,
-    # limpiamos el threat_name (era falso positivo del body/URL).
-    # Si el adjunto sí tenía amenaza, el threat_name se mantiene tal cual.
+
     if (pre_auth_score >= 61 and final_score <= 30
             and attachment_max_score <= 30):
-        threat_name = ''   # falso positivo del contenido textual
-
-    # Si la auth detectó spoof y no había threat_name, le ponemos uno
+        threat_name = ''
     if auth_result.get('verdict') == 'spoofed' and not threat_name:
         threat_name = f"Suplantación de {auth_result.get('sender_domain', 'remitente')}"
 
-    # Si al menos un adjunto tiene extension_spoof, lo marcamos
     extension_spoof = any(r.get("extension_spoof") for r in attachment_reports)
 
-    # Campos del 1er adjunto (retrocompat con el reporte visual actual)
     first = attachment_reports[0] if attachment_reports else {}
 
-    # ── 5. Persistir el análisis ───────────────────────────────────────
     sandbox = SandboxAnalysis.objects.create(
         email=email_obj,
         risk_score=final_score,
@@ -663,7 +562,6 @@ def _handle_inbound(request):
             "attachment_count": len(attachments_summary),
         }
         send_threat_alert(email_obj, combined_for_alert, sandbox_id=sandbox.id)
-        # Notificación de amenaza bloqueada (informativa, sin acción)
         _create_notification(
             user=alias.user,
             ntype='threat_alert',
@@ -673,9 +571,6 @@ def _handle_inbound(request):
             status='done',
         )
     elif final_score <= 30:
-        # Correo SEGURO:
-        # 1) Si el usuario tiene auto-forward → reenviar y notificar como "forwarded".
-        # 2) Si NO tiene auto-forward → crear notificación PENDIENTE para que decida.
         try:
             opted_in = bool(getattr(alias.user.profile, 'forward_safe_emails', False))
         except Exception:
@@ -701,9 +596,7 @@ def _handle_inbound(request):
                 status='pending',
             )
     else:
-        # Rango medio (31-60): sospechoso pero NO bloqueado.
-        # Lo tratamos como forward_request PENDIENTE para que el usuario decida
-        # explícitamente si quiere reenviarlo a su Gmail asumiendo el riesgo.
+
         _create_notification(
             user=alias.user,
             ntype='forward_request',
@@ -728,18 +621,13 @@ def _create_notification(user, ntype, title, message, email=None, status='done')
         print(f"[webhook] no se pudo crear notificación ({ntype}): {e}")
 
 
-# _collect_attachments fue eliminada — los adjuntos ahora vienen como
-# base64 dentro del JSON de Resend.
-
-
 class _AttachmentProxy:
-    """Objeto mínimo para que run_sandbox_analysis lea attachment_path."""
     def __init__(self, path):
         self.attachment_path = path
 
 
 def _summarize(report, filename, filepath):
-    """Crea el dict compacto que guardamos en attachments_reports."""
+
     return {
         "filename":       filename,
         "filepath":       filepath,
@@ -770,15 +658,9 @@ def _merge_lists(reports, key):
     return out
 
 
-# ──────────────────────────────────────────────────────────────────────
-#  Combinación adjunto + cuerpo
-# ──────────────────────────────────────────────────────────────────────
 
 def _combine(attachment_report, body_report):
-    """
-    Combina los dos análisis en un veredicto único.
-    El score final = MAX(adjunto, cuerpo) — el peor decide.
-    """
+
     a = attachment_report or {}
     b = body_report or {}
 
@@ -787,7 +669,6 @@ def _combine(attachment_report, body_report):
 
     final_score = max(a_score, b_score)
 
-    # Threat name: el del adjunto pesa más, si no, el del body
     if a_score >= b_score and a.get('threat_name'):
         threat = a['threat_name']
     elif b.get('threat'):
@@ -797,10 +678,10 @@ def _combine(attachment_report, body_report):
     else:
         threat = ""
 
-    # Evidence: combinada
+
     evidence = list(a.get('evidence', [])) + list(b.get('evidence', []))
 
-    # IOCs: union
+
     iocs = {"urls": [], "ips": [], "domains": [], "hashes": []}
     for src in (a, b):
         src_iocs = src.get('iocs', {}) or {}
@@ -809,7 +690,7 @@ def _combine(attachment_report, body_report):
                 if item not in iocs[key]:
                     iocs[key].append(item)
 
-    # Categoría: la del adjunto, si no, body
+
     category = a.get('category') or ('body' if b.get('evidence') else 'unknown')
 
     analyzers = list(a.get('analyzers_run', []))
@@ -820,23 +701,11 @@ def _combine(attachment_report, body_report):
 
 
 def _combine_many(attachment_reports, body_report, url_report=None):
-    """
-    Combina N reportes de adjuntos + el body + las URLs consolidadas.
-    Devuelve el veredicto agregado.
 
-    - final_score = MAX de todos — el peor adjunto / URL / body decide.
-    - evidence    = unión con prefijo [archivo.ext] cuando viene de un adjunto
-                    específico, para que sea claro a qué archivo pertenece.
-    - iocs        = unión global sin duplicados.
-    - category    = categoría del adjunto MÁS peligroso (si hay), si no body/url.
-    - threat_name = el del adjunto con mayor score, o del body/url si pesan más.
-    """
-    scores    = []        # (score, label, category, threat)
+    scores    = []
     evidence  = []
     iocs      = {"urls": [], "ips": [], "domains": [], "hashes": []}
     analyzers = []
-
-    # --- Cada adjunto ---
     for rep in attachment_reports or []:
         if not rep:
             continue
@@ -846,25 +715,19 @@ def _combine_many(attachment_reports, body_report, url_report=None):
                        rep.get("category", "unknown"),
                        rep.get("threat_name", "")))
 
-        # Evidencia con prefijo del archivo
         for ev in rep.get("evidence", []) or []:
             ev2 = dict(ev)
             ev2["detail"] = f"[{fname}] {ev.get('detail', '')}"
             evidence.append(ev2)
-
-        # IOCs
         for key in iocs.keys():
             for item in (rep.get("iocs", {}) or {}).get(key, []) or []:
                 if item not in iocs[key]:
                     iocs[key].append(item)
 
-        # Analyzers
         for a in rep.get("analyzers_run", []) or []:
             tag = f"{a}:{fname}"
             if tag not in analyzers:
                 analyzers.append(tag)
-
-    # --- Body ---
     b = body_report or {}
     b_score = int(b.get("score", 0))
     if b.get("evidence") or b_score > 0:
@@ -877,8 +740,6 @@ def _combine_many(attachment_reports, body_report, url_report=None):
                 iocs[key].append(item)
     if b.get("evidence"):
         analyzers.append("body")
-
-    # --- URLs consolidadas (body + todos los adjuntos) ---
     u = url_report or {}
     u_score = int(u.get("score", 0))
     if u.get("evidence"):
@@ -890,8 +751,6 @@ def _combine_many(attachment_reports, body_report, url_report=None):
                 if item not in iocs[key]:
                     iocs[key].append(item)
         analyzers.append("url")
-
-    # --- Veredicto agregado ---
     if not scores:
         return 0, "", evidence, iocs, "unknown", analyzers
 
@@ -899,8 +758,7 @@ def _combine_many(attachment_reports, body_report, url_report=None):
     final_score = scores[0][0]
     category    = scores[0][2]
 
-    # Threat name: el del de mayor score. Si hay más de un adjunto con
-    # score alto, lo indicamos.
+
     top = [s for s in scores if s[0] == final_score and s[3]]
     if len(top) > 1:
         threat = " · ".join(dict.fromkeys(s[3] for s in top))
@@ -913,7 +771,6 @@ def _combine_many(attachment_reports, body_report, url_report=None):
     if n_att > 1 and final_score >= 61:
         threat = f"{threat} (en {n_att} adjuntos)"
 
-    # Deduplicar evidence por (type, detail)
     seen = set()
     unique = []
     for ev in evidence:
@@ -922,8 +779,6 @@ def _combine_many(attachment_reports, body_report, url_report=None):
             seen.add(key)
             unique.append(ev)
     evidence = unique
-
-    # threat_name del modelo tiene max_length=200 — truncamos con elipsis
     if len(threat) > 200:
         threat = threat[:197].rstrip() + "…"
 
@@ -937,27 +792,9 @@ def _to_level(score: int) -> str:
     return 'malware'
 
 
-# ══════════════════════════════════════════════════════════════════════
-#  HELPER CENTRALIZADO DE ENVÍO POR RESEND
-# ══════════════════════════════════════════════════════════════════════
-
 def _send_via_resend(from_addr, to_email, subject, html_body,
                      reply_to=None, attachments=None, send_at=None):
-    """
-    Envía un correo HTML usando la API de Resend.
 
-    Parámetros:
-        from_addr   : "Nombre <correo@dominio>" o solo "correo@dominio"
-        to_email    : str (un solo destinatario)
-        subject     : str
-        html_body   : str con HTML completo del correo
-        reply_to    : str opcional con el correo de respuesta
-        attachments : lista opcional de {filename, content (base64 str), type}
-        send_at     : Unix timestamp opcional para envío programado.
-                      Se convierte a ISO 8601 para Resend.
-
-    Devuelve True si se envió, False si falló.
-    """
     api_key = os.environ.get('RESEND_API_KEY', '').strip()
     if not api_key:
         print('[webhook] RESEND_API_KEY no configurada — correo no enviado.')
@@ -977,7 +814,6 @@ def _send_via_resend(from_addr, to_email, subject, html_body,
         if reply_to:
             params['reply_to'] = reply_to
 
-        # Envío programado: convertir Unix timestamp a ISO 8601
         if send_at:
             try:
                 dt = datetime.fromtimestamp(int(send_at), tz=timezone.utc)
@@ -1004,23 +840,10 @@ def _send_via_resend(from_addr, to_email, subject, html_body,
         return False
 
 
-# ══════════════════════════════════════════════════════════════════════
-#  ALERTA DE AMENAZA VÍA RESEND
-# ══════════════════════════════════════════════════════════════════════
+
 
 def send_threat_alert(email_obj, result, sandbox_id=None, alert_type='initial'):
-    """
-    Envía un correo de alerta al usuario cuando se detecta
-    un archivo malicioso en uno de sus alias.
 
-    alert_type:
-      'initial' — alerta original del webhook (archivo bloqueado al llegar).
-      'unlock'  — alerta tras desbloquear un ZIP protegido (amenaza confirmada).
-
-    sandbox_id: pk del SandboxAnalysis para enlazar directo al reporte.
-    En producción define SITE_URL en tu .env:
-        SITE_URL=https://tudominio.com
-    """
     try:
         risk_score  = result.get('risk_score', 0)
         threat_name = result.get('threat_name', 'Amenaza desconocida')
@@ -1031,10 +854,6 @@ def send_threat_alert(email_obj, result, sandbox_id=None, alert_type='initial'):
         user_email  = email_obj.alias.user.email
         timestamp   = datetime.now(timezone.utc).strftime('%d %b %Y · %H:%M UTC')
 
-        # ── URL del reporte ────────────────────────────────────────────
-        # Usamos el helper centralizado para que TODOS los correos
-        # apunten al mismo dominio (settings.SITE_URL ← .env SITE_URL),
-        # y la barra final se normalice automáticamente.
         from apps.core.services.email_service import get_site_url
         from django.urls import reverse
         base_url   = get_site_url()
@@ -1045,7 +864,7 @@ def send_threat_alert(email_obj, result, sandbox_id=None, alert_type='initial'):
         )
         logo_url = f"{base_url}/static/core/img/logo-purple.png"
 
-        # ── Nivel de amenaza ───────────────────────────────────────────
+
         if alert_type == 'unlock':
             if risk_score >= 81:
                 level_label  = "MALWARE CONFIRMADO TRAS DESBLOQUEO"
@@ -1278,14 +1097,13 @@ def send_threat_alert(email_obj, result, sandbox_id=None, alert_type='initial'):
 </body>
 </html>"""
 
-        # Remitente: usa tu dominio verificado en Resend (MAIL_DOMAIN del .env)
         from django.conf import settings
         domain = settings.MAIL_DOMAIN or 'dockershield.lat'
         from_addr = f"DockerShield <alerts@{domain}>"
 
         ok = _send_via_resend(
             from_addr = from_addr,
-            to_email  = user_email,   # ← Correo REAL del dueño del alias
+            to_email  = user_email,
             subject   = f"Amenaza bloqueada en tu alias — {filename}",
             html_body = html_body,
         )
@@ -1296,29 +1114,18 @@ def send_threat_alert(email_obj, result, sandbox_id=None, alert_type='initial'):
         print(f"Error enviando alerta: {e}")
 
 
-# ══════════════════════════════════════════════════════════════════════
-#  REENVÍO DE CORREOS SEGUROS (opt-in del usuario) — VÍA RESEND
-# ══════════════════════════════════════════════════════════════════════
 
 def send_safe_email_forward(email_obj, force=False):
-    """
-    Reenvía un correo SEGURO al correo real del usuario.
 
-    - Si `force=False` (default): solo envía si el usuario activó la opción
-      `forward_safe_emails` en su perfil (auto-forward).
-    - Si `force=True`: ignora la opción y siempre envía. Se usa cuando el
-      usuario aprueba MANUALMENTE un reenvío desde el panel de notificaciones.
-    """
     try:
         user = email_obj.alias.user
 
-        # Solo verificamos opt-in si NO es un envío forzado
         if not force:
             try:
                 if not user.profile.forward_safe_emails:
                     return
             except Exception:
-                return  # Sin profile, no reenviamos automáticamente
+                return
 
         user_email = user.email
         if not user_email:
@@ -1334,25 +1141,17 @@ def send_safe_email_forward(email_obj, force=False):
         original_sender  = email_obj.from_email or '(remitente desconocido)'
         original_subject = email_obj.subject or '(sin asunto)'
         alias_address    = email_obj.alias.address
-        # Para reenviar usamos el HTML ORIGINAL sin neutralizar (links activos,
-        # imágenes cargan, formato exacto). Fallback a la versión neutralizada
-        # solo para correos viejos que no tienen el campo raw.
         body_html_raw    = getattr(email_obj, 'body_html_raw', '') or email_obj.body_html or ''
         body_text        = email_obj.body or ''
-        # `original_subject` y `original_sender` ya están definidos arriba; el
-        # wrapper minimalista no usa timestamp ni reabre estos campos.
 
-        # ── Recolectar TODOS los adjuntos del correo ─────────────────────
-        # Resend acepta adjuntos con {filename, content (base64), type}.
-        # Limite total recomendado: ~25 MB por correo.
         import base64 as _b64
 
         attachments_payload = []
-        attachments_meta = []   # para mostrar en el wrapper HTML
+        attachments_meta = []
         total_size = 0
-        MAX_TOTAL_SIZE = 25 * 1024 * 1024   # 25 MB
+        MAX_TOTAL_SIZE = 25 * 1024 * 1024
 
-        # 1) Adjuntos del análisis (cubre múltiples adjuntos)
+
         att_paths = []
         try:
             body_analysis = getattr(email_obj.analysis, 'body_analysis', None)
@@ -1365,12 +1164,9 @@ def send_safe_email_forward(email_obj, force=False):
         except Exception:
             pass
 
-        # 2) Fallback: el campo del modelo EmailAttachment (1er adjunto)
         att = getattr(email_obj, 'attachment', None)
         if not att_paths and att and att.has_attachment and att.attachment_path:
             att_paths.append((att.attachment_name or 'attachment', att.attachment_path))
-
-        # Leer y encodear cada uno
         for fname, fpath in att_paths:
             try:
                 if not os.path.isfile(fpath):
@@ -1391,8 +1187,6 @@ def send_safe_email_forward(email_obj, force=False):
             except Exception as e:
                 print(f"[forward] no se pudo leer adjunto {fname}: {e}")
 
-        # Si tenemos HTML ORIGINAL lo usamos tal cual; si solo hay texto plano,
-        # lo formateamos en <pre> para que mantenga saltos de línea.
         original_body_html = body_html_raw if body_html_raw else (
             f'<pre style="font-family:Consolas,Monaco,monospace;font-size:13px;'
             f'color:#1a1830;white-space:pre-wrap;word-wrap:break-word;margin:0">'
@@ -1400,7 +1194,7 @@ def send_safe_email_forward(email_obj, force=False):
             f'</pre>'
         )
 
-        # ── Banner HTML con la lista de adjuntos (si hay) ────────────────
+
         attachments_banner_html = ''
         if attachments_meta:
             def _fmt_size(b):
@@ -1420,7 +1214,7 @@ def send_safe_email_forward(email_obj, force=False):
                     f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">{_fmt_size(a["size"])} · escaneado por sandbox</div>'
                     f'</td></tr></table></td></tr>'
                 )
-            # Envoltorio en tabla propia (fondo oscuro consistente)
+
             attachments_banner_html = (
                 '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
                 'style="background:#0c0a18;border-bottom:1px solid rgba(255,255,255,0.06)">'

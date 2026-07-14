@@ -6,7 +6,6 @@ function togglePwd(id, btn) {
   btn.querySelector('.eye-closed').style.display = open ? '' : 'none';
 }
 
-// Validación visual en vivo de los requisitos
 (function () {
   const p1 = document.getElementById('pwd1');
   const p2 = document.getElementById('pwd2');

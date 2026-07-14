@@ -1,11 +1,4 @@
-"""
-Notificación por correo cuando un admin REACTIVA una cuenta que había
-sido bloqueada permanentemente por intentos fallidos de login.
 
-Se invoca desde apps/core/views.py::admin_account_recovery_request_resolve
-cuando el admin aprueba la solicitud (action='approve'). No bloquea la
-recuperación si el envío falla — devuelve (ok, info).
-"""
 from typing import Tuple, Optional
 
 from apps.core.services.email_service import send_email, get_site_url
@@ -18,11 +11,7 @@ def send_account_reactivated_email(
     admin_note: str = '',
     admin_username: Optional[str] = None,
 ) -> Tuple[bool, str]:
-    """
-    Envía la confirmación de reactivación al correo personal del usuario.
-    El email contiene un CTA para volver al login y una nota del admin
-    si la dejó (consejos de seguridad, motivo de la reactivación, etc.).
-    """
+
     if not to_email:
         return False, 'sin destinatario'
     try:
@@ -46,13 +35,13 @@ def _build_reactivated_html(
     admin_note: str,
     admin_username: Optional[str],
 ) -> str:
-    """HTML estilo verde (positivo) avisando la reactivación."""
+
     base_url  = get_site_url()
     login_url = f"{base_url}/"
     logo_url  = f"{base_url}/static/core/img/logo-green.png"
     name_safe = (display_name or 'Usuario').strip() or 'Usuario'
 
-    # Bloque opcional con la nota del admin
+
     admin_block = ''
     if admin_note.strip():
         admin_label = (

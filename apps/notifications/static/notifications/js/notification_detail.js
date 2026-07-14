@@ -25,8 +25,7 @@
       headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' },
     })
       .then(async r => {
-        // Intentamos leer el body como JSON aunque el status no sea 2xx.
-        // El backend devuelve {ok:false, error:'no_actionable'} con 400, etc.
+
         let data = null;
         try { data = await r.json(); } catch (e) { /* sin JSON */ }
         return { ok: r.ok, status: r.status, data };
@@ -37,7 +36,6 @@
           location.reload();
           return;
         }
-        // Hubo error. Mapeamos códigos comunes a mensajes legibles.
         let msg;
         const errCode = (data && data.error) || '';
         if (status === 403)                  msg = 'Sesión expirada. Recarga la página.';
@@ -51,23 +49,19 @@
         btn.disabled = false;
       })
       .catch(err => {
-        // Sólo entra acá si la petición NO se completó (DNS, offline, CORS).
+
         console.error('[notification-action] network error', err);
         show('err', 'Error de red. Verifica tu conexión y reintenta.');
         btn.disabled = false;
       });
   }
 
-  // El template inyecta la URL completa con {% url ... notif.id %} en
-  // data-url. Antes el JS leía data-id (no existe), generando POSTs a
-  // /notificaciones/undefined/reenviar/ que respondían 404.
   const fwUrl   = btnFw.dataset.url;
   const dcUrl   = btnDc.dataset.url;
   const isRisky = btnFw.dataset.risky === '1';
 
   btnFw.addEventListener('click', async () => {
-    // Si el correo es sospechoso (score 31-60), pedimos confirmación
-    // explícita con el modal danger antes de reenviar a Gmail.
+
     if (isRisky && window.confirmDialog) {
       const ok = await window.confirmDialog({
         danger:      true,

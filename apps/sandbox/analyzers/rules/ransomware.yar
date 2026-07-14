@@ -1,21 +1,4 @@
-/*
-   ════════════════════════════════════════════════════════════════════
-   ransomware.yar — Familias de ransomware modernas
-   ════════════════════════════════════════════════════════════════════
 
-   Cubre las familias más activas vistas en correo electrónico como
-   vector inicial: Conti, REvil, LockBit, Maze, Ryuk, Locky, etc.
-
-   Fuentes:
-     • signature-base (Neo23x0/Florian Roth) — CC BY-NC 4.0
-
-   Importado: 2026-05-17
-   ════════════════════════════════════════════════════════════════════
-*/
-
-
-
-/* ── Source: signature-base/crime_ransom_conti.yar — CC BY-NC 4.0 ── */
 
 
 rule MAL_RANSOM_ContiCrypter {
@@ -34,7 +17,6 @@ rule MAL_RANSOM_ContiCrypter {
         1 of ($handoff*) and 1 of ($garbageLoad*)
 }
 
-/* ── Source: signature-base/crime_ransom_darkside.yar — CC BY-NC 4.0 ── */
 
 
 rule MAL_RANSOM_Darkside_May21_1 {
@@ -115,9 +97,6 @@ rule MAL_Backdoor_Win_C3_1 {
 }
 
 
-/* ── Source: signature-base/crime_ransom_generic.yar — CC BY-NC 4.0 ── */
-
-
 rule SUSP_RANSOMWARE_Indicator_Jul20 {
    meta:
       description = "Detects ransomware indicator"
@@ -154,7 +133,6 @@ rule SUSP_RANSOMWARE_Indicator_Jul20 {
 }
 
 
-/* ── Source: signature-base/crime_ransom_germanwiper.yar — CC BY-NC 4.0 ── */
 
 rule MAL_Ransomware_GermanWiper {
    meta:
@@ -170,7 +148,6 @@ rule MAL_Ransomware_GermanWiper {
       $x_Mutex1 = "HSDFSD-HFSD-3241-91E7-ASDGSDGHH" ascii
       $x_Mutex2 = "cFgxTERNWEVhM2V" ascii
 
-      // code patterns for process kills
       $PurgeCode = { 6a 00 8b 47 08 50 6a 00 6a 01 e8 ?? ?? ?? ??
                      50 e8 ?? ?? ?? ?? 8b f0 8b d7 8b c3 e8 }
       $ProcessKill1 = "sqbcoreservice.exe" ascii
@@ -185,7 +162,6 @@ rule MAL_Ransomware_GermanWiper {
 }
 
 
-/* ── Source: signature-base/crime_ransom_lockergoga.yar — CC BY-NC 4.0 ── */
 
 
 rule Ransom_LockerGoga_Mar19_1 {
@@ -215,7 +191,6 @@ rule Ransom_LockerGoga_Mar19_1 {
 }
 
 
-/* ── Source: signature-base/crime_ransom_prolock.yar — CC BY-NC 4.0 ── */
 
 rule MAL_Prolock_Malware {
 	meta:
@@ -238,7 +213,7 @@ rule MAL_Prolock_Malware {
 		((uint16(0) == 0x5A4D) or (uint16(0) == 0x4D42)) and filesize < 100KB and (($DecryptionRoutine) or (1 of ($DecryptedString*) and $CryptoCode))
 }
 
-/* ── Source: signature-base/crime_ransom_ragna_locker.yar — CC BY-NC 4.0 ── */
+
 
 import "pe"
 
@@ -292,26 +267,25 @@ rule MAL_Ransom_Ragnarlocker_July_2020_1 {
       $r1 = "$!.txt" fullword wide
       $r2 = "---BEGIN KEY R_R---" fullword ascii
       $r3 = "!$R4GN4R_" wide
-      $r4 = "RAGNRPW" fullword ascii /* parser */
+      $r4 = "RAGNRPW" fullword ascii 
       $r5 = "---END KEY R_R---" fullword ascii
       $a1 = "+RhRR!-uD8'O&Wjq1_P#Rw<9Oy?n^qSP6N{BngxNK!:TG*}\\|W]o?/]H*8z;26X0" fullword ascii    
-      $a2 = "\\\\.\\PHYSICALDRIVE%d" fullword wide /* parse disks */
-      $a3 = "WinSta0\\Default" fullword wide /* Token ref */
-      $a4 = "%s-%s-%s-%s-%s" fullword wide /* GUID parser*/
-      $a5 = "SOFTWARE\\Microsoft\\Cryptography" fullword wide /* Ref crypto used */
+      $a2 = "\\\\.\\PHYSICALDRIVE%d" fullword wide 
+      $a3 = "WinSta0\\Default" fullword wide 
+      $a4 = "%s-%s-%s-%s-%s" fullword wide 
+      $a5 = "SOFTWARE\\Microsoft\\Cryptography" fullword wide 
       $c1 = "-backup" fullword wide
       $c2 = "-force" fullword wide
       $c3 = "-vmback" fullword wide
       $c4 = "-list" fullword wide
-      $s1 = ".ragn@r_" wide /* ref */
-      $s2 = "\\notepad.exe" wide /* Show ransom note to the victim*/
-      $s3 = "Opera Software" fullword wide  /* Don't touch browsers for contact him*/
-      $s4 = "Tor browser" fullword wide /*Ref ransom note*/
+      $s1 = ".ragn@r_" wide 
+      $s2 = "\\notepad.exe" wide
+      $s3 = "Opera Software" fullword wide 
+      $s4 = "Tor browser" fullword wide 
    condition:
       uint16(0) == 0x5a4d and filesize < 30KB and ( pe.imphash() == "2c2aab89a4cba444cf2729e2ed61ed4f" and ( (2 of ($f*)) and (3 of ($r*)) and (4 of ($a*)) and (2 of ($c*)) and (2 of ($s*)) ) )
 }
 
-/* ── Source: signature-base/crime_ransom_revil.yar — CC BY-NC 4.0 ── */
 
 
 rule MAL_RANSOM_REvil_Oct20_1 {
@@ -338,8 +312,6 @@ rule MAL_RANSOM_REvil_Oct20_1 {
 }
 
 
-/* ── Source: signature-base/crime_ransom_robinhood.yar — CC BY-NC 4.0 ── */
-
 
 rule MAL_RANSOM_RobinHood_May19_1 {
    meta:
@@ -363,7 +335,6 @@ rule MAL_RANSOM_RobinHood_May19_1 {
 }
 
 
-/* ── Source: signature-base/crime_ransom_stealbit_lockbit.yar — CC BY-NC 4.0 ── */
 
 rule MAL_RANSOM_Stealbit_Aug21 {
 	meta:
@@ -380,7 +351,6 @@ rule MAL_RANSOM_Stealbit_Aug21 {
 		uint16(0) == 0x5A4D and filesize < 100KB and $C2Decryption
 }
 
-/* ── Source: signature-base/crime_ransom_venus.yar — CC BY-NC 4.0 ── */
 
 import "pe"
 
@@ -423,8 +393,6 @@ rule MAL_RANSOM_Venus_Nov22_1 {
 
 
 
-/* ── Source: signature-base/crime_mal_ransom_wadharma.yar — CC BY-NC 4.0 ── */
-
 import "pe"
 
 rule MAL_Ransomware_Wadhrama {
@@ -440,7 +408,7 @@ rule MAL_Ransomware_Wadhrama {
 }
 
 
-/* ── Source: signature-base/crime_hermes_ransom.yar — CC BY-NC 4.0 ── */
+
 
 rule Hermes2_1 {
    meta:
@@ -451,27 +419,27 @@ rule Hermes2_1 {
       hash = "b27881f59c8d8cc529fa80a58709db36"
       id = "13397a43-04e1-5cc1-9260-9895736013f3"
    strings:
-      //in both version 2.1 and sample in Feb
+
       $s1 = "SYSTEM\\CurrentControlSet\\Control\\Nls\\Language\\"
       $s2 = "0419"
       $s3 = "0422"
       $s4 = "0423"
-      //in version 2.1 only
+      
       $S1 = "HERMES"
       $S2 = "vssadminn"
       $S3 = "finish work"
       $S4 = "testlib.dll"
       $S5 = "shadowstorageiet"
-      //maybe unique in the file
+
       $u1 = "ALKnvfoi4tbmiom3t40iomfr0i3t4jmvri3tb4mvi3btv3rgt4t777"
       $u2 = "HERMES 2.1 TEST BUILD, press ok"
-      $u3 = "hnKwtMcOadHwnXutKHqPvpgfysFXfAFTcaDHNdCnktA" //RSA Key part
+      $u3 = "hnKwtMcOadHwnXutKHqPvpgfysFXfAFTcaDHNdCnktA" 
    condition:
       uint16(0) == 0x5a4d and all of ($s*) and 3 of ($S*) and 1 of ($u*)
 }
 
 
-/* ── Source: signature-base/crime_dearcry_ransom.yar — CC BY-NC 4.0 ── */
+
 
 rule MAL_RANSOM_Crime_DearCry_Mar2021_1 {
     meta:
@@ -528,14 +496,8 @@ rule MAL_CRIME_RANSOM_DearCry_Mar21_1 {
 }
 
 
-/* ── Source: signature-base/crime_locky.yar — CC BY-NC 4.0 ── */
 
-/*
-	Yara Rule Set
-	Author: Florian Roth
-	Date: 2016-02-17
-	Identifier: Locky
-*/
+
 
 rule Locky_Ransomware {
 	meta:
@@ -546,14 +508,13 @@ rule Locky_Ransomware {
 		hash = "5e945c1d27c9ad77a2b63ae10af46aee7d29a6a43605a9bfbf35cebbcff184d8"
 		id = "ce61e01e-a9ce-54f4-bd2d-8acf1d5fbc30"
 	strings:
-		$o1 = { 45 b8 99 f7 f9 0f af 45 b8 89 45 b8 } // address=0x4144a7
-		$o2 = { 2b 0a 0f af 4d f8 89 4d f8 c7 45 } // address=0x413863
+		$o1 = { 45 b8 99 f7 f9 0f af 45 b8 89 45 b8 } 
+		$o2 = { 2b 0a 0f af 4d f8 89 4d f8 c7 45 } 
 	condition:
 		all of ($o*)
 }
 
 
-/* ── Source: signature-base/crime_maze_ransomware.yar — CC BY-NC 4.0 ── */
 
 rule crime_win32_ransom_maze_dll_1 {
    meta:
@@ -574,7 +535,7 @@ rule crime_win32_ransom_maze_dll_1 {
 }
 
 
-/* ── Source: signature-base/crime_mal_grandcrab.yar — CC BY-NC 4.0 ── */
+
 
 import "pe"
 
@@ -592,7 +553,6 @@ rule MAL_GandCrab_Apr18_1 {
 }
 
 
-/* ── Source: signature-base/crime_revil_general.yar — CC BY-NC 4.0 ── */
 
 import "pe"
 
@@ -653,7 +613,6 @@ rule APT_MAL_REvil_Kaseya_Jul21_2 {
 }
 
 
-/* ── Source: signature-base/crime_ryuk_ransomware.yar — CC BY-NC 4.0 ── */
 
 import "pe"
 
@@ -681,18 +640,8 @@ rule MAL_Ryuk_Ransomware {
 }
 
 
-/* ── Source: signature-base/crime_wannacry.yar — CC BY-NC 4.0 ── */
 
 
-/*
-   Yara Rule Set
-   Author: Florian Roth
-   Date: 2017-05-12
-   Identifier: WannaCry
-   Reference: https://goo.gl/HG2j5T
-*/
-
-/* Rule Set ----------------------------------------------------------------- */
 
 rule WannaCry_Ransomware {
    meta:
@@ -801,7 +750,7 @@ rule WannaCry_RansomNote {
       ( uint16(0) == 0x3a51 and filesize < 2KB and all of them )
 }
 
-/* Kaspersky Rule */
+
 
 rule APT_lazaruswannacry {
    meta:
@@ -832,16 +781,7 @@ rule APT_lazaruswannacry {
 }
 
 
-/* ── Source: signature-base/crime_goldeneye.yar — CC BY-NC 4.0 ── */
 
-/*
-   Yara Rule Set
-   Author: Florian Roth
-   Date: 2016-12-06
-   Identifier: GoldenEye Ransomware
-*/
-
-/* Rule Set ----------------------------------------------------------------- */
 
 rule GoldenEye_Ransomware_XLS {
    meta:
@@ -876,17 +816,10 @@ rule GoldenEyeRansomware_Dropper_MalformedZoomit {
 }
 
 
-/* ── Source: signature-base/crime_badrabbit.yar — CC BY-NC 4.0 ── */
 
-/*
-   Yara Rule Set
-   Author: Florian Roth
-   Date: 2017-10-25
-   Identifier: BadRabbit
-   Reference: https://pastebin.com/Y7pJv3tK
-*/
 
-/* Rule Set ----------------------------------------------------------------- */
+
+
 
 rule BadRabbit_Gen {
    meta:
@@ -932,25 +865,15 @@ rule BadRabbit_Mimikatz_Comp {
       $s1 = "%lS%lS%lS:%lS" fullword wide
       $s2 = "lsasrv" fullword wide
       $s3 = "CredentialKeys" ascii
-      /* Primary\x00m\x00s\x00v */
       $s4 = { 50 72 69 6D 61 72 79 00 6D 00 73 00 76 00 }
    condition:
       ( uint16(0) == 0x5a4d and filesize < 200KB and 3 of them )
 }
 
 
-/* ── Source: signature-base/crime_nopetya_jun17.yar — CC BY-NC 4.0 ── */
 
-/*
-   Yara Rule Set
-   Author: Florian Roth
-   Date: 2017-06-27
-   Identifier: NotPetya
-   Reference: https://goo.gl/h6iaGj
-              https://gist.github.com/vulnersCom/65fe44d27d29d7a5de4c176baba45759
-*/
 
-/* Rule Set ----------------------------------------------------------------- */
+
 
 rule NotPetya_Ransomware_Jun17 {
    meta:
@@ -970,7 +893,6 @@ rule NotPetya_Ransomware_Jun17 {
       $x4 = "Send your Bitcoin wallet ID and personal installation key to e-mail " fullword wide
       $x5 = "fsutil usn deletejournal /D %c:" fullword wide
       $x6 = "wevtutil cl Setup & wevtutil cl System" ascii
-      /* ,#1 ..... rundll32.exe */
       $x7 = { 2C 00 23 00 31 00 20 00 00 00 00 00 00 00 00 00 72 00 75 00 6E
          00 64 00 6C 00 6C 00 33 00 32 00 2E 00 65 00 78 00 65 00 }
 
@@ -983,7 +905,6 @@ rule NotPetya_Ransomware_Jun17 {
       uint16(0) == 0x5a4d and filesize < 1000KB and ( 1 of ($x*) or 3 of them )
 }
 
-/* ── Source: signature-base/crime_covid_ransom.yar — CC BY-NC 4.0 ── */
 
 
 rule MAL_RANSOM_COVID19_Apr20_1 {

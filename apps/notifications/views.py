@@ -1,13 +1,4 @@
-"""
-Vistas y APIs del sistema de notificaciones (panel de campana).
 
-  - notification_list_view  → página completa con todas las notificaciones
-  - notification_detail_view → detalle de una notificación + acciones
-  - notification_unread_api  → JSON para refrescar el badge bajo demanda
-  - notification_mark_read_api → marca una como leída
-  - notification_forward_api  → aprueba reenvío (forward_request)
-  - notification_discard_api  → descarta (forward_request)
-"""
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
@@ -18,15 +9,10 @@ from django.views.decorators.http import require_POST
 from .models import Notification
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  Render: lista completa
-# ─────────────────────────────────────────────────────────────────────
-
-NOTIF_BATCH = 6   # notificaciones por "página" en el load-more
+NOTIF_BATCH = 6   
 
 
 def _notifs_qs(user):
-    """QuerySet base de notificaciones del usuario."""
     return Notification.objects.filter(user=user).select_related(
         'related_email', 'related_email__alias',
     )
@@ -34,7 +20,6 @@ def _notifs_qs(user):
 
 @login_required(login_url='login')
 def notification_list_view(request):
-    """Página con notificaciones — carga diferida."""
     from django.db.models import Q
     full_qs = _notifs_qs(request.user)
 
@@ -61,7 +46,6 @@ def notification_list_view(request):
 
 @login_required(login_url='login')
 def notification_more_api(request):
-    """Siguiente lote de notificaciones como HTML parcial. Espera `?offset=N`."""
     try:
         offset = int(request.GET.get('offset') or 0)
     except ValueError:
@@ -89,18 +73,12 @@ def notification_more_api(request):
     })
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  Render: detalle de una notificación
-# ─────────────────────────────────────────────────────────────────────
-
 @login_required(login_url='login')
 def notification_detail_view(request, pk):
-    """Detalle de una notificación. Si es de un correo, muestra preview completo."""
     notif = get_object_or_404(
         Notification.objects.select_related('related_email', 'related_email__alias'),
         pk=pk, user=request.user,
     )
-    # Marcar como leída automáticamente al abrirla
     if not notif.read:
         notif.read = True
         notif.save(update_fields=['read'])
@@ -110,42 +88,26 @@ def notification_detail_view(request, pk):
     })
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  API: contador + últimas (para refrescar el dropdown del bell)
-# ─────────────────────────────────────────────────────────────────────
-
 @login_required(login_url='login')
 def notification_unread_api(request):
-    """JSON con contador y últimas N notificaciones para el dropdown."""
     qs = Notification.objects.filter(user=request.user).select_related(
         'related_email__alias',
     )
     unread_count  = qs.filter(read=False).count()
     pending_count = qs.filter(type='forward_request', status='pending').count()
-    # Pendientes que además están sin leer — el sidebar lo usa para decidir
-    # si pintar el badge en amarillo (urgencia) o en violeta (informativo).
     unread_pending_count = qs.filter(
         type='forward_request', status='pending', read=False,
     ).count()
-    # IDs de las que están sin leer ahora mismo. La página /notificaciones/
-    # los usa para sincronizar el estado visual de las filas en vivo (ej.
-    # quitar la clase `unread` de las que ya leyó el usuario en otra
-    # pestaña / al abrir el correo). Capamos a 500 para no inflar el JSON.
     unread_ids = list(qs.filter(read=False).values_list('id', flat=True)[:500])
     recent = list(qs[:8])
 
     def _row(n):
-        # Score del correo asociado, para que el frontend pinte el toast
-        # del color correcto (verde=seguro, amarillo=sospechoso, rojo=amenaza).
         risk = None
         if n.related_email_id:
             try:
                 risk = int(n.related_email.risk_score or 0)
             except Exception:
                 risk = None
-        # Deep-link: si la notificación trae `target_url`, ese gana.
-        # Si no, devolvemos la URL FIRMADA del detalle (el converter `sid`
-        # exige token, no entero — un /notificaciones/94/ crudo cae a 404).
         link = n.target_url or reverse('notification_detail', kwargs={'pk': n.id})
         return {
             'id':         n.id,
@@ -161,9 +123,6 @@ def notification_unread_api(request):
             'url':        link,
         }
 
-    # Marker server-side del último toast mostrado para este usuario.
-    # Lo usa el JS del bell para evitar que el mismo toast se muestre en
-    # OTRO dispositivo cuando el usuario ya lo vio en uno (ej. celular → PC).
     try:
         last_toast_id = request.user.profile.last_toast_notif_id or 0
     except Exception:
@@ -181,7 +140,6 @@ def notification_unread_api(request):
 
 
 def _time_short(dt):
-    """'hace 3m', 'hace 2h', 'ayer', '5/6'"""
     delta = timezone.now() - dt
     s = int(delta.total_seconds())
     if s < 60:    return 'ahora'
@@ -192,14 +150,9 @@ def _time_short(dt):
     return dt.strftime('%d/%m')
 
 
-# ─────────────────────────────────────────────────────────────────────
-#  Acciones (POST)
-# ─────────────────────────────────────────────────────────────────────
-
 @login_required(login_url='login')
 @require_POST
 def notification_mark_read_api(request, pk):
-    """Marca una notificación como leída."""
     n = get_object_or_404(Notification, pk=pk, user=request.user)
     if not n.read:
         n.read = True
@@ -210,7 +163,6 @@ def notification_mark_read_api(request, pk):
 @login_required(login_url='login')
 @require_POST
 def notification_mark_all_read_api(request):
-    """Marca TODAS las notificaciones como leídas."""
     Notification.objects.filter(user=request.user, read=False).update(read=True)
     return JsonResponse({'ok': True})
 
@@ -218,16 +170,7 @@ def notification_mark_all_read_api(request):
 @login_required(login_url='login')
 @require_POST
 def notification_mark_toast_shown_api(request):
-    """
-    Actualiza el marker server-side del último ID de notificación cuyo toast
-    ya se mostró al usuario. Sincroniza la "vista" entre dispositivos:
-    si el usuario ya vio el toast en su celular, no se vuelve a disparar
-    cuando abre la app en su PC con la misma cuenta.
 
-    POST body: last_id=<int>
-    Sólo avanza el marker (nunca lo retrocede), por si llegan llamadas
-    desordenadas desde 2 tabs abiertas en paralelo.
-    """
     try:
         last_id = int(request.POST.get('last_id', 0))
     except (TypeError, ValueError):
@@ -248,7 +191,6 @@ def notification_mark_toast_shown_api(request):
 @login_required(login_url='login')
 @require_POST
 def notification_forward_api(request, pk):
-    """Aprueba el reenvío de un correo seguro al correo real del usuario."""
     n = get_object_or_404(
         Notification.objects.select_related('related_email__alias__user'),
         pk=pk, user=request.user,
@@ -258,8 +200,6 @@ def notification_forward_api(request, pk):
     if not n.related_email:
         return JsonResponse({'ok': False, 'error': 'no_email'}, status=400)
 
-    # Disparamos el reenvío en un thread para no bloquear la respuesta HTTP.
-    # Si falla, el error se loguea internamente en send_safe_email_forward.
     import threading
     from apps.mail.webhook import send_safe_email_forward
     threading.Thread(
@@ -278,13 +218,7 @@ def notification_forward_api(request, pk):
 @login_required(login_url='login')
 @require_POST
 def notification_clear_api(request):
-    """
-    Vacía notificaciones del usuario según el filtro:
-      - all       → todas (excepto pendientes que requieren acción)
-      - read      → solo las leídas
-      - discarded → solo las descartadas
-      - all_force → TODAS sin excepción (incluye pendientes — uso con confirmación fuerte)
-    """
+
     scope = request.POST.get('scope', 'read')
     qs = Notification.objects.filter(user=request.user)
 
@@ -293,10 +227,9 @@ def notification_clear_api(request):
     elif scope == 'discarded':
         qs = qs.filter(status='discarded')
     elif scope == 'all':
-        # Todas EXCEPTO pendientes (para no perder acciones requeridas)
         qs = qs.exclude(type='forward_request', status='pending')
     elif scope == 'all_force':
-        pass   # qs queda con TODAS
+        pass
     else:
         return JsonResponse({'ok': False, 'error': 'invalid_scope'}, status=400)
 
@@ -308,7 +241,6 @@ def notification_clear_api(request):
 @login_required(login_url='login')
 @require_POST
 def notification_discard_api(request, pk):
-    """Descarta la solicitud de reenvío (no se manda nada, pero el correo sigue en /bandeja/)."""
     n = get_object_or_404(Notification, pk=pk, user=request.user)
     if n.type != 'forward_request' or n.status != 'pending':
         return JsonResponse({'ok': False, 'error': 'no_actionable'}, status=400)

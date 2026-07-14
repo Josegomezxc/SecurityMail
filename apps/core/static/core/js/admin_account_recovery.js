@@ -1,4 +1,3 @@
-/* Búsqueda con debounce 350ms */
 (function () {
   const form  = document.getElementById('arr-search-form');
   const input = document.getElementById('arr-search-input');

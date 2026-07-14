@@ -24,13 +24,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
-    /* ════════════════════════════════════════════════════════════════
-       Estilos inline a propósito: si el static está roto, la página
-       de error igual se ve bien. Es la única página del proyecto que
-       DEBE renderizar pase lo que pase.
-       Mobile First Strict — defaults pensados para móvil, @media
-       (min-width:768px) añade el layout más amplio para desktop.
-       ════════════════════════════════════════════════════════════════ */
+
     :root {
       --bg:           #0a0814;
       --bg-deep:      #06040d;
@@ -73,7 +67,6 @@
       position: relative;
     }
 
-    /* ── Fondo: grid de puntos + radial gradients ───────────────────── */
     .err-bg {
       position: fixed;
       inset: 0;
@@ -100,7 +93,6 @@
         radial-gradient(circle 31.25rem at 85% 80%, rgba(167,139,250,0.13), transparent 60%);
     }
 
-    /* ── Línea decorativa de scan ────────────────────────────────────── */
     .err-scan {
       position: fixed;
       left: 0; right: 0;
@@ -118,14 +110,12 @@
       100% { top: 102%; opacity: 0; }
     }
 
-    /* ── Card principal — Mobile First ────────────────────────────────
-       Padding compacto, código y título reducidos, footer en 2 cols
-       con el último celda full-width. Desktop ≥768 amplía. */
+
     .err-card {
       position: relative;
       z-index: 2;
       width: 100%;
-      max-width: 36.25rem;             /* 580px */
+      max-width: 36.25rem;
       padding: 1px;
       border-radius: 1.5rem;
       background:
@@ -142,7 +132,7 @@
     .err-card-inner {
       background: var(--bg-surface);
       border-radius: 1.4375rem;
-      padding: 1.875rem 1.5rem 1.625rem;   /* mobile */
+      padding: 1.875rem 1.5rem 1.625rem;   
       position: relative;
       overflow: hidden;
     }
@@ -159,8 +149,7 @@
       to   { opacity: 1; transform: translateY(0)        scale(1); }
     }
 
-    /* ── Top bar: brand + status pill ─────────────────────────────────
-       Mobile: wrap permitido si no caben; Desktop: una sola fila. */
+
     .err-topbar {
       display: flex;
       align-items: center;
@@ -215,7 +204,7 @@
       50%      { opacity: 0.5; transform: scale(0.85); }
     }
 
-    /* ── Icono grande central ─────────────────────────────────────── */
+
     .err-icon-wrap {
       position: relative;
       width: 5.5rem;
@@ -254,10 +243,10 @@
     }
     .err-icon svg { width: 2.375rem; height: 2.375rem; color: #fff; }
 
-    /* ── Código de error gigante — Mobile: 4.75rem, Desktop: 6.5rem ── */
+
     .err-code {
       font-family: 'Syne', sans-serif;
-      font-size: 4.75rem;             /* mobile */
+      font-size: 4.75rem;
       font-weight: 800;
       line-height: 0.95;
       letter-spacing: -0.05em;
@@ -286,10 +275,10 @@
       pointer-events: none;
     }
 
-    /* ── Título + mensaje — Mobile: tipos reducidos ───────────────── */
+
     .err-title {
       font-family: 'Syne', sans-serif;
-      font-size: 1.25rem;             /* mobile */
+      font-size: 1.25rem;
       font-weight: 800;
       color: var(--text);
       letter-spacing: -0.015em;
@@ -297,7 +286,7 @@
       margin-bottom: 0.75rem;
     }
     .err-message {
-      font-size: 0.8125rem;           /* mobile */
+      font-size: 0.8125rem;
       line-height: 1.65;
       color: var(--text-muted);
       max-width: 27.5rem;
@@ -305,7 +294,7 @@
       text-align: center;
     }
 
-    /* ── Acciones (botones) ───────────────────────────────────────── */
+
     .err-actions {
       display: flex;
       gap: 0.625rem;
@@ -361,8 +350,7 @@
     }
     .err-btn svg { width: 0.875rem; height: 0.875rem; }
 
-    /* ── Footer técnico tipo terminal ─────────────────────────────────
-       Mobile: 2 cols con last celda spanning. Desktop: 3 cols. */
+
     .err-footer {
       margin-top: 1.75rem;
       padding-top: 1.25rem;
@@ -396,10 +384,6 @@
     .err-footer-value.is-warn { color: #fbbf24; }
     .err-footer-value.is-bad { color: #f87171; }
 
-    /* ══════════════════════════════════════════════════════════════════
-       DESKTOP — ≥ 768 px
-       Card más generosa, código gigante, footer en 3 cols, topbar nowrap.
-       ══════════════════════════════════════════════════════════════════ */
     @media (min-width: 768px) {
       body { padding: 1.5rem; }
       .err-card-inner { padding: 2.5rem 2.5rem 2rem; }
@@ -411,7 +395,6 @@
       .err-footer-cell:last-child { grid-column: auto; }
     }
 
-    /* ── Accesibilidad: reducir movimiento ───────────────────────── */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.001s !important;
