@@ -987,6 +987,7 @@ window.__SANDBOX_CTX__ = {
 }
 .pass-modal-input:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
 .pass-modal-input::placeholder { color: var(--text-muted); opacity: 0.6; }
+.pass-modal-input:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .pass-modal-actions {
     display: flex;
@@ -1128,6 +1129,7 @@ function closePassModal() {
 function submitPassword() {
     var pass = document.getElementById('passInput').value;
     if (!pass) return;
+    document.getElementById('passInput').disabled = true;
     document.getElementById('passError').classList.remove('visible');
     document.getElementById('passSubmitBtn').style.display = 'none';
     document.getElementById('passCancelBtn').style.display = 'none';
@@ -1152,6 +1154,7 @@ function submitPassword() {
         document.getElementById('passLoading').classList.remove('visible');
         document.getElementById('passSubmitBtn').style.display = '';
         document.getElementById('passCancelBtn').style.display = '';
+        document.getElementById('passInput').disabled = false;
 
         if (!data.ok) {
             document.getElementById('passError').textContent = data.error || 'Error al analizar';
@@ -1176,6 +1179,7 @@ function submitPassword() {
         document.getElementById('passLoading').classList.remove('visible');
         document.getElementById('passSubmitBtn').style.display = '';
         document.getElementById('passCancelBtn').style.display = '';
+        document.getElementById('passInput').disabled = false;
         document.getElementById('passError').textContent = err.message || 'Error de conexión. Intentá de nuevo.';
         document.getElementById('passError').classList.add('visible');
     });

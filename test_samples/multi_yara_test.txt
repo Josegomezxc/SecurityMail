@@ -1,0 +1,32 @@
+=== YARA MULTI-RULE TEST FILE ===
+
+[CryptoMiner]
+XMRig --cpu-priority 5 --threads 4
+stratum+tcp://pool.minexmr.com:4444
+
+[Ransomware]
+YOUR FILES HAVE BEEN ENCRYPTED
+Send 0.5 bitcoin to 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+
+[Exfil]
+https://discord.com/api/webhooks/123456/test
+certutil -decode encoded.b64 payload.exe
+
+[Defender Tamper]
+Set-MpPreference -DisableRealtimeMonitoring $true
+
+[Mimikatz]
+sekurlsa::logonpasswords
+lsadump::sam
+
+[Obfuscated PS]
+po" + "wer" + "sh" + "e" + "ll";
+.GetField('amsiContext',[Reflection.BindingFlags]'NonPublic,Static').Invoke()
+
+[SVG Phishing]
+<svg><script>steal()</script></svg>
+ppaction
+
+[Keylogger]
+_PasswordStealer
+_ScreenshotLogger
